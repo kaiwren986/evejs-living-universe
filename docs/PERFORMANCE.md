@@ -7,7 +7,7 @@ Published limits are test inputs, not hardware-independent guarantees.
 
 ## Tick targets
 
-The performance reference for a responsive EveJS server is a **100 ms tick
+The performance reference for a responsive target server is a **100 ms tick
 interval**.
 
 | Rolling tick interval | Interpretation | Operator response |

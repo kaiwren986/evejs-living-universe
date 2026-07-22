@@ -7,7 +7,7 @@ and balance are still being tested.
 
 ## 0.1.0-pre1 - 2026-07-21
 
-Initial patch-only preview for JohnElysian EveJS v0.12.2.
+Initial patch-only preview for the compatible v0.12.2 server baseline.
 
 ### Living universe
 
@@ -49,5 +49,5 @@ Initial patch-only preview for JohnElysian EveJS v0.12.2.
 ### Public packaging
 
 - Repackaged the project as one versioned patch plus a validating installer.
-- Excluded the EveJS baseline, EVE client, CCP assets, databases, certificates,
+- Excluded the server baseline, EVE client, CCP assets, databases, certificates,
   generated runtime content, and private deployment configuration.

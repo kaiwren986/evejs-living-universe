@@ -122,7 +122,7 @@ The practical target remains near the 100 ms tick baseline. See
 
 ## Distribution boundary
 
-This architecture is delivered as changes against a separately obtained EveJS
-v0.12.2 base. The repository contains no complete patched server tree, EVE
+This architecture is delivered as changes against a separately obtained
+compatible v0.12.2 base. The repository contains no complete patched server tree, EVE
 client, CCP assets, runtime databases, certificates, portrait cache, or private
 deployment data.

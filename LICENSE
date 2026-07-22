@@ -27,13 +27,13 @@ Scope and third-party notice
 
 This license applies only to original contributions authored for the X-Eve
 Living Universe patch, and only to the extent that the contributors have the
-right to license those contributions. It does not license or redistribute the
-JohnElysian EveJS source baseline, an EVE Online client, CCP Games assets,
+right to license those contributions. It does not license or redistribute any
+compatible server source baseline, an EVE Online client, CCP Games assets,
 trademarks, databases, or any other third-party material. Applying the patch
-requires a separately obtained compatible EveJS v0.12.2 installation, whose
-own terms continue to apply.
+requires a separately obtained compatible v0.12.2 installation, whose own terms
+continue to apply.
 
-This independent project is not affiliated with, endorsed by, or
-sponsored by CCP Games or the JohnElysian EveJS project. EVE Online and related
-trademarks belong to CCP Games. All other third-party names and marks belong to
-their respective owners.
+This independent project is not affiliated with, endorsed by, or sponsored by
+CCP Games or any upstream server project. EVE Online and related trademarks
+belong to CCP Games. All other third-party names and marks belong to their
+respective owners.

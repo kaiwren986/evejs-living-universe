@@ -14,7 +14,7 @@ Living Universe and X-Eve have deliberately different responsibilities:
 
 - **Living Universe** owns pilot identity, ships, routes, travel, physical materialization, mining, combat, loss, and presence in Local.
 - **X-Eve** owns economic accounts, firms, budgets, inventory claims, demand, work orders, contracts between actors, and strategic planning.
-- Existing EveJS services remain authoritative for player-visible wallets, market orders, contracts, inventory, industry jobs, and structures.
+- Existing server services remain authoritative for player-visible wallets, market orders, contracts, inventory, industry jobs, and structures.
 
 ```mermaid
 flowchart LR
@@ -22,7 +22,7 @@ flowchart LR
     B --> C[Policy and planning]
     C --> D[Double-entry ledger]
     C --> E[X-Eve outbox]
-    E -->|Idempotent requests| F[EveJS owner services]
+    E -->|Idempotent requests| F[Server owner services]
     E -->|Funded work orders| A
     F -->|Acknowledgements and outcomes| B
     D --> G[Telemetry and audit]
@@ -75,7 +75,7 @@ Every externally caused posting has a deterministic idempotency key derived from
 - Repeating the key with a different payload is rejected as a conflict.
 - Within the X-Eve ledger, a restart or duplicate event cannot post the same economic effect twice. Native wallet, cargo, inventory, and market mutations gain the same guarantee only after their owner-service outbox adapters are implemented and verified.
 
-The foundation therefore provides exactly-once internal ledger effects on top of event delivery that may be at least once; it does not yet claim exactly-once behavior for external EveJS services.
+The foundation therefore provides exactly-once internal ledger effects on top of event delivery that may be at least once; it does not yet claim exactly-once behavior for external server services.
 
 ### Auditability
 
@@ -235,7 +235,7 @@ Add research, blueprint copying, invention, reactions, T2 production, capitals, 
 
 ### Stage 7: Optional client presentation
 
-Only after the native EveJS market, contracts, corporation projects, wallet, fleet, mail, and agent interfaces have been exhausted should a client patch be considered. A patch would consolidate visibility and controls; it must not become necessary for economic correctness.
+Only after the native market, contracts, corporation projects, wallet, fleet, mail, and agent interfaces have been exhausted should a client patch be considered. A patch would consolidate visibility and controls; it must not become necessary for economic correctness.
 
 ## Read-only foundation acceptance gates
 

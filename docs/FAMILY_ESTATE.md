@@ -42,7 +42,7 @@ The estate has a separate persistent claim record so ownership and mission progr
 - makes every current and future corporation member an estate resident;
 - starts the estate at the `claimed` progression stage without automatically repairing advanced services.
 
-The founder, corporation CEO/directors, and delegated stewards can manage estate progression. The founder role cannot be removed. Steward status is an estate permission only and does not grant unrelated corporation wallet or hangar roles. Friends join through EveJS's ordinary corporation application/invitation system; leaving the corporation immediately removes their resident access without requiring a second membership list.
+The founder, corporation CEO/directors, and delegated stewards can manage estate progression. The founder role cannot be removed. Steward status is an estate permission only and does not grant unrelated corporation wallet or hangar roles. Friends join through the server's ordinary corporation application/invitation system; leaving the corporation immediately removes their resident access without requiring a second membership list.
 
 Progress capabilities are persisted in dependency order: shelter systems, reprocessing, market, clone services, manufacturing/research, reactions, and moon extraction. Only shelter systems begin unlocked. Mission code can call `unlockFamilyEstateCapability()` after completing the appropriate repair objective; unlocking the state does not silently online a structure service before its matching mission implementation exists.
 

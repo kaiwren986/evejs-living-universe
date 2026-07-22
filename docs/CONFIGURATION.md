@@ -11,7 +11,7 @@ never be committed to this patch repository.
 
 ## Conservative first run
 
-After the normal EveJS configuration pass has created or updated
+After the normal server configuration pass has created or updated
 `evejs.config.local.json`, add these properties to its existing top-level JSON
 object:
 
