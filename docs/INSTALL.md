@@ -116,6 +116,19 @@ the off-grid travel multiplier at `1` for normal play.
 Do not copy a public example over your complete private configuration. Add the
 documented keys to the existing top-level object in `evejs.config.local.json`.
 
+## Upgrade from an earlier patch release
+
+Each release records the exact canonical-patch hash it installed. Before
+installing a newer release, stop the server and run the uninstaller from the
+same repository release that performed the current installation. Back up any
+intentional source changes first.
+
+Do not use a newer release's uninstaller to remove an older release and do not
+overwrite the local install record. After the old release has been cleanly
+removed, apply the newer release to the restored compatible baseline. If the
+old uninstaller reports changed files, preserve those changes and resolve them
+deliberately instead of forcing an overwrite.
+
 ## Uninstall
 
 Stop the server and run:

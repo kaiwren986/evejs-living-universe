@@ -1,16 +1,14 @@
 {
     "schemaVersion":  1,
-    "release":  "v0.1.0-pre1",
+    "release":  "v0.1.0-pre2",
     "compatibility":  {
                           "product":  "EveJS",
                           "version":  "v0.12.2",
                           "archiveName":  "EveJS-v0.12.2.zip",
                           "archiveSha256":  "7EC99325F6555F1C9C3C9CC3E45FD2225FE4F2805DA9DDBD827E850BBAA5F1F8",
-                          "localReferenceCommit":  "cb62ec9262702a3bf486429f27bc4c2be0b9c7e9",
-                          "localReferenceTree":  "9ed809aefee8bfc08f6a29bc4a5fe05d9b0e2c09",
                           "note":  "Compatibility is defined by the archive checksum and touched-file hashes; no upstream source is redistributed here."
                       },
-    "fileCount":  177,
+    "fileCount":  186,
     "files":  [
                   {
                       "path":  ".dockerignore",
@@ -211,6 +209,12 @@
                       "kind":  "added"
                   },
                   {
+                      "path":  "server/scripts/verifyLivingDemandCoverage.js",
+                      "sha256":  null,
+                      "size":  0,
+                      "kind":  "added"
+                  },
+                  {
                       "path":  "server/scripts/verifyLivingEconomy.js",
                       "sha256":  null,
                       "size":  0,
@@ -235,6 +239,12 @@
                       "kind":  "added"
                   },
                   {
+                      "path":  "server/scripts/verifyLivingEmergentConflict.js",
+                      "sha256":  null,
+                      "size":  0,
+                      "kind":  "added"
+                  },
+                  {
                       "path":  "server/scripts/verifyLivingIndustrialWorkforce.js",
                       "sha256":  null,
                       "size":  0,
@@ -254,6 +264,18 @@
                   },
                   {
                       "path":  "server/scripts/verifyLivingRegionalEconomy.js",
+                      "sha256":  null,
+                      "size":  0,
+                      "kind":  "added"
+                  },
+                  {
+                      "path":  "server/scripts/verifyLivingRoamingIntegration.js",
+                      "sha256":  null,
+                      "size":  0,
+                      "kind":  "added"
+                  },
+                  {
+                      "path":  "server/scripts/verifyLivingRoamingKernel.js",
                       "sha256":  null,
                       "size":  0,
                       "kind":  "added"
@@ -295,6 +317,12 @@
                       "kind":  "added"
                   },
                   {
+                      "path":  "server/scripts/verifyLivingVisibleGateCampConflict.js",
+                      "sha256":  null,
+                      "size":  0,
+                      "kind":  "added"
+                  },
+                  {
                       "path":  "server/scripts/verifyMarketOrderWireShape.js",
                       "sha256":  null,
                       "size":  0,
@@ -326,6 +354,18 @@
                   },
                   {
                       "path":  "server/scripts/verifyRegionalTrafficDoctrines.js",
+                      "sha256":  null,
+                      "size":  0,
+                      "kind":  "added"
+                  },
+                  {
+                      "path":  "server/scripts/verifyReplacementLogisticsRepair.js",
+                      "sha256":  null,
+                      "size":  0,
+                      "kind":  "added"
+                  },
+                  {
+                      "path":  "server/scripts/verifyRuntimeGcTelemetry.js",
                       "sha256":  null,
                       "size":  0,
                       "kind":  "added"
@@ -775,6 +815,12 @@
                       "kind":  "modified"
                   },
                   {
+                      "path":  "server/src/space/modules/salvagerRuntime.js",
+                      "sha256":  "944DDE3D50DA7C3F1973DA1CB2F1562FD2CB22D29C148186A5DE42E1452CF372",
+                      "size":  42430,
+                      "kind":  "modified"
+                  },
+                  {
                       "path":  "server/src/space/movement/commands/movementSubwarpCommands.js",
                       "sha256":  "90894F293019FD33F998B7EC92D837E0462DA063A82AECFA7403FA4012893271",
                       "size":  22949,
@@ -823,6 +869,12 @@
                       "kind":  "added"
                   },
                   {
+                      "path":  "server/src/space/npc/ambientTraffic/livingEconomyDemandCoverage.js",
+                      "sha256":  null,
+                      "size":  0,
+                      "kind":  "added"
+                  },
+                  {
                       "path":  "server/src/space/npc/ambientTraffic/livingEconomyIndustrialWorkforce.js",
                       "sha256":  null,
                       "size":  0,
@@ -853,6 +905,12 @@
                       "kind":  "added"
                   },
                   {
+                      "path":  "server/src/space/npc/ambientTraffic/livingEconomySalvage.js",
+                      "sha256":  null,
+                      "size":  0,
+                      "kind":  "added"
+                  },
+                  {
                       "path":  "server/src/space/npc/ambientTraffic/livingEconomyState.js",
                       "sha256":  null,
                       "size":  0,
@@ -866,6 +924,12 @@
                   },
                   {
                       "path":  "server/src/space/npc/ambientTraffic/livingEconomyWorkBudget.js",
+                      "sha256":  null,
+                      "size":  0,
+                      "kind":  "added"
+                  },
+                  {
+                      "path":  "server/src/space/npc/ambientTraffic/livingRoamingKernel.js",
                       "sha256":  null,
                       "size":  0,
                       "kind":  "added"
@@ -1021,12 +1085,6 @@
                       "kind":  "added"
                   },
                   {
-                      "path":  "tools/market-universe-mirror/compatibility/patches/evejs-market-order-rowlist-fix-v0.12.2-build-3396210.diff",
-                      "sha256":  null,
-                      "size":  0,
-                      "kind":  "added"
-                  },
-                  {
                       "path":  "tools/market-universe-mirror/compatibility/patches/verifyMarketOrderWireShape.js",
                       "sha256":  null,
                       "size":  0,
@@ -1058,12 +1116,6 @@
                   },
                   {
                       "path":  "tools/market-universe-mirror/README.md",
-                      "sha256":  null,
-                      "size":  0,
-                      "kind":  "added"
-                  },
-                  {
-                      "path":  "tools/market-universe-mirror/RUN_REPORT.md",
                       "sha256":  null,
                       "size":  0,
                       "kind":  "added"

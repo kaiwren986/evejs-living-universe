@@ -9,7 +9,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $ReleaseName = 'X-Eve Living Universe'
-$ReleaseVersion = 'v0.1.0-pre1'
+$ReleaseVersion = 'v0.1.0-pre2'
 $BaselineVersion = 'v0.12.2'
 $ExpectedArchiveSha256 = '7EC99325F6555F1C9C3C9CC3E45FD2225FE4F2805DA9DDBD827E850BBAA5F1F8'
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
@@ -534,7 +534,7 @@ function Write-JsonAtomically {
 $installerRoot = Split-Path -Parent $PSCommandPath
 $releaseRoot = [System.IO.Path]::GetFullPath((Join-Path $installerRoot '..'))
 $patchDirectory = Join-Path $releaseRoot 'patches\v0.12.2'
-$patchPath = Join-Path $patchDirectory 'x-eve-living-universe-v0.1.0-pre1.patch'
+$patchPath = Join-Path $patchDirectory 'x-eve-living-universe-v0.1.0-pre2.patch'
 $baselineManifestPath = Join-Path $patchDirectory 'baseline-manifest.json'
 $installedManifestPath = Join-Path $patchDirectory 'installed-manifest.json'
 

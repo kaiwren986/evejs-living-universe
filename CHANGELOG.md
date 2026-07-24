@@ -5,6 +5,54 @@ All notable public patch releases are recorded here.
 This project uses pre-release version labels while compatibility, persistence,
 and balance are still being tested.
 
+## 0.1.0-pre2 - 2026-07-24
+
+### Roaming conflict
+
+- Added persistent pirate and security operation groups that stage, travel,
+  patrol, camp, and disperse on jittered deadlines instead of creating every
+  encounter from a global periodic scan.
+- Added deterministic co-location checks so hostile groups meet only while
+  sharing a system or the same directional gate lane during the same time
+  window; expired catch-up contacts do not become present-day battles.
+- Added witnessable gate camps and roaming contacts. Ships that are already
+  materialized at a camp are adopted into combat in place rather than removed
+  and respawned, and NPC combat remains neutral to a nearby player unless
+  ordinary aggression rules make the player a participant.
+- Added mutual conflict losses, retained civilian interdiction opportunities,
+  and connected observed camp losses to replacement demand.
+
+### Replacement logistics
+
+- Removed the quantity-one reserve deadlock that could leave replacement hulls
+  or fittings permanently requested but never delivered.
+- Allowed priority replacement freight to consume the last remote source unit
+  while protecting stock already staged at the requesting station.
+- Made complete replacement fitting packages reserve and settle atomically so
+  a partial batch cannot masquerade as a usable replacement.
+- Restricted pirate-hull production to matching pirate factories and real
+  mineral inputs; missing inputs now create ordinary priority procurement and
+  freight work rather than a free import.
+- Included the bounded NPC salvage-recovery dependency used by the current
+  economy runtime, with durable job state and existing salvager reward rules.
+
+### Capacity controls and verification
+
+- Capped roaming conflict at 96 persistent groups, 16 due transitions and 192
+  presence checks per pass, six concurrent camps, and a 1.5 ms synchronous
+  work budget.
+- Kept distant operations deadline-driven and virtual. Player-observed camps
+  still obey the existing per-system and global materialized-ship budgets.
+- Added fixed-size V8 garbage-collection telemetry and telemetry-capture build
+  duration so host pauses can be separated from game-tick or roaming work
+  without enabling a heavyweight profiler.
+- Added focused verification for the roaming kernel, emergent contacts,
+  already-visible camps, replacement delivery, priority demand, and
+  mineral-backed pirate production, plus a focused GC telemetry verifier.
+- Expanded the public-package audit to reject public IP addresses, email
+  addresses, absolute machine paths, credential-shaped values, private keys,
+  and binary diffs inside the canonical patch payload.
+
 ## 0.1.0-pre1 - 2026-07-21
 
 Initial patch-only preview for the compatible v0.12.2 server baseline.

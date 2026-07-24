@@ -98,7 +98,7 @@ Read [Architecture](docs/ARCHITECTURE.md) for the simulation model.
 
 ## Repository contents
 
-- `patches/v0.12.2/x-eve-living-universe-v0.1.0-pre1.patch` - the single
+- `patches/v0.12.2/x-eve-living-universe-v0.1.0-pre2.patch` - the single
   versioned source patch.
 - `installer/` - baseline validation, installation, verification, rollback, and
   uninstall helpers.

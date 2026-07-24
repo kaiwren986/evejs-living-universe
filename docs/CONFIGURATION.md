@@ -27,6 +27,12 @@ object:
   "livingEconomyEnabled": true,
   "livingConflictEnabled": true,
   "livingConflictCampaignsEnabled": true,
+  "livingConflictRoamingEnabled": true,
+  "livingConflictRoamingGroupLimit": 96,
+  "livingConflictRoamingWorkBudgetMs": 1.5,
+  "livingConflictRoamingMaxTransitionsPerTick": 16,
+  "livingConflictRoamingMaxPresenceChecksPerTick": 192,
+  "livingConflictGateCampLimit": 6,
   "livingUniverseOffGridTravelTimeMultiplier": 1
 }
 ```
@@ -88,6 +94,30 @@ promise for a particular host.
 The default production time scale is `1`, meaning normal modeled blueprint
 time. `livingEconomyIndustryTimeScale: 0.1` is a 10x development accelerator;
 use it for short tests, not balance or production-play conclusions.
+
+## Roaming conflict controls
+
+Roaming conflict is a dependent Living Universe feature. It remains inert
+unless both `livingUniverseEnabled` and `livingConflictEnabled` are enabled.
+The default caps deliberately create a small set of persistent operations from
+the existing pilot and flight population; they do not add another unbounded
+population.
+
+| JSON key | Default | Meaning |
+| --- | ---: | --- |
+| `livingConflictRoamingEnabled` | `true` | Enables deadline-driven pirate, security, patrol, and gate-camp operations under the parent conflict gates. |
+| `livingConflictRoamingGroupLimit` | `96` | Maximum persistent roaming operation groups. |
+| `livingConflictRoamingWorkBudgetMs` | `1.5` | Enforced synchronous time budget for one roaming-kernel pass. |
+| `livingConflictRoamingMaxTransitionsPerTick` | `16` | Maximum due group phase changes processed in one pass. |
+| `livingConflictRoamingMaxPresenceChecksPerTick` | `192` | Maximum indexed co-location checks in one pass. |
+| `livingConflictGateCampLimit` | `6` | Maximum groups simultaneously holding a gate-camp phase. |
+
+Operation deadlines are jittered, and groups meet through indexed
+co-location windows rather than an all-pairs scan. A visible gate camp still
+uses the ordinary global and per-system materialized-ship budgets. If roaming
+work falls behind, reduce the group and camp limits before increasing the work
+budget; a larger budget spends more uninterrupted server time and does not
+create more physical-scene capacity.
 
 ## Off-grid travel acceleration
 

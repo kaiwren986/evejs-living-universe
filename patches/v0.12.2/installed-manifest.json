@@ -1,11 +1,11 @@
 {
     "schemaVersion":  1,
-    "release":  "v0.1.0-pre1",
-    "patchFile":  "x-eve-living-universe-v0.1.0-pre1.patch",
-    "patchSha256":  "06116F2328E0417DC715313B41E9CC48A272E9252B159E76A49C9501C5AA351C",
-    "fileCount":  177,
-    "modifiedFileCount":  71,
-    "addedFileCount":  106,
+    "release":  "v0.1.0-pre2",
+    "patchFile":  "x-eve-living-universe-v0.1.0-pre2.patch",
+    "patchSha256":  "51AC0C422574C06DE208B3D4B787BF7437D30F5519917716E7200788325419A0",
+    "fileCount":  186,
+    "modifiedFileCount":  72,
+    "addedFileCount":  114,
     "files":  [
                   {
                       "path":  ".dockerignore",
@@ -45,8 +45,8 @@
                   },
                   {
                       "path":  "server/package.json",
-                      "sha256":  "0FBB24F33D80554C2100780DE2E4E909DF51CCB955D0548B326319FA69491D58",
-                      "size":  4580,
+                      "sha256":  "12F079E0777E8509448514E590D81F3B72CF76FA3B8FAC6D4C2F13F588128050",
+                      "size":  5224,
                       "kind":  "modified"
                   },
                   {
@@ -206,6 +206,12 @@
                       "kind":  "added"
                   },
                   {
+                      "path":  "server/scripts/verifyLivingDemandCoverage.js",
+                      "sha256":  "14E2EB5B8F889A3C5B2BA8754B7242BA858D3F85B41A39E7A602C132C1EF6F51",
+                      "size":  3970,
+                      "kind":  "added"
+                  },
+                  {
                       "path":  "server/scripts/verifyLivingEconomy.js",
                       "sha256":  "6FAF54B66D5C483ABD1927E837EC47835F771FF67C28650FBA1C0B2A6766184D",
                       "size":  8186,
@@ -213,8 +219,8 @@
                   },
                   {
                       "path":  "server/scripts/verifyLivingEconomyPriorityDemand.js",
-                      "sha256":  "DBD8FB12D8BE5C69968C982D94E334F7BFE915C0DD72C69C3A3C6EBB728F6A08",
-                      "size":  2939,
+                      "sha256":  "1F7EDCB8DD239344D80434C7C93F4ACB65638C1915A0A7DD4E0E288F410F62B2",
+                      "size":  3993,
                       "kind":  "added"
                   },
                   {
@@ -230,6 +236,12 @@
                       "kind":  "added"
                   },
                   {
+                      "path":  "server/scripts/verifyLivingEmergentConflict.js",
+                      "sha256":  "0A803A9956581E9364F145FBC8A3BE35771486F7D901DF1E8EAAFF13EAC53108",
+                      "size":  4757,
+                      "kind":  "added"
+                  },
+                  {
                       "path":  "server/scripts/verifyLivingIndustrialWorkforce.js",
                       "sha256":  "676D86339D249A7A977EBA4803B9032F7C8B115E3FF8560511240013A55F7E32",
                       "size":  6890,
@@ -237,8 +249,8 @@
                   },
                   {
                       "path":  "server/scripts/verifyLivingIndustryEconomy.js",
-                      "sha256":  "E65ECEFD0FCECA2A26F43835F4D66D8BA936AA1DF186153B30A02C0C6D6E7DEE",
-                      "size":  6791,
+                      "sha256":  "48BE56B0F1DB8A8C3C8899CDD9B8A9514A547C30BE149C42027BBC57C28854B3",
+                      "size":  9363,
                       "kind":  "added"
                   },
                   {
@@ -251,6 +263,18 @@
                       "path":  "server/scripts/verifyLivingRegionalEconomy.js",
                       "sha256":  "DD4889F7E8D297069AD6C93F6D75BC3F4072CEA9B2A8C38E37C3DA34334C6FCA",
                       "size":  6037,
+                      "kind":  "added"
+                  },
+                  {
+                      "path":  "server/scripts/verifyLivingRoamingIntegration.js",
+                      "sha256":  "3F1FE212F5BFA37337E9142C53C763B57D89E8BA29B731E1AE14E87019D9DF80",
+                      "size":  6223,
+                      "kind":  "added"
+                  },
+                  {
+                      "path":  "server/scripts/verifyLivingRoamingKernel.js",
+                      "sha256":  "18BEA1C167230349EF0EED206C23A376924C4C003261B95A113FEB0D81EB0D49",
+                      "size":  13567,
                       "kind":  "added"
                   },
                   {
@@ -290,6 +314,12 @@
                       "kind":  "added"
                   },
                   {
+                      "path":  "server/scripts/verifyLivingVisibleGateCampConflict.js",
+                      "sha256":  "DB03673726E4C7F8BFC909D6C94AB09EBC21FB6EF63CD6BF2499D84408A5271D",
+                      "size":  17149,
+                      "kind":  "added"
+                  },
+                  {
                       "path":  "server/scripts/verifyMarketOrderWireShape.js",
                       "sha256":  "8DCEDEE55C3361F333968CC164E7B7AA137A3D7AA08A517FE9287C3785AF95B3",
                       "size":  3361,
@@ -321,8 +351,20 @@
                   },
                   {
                       "path":  "server/scripts/verifyRegionalTrafficDoctrines.js",
-                      "sha256":  "E4F01E15CBE592029E26355E49D273FFE0CFAF5EC7484B9E166EEC02AF676FEF",
-                      "size":  8380,
+                      "sha256":  "77CF4A9DBE601624D9743A44AE7384952E4FBEEA7ABD922CBD67C50860C099FB",
+                      "size":  9453,
+                      "kind":  "added"
+                  },
+                  {
+                      "path":  "server/scripts/verifyReplacementLogisticsRepair.js",
+                      "sha256":  "2B7F94C2C3C5361DF7EE1BB244C28D20143F23D6C70B6D3F82D31496A20A0621",
+                      "size":  10977,
+                      "kind":  "added"
+                  },
+                  {
+                      "path":  "server/scripts/verifyRuntimeGcTelemetry.js",
+                      "sha256":  "C6EADE729572348C228CAC838D80D24FE99105FF7109A74CB6E9BA25AF292D2C",
+                      "size":  2730,
                       "kind":  "added"
                   },
                   {
@@ -393,8 +435,8 @@
                   },
                   {
                       "path":  "server/src/config/index.js",
-                      "sha256":  "31FF92006BAA1081885671F0C3387B813E019EF0C9E89FEB06D7E31DFEC72C6F",
-                      "size":  131038,
+                      "sha256":  "6CA3785823118D99A40F532302694EC424FCCB4E929D60BA7761ED9AF9A1C30C",
+                      "size":  147220,
                       "kind":  "modified"
                   },
                   {
@@ -770,6 +812,12 @@
                       "kind":  "modified"
                   },
                   {
+                      "path":  "server/src/space/modules/salvagerRuntime.js",
+                      "sha256":  "D1201EDB88AFC0901E9FD6482C9E1A65D7E2E6D397E35165578ED16CAEA7A193",
+                      "size":  42457,
+                      "kind":  "modified"
+                  },
+                  {
                       "path":  "server/src/space/movement/commands/movementSubwarpCommands.js",
                       "sha256":  "DAE23DEE4A22957A892A2128307DAE1A0B4899CB52E22BF3BAF2FEC36BEE5ECE",
                       "size":  24723,
@@ -807,14 +855,20 @@
                   },
                   {
                       "path":  "server/src/space/npc/ambientTraffic/livingConflictRuntime.js",
-                      "sha256":  "7D78F566AEEC87FAF1A49B089F1A6556092CBB90CD49937A6AFEBB820D8EE1A4",
-                      "size":  30870,
+                      "sha256":  "76F3DD0F088F57F895879060BABB681A808A627A9B8BE34DB9CF7592E0B1E38D",
+                      "size":  36963,
                       "kind":  "added"
                   },
                   {
                       "path":  "server/src/space/npc/ambientTraffic/livingEconomyCatalog.js",
-                      "sha256":  "D5EA31260FB5356A1D42779922D95B9ABB4581C82E7B8FD7474FE9104D694956",
-                      "size":  57883,
+                      "sha256":  "FC1C873D1F2370A68A6C23199C1C4CA0A0DC5256A5A44BC295BCC277EB80A606",
+                      "size":  63710,
+                      "kind":  "added"
+                  },
+                  {
+                      "path":  "server/src/space/npc/ambientTraffic/livingEconomyDemandCoverage.js",
+                      "sha256":  "03524A9DEEDD073A1393B7306CD65E44785B93123313B941894209008C91B42B",
+                      "size":  13910,
                       "kind":  "added"
                   },
                   {
@@ -825,32 +879,38 @@
                   },
                   {
                       "path":  "server/src/space/npc/ambientTraffic/livingEconomyIndustry.js",
-                      "sha256":  "B31988C98CC54EDF8C35E009A57DFBFFF0B2C0C5228146002690954A3D61C45F",
-                      "size":  43567,
+                      "sha256":  "0B3D554BA318040801A91E32FC6CCABD61D6D4242C1A2A1BDB9548BD452E334E",
+                      "size":  59376,
                       "kind":  "added"
                   },
                   {
                       "path":  "server/src/space/npc/ambientTraffic/livingEconomyProcurement.js",
-                      "sha256":  "8EEF50E6405F9029D9F2813D5EB8D80FFC2DF9E76C3C034DFCFF651AF86FC2BB",
-                      "size":  20210,
+                      "sha256":  "1EE19B5566717250A1D3C7C94FF9FDFDDA6130403997521FCFEC0F7D423944B4",
+                      "size":  21737,
                       "kind":  "added"
                   },
                   {
                       "path":  "server/src/space/npc/ambientTraffic/livingEconomyRoutePlanner.js",
-                      "sha256":  "7486A9A28A865E9718A462A93B0D00826C8685AE255EA1AE1C8FFF858CC87BD4",
-                      "size":  11956,
+                      "sha256":  "6239CF301CB01AA8B448B0D5CFAC002C0E11D0B791E8E1F34D98A3F66F83FA63",
+                      "size":  13056,
                       "kind":  "added"
                   },
                   {
                       "path":  "server/src/space/npc/ambientTraffic/livingEconomyRuntime.js",
-                      "sha256":  "1D0CF5D49259B6FE23BD1E05F6435288CF667350621C91C31E8723F362A79307",
-                      "size":  133492,
+                      "sha256":  "D5C302F835BE95B4DCAB4AB568877EBF2C3A59C96D39AA7EF76080B340D5A9C3",
+                      "size":  153208,
+                      "kind":  "added"
+                  },
+                  {
+                      "path":  "server/src/space/npc/ambientTraffic/livingEconomySalvage.js",
+                      "sha256":  "17B9D25DE7455CBC0ED5E1DBE97615503476A7E3479F59294BEE75B0990EA66A",
+                      "size":  16557,
                       "kind":  "added"
                   },
                   {
                       "path":  "server/src/space/npc/ambientTraffic/livingEconomyState.js",
-                      "sha256":  "57436A15BBA0D5E51E61E7169DB6993FC68E8A79DF4DDCFDE587987328FD3B36",
-                      "size":  11396,
+                      "sha256":  "EB608B16EB71D4CB20D067F72388F9AFDD24CAD0864DC8CE18D2F7FD737A167A",
+                      "size":  17191,
                       "kind":  "added"
                   },
                   {
@@ -863,6 +923,12 @@
                       "path":  "server/src/space/npc/ambientTraffic/livingEconomyWorkBudget.js",
                       "sha256":  "4608F50D4F0F7EDDA1EA08C9E1C91E34E110190AA8AA1EA7AC0A83088A8EE653",
                       "size":  4134,
+                      "kind":  "added"
+                  },
+                  {
+                      "path":  "server/src/space/npc/ambientTraffic/livingRoamingKernel.js",
+                      "sha256":  "99725B50B0DCE9C35D4B675846B9AFDB471AD4609E23FAB519E4BA56AB2B8CD5",
+                      "size":  42349,
                       "kind":  "added"
                   },
                   {
@@ -879,14 +945,14 @@
                   },
                   {
                       "path":  "server/src/space/npc/ambientTraffic/livingUniverseRuntime.js",
-                      "sha256":  "B9095E0ADA3D8275B1D8E347D4DB82B6E385FEEA04E116A0BF64E17B65EDD8E2",
-                      "size":  204949,
+                      "sha256":  "93D811F4D6BA3BF7242DC5B69BED9EADB1528A6B96C0321D579CE63702138B23",
+                      "size":  245308,
                       "kind":  "added"
                   },
                   {
                       "path":  "server/src/space/npc/ambientTraffic/livingUniverseState.js",
-                      "sha256":  "3337449F2285D19C9221F64BE8564F4CB628B39B8EB697837F5CCF45605B1704",
-                      "size":  2866,
+                      "sha256":  "15C78244F1CC8924FB0A707C1CA29591727A764AECA7B0AAECCA1C0D0EC3668B",
+                      "size":  3335,
                       "kind":  "added"
                   },
                   {
@@ -981,8 +1047,8 @@
                   },
                   {
                       "path":  "server/src/space/runtimePerformanceTelemetry.js",
-                      "sha256":  "6205B264E55425663B63F835D8C4EBDA70C9A901DED5ECB609BDF2E21D9AE003",
-                      "size":  13433,
+                      "sha256":  "923507D811ABA6A850D2630FA5C0910057F598B552899B89EDBF16F4CBD9968A",
+                      "size":  20290,
                       "kind":  "added"
                   },
                   {
@@ -1016,12 +1082,6 @@
                       "kind":  "added"
                   },
                   {
-                      "path":  "tools/market-universe-mirror/compatibility/patches/evejs-market-order-rowlist-fix-v0.12.2-build-3396210.diff",
-                      "sha256":  "2A7B49CC9293B9E097239EEDF381F00C8BFF168E9B33C4A0926FFE1261BB9FB1",
-                      "size":  9070,
-                      "kind":  "added"
-                  },
-                  {
                       "path":  "tools/market-universe-mirror/compatibility/patches/verifyMarketOrderWireShape.js",
                       "sha256":  "8DCEDEE55C3361F333968CC164E7B7AA137A3D7AA08A517FE9287C3785AF95B3",
                       "size":  3361,
@@ -1047,26 +1107,20 @@
                   },
                   {
                       "path":  "tools/market-universe-mirror/market-universe-mirror.test.js",
-                      "sha256":  "7E6C1AFE2FED604F97351DBE547130F9D07E70981098675626F29BD1D31CFB68",
-                      "size":  3431,
+                      "sha256":  "D0D3501B2E938A274F30FB456B7D51FF48E3D1CA44975942063BD49ED67F840B",
+                      "size":  3436,
                       "kind":  "added"
                   },
                   {
                       "path":  "tools/market-universe-mirror/README.md",
-                      "sha256":  "50F7EE4F031EC881590F50129866B653F65056064B4B5E4D4AD0BD6CD75C7310",
-                      "size":  6485,
-                      "kind":  "added"
-                  },
-                  {
-                      "path":  "tools/market-universe-mirror/RUN_REPORT.md",
-                      "sha256":  "D770F13B59E3749A5B8AF488CE21D1ED0EE43313333A120798F45375256C508E",
-                      "size":  2686,
+                      "sha256":  "AE6E40AFEE1DEABC73C6C4D267D906A4186D085D30D3B07D1DE60C1F6F064021",
+                      "size":  6426,
                       "kind":  "added"
                   },
                   {
                       "path":  "tools/market-universe-mirror/Update-UniverseMarket.ps1",
-                      "sha256":  "CF6FC93294A74761CEF1A32EB7E7EEA495314FB68AD73E4082E58D68132F2D7E",
-                      "size":  1178,
+                      "sha256":  "F0A34B9A5CE06EA70A204230A3BDFE7711FFD197AD2BBEF325D94F0DB2CB4E00",
+                      "size":  1069,
                       "kind":  "added"
                   }
               ]
