@@ -105,7 +105,7 @@ tick work, and the broader Living Universe scheduler retain headroom.
 
 In a recent 5000-pilot capacity run with the default 96 roaming groups, roaming
 work remained below `0.5 ms p95`; the cumulative observed roaming-work maximum
-was approximately `3.2 ms`. These are measurements from one workload, not a
+was approximately `4.6 ms`. These are measurements from one workload, not a
 universal capacity guarantee. They describe the bounded roaming subsystem only.
 The current monolithic Living Universe and living-economy persistence paths can
 still produce rare main-thread stalls above `600 ms`. Do not attribute an
