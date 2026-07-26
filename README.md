@@ -14,6 +14,11 @@ logistics, and supporting performance controls.
 The patch is pre-release software. Back up any installation and world data
 before trying it.
 
+X Command is intentionally not included in this repository. The Living
+Universe core keeps the industrial-crew services and adapter-neutral command
+seams that a separate X Command package can use later, without coupling this
+patch to its web interface, API, authentication, or account-linking layer.
+
 ## Compatibility
 
 The current patch targets one exact **v0.12.3 compatible server baseline**. The
@@ -111,13 +116,13 @@ budgets.
 - Bounded schedulers, physical-ship caps, durable state, economy telemetry, and
   performance admission controls.
 - Separately gated estate, wormhole, live-event, and X-Eve experimental
-  systems; the installed play profile enables the verified pre3 set.
+  systems; the installed play profile enables the verified pre4 set.
 
 Read [Architecture](docs/ARCHITECTURE.md) for the simulation model.
 
 ## Repository contents
 
-- `patches/v0.12.3/x-eve-living-universe-v0.1.0-pre3.patch` - the single
+- `patches/v0.12.3/x-eve-living-universe-v0.1.0-pre4.patch` - the single
   versioned source patch.
 - `installer/` - baseline validation, installation, verification, rollback, and
   uninstall helpers.

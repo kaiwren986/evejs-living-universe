@@ -2,10 +2,10 @@
 
 ## Status
 
-X-Eve is a separate economic and command layer built on top of the Living
-Universe. Its source gate defaults to disabled, while the pre3 installed play
-profile enables both systems through the ordinary EveJS server. They remain
-separate gates and can be overridden independently in
+X-Eve is the economic scheduler and event kernel built on top of the Living
+Universe. It is not the separate X Command web interface. Its source gate
+defaults to disabled, while the pre4 installed play profile enables both core
+systems through the ordinary EveJS server. Their gates can be overridden in
 `evejs.config.x-eve.local.json` or with `EVEJS_*` environment variables.
 
 The bounded foundation described here does not replace the existing market, Living Economy, corporation wallet, contract, industry, or inventory services. It establishes the durable transaction and scheduling rules those services can integrate with in later slices.

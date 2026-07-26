@@ -9,7 +9,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $ReleaseName = 'X-Eve Living Universe'
-$ReleaseVersion = 'v0.1.0-pre3'
+$ReleaseVersion = 'v0.1.0-pre4'
 $BaselineVersion = 'v0.12.3'
 $ExpectedArchiveSha256 = '81E2B48DE1E55D8FAD413137F83FF26C7FEB4FFA943825093FFC1BB17468D27E'
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
@@ -365,7 +365,9 @@ function Invoke-GitApply {
         [switch]$CheckOnly
     )
 
-    $arguments = @('-C', $TargetRoot, 'apply')
+    # The release manifests describe exact installed bytes. Ignore a user's
+    # global autocrlf preference so applying the same patch is deterministic.
+    $arguments = @('-c', 'core.autocrlf=false', '-C', $TargetRoot, 'apply')
     if ($CheckOnly) {
         $arguments += '--check'
     }
@@ -534,7 +536,7 @@ function Write-JsonAtomically {
 $installerRoot = Split-Path -Parent $PSCommandPath
 $releaseRoot = [System.IO.Path]::GetFullPath((Join-Path $installerRoot '..'))
 $patchDirectory = Join-Path $releaseRoot 'patches\v0.12.3'
-$patchPath = Join-Path $patchDirectory 'x-eve-living-universe-v0.1.0-pre3.patch'
+$patchPath = Join-Path $patchDirectory 'x-eve-living-universe-v0.1.0-pre4.patch'
 $baselineManifestPath = Join-Path $patchDirectory 'baseline-manifest.json'
 $installedManifestPath = Join-Path $patchDirectory 'installed-manifest.json'
 

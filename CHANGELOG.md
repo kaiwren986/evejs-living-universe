@@ -5,6 +5,27 @@ All notable public patch releases are recorded here.
 This project uses pre-release version labels while compatibility, persistence,
 and balance are still being tested.
 
+## 0.1.0-pre4 - 2026-07-26
+
+### Living Universe core boundary
+
+- Kept X-Eve's economic kernel, adaptive scheduler, and event circuit in the
+  Living Universe core.
+- Kept industrial-crew contracts, persistence, scheduling, navigation, scene
+  lifecycle, and the `/hireling` command as core simulation services.
+- Removed X Command's web interface, API server, authentication, account
+  linking, and UI-specific command adapters from this package. X Command will
+  be distributed separately and can layer over the adapter-neutral core later.
+
+### Industrial crew travel
+
+- Added durable station-to-station crew navigation with validated routes,
+  bounded leg advancement, restart-safe deadlines, and arrival handling.
+- Corrected contract expiry and scheduler behavior while a crew is travelling,
+  and added focused navigation coverage.
+- Regenerated the patch, manifests, and checksums for the exact v0.12.3
+  baseline.
+
 ## 0.1.0-pre3 - 2026-07-26
 
 ### Ordinary EveJS launch

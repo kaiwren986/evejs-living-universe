@@ -1,6 +1,6 @@
 # Configuration
 
-The pre3 patch installs an X-Eve profile that is loaded automatically by the
+The pre4 patch installs an X-Eve profile that is loaded automatically by the
 ordinary EveJS server. Starting `Play.bat` or `StartServer.bat` enables the
 Living Universe, economy, conflict, industrial crews, live events, family
 estate, and X-Eve with 5,000 persistent pilots. No X-Eve-specific launcher is
@@ -26,7 +26,7 @@ should never be committed to this patch repository.
 
 The installed profile uses these principal values:
 
-| JSON key | Source default | Installed pre3 value |
+| JSON key | Source default | Installed pre4 value |
 | --- | ---: | ---: |
 | `familyEstateEnabled` | `false` | `true` |
 | `livingUniverseEnabled` | `false` | `true` |
@@ -36,7 +36,6 @@ The installed profile uses these principal values:
 | `livingConflictRoamingEnabled` | `true` | `true` |
 | `industrialHirelingsEnabled` | `false` | `true` |
 | `industrialMiningCrewsEnabled` | `false` | `true` |
-| `xCommandEnabled` | `false` | `true` |
 | `liveEventsEnabled` | `false` | `true` |
 | `xEveEnabled` | `false` | `true` |
 | `livingUniversePopulationSize` | `400` | `5000` |
@@ -48,6 +47,9 @@ Persistent pilots appear in the Local roster for their current solar system.
 Pilots in a gate-transition window are intentionally hidden until their arrival
 is committed, so they do not appear in two systems at once. The 5,000-pilot
 population is distributed across New Eden; it is not placed in one Local list.
+
+X Command configuration is not part of this profile or repository. A future
+X Command release will be a separate overlay on these core services.
 
 ## Optional lower-capacity override
 
