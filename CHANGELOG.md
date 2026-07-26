@@ -5,6 +5,60 @@ All notable public patch releases are recorded here.
 This project uses pre-release version labels while compatibility, persistence,
 and balance are still being tested.
 
+## 0.1.0-pre3 - 2026-07-26
+
+### Ordinary EveJS launch
+
+- Moved the supported baseline to the exact EveJS v0.12.3 archive identified by
+  SHA-256
+  `81E2B48DE1E55D8FAD413137F83FF26C7FEB4FFA943825093FFC1BB17468D27E`.
+- Integrated X-Eve startup into the regular `Play.bat` and `StartServer.bat`
+  flow; no separate X-Eve launcher is installed or required.
+- Added automatic first-run market preparation. The regular server stack seeds
+  Jita and New Caldari when the market database is absent, builds the Rust
+  market daemon when needed, and waits for both market endpoints before play.
+- Made `Play.bat` wait for the game server, proxy, Living Universe population,
+  economy stock cache, and X-Eve scheduler before launching the client.
+
+### Installed play profile
+
+- Added a verified `evejs.config.x-eve.json` profile that enables the Living
+  Universe, economy, conflict, industrial crews, live events, family estate,
+  and X-Eve with 5,000 persistent pilots.
+- Kept the ordinary mutable `evejs.config.local.json` outside the patch so
+  routine EveJS configuration updates do not invalidate install verification.
+- Added optional private `evejs.config.x-eve.local.json` overrides and retained
+  final `EVEJS_*` environment-variable precedence.
+
+### Presence and verification
+
+- Synchronized every persistent synthetic pilot into the authoritative
+  per-system Local roster while hiding only actors in an unresolved gate
+  transition, preventing duplicate cross-system presence.
+- Corrected observed physical-ship motion so materialized traffic visibly
+  follows, orbits, approaches, and transitions instead of appearing stationary.
+- Corrected native-NPC special-effect presentation so lasers, other turret and
+  launcher fire, fitted assistance beams, and EWAR effects carry the hull and
+  module graphics data expected by the client.
+- Resolved attribute-only NPC EWAR by its named dogma effect instead of falling
+  back to a targetless laser, and assigned safe unique synthetic module IDs so
+  simultaneous web, scramble, ECM, and related effects cannot overwrite one
+  another.
+- Added bounded pilot-directory synchronization, collision checks for names and
+  portraits, and focused population, Local-membership, scheduler, economy, and
+  X-Eve readiness verification.
+- Regenerated the patch-only release, baseline manifest, installed manifest, and
+  checksums for a clean v0.12.3 apply without redistributing the server tree or
+  runtime data.
+
+### Known pre-release limitation
+
+- Ship losses create replacement demand correctly, but the experimental X-Eve
+  final delivery and package-credit path can accumulate a replacement backlog.
+  This does not block population, Local presence, physical movement, witnessed
+  combat, or persistence, and remains a follow-up area for playtest balancing
+  and integration work.
+
 ## 0.1.0-pre2 - 2026-07-24
 
 ### Roaming conflict

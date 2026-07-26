@@ -64,16 +64,22 @@ control, especially when they contain local paths or operational details.
 
 ## Capacity-test sequence
 
-1. Start with 400 persistent pilots, 48 materialized ships per occupied system,
-   and 120 materialized globally.
-2. Let startup, cache loading, and initial reconciliation settle.
-3. Record a stable baseline with no player in a heavily populated scene.
-4. Record a second sample while observing traffic, mining, or combat.
-5. Increase virtual population to 1000, 2500, then 5000 one step at a time.
-6. Change physical caps only after the virtual population is stable.
-7. Hold each stage long enough to see economy pulses, route planning, telemetry,
+The installed play profile starts with 5,000 persistent pilots, 64 materialized
+ships per occupied system, and 180 materialized globally. That is the public
+play target, not a guarantee for every host.
+
+1. Let startup, cache loading, market seeding, and initial reconciliation
+   settle.
+2. Record a stable sample with no player in a heavily populated scene.
+3. Record a second sample while observing traffic, mining, or combat.
+4. If the server does not stabilize, use
+   `evejs.config.x-eve.local.json` to reduce virtual population to 2,500, 1,000,
+   or 400. At the 400-pilot step, use 48 materialized ships per occupied system
+   and 120 globally.
+5. Change physical caps only after the virtual population is stable.
+6. Hold each stage long enough to see economy pulses, route planning, telemetry,
    garbage collection, and at least one busy observed scene.
-8. Compare p95 and backlog, not only a short average. Revert a stage that does
+7. Compare p95 and backlog, not only a short average. Revert a stage that does
    not stabilize below the chosen ceiling.
 
 For an overnight comparison, use matching windows and report deltas from 100 ms.

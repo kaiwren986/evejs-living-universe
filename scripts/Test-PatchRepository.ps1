@@ -11,7 +11,7 @@ if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) {
   $RepositoryRoot = Join-Path $PSScriptRoot '..'
 }
 
-$ExpectedBaselineArchiveSha256 = '7EC99325F6555F1C9C3C9CC3E45FD2225FE4F2805DA9DDBD827E850BBAA5F1F8'
+$ExpectedBaselineArchiveSha256 = '81E2B48DE1E55D8FAD413137F83FF26C7FEB4FFA943825093FFC1BB17468D27E'
 $Failures = [System.Collections.Generic.List[string]]::new()
 
 function Add-AuditFailure {
@@ -773,14 +773,14 @@ if ($manifestByName.ContainsKey('baseline-manifest.json')) {
         Add-AuditFailure "baseline-manifest.json compatibility is missing $requiredCompatibilityProperty."
       }
     }
-    if ($compatibilityProperties -contains 'version' -and [string]$baselineData.compatibility.version -cne 'v0.12.2') {
-      Add-AuditFailure 'baseline-manifest.json compatibility.version is not v0.12.2.'
+    if ($compatibilityProperties -contains 'version' -and [string]$baselineData.compatibility.version -cne 'v0.12.3') {
+      Add-AuditFailure 'baseline-manifest.json compatibility.version is not v0.12.3.'
     }
     if (
       $compatibilityProperties -contains 'archiveSha256' -and
       [string]$baselineData.compatibility.archiveSha256.ToUpperInvariant() -cne $ExpectedBaselineArchiveSha256
     ) {
-      Add-AuditFailure 'baseline-manifest.json compatibility.archiveSha256 does not identify the approved EveJS v0.12.2 source archive.'
+      Add-AuditFailure 'baseline-manifest.json compatibility.archiveSha256 does not identify the approved EveJS v0.12.3 source archive.'
     }
   }
 }
