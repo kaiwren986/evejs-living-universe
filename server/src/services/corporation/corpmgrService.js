@@ -372,8 +372,8 @@ function resolveCorporationInfo(corpID, session) {
       `Corporation ${numericCorpID}`,
     ticker: "CORP",
     tickerName: "CORP",
-    ceoID: numericCorpID === Number(charData.corporationID || 0) ? characterID || null : null,
-    creatorID: numericCorpID === Number(charData.corporationID || 0) ? characterID || null : null,
+    ceoID: numericCorpID === Number(charData.corporationID || 0) ? characterID || 1 : 1,
+    creatorID: numericCorpID === Number(charData.corporationID || 0) ? characterID || 1 : 1,
     allianceID:
       numericCorpID === Number(charData.corporationID || 0)
         ? charData.allianceID || (session ? session.allianceID || session.allianceid : null)
@@ -490,6 +490,7 @@ class CorpMgrService extends BaseService {
       ["url", unicodeCorporationText(info.url)],
       ["taxRate", info.taxRate],
       ["loyaltyPointTaxRate", info.loyaltyPointTaxRate || 0.0],
+      ["aggressionSettings", this.Handle_GetAggressionSettings([info.corporationID])],
       ["allowWar", info.allowWar ?? getCorporationWarPermitStatus(info.corporationID)],
       ["memberCount", info.memberCount],
       ["applicationsEnabled", Number(runtime.applicationsEnabled || 0)],

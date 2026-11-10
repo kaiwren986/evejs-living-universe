@@ -42,6 +42,8 @@ const {
   normalizeCorporationWalletKey,
 } = require(path.join(__dirname, "../corporation/corpWalletState"));
 const contractSettlementState = require("./contractSettlementState");
+const { ROLE_GML, normalizeRoleValue } = require("../account/accountRoleProfiles");
+const { isWalletAuthorityProcessEnabled } = require("../account/walletCommandAuthority");
 // The settlement store runs this step for scheduled and in-process settlements alike.
 contractSettlementState.setSettlementExecutor(settleContractOperation);
 const contractNotifications = require("./contractNotifications");
@@ -56,6 +58,7 @@ const repo = createTableRepository("service:contracts", { strict: true });
 
 const TABLE = "contractRuntime";
 const CONTRACT_ID_START = 980000000;
+const PRIVATE_CONTRACT_BROKER_FEE = 10000;
 const CONTRACT_ESCROW_LOCATION_BASE = 9_300_000_000;
 const CONTRACT_ESCROW_OWNER_ID = 1;
 const PLASTIC_WRAP_TYPE_ID = 3468;
@@ -196,6 +199,7 @@ function getAuctionPorts() {
     sessionHasCorpContractManagerRole, isIssuedBySessionWithCorpAuthority,
     isIssuedBySession, canAcceptContract, currentFileTime, adjustWalletAsync,
     applyContractWalletLegs, settleContractOperation, assertAuctionWalletAccess,
+    scheduleAuctionExpiry: (record) => require("./contractAuctionJobs").scheduleContract(record),
     validateAuctionEscrow, buildAuctionItemLegs, CUSTODY_REASON,
     getOwnerDeliveryFlag, getAcceptorDeliveryFlag, transferContractTerminalItems,
     collectTerminalInventoryChanges, syncInventoryChangesToSession,
@@ -722,6 +726,7 @@ async function adjustWalletAsync(
   contractID,
   counterpartyID,
   commandID,
+  journal,
 ) {
   const normalizedDelta = Math.round((Number(delta) || 0) * 100) / 100;
   if (Math.abs(normalizedDelta) < 0.0001) {
@@ -732,10 +737,10 @@ async function adjustWalletAsync(
   const options = {
     idempotencyKey: normalizedCommandID,
     requireExactCredit: true,
-    ownerID1: walletRef.ownerID,
+    ownerID1: journal?.ownerID1 ?? walletRef.ownerID,
     ownerID2: toPositiveInteger(counterpartyID, 0),
     referenceID: toPositiveInteger(contractID, 0),
-    entryTypeID: JOURNAL_ENTRY_TYPE.PLAYER_TRADING,
+    entryTypeID: journal?.entryTypeID ?? JOURNAL_ENTRY_TYPE.PLAYER_TRADING,
     description,
   };
   const metadata = {
@@ -1316,7 +1321,9 @@ function buildContractCreationFingerprint(info, session, ownerID, issuerWalletRe
   });
 }
 
-function prepareContractCreationSettlement(info, session, ownerID, issuerWalletRef) {
+function prepareContractCreationSettlement(
+  info, session, ownerID, issuerWalletRef, privateBrokerFee,
+) {
   const requestFingerprint = buildContractCreationFingerprint(
     info,
     session,
@@ -1375,12 +1382,32 @@ function prepareContractCreationSettlement(info, session, ownerID, issuerWalletR
       changes: [],
     };
   });
-  const payload = {
-    info: cloneValue(info),
-    walletLegs: info.contractType === CONTRACT_TYPE.AUCTION ? [
+  const walletLegs = [];
+  if (info.contractType === CONTRACT_TYPE.AUCTION) {
+    walletLegs.push(
       buildContractWalletLeg({ legID: "create:auction-broker", ref: issuerWalletRef, delta: -baseRecord.auctionBrokerFee, description: `Contract ${contractID} auction broker fee`, contractID }),
       buildContractWalletLeg({ legID: "create:auction-deposit", ref: issuerWalletRef, delta: -baseRecord.auctionDeposit, description: `Contract ${contractID} auction deposit`, contractID }),
-    ] : [],
+    );
+  } else if (privateBrokerFee > 0) {
+    walletLegs.push({
+      ...buildContractWalletLeg({
+        legID: "create:broker-fee",
+        ref: issuerWalletRef,
+        delta: -privateBrokerFee,
+        description: `Contract ${contractID} broker fee`,
+        contractID,
+      }),
+      journal: {
+        entryTypeID: info.forCorp
+          ? JOURNAL_ENTRY_TYPE.CONTRACT_BROKERS_FEE_CORP
+          : JOURNAL_ENTRY_TYPE.CONTRACT_BROKERS_FEE,
+        ownerID1: getSessionCharacterID(session),
+      },
+    });
+  }
+  const payload = {
+    info: cloneValue(info),
+    walletLegs,
     ownerID,
     issuerWalletRef: cloneWalletRef(issuerWalletRef),
     baseRecord,
@@ -1932,18 +1959,29 @@ function prepareContractCreationRequest(rawInfo, session) {
   }
 
   validateCreationItems(info, ownerID, session);
-  if (info.reward > 0) assertAuctionWalletAccess(session, issuerWalletRef);
+  const isPrivate = resolveAvailability(info, session) !== CONTRACT_AVAILABILITY.PUBLIC;
+  const privateBrokerFee = isPrivate && info.contractType !== CONTRACT_TYPE.AUCTION
+    ? PRIVATE_CONTRACT_BROKER_FEE
+    : 0;
+  if (info.reward > 0 || privateBrokerFee > 0) {
+    assertAuctionWalletAccess(session, issuerWalletRef);
+  }
   if (info.contractType === CONTRACT_TYPE.AUCTION) {
     assertAuctionWalletAccess(session, issuerWalletRef);
     const terms = getAuctionCreationTerms(info, session);
     ensureWalletFunds(issuerWalletRef, terms.auctionBrokerFee + terms.auctionDeposit, "Auction fees and deposit");
   }
-  ensureWalletFunds(issuerWalletRef, info.reward, "Contract reward escrow");
+  ensureWalletFunds(
+    issuerWalletRef,
+    info.reward + privateBrokerFee,
+    privateBrokerFee > 0 ? "Contract reward escrow and broker fee" : "Contract reward escrow",
+  );
   return prepareContractCreationSettlement(
     info,
     session,
     ownerID,
     issuerWalletRef,
+    privateBrokerFee,
   );
 }
 
@@ -1960,6 +1998,39 @@ async function createContract(rawInfo, session, options = {}) {
     },
   );
   return result || { success: false, errorMsg: "CONTRACT_SETTLEMENT_FAILED", contractIDs: [] };
+}
+
+async function expireContractByGM(contractID, session) {
+  // contractentry.py exposes Expire now to ROLE_GML. Prefer the persisted
+  // account role over a composed session mask, as other staff actions do.
+  const role = normalizeRoleValue(
+    session && (session.accountRole ?? session.role ?? session.rolesAtAll), 0n,
+  );
+  if ((role & ROLE_GML) === 0n) return { success: false, errorMsg: "CONTRACT_GM_REQUIRED" };
+  return contractSettlementState.runSerialized(contractID, async () => {
+    // Never edit a deadline while a durable bid, acceptance or claim is pending.
+    if (contractSettlementState.getPendingContractSettlement(contractID)) {
+      return { success: false, errorMsg: "CONTRACT_SETTLEMENT_PENDING" };
+    }
+    const record = getContractRecord(contractID);
+    if (!record || record.status !== CONTRACT_STATUS.OUTSTANDING) {
+      return { success: false, errorMsg: "CONTRACT_NOT_OUTSTANDING" };
+    }
+    if (isContractExpired(record)) return { success: true, contract: record };
+    const next = {
+      ...record,
+      dateExpired: (toFileTimeBigInt(currentFileTime()) - 1n).toString(),
+      updatedAtMs: Date.now(),
+    };
+    if (record.type === CONTRACT_TYPE.AUCTION) {
+      next.auctionEnded = true;
+      next.auctionVersion = Number(record.auctionVersion || 0) + 1;
+    }
+    // Existing issuer/winner claim actions retain ownership of all escrow
+    // and wallet transfers. Expiry changes their eligibility only.
+    const written = putContractRecordDurably(next);
+    return written.success ? { success: true, contract: next } : written;
+  });
 }
 
 function isContractExpired(contract, now = currentFileTime()) {
@@ -2510,6 +2581,7 @@ async function checkpointContractWalletLeg(contractID, legID, patch) {
 
 async function applyContractWalletLegs(contractID) {
   let settlement = contractSettlementState.getPendingContractSettlement(contractID);
+  const auction = settlement.kind === "auction-bid" || settlement.kind.startsWith("auction-claim-");
   for (const candidate of settlement.payload.walletLegs || []) {
     settlement = contractSettlementState.getPendingContractSettlement(contractID);
     const leg = settlement.payload.walletLegs.find(
@@ -2518,16 +2590,51 @@ async function applyContractWalletLegs(contractID) {
     if (!leg || leg.applied) {
       continue;
     }
-    const result = await adjustWalletAsync(
+    const apply = () => adjustWalletAsync(
       leg.ref,
       leg.delta,
       leg.description,
       contractID,
       leg.counterpartyID,
       leg.commandID,
+      leg.journal,
     );
+    let result = await apply();
+    // A process error string alone cannot prove that the debit did not land.
+    // Replay the identical command to obtain the owner's persisted verdict.
+    // Local execution is synchronous and has no transport ambiguity.
+    if (auction && isWalletAuthorityProcessEnabled() && result?.success === false &&
+        ["INSUFFICIENT_FUNDS", "WALLET_LIMIT"].includes(result.errorMsg) && result.duplicate !== true) {
+      result = await apply();
+    }
+    if (auction && result?.fingerprintMismatch === true) {
+      return { success: false, errorMsg: "AUCTION_WALLET_RECEIPT_IDENTITY_CHANGED" };
+    }
+    const noEffectConfirmed = result?.success === false &&
+      (!isWalletAuthorityProcessEnabled() || (result.duplicate === true && result.fingerprintMismatch === false));
+    if (auction && leg.delta > 0 && result?.errorMsg === "WALLET_LIMIT" && noEffectConfirmed) {
+      // Only a proven no-credit result permits a new identity. Persist that
+      // identity before using it; retain the full obligation and frozen payload.
+      // Existing permanent contract receipts protect successful legs, so this
+      // does not depend on Coffee's fork-only pin/release APIs.
+      const creditAttempt = Number(leg.creditAttempt || 0) + 1;
+      if (!Number.isSafeInteger(creditAttempt)) return { success: false, errorMsg: "AUCTION_CREDIT_ATTEMPTS_EXHAUSTED" };
+      const baseCommandID = leg.baseCommandID || leg.commandID;
+      const checkpoint = await checkpointContractWalletLeg(contractID, leg.legID, {
+        baseCommandID, creditAttempt, commandID: `${baseCommandID}:credit:${creditAttempt}`,
+      });
+      return checkpoint.success ? { success: false, errorMsg: "AUCTION_CREDIT_LIMIT_PENDING" } : checkpoint;
+    }
     if (!result || result.success !== true) {
+      if (auction && result?.errorMsg === "INSUFFICIENT_FUNDS" && noEffectConfirmed) {
+        return { ...result, noEffectConfirmed: true };
+      }
       return result || { success: false, errorMsg: "CONTRACT_WALLET_LEG_FAILED" };
+    }
+    const appliedDelta = result.delta ?? result.data?.delta;
+    if (auction && Number(leg.delta) !== 0 &&
+        (!Number.isFinite(appliedDelta) || Math.round(appliedDelta * 100) !== Math.round(leg.delta * 100))) {
+      return { success: false, errorMsg: "AUCTION_WALLET_AMOUNT_CHANGED" };
     }
     const checkpoint = await checkpointContractWalletLeg(
       contractID,
@@ -2559,6 +2666,7 @@ async function reverseContractWalletLegs(contractID) {
       contractID,
       leg.counterpartyID,
       leg.reverseCommandID,
+      leg.journal,
     );
     if (!result || result.success !== true) {
       return result || { success: false, errorMsg: "CONTRACT_WALLET_REVERSAL_FAILED" };
@@ -4452,19 +4560,21 @@ function collectMyPageInfo(session) {
 function getMyContractEscrow(session) {
   const characterID = getSessionCharacterID(session);
   const corporationID = getSessionCorporationID(session);
+  const corporationVisible = sessionHasCorpContractManagerRole(session);
   let iskEscrow = 0;
   let itemsEscrow = 0;
   for (const contract of listContractRecords()) {
-    const issuedByMe = contract.issuerID === characterID ||
+    const issuedByMe = (!normalizeBoolean(contract.forCorp, false) && contract.issuerID === characterID) ||
       (
         normalizeBoolean(contract.forCorp, false) &&
-        contract.issuerCorpID === corporationID
+        contract.issuerCorpID === corporationID && corporationVisible
       );
     if (contract.type === CONTRACT_TYPE.AUCTION) {
       const active = ![CONTRACT_STATUS.DELETED, CONTRACT_STATUS.CANCELLED, CONTRACT_STATUS.FINISHED].includes(contract.status);
       const highest = (contract.bids || [])[0];
       if (active && !contract.auctionIssuerClaimed) {
-        if (highest && (highest.bidderID === characterID || highest.bidderID === corporationID)) {
+        if (highest && (highest.bidderID === characterID ||
+            (highest.forCorp && highest.bidderID === corporationID && corporationVisible))) {
           iskEscrow += normalizeMoney(highest.amount, 0);
         }
         if (issuedByMe && (highest || !contract.auctionEnded)) iskEscrow += normalizeMoney(contract.auctionDeposit, 0);
@@ -4557,6 +4667,7 @@ module.exports = {
   placeBid: (...args) => getAuctionRuntime().placeBid(...args),
   finishAuction: (...args) => getAuctionClaims().finishAuction(...args),
   reconcileAuctionExpiry: (...args) => getAuctionClaims().reconcileExpiry(...args),
+  expireContractByGM,
   getMyBids: (...args) => getAuctionRuntime().getMyBids(...args),
   acceptContract,
   completeContract,

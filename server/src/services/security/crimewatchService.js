@@ -131,7 +131,7 @@ class CrimewatchService extends BaseService {
     });
     const source = getCharacterRecord(sourceCharacterID) || {};
     try {
-      targetSession.sendNotification("OnDuelChallenge", "clientID", [
+      targetSession.sendNotification("OnDuelChallenge", "charid", [
         sourceCharacterID,
         duelCharacterID(session.corpid || session.corporationID || source.corporationID),
         duelCharacterID(session.allianceid || session.allianceID || source.allianceID) || null,

@@ -91,7 +91,7 @@ Check these in order:
 If in doubt:
 
 1. run `BuildMarketSeed.bat`
-2. choose `Jita + New Caldari`
+2. choose `v1 - Synthetic starter market`, then `Jita + New Caldari`
 3. start `StartMarketServer.bat` again
 
 ## Problem: The Config Editor Will Not Open

@@ -285,7 +285,11 @@ function collectTemplateRoomDefinitions(template) {
     .map((entry) => toInt(entry, 0))
     .filter((entry) => entry > 0)
     .sort((left, right) => left - right);
-  orderedRoomObjectIDs.forEach((roomObjectID, index) => {
+  // An installed scene can supply the complete room topology. Native
+  // environment mappings remain rendering metadata, not additional pockets.
+  const derivedRoomObjectIDs = sceneProfile.authoritativeRoomProfiles === true &&
+    normalizeRecordCollection(sceneProfile.roomProfiles, "roomKey").length > 0 ? [] : orderedRoomObjectIDs;
+  derivedRoomObjectIDs.forEach((roomObjectID, index) => {
     addRoom({
       roomKey: `room:${roomObjectID}`,
       stage: "room",
@@ -301,7 +305,7 @@ function collectTemplateRoomDefinitions(template) {
       addRoom(roomProfile, "siteSceneProfile.roomProfiles", index, null);
     });
 
-  normalizeRecordCollection(template && template.rooms, "roomKey")
+  normalizeRecordCollection(sceneProfile.authoritativeRoomProfiles === true ? [] : template && template.rooms, "roomKey")
     .forEach((room, index) => {
       addRoom(room, "template.rooms", index, null);
     });
@@ -434,6 +438,9 @@ function collectTemplateGateDefinitions(template) {
       : {};
   const gates = [];
   const gateIndexByKey = new Map();
+  // Connections and compiled gate profiles key the same gate object differently
+  // (gate:<id> and client-gate:<id>); the object ID joins them into one record.
+  const gateIndexByObjectID = new Map();
   const addGate = (definition, source, index) => {
     const raw = definition && typeof definition === "object" ? definition : {};
     const fromObjectID = toInt(raw.fromObjectID || raw.dungeonObjectID || raw.dunObjectID, 0);
@@ -458,8 +465,11 @@ function collectTemplateGateDefinitions(template) {
       fromObjectID: fromObjectID || null,
       toObjectID: toInt(raw.toObjectID, 0) || null,
     };
-    const existingIndex = gateIndexByKey.get(gateKey);
+    const existingIndex = gateIndexByKey.has(gateKey)
+      ? gateIndexByKey.get(gateKey)
+      : gateIndexByObjectID.get(fromObjectID);
     if (existingIndex != null) {
+      gateIndexByKey.set(gateKey, existingIndex);
       gates[existingIndex] = {
         ...gates[existingIndex],
         ...entry,
@@ -471,6 +481,9 @@ function collectTemplateGateDefinitions(template) {
       return;
     }
     gateIndexByKey.set(gateKey, gates.length);
+    if (fromObjectID > 0) {
+      gateIndexByObjectID.set(fromObjectID, gates.length);
+    }
     gates.push(entry);
   };
 
@@ -555,6 +568,203 @@ function buildDefaultGateStates(template, nowMs, options = {}) {
   return gateStatesByKey;
 }
 
+// Career pack 1.3.8/9 gave this single-pocket site both a derived entry and
+// its captured native room key. The corrected pack explicitly aliases that
+// pocket. Reconcile only this known schema error, never reset a site's cargo,
+// content identities, mining remainders or economic receipts.
+function repairCapturedCareerMiningHints(instance) {
+  const spawnState = normalizeObject(instance.spawnState);
+  const hints = normalizeObject(spawnState.populationHints);
+  const rocks = Array.isArray(hints.miningRocks) ? hints.miningRocks : [];
+  const rock = rocks[0];
+  if (hints.source !== "tq_mission_log_decoder" || toInt(hints.sourceDungeonID, 0) !== 2023 ||
+      rocks.length !== 1 || toInt(rock && rock.typeID, 0) !== 1230 ||
+      toInt(rock && rock.dunObjectID, 0) !== 664389 || Number(rock.quantity) !== 50_000 ||
+      toInt(rock.count, 1) !== 1) return null;
+  const corrected = cloneValue(hints);
+  for (const key of ["resourceFamily", "resourceYieldKind"]) {
+    if (!normalizeText(corrected[key], "")) corrected[key] = "ore";
+  }
+  if (!normalizeText(corrected.miningRocks[0].yieldKind, "")) corrected.miningRocks[0].yieldKind = "ore";
+  if (!Object.hasOwn(corrected, "completeObjectiveOnEncounterClear")) corrected.completeObjectiveOnEncounterClear = false;
+  const remapRoomReferences = value => {
+    if (!value || typeof value !== "object") return;
+    for (const [key, child] of Object.entries(value)) {
+      if (["currentRoomKey", "roomKey", "sourceRoomKey", "destinationRoomKey"].includes(key) &&
+          child === "room:15182") value[key] = "room:entry";
+      else remapRoomReferences(child);
+    }
+  };
+  remapRoomReferences(corrected);
+  return isDeepStrictEqual(hints, corrected) ? null : { ...cloneValue(spawnState), populationHints: corrected };
+}
+
+function buildCareerMiningEntryRepair(instance, template, defaultRoomStates) {
+  if (toInt(template && template.sourceDungeonID, 0) !== 2023 ||
+      normalizeText(template && template.entryRoomKey, "") !== "room:entry") return null;
+  const profile = normalizeRecordCollection(normalizeObject(template.siteSceneProfile).roomProfiles, "roomKey")
+    .find(room => room.roomKey === "room:entry" && toInt(room.roomID, 0) === 15182);
+  if (!profile || !Array.isArray(profile.legacyRoomKeys) ||
+      !profile.legacyRoomKeys.includes("room:15182")) return null;
+  // Manual site spawns can freeze their population hints. That snapshot takes
+  // precedence over the installed template, even after the room was repaired.
+  const repairedSpawnState = repairCapturedCareerMiningHints(instance);
+  const rooms = normalizeObject(instance.roomStatesByKey);
+  const current = rooms["room:entry"], legacy = rooms["room:15182"];
+  if (!legacy && current && toInt(current.pocketID, 0) === 15182 && current.stage === "entry") {
+    return repairedSpawnState ? { spawnState: repairedSpawnState } : null;
+  }
+  const rows = [legacy, current].filter(Boolean);
+  if (rows.length === 0) return repairedSpawnState ? { spawnState: repairedSpawnState } : null;
+  const fallback = defaultRoomStates["room:entry"];
+  const firstPositive = key => {
+    const values = rows.map(row => toInt(row[key], 0)).filter(value => value > 0);
+    return values.length ? Math.min(...values) : 0;
+  };
+  const counters = {};
+  for (const row of rows) for (const [key, value] of Object.entries(normalizeObject(row.counters))) {
+    counters[key] = Object.hasOwn(counters, key) ? Math.max(counters[key], value) : value;
+  }
+  const state = rows.some(row => row.state === "completed" || toInt(row.completedAtMs, 0) > 0)
+    ? "completed" : rows.some(row => row.state === "active") ? "active" : rows[rows.length - 1].state;
+  const entry = {
+    ...cloneValue(fallback), ...cloneValue(legacy || {}), ...cloneValue(current || {}),
+    roomKey: "room:entry", pocketID: 15182, stage: "entry", state,
+    nodeGraphID: (current && current.nodeGraphID) || (legacy && legacy.nodeGraphID) || fallback.nodeGraphID,
+    activatedAtMs: firstPositive("activatedAtMs"),
+    completedAtMs: firstPositive("completedAtMs"),
+    lastUpdatedAtMs: Math.max(...rows.map(row => toInt(row.lastUpdatedAtMs, 0))),
+    spawnedEntityIDs: [...new Set(rows.flatMap(row => row.spawnedEntityIDs || []))],
+    counters,
+    metadata: {
+      ...normalizeObject(fallback.metadata), ...normalizeObject(legacy && legacy.metadata),
+      ...normalizeObject(current && current.metadata),
+      rawRoomProfile: cloneValue(fallback.metadata.rawRoomProfile),
+      // Keep preimages of both aliases: conflicting metadata/timestamps remain
+      // inspectable without counting the same room's progress twice.
+      legacyRoomStatesByKey: Object.fromEntries(Object.entries(rooms)
+        .filter(([key]) => key === "room:entry" || key === "room:15182")
+        .map(([key, value]) => [key, cloneValue(value)])),
+    },
+  };
+  const repaired = { roomStatesByKey: { ...cloneValue(rooms), "room:entry": entry } };
+  delete repaired.roomStatesByKey["room:15182"];
+  const canonicalizeReferences = value => {
+    const next = cloneValue(normalizeObject(value));
+    for (const key of ["currentRoomKey", "roomKey", "sourceRoomKey", "destinationRoomKey"]) {
+      if (next[key] === "room:15182") next[key] = "room:entry";
+    }
+    return next;
+  };
+  repaired.metadata = canonicalizeReferences(instance.metadata);
+  repaired.objectiveState = { ...cloneValue(instance.objectiveState),
+    metadata: canonicalizeReferences(instance.objectiveState && instance.objectiveState.metadata) };
+  repaired.spawnState = canonicalizeReferences(repairedSpawnState || instance.spawnState);
+  for (const encounter of Object.values(normalizeObject(repaired.spawnState.encounterStatesByKey))) {
+    if (encounter.roomKey === "room:15182") encounter.roomKey = "room:entry";
+  }
+  return repaired;
+}
+
+function buildCareerResourceHintRepair(instance, template) {
+  const replacement = normalizeObject(template.populationHints);
+  const saved = normalizeObject(instance.spawnState && instance.spawnState.populationHints);
+  const id = toInt(template.sourceDungeonID, 0);
+  if (replacement.retailResourceRevision !== 1 || saved.retailResourceRevision === 1 ||
+      saved.source !== "career_agents" || toInt(saved.sourceDungeonID, 0) !== id) return null;
+  const business = [3510, 3516, 3517, 3518].includes(id);
+  const industry = [2056, 2074, 2075, 2076].includes(id);
+  const oldRocks = Array.isArray(saved.miningRocks) ? saved.miningRocks : [];
+  const knownRocks = (typeID, quantity, count) => oldRocks.length === count &&
+    oldRocks.every(rock => Number(rock.typeID) === typeID && Number(rock.quantity) === quantity && Number(rock.count || 1) === 1);
+  const gas = id === 4093 && oldRocks.length === 0 &&
+    (saved.environmentProps || []).findIndex(prop => Number(prop.dunObjectID) === 962121 && Number(prop.typeID) === 28629) === 39 &&
+    (saved.environmentProps || []).filter(prop => Number(prop.dunObjectID) === 962121 && Number(prop.typeID) === 28629).length === 1;
+  if (!(business && knownRocks(1230, 2000, 2)) && !(industry && knownRocks(20, 541, 11)) &&
+      !(id === 2024 && knownRocks(1230, 4000, 3)) && !gas) return null;
+  if (!gas && (replacement.miningRocks || []).some(rock => {
+    const ordinal = Number(rock.legacyRockOrdinal);
+    const previous = oldRocks[ordinal - 1];
+    return !Number.isSafeInteger(ordinal) || ordinal <= 0 || !previous ||
+      Number(previous.dunObjectID) !== Number(rock.dunObjectID) || Number(previous.typeID) !== Number(rock.typeID);
+  })) return null;
+  const hints = cloneValue(saved);
+  hints.retailResourceRevision = 1;
+  hints.miningRocks = (replacement.miningRocks || []).map(rock => {
+    const previous = oldRocks.find(old => rock.dunObjectID && old.dunObjectID === rock.dunObjectID) ||
+      oldRocks.find(old => old.key === rock.key);
+    return { ...cloneValue(previous || {}), ...cloneValue(rock) };
+  });
+  if (replacement.miningTrigger) hints.miningTrigger = cloneValue(replacement.miningTrigger);
+  if (business && saved.completion?.mode === "encounter_groups_cleared" &&
+      saved.completion.encounterKeys?.length === 1 && saved.completion.encounterKeys[0] === "rat") {
+    hints.completion = cloneValue(replacement.completion);
+  }
+  if (business || industry) {
+    hints.encounters = (saved.encounters || []).map(plan => {
+      const updated = (replacement.encounters || []).find(candidate => candidate.key === plan.key);
+      if (!updated || plan.trigger !== "timer" || Number(plan.delaySeconds) !== (business ? 60 : 90)) return plan;
+      return { ...plan, trigger: updated.trigger, delaySeconds: updated.delaySeconds };
+    });
+  }
+  if (gas) hints.environmentProps = hints.environmentProps
+    .map((prop, index) => ({ ...prop, legacyEnvironmentOrdinal: prop.legacyEnvironmentOrdinal || index + 1 }))
+    .filter(prop => Number(prop.dunObjectID) !== 962121);
+  for (const key of ["resources", "resourceFamily", "resourceYieldKind", "completeObjectiveOnEncounterClear"]) {
+    if (replacement[key] !== undefined) hints[key] = cloneValue(replacement[key]);
+  }
+  return { spawnState: { ...cloneValue(instance.spawnState), populationHints: hints } };
+}
+
+function buildAuthoritativeRoomRepair(instance, template, defaultRooms) {
+  const profile = normalizeObject(template.siteSceneProfile);
+  if (profile.authoritativeRoomProfiles !== true || !profile.roomProfiles?.length) return null;
+  const currentRooms = normalizeObject(instance.roomStatesByKey);
+  const canonicalKeys = new Set(Object.keys(defaultRooms));
+  const nativeEnvironmentKeys = new Set(Object.keys(normalizeObject(template.environmentTemplates?.roomTemplates))
+    .map(key => `room:${key}`));
+  const removed = Object.entries(currentRooms).filter(([key, room]) => !canonicalKeys.has(key) &&
+    nativeEnvironmentKeys.has(key) && (room.metadata?.source === "environmentTemplates.roomTemplates" ||
+      room.metadata?.rawRoomProfile?.source === "environmentTemplates.roomTemplates"));
+  const roomStatesByKey = cloneValue(currentRooms);
+  const metadata = cloneValue(normalizeObject(instance.metadata));
+  const archived = cloneValue(normalizeObject(metadata.retiredEnvironmentRoomsByKey));
+  let changed = false;
+  for (const [key, room] of removed) {
+    archived[key] = cloneValue(room);
+    delete roomStatesByKey[key];
+    changed = true;
+  }
+  for (const [key, definition] of Object.entries(defaultRooms)) {
+    const current = roomStatesByKey[key];
+    if (!current || !definition.pocketID || current.pocketID === definition.pocketID) continue;
+    current.pocketID = definition.pocketID;
+    current.metadata = { ...normalizeObject(current.metadata),
+      previousRoomProfile: cloneValue(current.metadata?.rawRoomProfile || {}),
+      rawRoomProfile: cloneValue(definition.metadata.rawRoomProfile) };
+    changed = true;
+  }
+  if (!changed) return null;
+  if (removed.length) metadata.retiredEnvironmentRoomsByKey = archived;
+  const removedKeys = new Set(removed.map(([key]) => key));
+  const references = cloneValue(normalizeObject(metadata.retiredRoomReferences));
+  const clearRetiredReference = (value, prefix) => {
+    const next = cloneValue(normalizeObject(value));
+    for (const key of ["currentRoomKey", "roomKey", "sourceRoomKey", "destinationRoomKey"]) {
+      if (!removedKeys.has(next[key])) continue;
+      references[`${prefix}.${key}`] = next[key];
+      delete next[key];
+    }
+    return next;
+  };
+  const correctedMetadata = clearRetiredReference(metadata, "metadata");
+  const spawnState = clearRetiredReference(instance.spawnState, "spawnState");
+  const objectiveState = { ...cloneValue(instance.objectiveState),
+    metadata: clearRetiredReference(instance.objectiveState?.metadata, "objectiveState.metadata") };
+  if (Object.keys(references).length) correctedMetadata.retiredRoomReferences = references;
+  return { roomStatesByKey, metadata: correctedMetadata, spawnState, objectiveState };
+}
+
 function ensureTemplateRuntimeState(instanceID, options = {}) {
   const existing = requireInstance(instanceID);
   const template = requireTemplate(existing.templateID);
@@ -569,11 +779,17 @@ function ensureTemplateRuntimeState(instanceID, options = {}) {
       : {};
   const defaultRoomStates = buildDefaultRoomStates(template, nowMs);
   const defaultGateStates = buildDefaultGateStates(template, nowMs);
+  const resourceRepair = buildCareerResourceHintRepair(existing, template);
+  const entryRepair = buildCareerMiningEntryRepair({ ...existing, ...resourceRepair }, template, defaultRoomStates);
+  const roomRepair = buildAuthoritativeRoomRepair({ ...existing, ...resourceRepair, ...entryRepair }, template, defaultRoomStates);
+  const lessonRepair = require("./careerLessonRuntime").upgrade({ ...existing, ...resourceRepair, ...entryRepair, ...roomRepair }, template, nowMs);
+  const templateRepair = resourceRepair || entryRepair || roomRepair || lessonRepair
+    ? { ...resourceRepair, ...entryRepair, ...roomRepair, ...lessonRepair } : null;
   const roomPatch = {};
   const gatePatch = {};
 
   for (const [roomKey, roomState] of Object.entries(defaultRoomStates)) {
-    if (existingRoomStates[roomKey]) {
+    if (existingRoomStates[roomKey] || templateRepair?.roomStatesByKey?.[roomKey]) {
       continue;
     }
     roomPatch[roomKey] = cloneValue(roomState);
@@ -627,7 +843,7 @@ function ensureTemplateRuntimeState(instanceID, options = {}) {
     };
   }
 
-  if (Object.keys(roomPatch).length <= 0 && Object.keys(gatePatch).length <= 0) {
+  if (!templateRepair && Object.keys(roomPatch).length <= 0 && Object.keys(gatePatch).length <= 0) {
     return existing;
   }
 
@@ -636,6 +852,7 @@ function ensureTemplateRuntimeState(instanceID, options = {}) {
     if (!target) {
       return table;
     }
+    if (templateRepair) Object.assign(target, cloneValue(templateRepair));
     target.roomStatesByKey = {
       ...normalizeObject(target.roomStatesByKey),
       ...cloneValue(roomPatch),
@@ -647,7 +864,7 @@ function ensureTemplateRuntimeState(instanceID, options = {}) {
     target.timers = target.timers || {};
     target.timers.lastUpdatedAtMs = nowMs;
     return table;
-  });
+  }, templateRepair ? { durable: true } : {});
 
   const updated = runtimeState.getInstanceSnapshot(existing.instanceID);
   emitInstanceChange("updated", existing, updated, {
@@ -880,6 +1097,16 @@ function buildInstanceRecordFromOptions(instanceID, template, options = {}, nowM
       ...(options.spawnState && typeof options.spawnState === "object"
         ? cloneValue(options.spawnState)
         : {}),
+      ...(require("../incursion/incursionAdmission").isTemplate(template)
+        ? { populationHints: require("../incursion/incursionAdmission").freezePopulationHints(template, options) }
+        : {}),
+      // Admit the versioned Caldari world hooks only at a new mission birth.
+      // Existing accepted instances never acquire policy from a pack refresh.
+      ...(Number(options.metadata?.missionContentID) === 17184 && options.runtimeFlags?.missionRuntime === true &&
+        template.requiresMechanics?.includes("visions-caldari-progress-v1") &&
+        template.populationHints?.visionsCaldariPolicy?.version === 1 &&
+        !Object.hasOwn(options.spawnState || {}, "populationHints")
+        ? { populationHints: cloneValue(template.populationHints) } : {}),
       // Persist the rock layout with every new instance before materialization.
       // Unversioned saved instances retain their old ordinal resource identities.
       miningRockAllocationVersion: 1,
@@ -926,13 +1153,42 @@ function createInstance(options = {}) {
       nowMs,
     );
     return table;
-  });
+  }, { durable: options.durable === true });
 
   const created = runtimeState.getInstanceSnapshot(createdInstanceID);
   emitInstanceChange("created", null, created, {
     source: "createInstance",
   });
   return created;
+}
+
+// #283 changes gas placement and bumps the diagnostic policy version. Preserve
+// an otherwise identical, still-eligible active instance across this exact
+// 3 -> 4 transition. The planner re-evaluates current eligibility before it
+// supplies a desired definition; template/site/lifecycle checks remain below.
+// Retaining the old instance also retains its original v3 spawn provenance.
+function isGasPlacementPolicyVersionOnlyUpgrade(existingHash, desiredHash) {
+  try {
+    const previous = JSON.parse(existingHash);
+    const next = JSON.parse(desiredHash);
+    if (
+      !previous || !next ||
+      previous.spawnPolicy?.version !== 3 || next.spawnPolicy?.version !== 4 ||
+      previous.spawnPolicy.allowed !== true || next.spawnPolicy.allowed !== true
+    ) {
+      return false;
+    }
+    // Compare the complete serialized definition after changing only the one
+    // known diagnostic version. Any other hash field/order/semantic change
+    // retains the ordinary strict replacement path; future versions do too.
+    const comparable = {
+      ...next,
+      spawnPolicy: { ...next.spawnPolicy, version: 3 },
+    };
+    return JSON.stringify(previous) === JSON.stringify(comparable);
+  } catch (_error) {
+    return false;
+  }
 }
 
 function definitionsMatchActiveUniverseInstance(instance, definition, template) {
@@ -950,10 +1206,11 @@ function definitionsMatchActiveUniverseInstance(instance, definition, template) 
   }
   const existingHash = normalizeText(instance.metadata && instance.metadata.definitionHash, "");
   const desiredHash = normalizeText(definition.metadata && definition.metadata.definitionHash, "");
-  if (!existingHash || existingHash !== desiredHash) {
+  if (!existingHash || !desiredHash) {
     return false;
   }
-  return true;
+  return existingHash === desiredHash ||
+    isGasPlacementPolicyVersionOnlyUpgrade(existingHash, desiredHash);
 }
 
 function normalizeTextFilterSet(values = []) {
@@ -967,14 +1224,10 @@ function normalizeTextFilterSet(values = []) {
 // Candidate C (web-companion starvation fix): a conservative no-op fast path
 // for reconcileUniverseSeededInstances.
 //
-// The mutator in reconcileUniverseSeededInstances runs inside
-// runtimeState.mutateState, which clones, normalizes, and diffs the ENTIRE
-// global instance table on every call — O(all instances), even when nothing
-// about the target system changed. Cold system entry (undock/jump/login) calls
-// this twice per wake, synchronously on the world event loop, so the block
-// grows as more systems get instantiated over a play session (measured ~340ms
-// per pass at 10k global instances). That growing, load-independent stall is a
-// direct cause of intermittent web-companion connection trouble.
+// Cold system entry (undock/jump/login) reconciles twice per wake. Dungeon
+// mutations now normalize and persist only touched rows and update indexes
+// incrementally, but an unchanged reconcile can still avoid cloning and
+// comparing its target instances altogether.
 //
 // This helper decides — using ONLY the per-target-system index (O(target), not
 // O(global)) and the SAME predicates the mutator uses — whether this reconcile
@@ -1012,6 +1265,7 @@ function tryUniverseReconcileNoOpFastPath({
       if (!(instance.runtimeFlags && instance.runtimeFlags.universeSeeded === true)) {
         continue;
       }
+      if (instance.runtimeFlags.incursionRuntime === true && ["tale-slot", "tale-final"].includes(instance.metadata?.incursionAdmission?.placement)) continue;
       if (
         siteFamilyFilter &&
         !siteFamilyFilter.has(normalizeText(instance.siteFamily, "").toLowerCase())
@@ -1095,13 +1349,27 @@ function tryUniverseReconcileNoOpFastPath({
 
 function settleEventSiteBeforeRemoval(instance) {
   const pending = Object.values(instance?.spawnState?.electionHacks || {}).some(row => !row.acknowledged) ||
+    instance?.runtimeFlags?.incursionRuntime === true && instance.sourceDungeonID === 5193 ||
+    Object.keys(instance?.spawnState?.incursionCivilianDrops?.drops || {}).length > 0 ||
+    Object.values(instance?.spawnState?.missionSalvageByContentKey || {}).some(row => row.status !== "delivered") ||
+    Object.values(instance?.spawnState?.missionMining?.extractionsByKey || {}).some(row => row.status === "prepared") ||
     Object.values(instance?.spawnState?.fabricator?.kills || {}).some(row => !row.acknowledged) ||
     Object.keys(instance?.spawnState?.siteHazardDamageEventsByID || {}).length > 0 ||
+    require("./fracturedLegacySceneActions").pendingMineEvents(instance).length > 0 ||
     Object.values(instance?.spawnState?.hackingContainers || {}).some(row =>
       Object.values(row?.outcomes || {}).some(receipt => receipt.outcome === "won" &&
         receipt.successEffectsDelivered !== true && receipt.careerWin));
   if (!pending) return true;
   try {
+    require("./missionSalvage").beforePurge(instance);
+    require("./missionMiningSettlement").beforePurge(instance);
+    require("../incursion/incursionCargo").beforePurge(instance);
+    require("../incursion/incursionStructures").beforePurge(instance);
+    require("../incursion/incursionLogistics").beforePurge(instance);
+    require("../incursion/incursionLogisticsSupport").beforePurge(instance);
+    require("../incursion/incursionFactory").beforePurge(instance);
+    require("../incursion/incursionCivilianDrops").beforePurge(instance);
+    require("../incursion/incursionFriendlyActors").beforePurge(instance);
     require("../seasons/eventHooks").depot.beforePurge(instance);
     require("../seasons/eventHooks").fabricator.beforePurge(instance);
     require("../exploration/hackingContainerState").beforePurge(instance);
@@ -1220,6 +1488,9 @@ function reconcileUniverseSeededInstances(definitions = [], options = {}) {
       if (!(instance.runtimeFlags && instance.runtimeFlags.universeSeeded === true)) {
         continue;
       }
+      // Tale slots have their own durable placement owner. Broad/family
+      // universe reconciliation must not retire them as undesired generic sites.
+      if (instance.runtimeFlags.incursionRuntime === true && ["tale-slot", "tale-final"].includes(instance.metadata?.incursionAdmission?.placement)) continue;
       if (
         siteFamilyFilter &&
         !siteFamilyFilter.has(normalizeText(instance.siteFamily, "").toLowerCase())
@@ -1663,7 +1934,7 @@ function setLifecycleState(instanceID, lifecycleState, options = {}) {
       target.timers.expiresAtMs = Math.max(0, toInt(options.expiresAtMs, 0));
     }
     return table;
-  });
+  }, { durable: options.durable === true });
 
   const updated = runtimeState.getInstanceSnapshot(existing.instanceID);
   emitInstanceChange("updated", existing, updated, {
@@ -1707,8 +1978,82 @@ function markInstanceObjectiveSatisfied(instanceID, options = {}) {
   return updated;
 }
 
+// A site whose objective is several targets (completion.objectiveTargets) keeps the ones
+// already destroyed, so that the objective is satisfied only once all of them are.
+function markInstanceObjectiveTargetDestroyed(instanceID, targetKey, options = {}) {
+  const existing = requireInstance(instanceID);
+  const key = normalizeText(targetKey, "");
+  const destroyedKeys = Array.isArray(existing.metadata && existing.metadata.objectiveTargetsDestroyed)
+    ? existing.metadata.objectiveTargetsDestroyed
+    : [];
+  if (!key || destroyedKeys.includes(key)) {
+    return existing;
+  }
+  const nowMs = Math.max(0, toInt(options.nowMs, Date.now()));
+  commitRuntimeStateMutation((table) => {
+    const target = table.instancesByID[String(existing.instanceID)];
+    if (!target) {
+      return table;
+    }
+    target.metadata =
+      target.metadata && typeof target.metadata === "object" && !Array.isArray(target.metadata)
+        ? target.metadata
+        : {};
+    target.metadata.objectiveTargetsDestroyed = [...destroyedKeys, key];
+    target.timers = target.timers || {};
+    target.timers.lastUpdatedAtMs = nowMs;
+    return table;
+  });
+  const updated = runtimeState.getInstanceSnapshot(existing.instanceID);
+  emitInstanceChange("updated", existing, updated, {
+    source: "markInstanceObjectiveTargetDestroyed",
+  });
+  return updated;
+}
+
+function completePaidMiningObjective(instanceID, options = {}) {
+  const existing = requireInstance(instanceID);
+  const template = requireTemplate(existing.templateID);
+  const journal = getPersistedInstance(existing.instanceID)?.spawnState?.missionMining;
+  const policy = template.populationHints?.miningTrigger;
+  if (!journal?.armedAtMs || !isDeepStrictEqual(journal, existing.spawnState?.missionMining) || !policy?.completionDelaySeconds ||
+      Number(journal.paidQuantity) < Number(policy.minimumMinedQuantity)) {
+    throw dungeonError("MISSION_MINING_OBJECTIVE_NOT_READY");
+  }
+  const nowMs = Math.max(0, toInt(options.nowMs, Date.now()));
+  if (nowMs < Number(journal.armedAtMs) + Number(policy.completionDelaySeconds) * 1000) {
+    throw dungeonError("MISSION_MINING_OBJECTIVE_NOT_READY");
+  }
+  const duplicate = Number(journal.objectiveCompletedAtMs) > 0;
+  commitRuntimeStateMutation(table => {
+    const target = table.instancesByID[String(existing.instanceID)];
+    target.objectiveSatisfiedAtMs ||= nowMs;
+    target.objectiveSatisfiedReason ||= "paid_mining";
+    target.metadata ||= {};
+    target.metadata.objectiveSatisfiedAtMs = target.objectiveSatisfiedAtMs;
+    target.metadata.objectiveSatisfiedReason = target.objectiveSatisfiedReason;
+    target.objectiveState = { ...target.objectiveState, state: "completed",
+      completedAtMs: target.objectiveState?.completedAtMs || nowMs };
+    target.spawnState.missionMining.objectiveCompletedAtMs ||= nowMs;
+    target.timers.lastUpdatedAtMs = nowMs;
+    return table;
+  }, { durable: true, force: true });
+  const updated = runtimeState.getInstanceSnapshot(existing.instanceID);
+  if (!duplicate) emitInstanceChange("updated", existing, updated, { source: "completePaidMiningObjective" });
+  return updated;
+}
+
 function purgeInstance(instanceID) {
   const existing = requireInstance(instanceID);
+  require("./missionSalvage").beforePurge(existing);
+  require("./missionMiningSettlement").beforePurge(existing);
+  require("../incursion/incursionCargo").beforePurge(existing);
+  require("../incursion/incursionStructures").beforePurge(existing);
+  require("../incursion/incursionLogistics").beforePurge(existing);
+  require("../incursion/incursionLogisticsSupport").beforePurge(existing);
+  require("../incursion/incursionFactory").beforePurge(existing);
+  require("../incursion/incursionCivilianDrops").beforePurge(existing);
+  require("../incursion/incursionFriendlyActors").beforePurge(existing);
   require("../seasons/eventHooks").depot.beforePurge(existing);
   require("../seasons/eventHooks").fabricator.beforePurge(existing);
   require("../exploration/hackingContainerState").beforePurge(existing);
@@ -2234,6 +2579,8 @@ module.exports = {
   startTicker,
   setLifecycleState,
   markInstanceObjectiveSatisfied,
+  markInstanceObjectiveTargetDestroyed,
+  completePaidMiningObjective,
   stopTicker,
   synchronizeInstancePosition,
   tickRuntime,

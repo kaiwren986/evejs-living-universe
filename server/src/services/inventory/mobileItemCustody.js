@@ -35,6 +35,11 @@ function deployFromShip(command = {}) {
     return { success: false, errorMsg: "MOBILE_DEPLOY_CUSTODY_SOURCE_INVALID" };
   }
 
+  const essRestriction = require("../dynamic/essFieldRuntime").resolveShipDeploymentRestriction(
+    systemID, sourceLocationID, command.position,
+  );
+  if (essRestriction) return essRestriction;
+
   return itemCustody.transfer({
     items: {
       itemID,
@@ -48,6 +53,7 @@ function deployFromShip(command = {}) {
     to: itemCustody.custodyRef.inSpace(destinationOwnerID, systemID),
     reason,
     actor: toInt(command.actor, 0) || null,
+    finalizeMovedItem: command.finalizeMovedItem,
     idempotencyKey:
       String(command.idempotencyKey || "").trim() ||
       `mobile-deploy:${itemID}:${sourceOwnerID}:${sourceLocationID}:` +
@@ -159,6 +165,7 @@ function expireInSpace(command = {}) {
     `mobile-expire:${itemID}:${ownerID}:${systemID}`;
   const destroyResult = runtime.destroyDynamicInventoryEntity(systemID, itemID, {
     removeContents: command.removeContents !== false,
+    terminalDestructionEffectID: command.terminalDestructionEffectID,
     custodyReason: itemCustody.CUSTODY_REASON.MOBILE_EXPIRE,
     actor: toInt(command.actor, 0) || null,
     idempotencyKey,

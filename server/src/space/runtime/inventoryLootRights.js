@@ -95,16 +95,16 @@ function applyInventoryLootInfoToEntity(entity, item) {
       "protectedPropertyCorporationID",
     );
 
-  if (corporationID > 0) {
+  if (corporationID > 0 || lootRightsSnapshotVersion > 0) {
     entity.corporationID = corporationID;
   }
-  if (lootRightCorpID > 0) {
+  if (lootRightCorpID > 0 || lootRightsSnapshotVersion > 0) {
     entity.lootRightCorpID = lootRightCorpID;
   }
-  if (allianceID > 0) {
+  if (allianceID > 0 || lootRightsSnapshotVersion > 0) {
     entity.allianceID = allianceID;
   }
-  if (warFactionID > 0) {
+  if (warFactionID > 0 || lootRightsSnapshotVersion > 0) {
     entity.warFactionID = warFactionID;
   }
   entity.lootRightFleetID = lootRightFleetID > 0 ? lootRightFleetID : null;

@@ -26,6 +26,14 @@ function write(id, value) {
   }
 }
 
+function pinWarpathWindow(event) {
+  const { WARPATH_VERSION } = require("../../config/eventSchedules");
+  const old = read(schedule.WARPATH);
+  if (old.runWindow?.version === WARPATH_VERSION) return;
+  write(schedule.WARPATH, { ...old, runWindow: { version: WARPATH_VERSION,
+    startsAt: event.startsAt, endsAt: event.endsAt } });
+}
+
 function candidateTotals() {
   const totals = { roden: 0, moreau: 0, tenzin: 0 };
   let participants = 0;
@@ -61,7 +69,7 @@ function revision(event) {
   return require("node:crypto").createHash("sha256").update(JSON.stringify(event)).digest("hex").slice(0, 16);
 }
 function jobsFor(event) {
-  if (!event?.enabled || require("../../config").campaignTrailEnabled !== true) return [];
+  if (!event || !schedule.isEnabled(event.id)) return [];
   if (event.id === schedule.ELECTION) event = read(event.id).conclusion?.scheduleSnapshot || event;
   return [["start", event.startsAtMs], ["end", event.endsAtMs], ["traders-close", event.traderEndsAtMs]]
     .filter(([kind]) => kind !== "traders-close" || event.traderGraceDays > 0)
@@ -115,8 +123,9 @@ async function handleDurableEventDeadline(job, options = {}) {
   const nowMs = options.nowMs ?? getWallclockNowMs();
   if (nowMs < expected.dueAtMs) throw new Error("Event deadline fired early.");
   concludeIfDue(nowMs);
+  if (event.id === schedule.WARPATH) pinWarpathWindow(event);
   const old = read(event.id);
-  if (event.id === schedule.ELECTION && job.payload.boundary !== "traders-close") {
+  if ([schedule.ELECTION, schedule.WARPATH].includes(event.id) && job.payload.boundary !== "traders-close") {
     // The captured client's OnSeasonStarted refetches season + progress. Its
     // OnSeasonEnded clears the season outright, hiding retained manual claims.
     for (const session of require("../chat/sessionRegistry").getSessions()) {
@@ -128,7 +137,7 @@ async function handleDurableEventDeadline(job, options = {}) {
   if (!old.deadlines?.[job.jobID]) write(event.id, { ...old, deadlines: { ...old.deadlines, [job.jobID]: nowMs } });
   return { eventID: event.id, phase: schedule.phase(event.id, nowMs) };
 }
-module.exports = { TABLE, JOB_TYPE, read, candidateTotals, concludeIfDue, inspect, inspectCharacter, jobsFor,
+module.exports = { TABLE, JOB_TYPE, read, pinWarpathWindow, candidateTotals, concludeIfDue, inspect, inspectCharacter, jobsFor,
   // The shared binding owns the scheduler slot; see durableSchedulerBinding.js.
   bindDurableScheduler: durableScheduler.bind, unbindDurableScheduler: durableScheduler.unbind,
   reconcileDurableEventJobs, handleDurableEventDeadline };

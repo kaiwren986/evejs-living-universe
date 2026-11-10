@@ -4,6 +4,7 @@ module.exports = {
   getBaseGenericModuleRuntimeAttributes,
   getGenericModuleRuntimeAttributes,
   normalizeLiveModuleAttributeOverrides,
+  readFiniteAttributeOverride,
   resolveEffectiveModuleReloadTimeMs,
   resolveGenericModuleAttributeOverrides,
   resolveShipModifiedModuleAttributeMap,
@@ -270,6 +271,25 @@ function getBaseGenericModuleRuntimeAttributes(moduleItem) {
   };
 }
 
+// Overrides are often null: a mining or local-cycle activation carries none, a
+// passive module resolves no runtime attributes, and with no ship there is
+// nothing to calculate. Number(null) is 0, so reading through
+// `overrides && overrides[id]` turned "no override" into 0: published, it blanked
+// a running mining laser's range; as a fallback read, it gave 0 capacitor need
+// and cycle time instead of the module's base values.
+// No overrides, or no value for the attribute, reads as NaN, so a caller's
+// toFiniteNumber fallback (or a skipped publish) takes over.
+function readFiniteAttributeOverride(overrides, attributeID) {
+  if (!overrides) {
+    return Number.NaN;
+  }
+  const value = overrides[attributeID];
+  if (value === null || value === undefined) {
+    return Number.NaN;
+  }
+  return toFiniteNumber(value, Number.NaN);
+}
+
 function normalizeLiveModuleAttributeOverrides(attributeMap) {
   if (!attributeMap || typeof attributeMap !== "object") {
     return null;
@@ -394,7 +414,7 @@ function getGenericModuleRuntimeAttributes(
       toInt(moduleItem && moduleItem.groupID, 0) === GROUP_SCAN_PROBE_LAUNCHER;
     const resolvedDurationMs = roundNumber(
       toFiniteNumber(
-        attributeOverrides && attributeOverrides[durationAttributeID],
+        readFiniteAttributeOverride(attributeOverrides, durationAttributeID),
         baseRuntimeAttributes.durationMs,
       ),
       3,
@@ -403,7 +423,7 @@ function getGenericModuleRuntimeAttributes(
       isScanProbeLauncher
         ? resolvedDurationMs
         : toFiniteNumber(
-          attributeOverrides && attributeOverrides[MODULE_ATTRIBUTE_SPEED],
+          readFiniteAttributeOverride(attributeOverrides, MODULE_ATTRIBUTE_SPEED),
           baseRuntimeAttributes.speedMs,
         ),
       3,
@@ -431,7 +451,7 @@ function getGenericModuleRuntimeAttributes(
         ? 0
         : roundNumber(
           toFiniteNumber(
-            attributeOverrides && attributeOverrides[MODULE_ATTRIBUTE_CAPACITOR_NEED],
+            readFiniteAttributeOverride(attributeOverrides, MODULE_ATTRIBUTE_CAPACITOR_NEED),
             baseRuntimeAttributes.capNeed,
           ),
           6,
@@ -443,7 +463,7 @@ function getGenericModuleRuntimeAttributes(
         0,
         roundNumber(
           toFiniteNumber(
-            attributeOverrides && attributeOverrides[MODULE_ATTRIBUTE_REACTIVATION_DELAY],
+            readFiniteAttributeOverride(attributeOverrides, MODULE_ATTRIBUTE_REACTIVATION_DELAY),
             baseRuntimeAttributes.reactivationDelayMs,
           ),
           3,
@@ -452,7 +472,7 @@ function getGenericModuleRuntimeAttributes(
       maxGroupActive: Math.max(
         0,
         toInt(
-          attributeOverrides && attributeOverrides[MODULE_ATTRIBUTE_MAX_GROUP_ACTIVE],
+          readFiniteAttributeOverride(attributeOverrides, MODULE_ATTRIBUTE_MAX_GROUP_ACTIVE),
           baseRuntimeAttributes.maxGroupActive,
         ),
       ),
@@ -461,14 +481,14 @@ function getGenericModuleRuntimeAttributes(
         : Math.max(
           0,
           toInt(
-            attributeOverrides && attributeOverrides[MODULE_ATTRIBUTE_CONSUMPTION_TYPE],
+            readFiniteAttributeOverride(attributeOverrides, MODULE_ATTRIBUTE_CONSUMPTION_TYPE),
             baseRuntimeAttributes.fuelTypeID,
           ),
         ),
       fuelPerActivation: syntheticHullSuperweapon
         ? 0
         : roundModuleFuelQuantity(
-          attributeOverrides && attributeOverrides[MODULE_ATTRIBUTE_CONSUMPTION_QUANTITY],
+          readFiniteAttributeOverride(attributeOverrides, MODULE_ATTRIBUTE_CONSUMPTION_QUANTITY),
           baseRuntimeAttributes.fuelPerActivation,
         ),
       weaponFamily: weaponFamily || null,
@@ -522,12 +542,12 @@ function getGenericModuleRuntimeAttributes(
     fuelTypeID: Math.max(
       0,
       toInt(
-        attributeOverrides && attributeOverrides[MODULE_ATTRIBUTE_CONSUMPTION_TYPE],
+        readFiniteAttributeOverride(attributeOverrides, MODULE_ATTRIBUTE_CONSUMPTION_TYPE),
         baseRuntimeAttributes.fuelTypeID,
       ),
     ),
     fuelPerActivation: roundModuleFuelQuantity(
-      attributeOverrides && attributeOverrides[MODULE_ATTRIBUTE_CONSUMPTION_QUANTITY],
+      readFiniteAttributeOverride(attributeOverrides, MODULE_ATTRIBUTE_CONSUMPTION_QUANTITY),
       baseRuntimeAttributes.fuelPerActivation,
     ),
     weaponFamily,

@@ -39,6 +39,9 @@ const {
   setCorporationAlliance,
 } = require(path.join(__dirname, "./corporationState"));
 const {
+  computeCharacterCorporationMemberLimit,
+} = require(path.join(__dirname, "./corporationMemberLimit"));
+const {
   toStoredMaskValue,
 } = require(path.join(__dirname, "./contactLabelState"));
 
@@ -1385,6 +1388,34 @@ function updateCorporationRecord(corporationID, changes = {}) {
   });
 }
 
+function closeCorporationWithRuntime(corporationID) {
+  const currentRecord = getCorporationRecord(corporationID);
+  if (!currentRecord || currentRecord.isNPC) {
+    return { success: false, errorMsg: "CORPORATION_NOT_FOUND" };
+  }
+  // Retail keeps the public identity after liquidation (Show Info and former
+  // members' employment history still refer to it). CEO 1 is the system owner.
+  const result = updateCorporationRecord(corporationID, {
+    deleted: 1,
+    memberCount: 0,
+    ceoID: 1,
+    allianceID: null,
+    warFactionID: null,
+    stationID: 60000001,
+    solarSystemID: null,
+    allowWar: false,
+  });
+  if (!result.success) return result;
+  return updateCorporationRuntime(corporationID, (runtime) => ({
+    ...runtime,
+    members: {},
+    offices: {},
+    applications: {},
+    recruitmentAds: {},
+    applicationsEnabled: 0,
+  }));
+}
+
 function deleteCorporationWithRuntime(corporationID) {
   const currentRecord = getCorporationRecord(corporationID);
   if (!currentRecord) {
@@ -1519,7 +1550,10 @@ function createCorporationWithRuntime(characterID, options = {}) {
     taxRate: Number(options.taxRate || 0),
     loyaltyPointTaxRate: Number(options.loyaltyPointTaxRate || 0),
     friendlyFire: options.friendlyFireEnabled ? 1 : 0,
-    memberLimit: 20,
+    // The founder's skills, as "Update with my skills" reckons them. The
+    // client lets only a character with Corporation Management found one
+    // (bco_members.MemberCanCreateCorporation), so this is at least 20.
+    memberLimit: computeCharacterCorporationMemberLimit(characterID),
     allowedMemberRaceIDs: normalizePositiveInteger(characterRecord.raceID, 0) || 0,
     corporationType: 0,
     minimumJoinStanding: 0,
@@ -1906,6 +1940,7 @@ module.exports = {
   cloneValue,
   createAllianceWithRuntime,
   createCorporationWithRuntime,
+  closeCorporationWithRuntime,
   deleteCorporationWithRuntime,
   ensureCharacterMemberState,
   ensureRuntimeInitialized,

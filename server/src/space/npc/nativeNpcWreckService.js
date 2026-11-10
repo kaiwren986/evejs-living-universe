@@ -439,6 +439,12 @@ function refreshNativeWreckRuntimeEntity(systemID, wreckID, options = {}) {
   const entityScopeMetadata = runtimeScopeResolution.data.metadata;
 
   entity.itemName = String(wreckRecord.itemName || entity.itemName || "Wreck");
+  for (const key of ["ownerID", "corporationID", "allianceID", "warFactionID", "lootRightsSnapshotVersion"]) {
+    entity[key] = toPositiveInt(wreckRecord[key], 0);
+  }
+  entity.securityStatus = toFiniteNumber(wreckRecord.securityStatus, 0);
+  entity.lootRightCorpID = toPositiveInt(wreckRecord.lootRightCorpID, entity.corporationID);
+  entity.lootRightFleetID = toPositiveInt(wreckRecord.lootRightFleetID, 0) || null;
   entity.isEmpty = nativeNpcStore.listNativeWreckItemsForWreck(normalizedWreckID).length === 0;
   entity.lootAbandoned = wreckRecord.lootAbandoned === true;
   if (typeof spaceRuntime.applyRuntimeEntityScopeMetadata === "function") {
@@ -522,15 +528,18 @@ function spawnNativeWreck(systemID, wreckID, options = {}) {
   return scene.spawnDynamicEntity(entity, spawnOptions);
 }
 
+// Both durable birth owners retain their original expiry and scope on login.
 function restoreMiningCargoWrecksForScene(scene) {
+  require("./nativeNpcDeathWrecks").recoverScene(scene);
   let restored = 0;
-  const nowMs = Math.max(Date.now(), Number(scene?.getCurrentSimTimeMs?.() || 0));
   for (const record of nativeNpcStore.listNativeWrecks()) {
-    if (!record.miningCargoTransferKey || Number(record.systemID) !== Number(scene?.systemID)) continue;
+    if (!(record.miningCargoTransferKey || record.incursionDeathEventID || record.nativeDeathEntityID) || Number(record.systemID) !== Number(scene?.systemID)) continue;
+    const wallTime = record.incursionDeathEventID ? require("../runtime/runtimeClock").getWallclockNowMs() : Date.now();
+    const nowMs = Math.max(wallTime, Number(scene?.getCurrentSimTimeMs?.() || 0));
     const descriptor = buildNativeRecordSceneDescriptor(record);
     if (!descriptor || descriptor.sceneKey !== scene.sceneKey) continue;
     if (Number(record.expiresAtMs) <= nowMs) {
-      const removed = nativeNpcStore.removeNativeWreckCascade(record.wreckID);
+      const removed = destroyNativeWreck(record.wreckID, { scene, nowMs, broadcast: false });
       if (!removed.success) return removed;
       continue;
     }
@@ -622,6 +631,25 @@ function transferNativeWreckItemToCharacterLocation(options = {}) {
     refreshNativeWreckRuntimeEntity(wreckRecord.systemID, wreckRecord.wreckID);
   }
   return transferResult;
+}
+
+function transferNativeWreckOwnership(wreckID, owner, options = {}) {
+  const previous = nativeNpcStore.getNativeWreck(wreckID);
+  const scene = previous && resolveNativeWreckScene(previous, options);
+  const entity = scene && scene.getEntityByID(wreckID);
+  if (!entity || entity.nativeNpcWreck !== true || !resolveNativeWreckScopeMetadata(previous, entity).success) {
+    return { success: false, errorMsg: "WRECK_NOT_FOUND" };
+  }
+  const before = [nativeNpcStore.buildNativeWreckInventoryItem(wreckID), ...nativeNpcStore.buildNativeWreckContents(wreckID)];
+  const result = nativeNpcStore.setNativeWreckOwner(wreckID, owner, options);
+  if (!result.success) return result;
+  const after = [nativeNpcStore.buildNativeWreckInventoryItem(wreckID), ...nativeNpcStore.buildNativeWreckContents(wreckID)];
+  const changes = after.map((item, index) => ({ item, previousData: before[index] }));
+  // The primary record and projected contents already agree. Publication cannot
+  // roll that accepted owner transition back if a transport fails.
+  try { refreshNativeWreckRuntimeEntity(previous.systemID, wreckID, { ...options, scene, broadcast: true }); }
+  catch (error) { log.warn(`[NativeWreck] Owner publication failed wreck=${wreckID}: ${error.message}`); }
+  return { ...result, data: { ...result.data, changes } };
 }
 
 function resolveNpcSentryAmmoCandidates(shipEntity) {
@@ -859,6 +887,194 @@ function destroyNativeNpcSentryEntity(systemID, shipEntity, options = {}) {
   };
 }
 
+function buildNativeNpcWreckRecord({ wreckID, entityID, normalizedSystemID, sceneIdentity,
+  shipEntity, nativeEntityRecord, wreckType, options, nowMs, hasMiningCargo, entityScopeMetadata }) {
+  const ownerID = toPositiveInt(
+    options.ownerCharacterID || options.characterID || options.killerCharacterID,
+    toPositiveInt(shipEntity.ownerID, 0),
+  );
+  // Loot permissions use the owner's security, rather than the dead NPC's.
+  // Resolve lazily because character setup also reaches the space runtime.
+  const ownerCharacter = require("../../services/character/characterState").getCharacterRecord(ownerID);
+  const securityStatus = ownerCharacter
+    ? toFiniteNumber(ownerCharacter.securityStatus ?? ownerCharacter.securityRating, 0)
+    : ownerID === toPositiveInt(shipEntity.ownerID, 0)
+      ? toFiniteNumber(shipEntity.securityStatus ?? shipEntity.securityRating, 0)
+      : 0;
+  return {
+    wreckID,
+    sourceEntityID: entityID,
+    systemID: normalizedSystemID,
+    sceneKey: String(sceneIdentity.sceneKey || ""),
+    sceneKind: String(sceneIdentity.sceneKind || ""),
+    instanceID: toPositiveInt(sceneIdentity.instanceID, 0),
+    locationID: toPositiveInt(sceneIdentity.locationID, normalizedSystemID),
+    sourceSolarSystemID: toPositiveInt(sceneIdentity.sourceSolarSystemID, 0),
+    instanceScope: sceneIdentity.sceneKind === "abyssal" ? "abyssal" : undefined,
+    profileID: nativeEntityRecord && nativeEntityRecord.profileID || null,
+    loadoutID: nativeEntityRecord && nativeEntityRecord.loadoutID || null,
+    lootTableID: nativeEntityRecord && nativeEntityRecord.lootTableID || null,
+    npcEntityType: nativeEntityRecord && nativeEntityRecord.npcEntityType || null,
+    typeID: toPositiveInt(wreckType.typeID, 0),
+    groupID: toPositiveInt(wreckType.groupID, 0),
+    categoryID: toPositiveInt(wreckType.categoryID, 0),
+    itemName: String(wreckType.name || "Wreck"),
+    sourceTypeID: toPositiveInt(
+      shipEntity && shipEntity.slimTypeID,
+      toPositiveInt(shipEntity && shipEntity.typeID, 0),
+    ),
+    ownerID,
+    corporationID: toPositiveInt(
+      options.corporationID,
+      toPositiveInt(shipEntity.corporationID, 0),
+    ),
+    allianceID: toPositiveInt(
+      options.allianceID,
+      toPositiveInt(shipEntity.allianceID, 0),
+    ),
+    warFactionID: toPositiveInt(
+      options.warFactionID,
+      toPositiveInt(shipEntity.warFactionID, 0),
+    ),
+    securityStatus,
+    lootRightCorpID: toPositiveInt(
+      options.corporationID,
+      toPositiveInt(shipEntity.corporationID, 0),
+    ),
+    lootRightsSnapshotVersion: LOOT_RIGHTS_SNAPSHOT_VERSION,
+    lootRightFleetID: toPositiveInt(options.fleetID, 0) || null,
+    lootAbandoned: false,
+    position: cloneVector(shipEntity.position),
+    velocity: { x: 0, y: 0, z: 0 },
+    direction: cloneVector(shipEntity.direction, { x: 1, y: 0, z: 0 }),
+    targetPoint: cloneVector(shipEntity.position),
+    mode: "STOP",
+    speedFraction: 0,
+    radius: Math.max(0, toFiniteNumber(shipEntity.radius, 0)),
+    createdAtMs: nowMs,
+    expiresAtMs: nowMs + getSpaceDebrisLifetimeMs(),
+    launcherID: entityID,
+    dunRotation: buildDunRotationFromDirection(shipEntity.direction),
+    transient: shipEntity.transient === true && !hasMiningCargo,
+    ...entityScopeMetadata,
+    conditionState: {
+      damage: 0,
+      charge: 1,
+      armorDamage: 0,
+      shieldCharge: 0,
+      incapacitated: false,
+    },
+  };
+}
+
+function prepareNativeNpcWreckItems({ wreckRecord, nativeEntityRecord, shipEntity, options, entityID, normalizedSystemID }) {
+  const manifestItems = [];
+  const cargoDrops = nativeNpcStore.buildNativeCargoItems(entityID);
+  for (const cargoEntry of cargoDrops) {
+    const itemType = resolveItemByTypeID(cargoEntry.typeID) || {
+      typeID: cargoEntry.typeID,
+      name: cargoEntry.itemName,
+    };
+    const wreckItemResult = buildNativeWreckItemRecord(wreckRecord, itemType, {
+      quantity: cargoEntry.quantity,
+      singleton: cargoEntry.singleton,
+      moduleState: cargoEntry.moduleState,
+      blueprintState: cargoEntry.blueprintState,
+      moduleID: cargoEntry.moduleID,
+      sourceKind: "cargo",
+    });
+    if (!wreckItemResult.success || !wreckItemResult.data) {
+      nativeNpcStore.removeNativeWreckCascade(wreckRecord.wreckID);
+      return wreckItemResult;
+    }
+    manifestItems.push(wreckItemResult.data);
+  }
+
+  const lootTable = nativeEntityRecord && nativeEntityRecord.lootTableID
+    ? getNpcLootTable(nativeEntityRecord.lootTableID)
+    : null;
+  const system = worldData.getSolarSystemByID(normalizedSystemID);
+  const security = Number(system && (system.securityStatus ?? system.security));
+  const rolledLootEntries = rollNpcLootEntries(lootTable, {
+    random: options.random,
+    source: {
+      npcTypeID: wreckRecord.sourceTypeID,
+      npcTypeName: nativeEntityRecord && nativeEntityRecord.itemName || shipEntity.itemName,
+      profileID: nativeEntityRecord && nativeEntityRecord.profileID,
+      lootTableID: nativeEntityRecord && nativeEntityRecord.lootTableID,
+      factionName: nativeEntityRecord && nativeEntityRecord.factionName,
+      siteID: nativeEntityRecord && nativeEntityRecord.dungeonSiteID || shipEntity.dungeonSiteID ||
+        nativeEntityRecord && nativeEntityRecord.operatorKind !== "asteroidBeltRat" && nativeEntityRecord.spawnSiteID,
+      securityClass: normalizedSystemID >= 31_000_000 && normalizedSystemID <= 31_999_999
+        ? "wormhole" : !system || !Number.isFinite(security)
+          ? null : security <= 0 ? "nullsec" : security < 0.45 ? "lowsec" : "highsec",
+    },
+  });
+  const lootItemsResult = buildNativeLootWreckItems(wreckRecord, rolledLootEntries);
+  if (!lootItemsResult.success) {
+    nativeNpcStore.removeNativeWreckCascade(wreckRecord.wreckID);
+    return lootItemsResult;
+  }
+  manifestItems.push(...lootItemsResult.data);
+
+  return { success: true, data: { manifestItems, rolledLootEntries } };
+}
+
+function prepareIncursionDeathWreck({ scene, entity, stored, event, owner }) {
+  try {
+    if (nativeNpcStore.listNativeCargoForEntity(entity.itemID).some(row => row.miningRevision > 0))
+      throw new Error("INCURSION_WRECK_MINING_CARGO_UNSUPPORTED");
+    const controller = getControllerByEntityID(entity.itemID);
+    if (controller?.behaviorProfile?.capitalFighterWingTypeIDs?.length)
+      throw new Error("INCURSION_WRECK_FIGHTER_PROFILE_UNSUPPORTED");
+    const wreckType = resolveEntityWreckType({ nativeNpc: true, profileID: stored.profileID, shipTypeID: entity.typeID,
+      itemName: entity.itemName, groupName: stored.slimGroupName, classID: stored.capitalClassID || entity.capitalClassID,
+      factionName: stored.factionName, npcEntityType: stored.npcEntityType, capitalNpc: stored.capitalNpc === true || entity.capitalNpc === true });
+    if (!wreckType) throw new Error("WRECK_TYPE_NOT_FOUND");
+    const scope = nativeNpcStore.resolveStoredEntityScopeMetadata([stored, entity], { projectAirInstanceToDungeonSite: true });
+    if (!scope.success) return scope;
+    const allocated = nativeNpcStore.allocateWreckID({ transient: false });
+    if (!allocated.success) return allocated;
+    const shipEntity = { ...entity, position: stored.position, direction: stored.direction };
+    const wreck = buildNativeNpcWreckRecord({ wreckID: allocated.data, entityID: entity.itemID, normalizedSystemID: stored.systemID,
+      sceneIdentity: scene, shipEntity, nativeEntityRecord: stored, wreckType, options: owner, nowMs: scene.getCurrentSimTimeMs?.() || event.atMs,
+      hasMiningCargo: false, entityScopeMetadata: { ...scope.data.metadata, ...buildChildEntityScopeMetadata(entity) } });
+    wreck.incursionDeathEventID = event.eventID;
+    const manifest = prepareNativeNpcWreckItems({ wreckRecord: wreck, nativeEntityRecord: stored, shipEntity,
+      options: owner, entityID: entity.itemID, normalizedSystemID: stored.systemID });
+    if (!manifest.success) return manifest;
+    return { success: true, data: { wreck,
+      items: manifest.data.manifestItems.map(item => ({ ...item, incursionDeathEventID: event.eventID })),
+      rolledLootEntries: manifest.data.rolledLootEntries.map(entry => ({ typeID: entry.typeID, name: entry.name, quantity: entry.quantity })) } };
+  } catch (error) { return { success: false, errorMsg: error.message }; }
+}
+function destroyPlannedIncursionNpc(scene, entity, record) {
+  const publication = require("./incursionDeathWrecks").publish(record);
+  if (!publication.success) return publication;
+  const { plan, wreck } = publication.data;
+  const removed = spaceRuntime.removeDynamicEntity(scene.sceneDescriptor || scene.systemID, entity.itemID,
+    { allowSessionOwned: false, terminalDestructionEffectID: DESTRUCTION_EFFECT_EXPLOSION });
+  if (!removed.success) return removed;
+  unregisterController(entity.itemID);
+  const retired = nativeNpcStore.removeNativeEntityCascade(entity.itemID);
+  if (!retired.success) return retired;
+  const projected = projectIncursionDeathWreck(scene, publication);
+  if (!projected.success) return projected;
+  notifyDungeonEncounterEntityDestroyed(scene, entity, scene.getCurrentSimTimeMs());
+  return { success: true, data: { wreck: wreck || plan.wreck, shipID: entity.itemID, destroyedFighterCount: 0,
+    wreckItems: nativeNpcStore.listNativeWreckItemsForWreck(plan.wreck.wreckID), rolledLootEntries: plan.rolledLootEntries } };
+}
+
+function projectIncursionDeathWreck(scene, publication) {
+  const wreck = publication.data?.wreck;
+  if (!scene || !wreck) return { success: true, handled: false };
+  if (!publication.duplicate) spatialTrace.recordWreckRecordCreated(scene, wreck, { persistenceKind: "native-persisted-record" });
+  const nowMs = Math.max(require("../runtime/runtimeClock").getWallclockNowMs(), Number(scene.getCurrentSimTimeMs?.() || 0));
+  if (wreck.expiresAtMs <= nowMs) return destroyNativeWreck(wreck.wreckID, { scene, nowMs, broadcast: false });
+  return scene.getEntityByID(wreck.wreckID) ? { success: true, handled: true }
+    : spawnNativeWreck(scene.systemID, wreck.wreckID, { scene });
+}
+
 function destroyNativeNpcEntityWithWreck(systemID, shipEntity, options = {}) {
   const normalizedSystemID = toPositiveInt(systemID, 0);
   const entityID = toPositiveInt(shipEntity && shipEntity.itemID, 0);
@@ -870,6 +1086,43 @@ function destroyNativeNpcEntityWithWreck(systemID, shipEntity, options = {}) {
   }
   if (isDestructibleNpcSentry(shipEntity)) {
     return destroyNativeNpcSentryEntity(normalizedSystemID, shipEntity, options);
+  }
+
+  const requiredRecord = nativeNpcStore.getNativeEntity(entityID);
+  if (requiredRecord?.nativeDeathWreck) {
+    const pendingScene = resolveNativeNpcDestructionScene(normalizedSystemID, shipEntity, options);
+    return require("./nativeNpcDeathWrecks").settle(pendingScene, requiredRecord);
+  }
+  const requiredRoles = ["required_actor_preparing", "required_actor"];
+  if (requiredRoles.includes(requiredRecord?.dungeonSiteContentRole) || requiredRoles.includes(shipEntity.dungeonSiteContentRole)) {
+    // The durable terminal receipt must precede wreck publication, mining-cargo
+    // settlement and either native/runtime deletion. Bind it to the actual live
+    // owner first: an unbound object with a reused itemID cannot earn a death.
+    const requiredScene = resolveNativeNpcDestructionScene(normalizedSystemID, shipEntity, options);
+    const storedController = nativeNpcStore.getNativeController(entityID);
+    const scope = nativeNpcStore.resolveStoredEntityScopeMetadata([requiredRecord, shipEntity]);
+    if (!requiredScene || Number(requiredScene.systemID) !== normalizedSystemID ||
+        requiredScene.getEntityByID(entityID) !== shipEntity || shipEntity.nativeNpc !== true ||
+        requiredRecord?.transient !== false || requiredRecord.dungeonMaterializedSiteContent !== true ||
+        requiredRecord.dungeonSiteContentRole !== "required_actor" || shipEntity.dungeonSiteContentRole !== "required_actor" ||
+        Number(requiredRecord.entityID) !== entityID || Number(requiredRecord.systemID) !== normalizedSystemID ||
+        Number(requiredRecord.typeID) !== Number(shipEntity.typeID) || Number(requiredRecord.ownerID) !== Number(shipEntity.ownerID) ||
+        Number(requiredRecord.dungeonSiteID) !== Number(shipEntity.dungeonSiteID) ||
+        Number(requiredRecord.dungeonSiteInstanceID) !== Number(shipEntity.dungeonSiteInstanceID) ||
+        requiredRecord.dungeonSiteContentKey !== shipEntity.dungeonSiteContentKey ||
+        requiredRecord.dungeonEncounterKey !== shipEntity.dungeonEncounterKey ||
+        !storedController || Number(storedController.entityID) !== entityID || Number(storedController.systemID) !== normalizedSystemID ||
+        !scope.success || !resolveEntityInteractionScope(shipEntity).valid) {
+      return { success: false, errorMsg: "REQUIRED_ACTOR_DESTRUCTION_OWNER_MISMATCH" };
+    }
+    const retirement = require("./nativeNpcService").retireRequiredDungeonActor(shipEntity, "destroyed", requiredScene.getCurrentSimTimeMs());
+    if (!retirement.success) return retirement;
+  }
+
+  if (requiredRecord?.incursionDeathEventID) {
+    const scene = resolveNativeNpcDestructionScene(normalizedSystemID, shipEntity, options);
+    if (!scene) return { success: false, errorMsg: "SHIP_SCENE_NOT_FOUND" };
+    return destroyPlannedIncursionNpc(scene, shipEntity, requiredRecord);
   }
 
   const recoveredMining = require("../../services/mining/miningCargoCommits").reconcileActor(entityID);
@@ -988,123 +1241,20 @@ function destroyNativeNpcEntityWithWreck(systemID, shipEntity, options = {}) {
   };
   const sceneDescriptor = scene.sceneDescriptor || null;
 
-  let wreckRecord = {
-    wreckID: wreckIDResult.data,
-    sourceEntityID: entityID,
-    systemID: normalizedSystemID,
-    sceneKey: String(scene.sceneKey || ""),
-    sceneKind: String(scene.sceneKind || ""),
-    instanceID: toPositiveInt(scene.instanceID, 0),
-    locationID: toPositiveInt(scene.locationID, normalizedSystemID),
-    sourceSolarSystemID: toPositiveInt(scene.sourceSolarSystemID, 0),
-    instanceScope: scene.sceneKind === "abyssal" ? "abyssal" : undefined,
-    profileID: nativeEntityRecord && nativeEntityRecord.profileID || null,
-    loadoutID: nativeEntityRecord && nativeEntityRecord.loadoutID || null,
-    lootTableID: nativeEntityRecord && nativeEntityRecord.lootTableID || null,
-    npcEntityType: nativeEntityRecord && nativeEntityRecord.npcEntityType || null,
-    typeID: toPositiveInt(wreckType.typeID, 0),
-    groupID: toPositiveInt(wreckType.groupID, 0),
-    categoryID: toPositiveInt(wreckType.categoryID, 0),
-    itemName: String(wreckType.name || "Wreck"),
-    sourceTypeID: toPositiveInt(
-      shipEntity && shipEntity.slimTypeID,
-      toPositiveInt(shipEntity && shipEntity.typeID, 0),
-    ),
-    ownerID: toPositiveInt(
-      options.ownerCharacterID ||
-        options.characterID ||
-        options.killerCharacterID,
-      toPositiveInt(shipEntity.ownerID, 0),
-    ),
-    corporationID: toPositiveInt(
-      options.corporationID,
-      toPositiveInt(shipEntity.corporationID, 0),
-    ),
-    allianceID: toPositiveInt(
-      options.allianceID,
-      toPositiveInt(shipEntity.allianceID, 0),
-    ),
-    warFactionID: toPositiveInt(
-      options.warFactionID,
-      toPositiveInt(shipEntity.warFactionID, 0),
-    ),
-    securityStatus: toFiniteNumber(shipEntity.securityStatus, 0),
-    lootRightCorpID: toPositiveInt(
-      options.corporationID,
-      toPositiveInt(shipEntity.corporationID, 0),
-    ),
-    lootRightsSnapshotVersion: LOOT_RIGHTS_SNAPSHOT_VERSION,
-    lootRightFleetID: toPositiveInt(options.fleetID, 0) || null,
-    lootAbandoned: false,
-    position: cloneVector(shipEntity.position),
-    velocity: { x: 0, y: 0, z: 0 },
-    direction: cloneVector(shipEntity.direction, { x: 1, y: 0, z: 0 }),
-    targetPoint: cloneVector(shipEntity.position),
-    mode: "STOP",
-    speedFraction: 0,
-    radius: Math.max(0, toFiniteNumber(shipEntity.radius, 0)),
-    createdAtMs: nowMs,
-    expiresAtMs: nowMs + getSpaceDebrisLifetimeMs(),
-    launcherID: entityID,
-    dunRotation: buildDunRotationFromDirection(shipEntity.direction),
-    transient: shipEntity.transient === true && !hasMiningCargo,
-    ...entityScopeMetadata,
-    conditionState: {
-      damage: 0,
-      charge: 1,
-      armorDamage: 0,
-      shieldCharge: 0,
-      incapacitated: false,
-    },
-  };
-  const manifestItems = [];
-  const cargoDrops = nativeNpcStore.buildNativeCargoItems(entityID);
-  for (const cargoEntry of cargoDrops) {
-    const itemType = resolveItemByTypeID(cargoEntry.typeID) || {
-      typeID: cargoEntry.typeID,
-      name: cargoEntry.itemName,
-    };
-    const wreckItemResult = buildNativeWreckItemRecord(wreckRecord, itemType, {
-      quantity: cargoEntry.quantity,
-      singleton: cargoEntry.singleton,
-      moduleState: cargoEntry.moduleState,
-      blueprintState: cargoEntry.blueprintState,
-      moduleID: cargoEntry.moduleID,
-      sourceKind: "cargo",
-    });
-    if (!wreckItemResult.success || !wreckItemResult.data) {
-      nativeNpcStore.removeNativeWreckCascade(wreckRecord.wreckID);
-      return wreckItemResult;
-    }
-    manifestItems.push(wreckItemResult.data);
-  }
+  let wreckRecord = buildNativeNpcWreckRecord({ wreckID: wreckIDResult.data, entityID, normalizedSystemID,
+    sceneIdentity: scene, shipEntity, nativeEntityRecord, wreckType, options, nowMs, hasMiningCargo, entityScopeMetadata });
+  const manifest = prepareNativeNpcWreckItems({ wreckRecord, nativeEntityRecord, shipEntity, options, entityID, normalizedSystemID });
+  if (!manifest.success) return manifest;
+  const { manifestItems, rolledLootEntries } = manifest.data;
 
-  const lootTable = nativeEntityRecord && nativeEntityRecord.lootTableID
-    ? getNpcLootTable(nativeEntityRecord.lootTableID)
-    : null;
-  const system = worldData.getSolarSystemByID(normalizedSystemID);
-  const security = Number(system && (system.securityStatus ?? system.security));
-  const rolledLootEntries = rollNpcLootEntries(lootTable, {
-    random: options.random,
-    source: {
-      npcTypeID: wreckRecord.sourceTypeID,
-      npcTypeName: nativeEntityRecord && nativeEntityRecord.itemName || shipEntity.itemName,
-      profileID: nativeEntityRecord && nativeEntityRecord.profileID,
-      lootTableID: nativeEntityRecord && nativeEntityRecord.lootTableID,
-      factionName: nativeEntityRecord && nativeEntityRecord.factionName,
-      siteID: nativeEntityRecord && nativeEntityRecord.dungeonSiteID || shipEntity.dungeonSiteID ||
-        nativeEntityRecord && nativeEntityRecord.operatorKind !== "asteroidBeltRat" && nativeEntityRecord.spawnSiteID,
-      securityClass: normalizedSystemID >= 31_000_000 && normalizedSystemID <= 31_999_999
-        ? "wormhole" : !system || !Number.isFinite(security)
-          ? null : security <= 0 ? "nullsec" : security < 0.45 ? "lowsec" : "highsec",
-    },
-  });
-  const lootItemsResult = buildNativeLootWreckItems(wreckRecord, rolledLootEntries);
-  if (!lootItemsResult.success) {
-    nativeNpcStore.removeNativeWreckCascade(wreckRecord.wreckID);
-    return lootItemsResult;
+  if (!hasMiningCargo && nativeEntityRecord?.transient === false &&
+      String(nativeEntityRecord.spawnGroupID || "").startsWith("crab:")) {
+    const accepted = require("./nativeNpcDeathWrecks").commit(scene, shipEntity, nativeEntityRecord, {
+      wreck: wreckRecord, items: manifestItems, rolledLootEntries, destroyedFighterCount,
+    });
+    if (accepted.success) notifyDungeonEncounterEntityDestroyed(scene, shipEntity, nowMs);
+    return accepted;
   }
-  manifestItems.push(...lootItemsResult.data);
 
   if (hasMiningCargo) {
     const transfer = nativeNpcStore.commitMiningCargoWreckTransfer({ entityID,
@@ -1173,11 +1323,14 @@ function destroyNativeNpcEntityWithWreck(systemID, shipEntity, options = {}) {
 
 module.exports = {
   buildNativeWreckRuntimeEntity,
+  prepareIncursionDeathWreck,
+  projectIncursionDeathWreck,
   refreshNativeWreckRuntimeEntity,
   spawnNativeWreck,
   restoreMiningCargoWrecksForScene,
   destroyNativeWreck,
   transferNativeWreckItemToCharacterLocation,
+  transferNativeWreckOwnership,
   destroyNativeNpcEntityWithWreck,
   _testing: {
     resolveNpcSentryAmmoCandidates,

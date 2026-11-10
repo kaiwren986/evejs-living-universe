@@ -80,72 +80,7 @@ const TRANSACTION_COLUMNS = [
   ["amount", 0x05],
   ["balance", 0x05],
 ];
-const ENTRY_TYPE_METADATA_BY_ID = new Map([
-  // Installed accountingEntryTypes.fsdbinary row123. accountsvc.GetStaticData
-  // translates entryTypeNameID unconditionally; a literal name cannot replace it.
-  [JOURNAL_ENTRY_TYPE.ASSET_SAFETY_TAX, ["AssetSafetyTax", 510859, 570551]],
-  [JOURNAL_ENTRY_TYPE.PLAYER_TRADING, ["PlayerTrading", 59793, 234499]],
-  [JOURNAL_ENTRY_TYPE.MARKET_TRANSACTION, ["MarketTransaction", 59794, 234500]],
-  [JOURNAL_ENTRY_TYPE.GM_CASH_TRANSFER, ["GMCashTransfer", 59795, 234502]],
-  [JOURNAL_ENTRY_TYPE.PLAYER_DONATION, ["PlayerDonation", 59802, 234508]],
-  [JOURNAL_ENTRY_TYPE.OFFICE_RENTAL_FEE, ["OfficeRentalFee", 59805, 234512]],
-  [JOURNAL_ENTRY_TYPE.BOUNTY, ["Bounty", 59808, null]],
-  [JOURNAL_ENTRY_TYPE.NPC_BOUNTY_PRIZE, ["BountyPrize", 59809, null]],
-  [JOURNAL_ENTRY_TYPE.INSURANCE, ["Insurance", 59811, null]],
-  [JOURNAL_ENTRY_TYPE.AGENT_MISSION_REWARD, ["AgentMissionReward", 59825, 234515]],
-  [
-    JOURNAL_ENTRY_TYPE.AGENT_MISSION_TIME_BONUS_REWARD,
-    ["AgentMissionTimeBonusReward", 59826, 234516],
-  ],
-  [
-    JOURNAL_ENTRY_TYPE.CORPORATION_TAX_AGENT_REWARDS,
-    ["AgentMissionRewardCorporationTax", 59885, 234555],
-  ],
-  [
-    JOURNAL_ENTRY_TYPE.CORPORATION_TAX_AGENT_BONUS_REWARDS,
-    ["AgentMissionTimeBonusRewardCorporationTax", 59886, 234556],
-  ],
-  [
-    JOURNAL_ENTRY_TYPE.RELEASE_OF_IMPOUNDED_PROPERTY,
-    ["ReleaseOfImpoundedProperty", 59833, null],
-  ],
-  [JOURNAL_ENTRY_TYPE.MARKET_ESCROW, ["MarketEscrow", 59834, null]],
-  [JOURNAL_ENTRY_TYPE.BROKERS_FEE, ["BrokersFee", 59838, null]],
-  [
-    JOURNAL_ENTRY_TYPE.ALLIANCE_REGISTRATION_FEE,
-    ["AllianceRegistrationFee", 59840, 234575],
-  ],
-  [
-    JOURNAL_ENTRY_TYPE.ALLIANCE_MAINTENANCE_FEE,
-    // CCP's reference-type key is historically misspelled "Maintainance".
-    ["AllianceMaintainanceFee", 59842, null],
-  ],
-  // refContrabandFine: entryTypeNameID 59843 and entryJournalMessageID 234587, as the client's own
-  // accountingEntryTypes has them.
-  [JOURNAL_ENTRY_TYPE.CONTRABAND_FINE, ["ContrabandFine", 59843, 234587]],
-  [JOURNAL_ENTRY_TYPE.TRANSACTION_TAX, ["TransactionTax", 59846, 234580]],
-  [
-    JOURNAL_ENTRY_TYPE.JUMP_CLONE_INSTALLATION,
-    ["JumpCloneInstallationFee", 59847, 234617],
-  ],
-  [JOURNAL_ENTRY_TYPE.NPC_BOUNTY_PRIZES, ["BountyPrizes", 59877, null]],
-  [
-    JOURNAL_ENTRY_TYPE.CORPORATION_TAX_NPC_BOUNTIES,
-    ["BountyPrizeCorporationTax", 59884, 234554],
-  ],
-  [JOURNAL_ENTRY_TYPE.PLANETARY_IMPORT_TAX, ["PlanetaryImportTax", 59888, null]],
-  [JOURNAL_ENTRY_TYPE.PLANETARY_EXPORT_TAX, ["PlanetaryExportTax", 59889, null]],
-  [JOURNAL_ENTRY_TYPE.PLANETARY_CONSTRUCTION, ["PlanetaryConstruction", 59890, null]],
-  // refRewardManager (Homefront payouts). The client's wallet journal looks each
-  // row's type up in this list and breaks on a missing one.
-  [JOURNAL_ENTRY_TYPE.CORPORATE_REWARD_PAYOUT, ["RewardManager", 59891, 234626]],
-  [
-    JOURNAL_ENTRY_TYPE.JUMP_CLONE_ACTIVATION,
-    ["JumpCloneActivationFee", 312132, 516539],
-  ],
-  [JOURNAL_ENTRY_TYPE.SKILL_PURCHASE, ["SkillPurchase", 543737, 543653]],
-  [JOURNAL_ENTRY_TYPE.MARKET_PROVIDER_TAX, ["SccSurcharge", 559228, null]],
-]);
+const { entries: NATIVE_ACCOUNTING_ENTRY_TYPES } = require("./accountingEntryTypes.json");
 
 function buildList(items) {
   return { type: "list", items };
@@ -766,8 +701,8 @@ class AccountService extends BaseService {
 
   Handle_GetEntryTypes(args = []) {
     const entryTypes = buildList(
-      [...ENTRY_TYPE_METADATA_BY_ID.entries()].map(
-        ([entryTypeID, [entryTypeName, entryTypeNameID, entryJournalMessageID]]) =>
+      NATIVE_ACCOUNTING_ENTRY_TYPES.map(
+        ({ entryTypeID, entryTypeName, entryTypeNameID, entryJournalMessageID }) =>
           buildKeyVal([
             ["entryTypeID", entryTypeID],
             ["entryTypeNameID", entryTypeNameID],

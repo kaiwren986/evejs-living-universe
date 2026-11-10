@@ -6,9 +6,6 @@ const BaseService = require(path.join(__dirname, "../baseService"));
 const {
   buildCachedMethodCallResult,
 } = require(path.join(__dirname, "../cache/objectCacheRuntime"));
-const {
-  buildObservedTalesDict,
-} = require(path.join(__dirname, "./observedTaleData"));
 
 function normalizePositiveInteger(value, fallback = 0) {
   const numericValue = Number(value);
@@ -44,7 +41,7 @@ function sendSolarSystemTaleData(session, solarSystemID = null, taleIDs = null) 
 
   session.sendNotification("OnTaleData", "solarsystemid2", [
     targetSystemID,
-    buildObservedTalesDict(targetSystemID, taleIDs),
+    require("../incursion/incursionPresentation").buildSystemTalesDict(targetSystemID, taleIDs),
   ]);
   return true;
 }

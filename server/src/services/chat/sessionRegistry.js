@@ -119,7 +119,14 @@ function indexCharacterSession(session) {
   }
 }
 
+function clearGmDogmaOverrides(session) {
+  if (require("../dogma/gmDogmaOverrides").forgetSession(session) && session?._space) {
+    require("../../space/runtime").refreshShipDerivedState(session, { broadcast: true });
+  }
+}
+
 function deindexCharacterSession(session) {
+  clearGmDogmaOverrides(session);
   require("../dungeon/dungeonLevelEditorService").forgetSession(session);
   require("../nodegraph/nodeGraphService").forgetSession(session);
   if (session?._safeLogoff) require("../ship/safeLogoffRuntime").abort(session, { notify: false });
@@ -135,6 +142,7 @@ function register(session) {
 
 function unregister(session) {
   if (session) {
+    clearGmDogmaOverrides(session);
     require("../dungeon/dungeonLevelEditorService").forgetSession(session);
     require("../nodegraph/nodeGraphService").forgetSession(session);
     if (session._safeLogoff) require("../ship/safeLogoffRuntime").abort(session, { notify: false });

@@ -75,8 +75,8 @@ function normalizeSiteCollection(sites) {
 }
 
 function listSystemSignatureSites(systemID, options = {}) {
-  return normalizeSiteCollection(
-    SIGNATURE_PROVIDERS.flatMap((provider) => (
+  return normalizeSiteCollection([
+    ...SIGNATURE_PROVIDERS.flatMap((provider) => (
       provider && typeof provider.listSignatureSites === "function"
         ? provider.listSignatureSites(systemID, options).map((site) => ({
           ...site,
@@ -84,12 +84,16 @@ function listSystemSignatureSites(systemID, options = {}) {
         }))
         : []
     )),
-  );
+    // Private mission signatures, only for the character they belong to.
+    ...(options.characterID
+      ? require("./privateMissionAnomalies").listPrivateSignatureSites(systemID, options.characterID)
+      : []),
+  ]);
 }
 
 function listSystemAnomalySites(systemID, options = {}) {
-  return normalizeSiteCollection(
-    ANOMALY_PROVIDERS.flatMap((provider) => (
+  return normalizeSiteCollection([
+    ...ANOMALY_PROVIDERS.flatMap((provider) => (
       provider && typeof provider.listAnomalySites === "function"
         ? provider.listAnomalySites(systemID, options).map((site) => ({
           ...site,
@@ -97,7 +101,23 @@ function listSystemAnomalySites(systemID, options = {}) {
         }))
         : []
     )),
-  );
+    // Private mission anomalies, only for the character they belong to.
+    ...(options.characterID
+      ? require("./privateMissionAnomalies").listPrivateAnomalySites(systemID, options.characterID)
+      : []),
+  ]);
+}
+
+// Signal tracker entries of the character's private mission anomalies in this system.
+function buildPrivateAnomalyEntries(systemID, characterID) {
+  return require("./privateMissionAnomalies").listPrivateAnomalySites(systemID, characterID)
+    .map((site) => [site.siteID, buildAnomalySiteInfo(site)]);
+}
+
+// Signal tracker entries of the character's private mission signatures in this system.
+function buildPrivateSignatureEntries(systemID, characterID) {
+  return require("./privateMissionAnomalies").listPrivateSignatureSites(systemID, characterID)
+    .map((site) => [site.siteID, buildSignatureSiteInfo(site)]);
 }
 
 function listSystemStaticSites(systemID, options = {}) {
@@ -379,6 +399,8 @@ module.exports = {
   DEFAULT_SIGNATURE_DEVIATION_METERS:
     wormholeSignatureProvider.DEFAULT_SIGNATURE_DEVIATION_METERS,
   buildSignalTrackerAnomalyEntries,
+  buildPrivateAnomalyEntries,
+  buildPrivateSignatureEntries,
   buildSignalTrackerFullState,
   buildSignalTrackerSignatureEntries,
   buildSignalTrackerStaticSiteEntries,

@@ -598,6 +598,28 @@ function reserveCharacterID() {
   return candidate;
 }
 
+// The fleet domain supplies its adopted high-water mark and protocol limit;
+// this shared owner alone mutates identityState, preserving all other fields.
+function reserveFleetSerial(minimumSerial, maximumSerial) {
+  const checked = result => {
+    if (!result?.success) throw new Error(result?.errorMsg || "FLEET_IDENTITY_UNAVAILABLE");
+    return result.data;
+  };
+  if (!Number.isSafeInteger(minimumSerial) || minimumSerial < 1 ||
+      !Number.isSafeInteger(maximumSerial) || maximumSerial < 1) throw new Error("FLEET_IDENTITY_INVALID");
+  database.ensureTable(IDENTITY_TABLE);
+  const result = database.read(IDENTITY_TABLE, "/nextFleetSerial");
+  const saved = result.success ? result.data : ["ENTRY_NOT_FOUND", "TABLE_NOT_FOUND", "SQLITE_TABLE_NOT_FOUND"].includes(result.errorMsg)
+    ? undefined : checked(result);
+  if (saved !== undefined && (!Number.isSafeInteger(saved) || saved < 1)) throw new Error("FLEET_IDENTITY_INVALID");
+  const serial = Math.max(saved || 1, minimumSerial);
+  if (!Number.isSafeInteger(serial) || serial > maximumSerial) throw new Error("FLEET_IDENTITY_EXHAUSTED");
+  checked(database.write(IDENTITY_TABLE, "/nextFleetSerial", serial + 1));
+  // Failed/ambiguous reservations remain skipped. Publication follows ACK.
+  checked(database.flushTableSync(IDENTITY_TABLE));
+  return serial;
+}
+
 function reserveItemIDs(count = 1, options = {}) {
   const amount = Math.max(1, toPositiveInt(count, 1));
   const state = readIdentityState();
@@ -636,5 +658,6 @@ module.exports = {
   getItemReferenceHighWaterMark,
   reserveAccountID,
   reserveCharacterID,
+  reserveFleetSerial,
   reserveItemIDs,
 };

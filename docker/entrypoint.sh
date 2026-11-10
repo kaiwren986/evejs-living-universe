@@ -192,11 +192,12 @@ Usage:
   docker compose run --rm --no-deps market-tools <command> [arguments]
 
 Commands:
-  engines                    Explain the v1, v2, and v3 seed engines.
+  engines                    Explain the v1, v2, v3, and v4 seed types.
   rebuild v1 [seed args]     Replace market.sqlite with a synthetic v1 seed.
   rebuild v2 [import args]   Replace market.sqlite from the latest EVE Ref snapshot.
   rebuild v3 [build args]    Replace market.sqlite with the Jita index seed over the TQ
                              NPC catalog, gated on the pump audit.
+  rebuild v4 [import args]   Replace market.sqlite with Iron Man NPC-only stock.
   status                     Show the persisted manifest, table counts, and backup count.
   doctor                     Validate the final database (market must be stopped).
   backup [label]             Create a retained SQLite backup (market must be stopped).
@@ -209,8 +210,8 @@ Commands:
 Rebuild, doctor, backup, and restore are deliberately offline operations. Stop both services first:
   docker compose stop server market
 
-V2 and v3 reuse the matching cached snapshot by default. Add --fresh-download to a
-v2 or v3 rebuild command when you need to download the published snapshot again.
+V2, v3, and v4 reuse the matching cached snapshot by default. Add --fresh-download to a
+rebuild command when you need to download the published snapshot again.
 
 A v3 rebuild downloads its snapshot in an explicit step first, because the v3 build
 itself never downloads, and then refuses to install a candidate whose pump audit fails.
@@ -232,7 +233,11 @@ v3  The Tranquility NPC catalog (T1 blueprints, skillbooks, trade goods) overlai
     manifest committed to the repo, so every deployment seeds identical economics.
     The rebuild will not install a candidate that fails the money-pump audit.
 
-All three engines replace the same market.sqlite used by the same Rust market daemon.
+v4  Iron Man: only authentic NPC station orders (BPOs, skillbooks, command centers,
+    trade goods and other NPC stock), including NPC buybacks. No player liquidity,
+    synthetic Jita hub or custom-station stock. Uses the v2 snapshot importer.
+
+All four seed types replace the same market.sqlite used by the same Rust market daemon.
 EOF
 }
 
@@ -309,15 +314,15 @@ install_market_candidate() {
 market_rebuild() {
   local engine="${1:-}"
   if [[ -z "${engine}" ]]; then
-    log "Choose a seed engine: rebuild v1 ..., rebuild v2 ..., or rebuild v3 ..."
+    log "Choose a seed engine: rebuild v1 ..., rebuild v2 ..., rebuild v3 ..., or rebuild v4 ..."
     return 2
   fi
   shift
 
   case "${engine}" in
-    v1|v2|v3) ;;
+    v1|v2|v3|v4) ;;
     *)
-      log "Unknown market seed engine '${engine}'. Expected v1, v2, or v3."
+      log "Unknown market seed engine '${engine}'. Expected v1, v2, v3, or v4."
       return 2
       ;;
   esac
@@ -340,7 +345,7 @@ market_rebuild() {
       build \
       --force \
       "${v1_arguments[@]}"
-  elif [[ "${engine}" == "v2" ]]; then
+  elif [[ "${engine}" == "v2" || "${engine}" == "v4" ]]; then
     local -a v2_arguments=("$@")
     local -a filtered_v2_arguments=()
     local fresh_download=0
@@ -363,6 +368,12 @@ market_rebuild() {
       log "Ignoring the cached v2 snapshot for this rebuild."
     fi
     v2_arguments=("${filtered_v2_arguments[@]}")
+    if [[ "${engine}" == "v4" ]]; then
+      # Appending the strict filter also makes conflicting --order-filter arguments
+      # fail in clap instead of silently changing the Iron Man seed type.
+      v2_arguments+=(--order-filter iron-man)
+      log "Iron Man: importing only NPC orders at their original stations."
+    fi
     market-seederv2 \
       --config "${MARKET_SEED_V2_CONFIG}" \
       build \

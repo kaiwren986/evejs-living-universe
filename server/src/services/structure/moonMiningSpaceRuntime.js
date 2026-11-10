@@ -25,6 +25,9 @@ const worldData = require(path.join(__dirname, "../../space/worldData"));
 const { resolveItemByTypeID } = require(path.join(__dirname, "../inventory/itemTypeRegistry"));
 const { computeAsteroidRadiusFromQuantity } = require(path.join(__dirname, "../mining/miningMath"));
 const moonExtractionRules = require(path.join(__dirname, "./moonExtractionRules"));
+const { setBallPosition } = require(path.join(__dirname, "../../space/destiny/simulation/evolve"));
+const { buildDict, buildFiletimeLong, buildList } = require(path.join(__dirname, "../_shared/serviceHelpers"));
+const { toFileTimeFromMs } = require(path.join(__dirname, "../../space/runtime/runtimeClock"));
 
 const FIELD_TABLE = "moonMiningFields";
 const CHUNK_ENTITY_ID_BASE = 7_100_000_000_000;
@@ -35,6 +38,11 @@ const DESTRUCTION_EFFECT_ASTEROID_DEPLETION = 2;
 const MOON_ORE_UNIT_VOLUME_FALLBACK = 10;
 const OWNER_ID_WORLD = 1;
 const ACTIVE_EXTRACTION_STATES = new Set(["active", "fracturing"]);
+const TYPE_STANDUP_MOON_DRILL = 45009;
+const MOON_EXTRACTION_FX_KEY = "moonExtraction";
+const MOON_EXTRACTION_FX_GUID = "effects.MultiEffect";
+const MOON_EXTRACTION_FX_SEQUENCE = "moon_mining";
+const MOON_EXTRACTION_FX_TRIGGERS = Object.freeze(["moduleID", "moonID", "shipID", "targetID"]);
 
 // Renderable rock models for the field. Ore types have no model of their own
 // (graphicID 0), so each rock shows one of the same shells belt ore uses and
@@ -98,6 +106,10 @@ function hashUnit(seedText) {
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0) / 0x1_0000_0000;
+}
+
+function getDestiny() {
+  return require(path.join(__dirname, "../../space/destiny"));
 }
 
 function getSpaceRuntime() {
@@ -188,7 +200,149 @@ function buildChunkEntity(extraction, structure, nowMs) {
     staticVisibilityScope: "grid",
     moonChunkExtractionID: toPositiveInt(extraction.extractionID),
     moonMiningStructureID: toPositiveInt(extraction.structureID),
+    presentationSpecialFx: buildChunkEffectStates(extraction, nowMs),
   };
+}
+
+// ── The drill's effect ───────────────────────────────────────────────
+//
+// The refinery's drill plays the client's moon_mining effect sequence on the
+// chunk (static data effectsequences: tractor_phase fires at the moon, shows
+// the chunk at 50.5 s and starts the tractor beam at 70 s; stasis_phase holds
+// the chunk once it arrives; fracture_phase fires at it). TQ sends it as one
+// OnSpecialFX from the refinery and its drill item at the chunk, and a pilot
+// who arrives during the pull gets it with effectStarted at the extraction's
+// start (golden log LOGS\CONCORD\0.5 Sec Space.lsw, Apanake refinery:
+// (structureID, drillID, 45009, chunkID, None, 'effects.MultiEffect', False,
+// True, 1, -1, None, None, <start>, {'phase': 'tractor_phase', 'moonID': ...,
+// 'effectStarted': <start>, 'sequence': 'moon_mining', 'triggers': [...]})).
+// The effect is replayed when the chunk is acquired, since the client needs
+// the chunk ball before MultiEffect can target it, and is sent again with
+// the new phase when the phase changes (fxSequencer.AddTrigger hands a
+// repeat trigger to MultiEffect.UpdateGraphicInfo). Adapted from a community
+// patch by Shadowblade (0001-Fix-Moon-Mining-Visuals.patch, 2026-11-05).
+
+function getMoonExtractionPhase(extraction, nowMs) {
+  if (extraction && extraction.state === "fracturing") {
+    return "fracture_phase";
+  }
+  return toFiniteNumber(nowMs, 0) >= toFiniteNumber(extraction && extraction.chunkAvailableTimeMs, 0)
+    ? "stasis_phase"
+    : "tractor_phase";
+}
+
+function getMoonExtractionPhaseStartMs(extraction, phase) {
+  if (phase === "fracture_phase") {
+    return toFiniteNumber(extraction.fractureStartedAtMs, 0);
+  }
+  if (phase === "stasis_phase") {
+    return toFiniteNumber(extraction.chunkAvailableTimeMs, 0);
+  }
+  return toFiniteNumber(extraction.startMoveTimeMs, 0);
+}
+
+function findStructureMoonDrill(structureID) {
+  return require(path.join(__dirname, "./structureServiceModules"))
+    .listFittedStructureServiceModules(structureID)
+    .find((item) => toPositiveInt(item && item.typeID) === TYPE_STANDUP_MOON_DRILL) || null;
+}
+
+/**
+ * The OnSpecialFX options for the drill's effect now. The extraction times
+ * are wallclock; effectStarted is read against the client's sim time
+ * (MultiEffect.__init__), so it is the scene's sim time less the time the
+ * phase has run.
+ */
+function buildMoonExtractionFxOptions(effectState, nowMs, scene = null) {
+  const extraction = effectState && effectState.extraction;
+  if (!extraction) {
+    return null;
+  }
+  const wallclockNowMs = scene && typeof scene.getCurrentWallclockMs === "function"
+    ? scene.getCurrentWallclockMs()
+    : toFiniteNumber(nowMs, getWallclockNowMs());
+  const simNowMs = scene && typeof scene.getCurrentSimTimeMs === "function"
+    ? scene.getCurrentSimTimeMs()
+    : wallclockNowMs;
+  const phase = getMoonExtractionPhase(extraction, wallclockNowMs);
+  const elapsedMs = Math.max(0, wallclockNowMs - getMoonExtractionPhaseStartMs(extraction, phase));
+  return {
+    moduleID: effectState.moduleID,
+    moduleTypeID: effectState.typeID,
+    targetID: effectState.targetID,
+    isOffensive: false,
+    start: true,
+    active: true,
+    duration: -1,
+    repeat: null,
+    graphicInfo: buildDict([
+      ["phase", phase],
+      ["moonID", toPositiveInt(extraction.moonID)],
+      ["effectStarted", buildFiletimeLong(toFileTimeFromMs(simNowMs - elapsedMs))],
+      ["sequence", MOON_EXTRACTION_FX_SEQUENCE],
+      ["triggers", buildList([...MOON_EXTRACTION_FX_TRIGGERS])],
+    ]),
+  };
+}
+
+function buildChunkEffectStates(extraction, nowMs) {
+  const states = new Map();
+  const drill = findStructureMoonDrill(extraction.structureID);
+  if (!drill) {
+    return states;
+  }
+  states.set(MOON_EXTRACTION_FX_KEY, {
+    guid: MOON_EXTRACTION_FX_GUID,
+    sourceEntityID: toPositiveInt(extraction.structureID),
+    moduleID: toPositiveInt(drill.itemID),
+    typeID: TYPE_STANDUP_MOON_DRILL,
+    targetID: chunkEntityIDForExtraction(extraction.extractionID),
+    forceFreshAcquireSpecialFxReplay: true,
+    extraction: { ...extraction },
+    phase: getMoonExtractionPhase(extraction, toFiniteNumber(nowMs, getWallclockNowMs())),
+    buildReplayFxOptions(nowMs, scene) {
+      return buildMoonExtractionFxOptions(this, nowMs, scene);
+    },
+  });
+  return states;
+}
+
+/**
+ * Keep the chunk's effect on the extraction's current record, and send the
+ * effect again to the chunk's bubble when its phase has changed.
+ */
+function syncChunkEffect(scene, chunk, extraction) {
+  const effectState = chunk && chunk.presentationSpecialFx instanceof Map
+    ? chunk.presentationSpecialFx.get(MOON_EXTRACTION_FX_KEY)
+    : null;
+  if (!effectState) {
+    return false;
+  }
+  effectState.extraction = { ...extraction };
+  const nowMs = typeof scene.getCurrentWallclockMs === "function"
+    ? scene.getCurrentWallclockMs()
+    : getWallclockNowMs();
+  const phase = getMoonExtractionPhase(extraction, nowMs);
+  if (phase === effectState.phase) {
+    return false;
+  }
+  effectState.phase = phase;
+  if (typeof scene.broadcastSpecialFx !== "function") {
+    return false;
+  }
+  const options = buildMoonExtractionFxOptions(effectState, nowMs, scene);
+  scene.broadcastSpecialFx(effectState.sourceEntityID, effectState.guid, options, chunk);
+  return true;
+}
+
+/** The extraction changed phase without moving its chunk (the drill fired). */
+function syncChunkEffectForExtraction(extraction) {
+  const scene = getLoadedScene(extraction && extraction.solarSystemID);
+  const chunk = scene && scene.staticEntitiesByID.get(chunkEntityIDForExtraction(extraction.extractionID));
+  if (!chunk) {
+    return { success: true, sent: false };
+  }
+  return { success: true, sent: syncChunkEffect(scene, chunk, extraction) };
 }
 
 function addEntitiesToScene(scene, entities, options = {}) {
@@ -220,31 +374,75 @@ function spawnChunkForExtraction(extraction, options = {}) {
 }
 
 /**
- * The chunk has arrived: put it at the refinery. The chunk is a static ball
- * placed along its path when its scene is built, so a scene that stayed
- * loaded for the whole pull still shows it where it set out; this moves it
- * to its arrival point, where it waits to be fractured.
+ * Move a chunk ball that is already in space to a new point. Clients that
+ * have the ball keep it, so a remove and re-add of the same id in one step
+ * never reaches them (live client, 2026-11-05: the chunk stayed drawn at the
+ * moon's surface, 1,495 km from the Athanor). The ball moves in place the way
+ * a teleport moves one: the position authority commits it, it is re-boxed
+ * (a Grid bubble change reaches Observers at the next bubble update), and its
+ * bubble gets a stamped SetBallPosition.
  */
-function settleChunkAtArrival(extraction, options = {}) {
+function moveChunkBall(scene, entity, position) {
+  entity.position = { ...position };
+  const commit = scene.positionAuthority && typeof scene.positionAuthority.commitEntity === "function"
+    ? scene.positionAuthority.commitEntity(entity, {
+      atSimTimeMs: scene.getCurrentSimTimeMs(),
+      reason: "moon-chunk-move",
+    })
+    : { available: false };
+  if (!commit.available) {
+    return false;
+  }
+  setBallPosition(entity, entity.position);
+  scene.reboxBall(entity);
+  scene.queueBallHistory(entity, [{
+    stamp: scene.historyStamp(),
+    payload: getDestiny().buildSetBallPositionPayload(entity.itemID, entity.position),
+  }]);
+  return true;
+}
+
+/**
+ * Put an active extraction's chunk where its times say it is: moved in place
+ * when the ball is in space, added when it is not. The chunk is a static ball
+ * placed along its path when its scene is built, so a scene that stayed
+ * loaded for the whole pull still shows it where it set out until this runs.
+ */
+function placeChunkForExtraction(extraction, options = {}) {
   const scene = getLoadedScene(extraction && extraction.solarSystemID);
-  if (!scene) {
+  if (!scene || !extraction || !ACTIVE_EXTRACTION_STATES.has(extraction.state)) {
     return { success: true, moved: false };
   }
   const chunkID = chunkEntityIDForExtraction(extraction.extractionID);
   const current = scene.staticEntitiesByID.get(chunkID) || null;
   const structure = readStructure(extraction.structureID);
-  const arrived = buildChunkEntity(extraction, structure, extraction.chunkAvailableTimeMs);
-  if (!arrived) {
+  const placed = buildChunkEntity(extraction, structure, options.nowMs);
+  if (!placed) {
     return { success: false, errorMsg: "CHUNK_PATH_UNAVAILABLE" };
   }
-  if (current && length(subtract(readPosition(current.position), arrived.position)) < 1) {
+  if (!current) {
+    const added = addEntitiesToScene(scene, [placed], options);
+    return { success: true, moved: added.length > 0 };
+  }
+  if (length(subtract(readPosition(current.position), placed.position)) < 1) {
+    syncChunkEffect(scene, current, extraction);
     return { success: true, moved: false };
   }
-  if (current) {
-    scene.removeStaticEntity(chunkID, { terminalDestructionEffectID: 0, nowMs: options.nowMs });
+  if (moveChunkBall(scene, current, placed.position)) {
+    syncChunkEffect(scene, current, extraction);
+    return { success: true, moved: true };
   }
-  const added = addEntitiesToScene(scene, [arrived], options);
+  scene.removeStaticEntity(chunkID, { terminalDestructionEffectID: 0, nowMs: options.nowMs });
+  const added = addEntitiesToScene(scene, [placed], options);
   return { success: true, moved: added.length > 0 };
+}
+
+/** The chunk has arrived: put it at the refinery, where it waits to be fractured. */
+function settleChunkAtArrival(extraction, options = {}) {
+  return placeChunkForExtraction(extraction, {
+    ...options,
+    nowMs: extraction && extraction.chunkAvailableTimeMs,
+  });
 }
 
 /** Take the chunk out of space; a fracture ends in an explosion. */
@@ -252,6 +450,13 @@ function removeChunkForExtraction(extraction, options = {}) {
   const scene = getLoadedScene(extraction && extraction.solarSystemID);
   if (!scene) {
     return { success: true, removed: false };
+  }
+  // Clients drop every effect naming a Ball when they remove it
+  // (fxSequencer.py RemoveActivationsForBallID), so the drill effect needs no
+  // stop of its own; only stop replaying it.
+  const chunk = scene.staticEntitiesByID.get(chunkEntityIDForExtraction(extraction.extractionID));
+  if (chunk && chunk.presentationSpecialFx instanceof Map) {
+    chunk.presentationSpecialFx.delete(MOON_EXTRACTION_FX_KEY);
   }
   const result = scene.removeStaticEntity(chunkEntityIDForExtraction(extraction.extractionID), {
     terminalDestructionEffectID: options.explode === true ? DESTRUCTION_EFFECT_EXPLOSION : 0,
@@ -517,6 +722,7 @@ module.exports = {
   chunkEntityIDForExtraction,
   createFieldFromExtraction,
   handleSceneCreated,
+  placeChunkForExtraction,
   readField,
   removeChunkForExtraction,
   resetMoonMiningSpaceRuntimeForTests,
@@ -524,5 +730,6 @@ module.exports = {
   rockItemID,
   settleChunkAtArrival,
   spawnChunkForExtraction,
+  syncChunkEffectForExtraction,
   tick,
 };

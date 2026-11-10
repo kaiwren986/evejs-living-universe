@@ -58,10 +58,12 @@ const FAILED_START_LOG_FLUSH_MS = 2000;
 
 // main startup
 
-void bootWorld({ appName: "eve.js server" }).catch(async () => {
+void bootWorld({ appName: "eve.js server" }).catch(async (error) => {
+  // Early boot stages can reject before the production-owner error handler.
+  // Always preserve the cause, including when smoke tests disable info logs.
+  log.err(`[Startup] ${error && error.stack || error}`);
   await pauseProfile.stop("boot-failed");
-  // bootWorld has already logged the failure and unwound the durable owners
-  // and the store. The log files are written asynchronously and startup is
+  // The log files are written asynchronously and startup is
   // mostly synchronous work, so none of the failed start may be on disk yet:
   // write it out before exiting, or server.log shows no trace of it.
   await Promise.race([

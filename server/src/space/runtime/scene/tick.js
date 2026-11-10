@@ -180,6 +180,7 @@ const {
 const {
   noteDroneAssistSuccessfulOffensiveCycle,
 } = require("../droneAssistOffensiveNotice");
+const { noteVisionsPaidEwarCycle, retryPendingVisionsModuleCycles } = require("../visionsEwarNotice");
 const {
   consumeEntityCapacitor,
   getEntityCapacitorAmount,
@@ -331,6 +332,7 @@ module.exports = {
 // and any movement change it makes waits in the queue for the next Destiny
 // tick.
 tick(wallclockNow) {
+    require("../../../services/incursion/incursionSystemEffects").refreshScene(this);
     try {
       require("../../../services/dungeon/siteHazardOutcomes").recoverForScene(this);
     } catch (error) {
@@ -394,6 +396,7 @@ tick(wallclockNow) {
       frame.output ? frame.output.beltRatArrivalEvents : []
     ));
     const dockRequests = new Map();
+    retryPendingVisionsModuleCycles(this);
     // The event world and Campaign Trail ticks each sit in their own try, so
     // a throw in one never skips the other or the rest of the tick.
     try {
@@ -568,6 +571,9 @@ tick(wallclockNow) {
       ...controlledStaticStructureDogmaHosts,
     ];
     for (const entity of activeTickDogmaHosts) {
+      // Apply ESS restrictions before a pending MJD can deliver its jump at
+      // this cycle boundary, including a ship that just flew into the field.
+      require("../../../services/dynamic/essFieldRuntime").enforceEntity(this, entity, now);
       if (Array.isArray(entity.pendingModuleStopNotifications) && entity.pendingModuleStopNotifications.length > 0) {
         const flushSession = entity.session || getOwningSessionForEntity(this, entity);
         if (flushSession && isReadyForDestiny(flushSession)) {
@@ -1805,6 +1811,7 @@ tick(wallclockNow) {
                 "jammer",
                 cycleBoundaryMs,
               );
+              noteVisionsPaidEwarCycle(this, entity, effectState, cycleResult, "jammer", cycleBoundaryMs);
             }
           } else if (
             effectState &&
@@ -1888,6 +1895,7 @@ tick(wallclockNow) {
                 "hostile",
                 cycleBoundaryMs,
               );
+              noteVisionsPaidEwarCycle(this, entity, effectState, cycleResult, "hostile", cycleBoundaryMs);
             }
           } else if (
             effectState &&
@@ -2426,6 +2434,13 @@ tick(wallclockNow) {
     } catch (error) {
       log.warn(`[PvpFilaments] Scene queue cleanup failed for system=${this.systemID}: ${error.message}`);
     }
+    if (this._voidReplay) {
+      try {
+        require("../../../services/activity/voidReplayRuntime").tickScene(this);
+      } catch (error) {
+        log.warn(`[VoidReplay] Scene update failed for system=${this.systemID}: ${error.message}`);
+      }
+    }
     tickSceneStructureTethers(this, now);
     if (isAnchorRelevanceEnabled() && hasStartupAnchorRelevanceContext(this)) {
       const anchorRelevanceResult = syncRelevantStartupControllersForScene(this, {
@@ -2449,6 +2464,11 @@ tick(wallclockNow) {
           source: "warpCompleted",
         },
       );
+    }
+    try {
+      tickProfiler.section("beltRats", () => lazyRequire("./npc/beltRatRuntime").tickScene(this, now));
+    } catch (error) {
+      log.warn(`[SpaceRuntime] Occupied mining-site rat check failed for system=${this.systemID}: ${error.message}`);
     }
     tickHudIconStateExpiries(this, now);
     this.processStargateJumpCloakExpirations(now);

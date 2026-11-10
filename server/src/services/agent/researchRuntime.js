@@ -381,6 +381,7 @@ function startResearch(characterID, agentRecord, skillTypeID, nowMs = getNowMs()
   if (!saved.success) {
     return { success: false, errorMsg: saved.errorMsg };
   }
+  notifyResearchChange(characterID, project.agentID, AGENT_MISSION_RESEARCH_STARTED);
   return { success: true, project, agentSaysLabel: LABEL_RESEARCH_STARTED };
 }
 
@@ -432,6 +433,16 @@ function cancelResearch(characterID, agentRecord) {
   );
   if (!removed.success) {
     return { success: false, errorMsg: removed.errorMsg };
+  }
+  // The client has no research-cancelled event; research_update_ppd is the
+  // research refresh it knows. A quit mission already sent 'quit' for the agent,
+  // which drives the same journal refresh.
+  if (!missionQuit) {
+    notifyResearchChange(
+      characterID,
+      agentRecord && agentRecord.agentID,
+      AGENT_MISSION_RESEARCH_UPDATE_PPD,
+    );
   }
   return { success: true, missionQuit, agentSaysLabel: LABEL_RESEARCH_CANCELLED };
 }
@@ -604,6 +615,80 @@ function notifyDatacoreGrant(characterID, locationID, datacoreTypeID, before = n
   }
 }
 
+// The client keeps the R&D project list (journal Research tab, Industry Research
+// tab) in the journal cache and refreshes it only on OnAgentMissionChange for the
+// agent (journal.py OnAgentMissionChange marks the agent outdated;
+// browserResearch.py reloads on the same event). appConst names the two research
+// events: research_started and research_update_ppd.
+const AGENT_MISSION_RESEARCH_STARTED = "research_started";
+const AGENT_MISSION_RESEARCH_UPDATE_PPD = "research_update_ppd";
+
+function sendToCharacterSessions(characterID, notifyType, args) {
+  const normalizedCharacterID = toPositiveInteger(characterID, 0);
+  if (!normalizedCharacterID) {
+    return false;
+  }
+  const sessionRegistry = require(path.join(__dirname, "../chat/sessionRegistry"));
+  let sent = false;
+  for (const session of sessionRegistry.getSessions()) {
+    if (
+      Number(session && session.characterID) !== normalizedCharacterID ||
+      typeof session.sendNotification !== "function"
+    ) {
+      continue;
+    }
+    session.sendNotification(notifyType, "charid", args);
+    sent = true;
+  }
+  return sent;
+}
+
+function notifyResearchChange(characterID, agentID, eventName) {
+  const normalizedAgentID = toPositiveInteger(agentID, 0);
+  if (!normalizedAgentID) {
+    return false;
+  }
+  return sendToCharacterSessions(characterID, "OnAgentMissionChange", [
+    eventName,
+    normalizedAgentID,
+  ]);
+}
+
+// agents.py OnDatacoreBought(characterID, agentID, balance) re-scatters
+// OnAgentMissionChange('research_update_ppd', agentID) and
+// OnAccountChange('cash', characterID, balance), so the balance is the wallet
+// balance after the purchase.
+function notifyDatacoreBought(characterID, agentID, balance) {
+  const normalizedAgentID = toPositiveInteger(agentID, 0);
+  if (!normalizedAgentID) {
+    return false;
+  }
+  return sendToCharacterSessions(characterID, "OnDatacoreBought", [
+    toPositiveInteger(characterID, 0),
+    normalizedAgentID,
+    toFiniteNumber(balance, 0),
+  ]);
+}
+
+function resolvePurchaseBalance(walletState, characterID, iskResult) {
+  let wallet = null;
+  try {
+    wallet = typeof walletState.resolveAnnouncedCharacterWallet === "function"
+      ? walletState.resolveAnnouncedCharacterWallet(
+        characterID,
+        iskResult,
+        iskResult && iskResult.data,
+      )
+      : null;
+    if (!wallet) {
+      wallet = walletState.getCharacterWallet(characterID);
+    }
+  } catch (_error) {
+    wallet = null;
+  }
+  return toFiniteNumber(wallet && wallet.balance, 0);
+}
+
 function buildPurchaseIskKey(characterID, agentID, sequence) {
   return `rnd-datacore-isk-${characterID}-${agentID}-${sequence}`;
 }
@@ -754,6 +839,15 @@ async function settlePendingPurchase(characterID, agentRecord, project, nowMs = 
   } catch (_error) {
     // ignored: the purchase is settled either way; a failed notification only costs the
     // player a relog to see the items.
+  }
+  try {
+    notifyDatacoreBought(
+      characterID,
+      agentID,
+      resolvePurchaseBalance(walletState, characterID, iskResult),
+    );
+  } catch (_error) {
+    // ignored: as above, the purchase stands without the journal refresh.
   }
   return { success: true, settled: true, project: cleared, quantity: pending.quantity };
 }
@@ -927,6 +1021,8 @@ function buildJournalResearchRows(characterID, resolveAgentRecord, nowMs = getNo
 }
 
 module.exports = {
+  AGENT_MISSION_RESEARCH_STARTED,
+  AGENT_MISSION_RESEARCH_UPDATE_PPD,
   AGENT_TYPE_RESEARCH,
   DATACORE_ISK_COST,
   DATACORE_RESEARCH_POINT_COST,

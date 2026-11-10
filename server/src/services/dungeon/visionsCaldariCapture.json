@@ -1,0 +1,24 @@
+{
+  "schema": "evejs.visions-caldari-captured-parameters.v1",
+  "source": {
+    "path": "Epic Arcs/Visions of Greatness/mission2.lsw",
+    "sha256": "16bf4ce897770aa12b1217c8e2f9d0d1938b3c73cc5fc05df22915dfb033cf47",
+    "bytes": 207308800,
+    "producer": "operator-attested latest retail at capture time; exact build unrecorded",
+    "selection": "All 68 ScatterEvent OnDungeonValues records for dungeon14098; timer durations are integer FILETIME endpoint differences, not notification arrival intervals."
+  },
+  "missionID": 17184,
+  "dungeonID": 14098,
+  "timers": {
+    "rescue": { "durationMs": 240000, "rowID": 174209 },
+    "protect": { "durationMs": 90000, "rowID": 240979 },
+    "destroy": { "durationMs": 300000, "rowID": 343641 }
+  },
+  "protectionBonus": {
+    "wireParameter": "civilians_destroyed_max_bonus",
+    "value": 2,
+    "rowIDs": [174209, 240979, 343641],
+    "failureOperator": "greaterThanOrEqual",
+    "consumer": "Native server graph1023 CIVILIANS_DESTROYED event, validation4b33bfab and read5d647744: destroyed >= CIVILIANS_DESTROYED_MAX_BONUS. One loss is permitted; the second fails."
+  }
+}

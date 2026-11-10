@@ -253,6 +253,11 @@ cloakEntity(entityOrID, options = {}) {
       };
     }
 
+    const essRestriction = require("../../../services/dynamic/essFieldRuntime").resolveModuleRestriction(
+      this, entity, { cloaking: true },
+    );
+    if (essRestriction) return { success: false, errorMsg: essRestriction };
+
     const cloakBubble = options.cloakBubble !== undefined
       ? options.cloakBubble
       : gridBubbles.committedBubbleOf(this.getGridBubbles(), getEntityMapKey(entityID));

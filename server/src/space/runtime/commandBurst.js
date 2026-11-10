@@ -323,10 +323,13 @@ function buildCommandBurstDbuffStateEntriesForSession(
       return buildFiletimeLong(resolveSessionNotificationFileTime(session, expiryMs));
     },
   });
-  return require("../../services/homefront/homefrontHooks").weather.mergeClientDbuffState(
+  const withHomefrontWeather = require("../../services/homefront/homefrontHooks").weather.mergeClientDbuffState(
     entity,
     entries,
   );
+  return entity.voidReplayElectrical
+    ? require("../../services/activity/voidReplayWeather").mergeClientDbuffState(entity, withHomefrontWeather)
+    : withHomefrontWeather;
 }
 
 function notifyCommandBurstDbuffStateToSession(

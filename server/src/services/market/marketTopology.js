@@ -6,7 +6,7 @@ const worldData = require(path.join(__dirname, "../../space/worldData"));
 
 const RANGE_STATION = -1;
 const RANGE_SOLAR_SYSTEM = 0;
-const RANGE_CONSTELLATION = 4;
+const RANGE_CONSTELLATION = 4; // Legacy client constant. Order range 4 means four jumps.
 const RANGE_REGION = 32767;
 
 let adjacency = null;
@@ -205,14 +205,6 @@ function isBidOrderInRange(orderRow, sellerStationID, sellerSolarSystemID) {
     );
   }
 
-  if (orderRange === RANGE_CONSTELLATION) {
-    return (
-      bidSolarSystemID > 0 &&
-      getSolarSystemConstellationID(bidSolarSystemID) ===
-        getStationConstellationID(sellerStationID)
-    );
-  }
-
   if (orderRange > 0) {
     return getJumpCount(bidSolarSystemID, sellerSolarSystemID) <= orderRange;
   }
@@ -256,14 +248,6 @@ function isSellOrderInRange(orderRow, buyerStationID, buyerSolarSystemID, buyRan
     return (
       askSolarSystemID > 0 &&
       askSolarSystemID === normalizedBuyerSolarSystemID
-    );
-  }
-
-  if (orderRange === RANGE_CONSTELLATION) {
-    return (
-      askSolarSystemID > 0 &&
-      getSolarSystemConstellationID(askSolarSystemID) ===
-        getSolarSystemConstellationID(normalizedBuyerSolarSystemID)
     );
   }
 

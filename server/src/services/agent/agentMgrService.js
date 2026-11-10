@@ -32,6 +32,15 @@ const {
 } = require(path.join(__dirname, "../../network/callResponseControl"));
 const spaceRuntime = require(path.join(__dirname, "../../space/runtime"));
 const worldData = require(path.join(__dirname, "../../space/worldData"));
+const {
+  warpFleetFollowers,
+} = require(path.join(__dirname, "../fleets/fleetWarpFollowers"));
+const {
+  throwWarpFailureUserError,
+} = require(path.join(__dirname, "../ship/warpFailureUserError"));
+const {
+  throwWrappedUserError,
+} = require(path.join(__dirname, "../../common/machoErrors"));
 const bookmarkRuntime = require(path.join(
   __dirname,
   "../bookmark/bookmarkRuntimeState",
@@ -109,6 +118,13 @@ function buildDoActionResponsePayload(result) {
     ]),
     toMarshalSafe(payload ? payload.lastActionInfo : {}),
   ]);
+}
+
+// DoAction's answer for a doAgentAction result, which settles later when it is a promise.
+function answerDoAction(result) {
+  return result && typeof result.then === "function"
+    ? result.then((settledResult) => buildDoActionResponsePayload(settledResult))
+    : buildDoActionResponsePayload(result);
 }
 
 function normalizeArrayLike(value) {
@@ -448,6 +464,181 @@ function sendAgentQuitConfirmation(
   ) !== null;
 }
 
+// The share prompt's suppress ID: the box shows retail's "Remember my preference" checkbox
+// and the client answers a remembered decision under it without a window.
+const FLEET_SHARE_SUPPRESS_ID = "AgtShare";
+
+// Raises the share prompt (agents.SingleChoiceBox, agents.py L439-L467): the title string,
+// the body tuple and a list of the two choice tuples. A null suppressID raises it with no
+// checkbox. True when the request went out; false when no window could be raised.
+function sendFleetSharePrompt(session, agentID, prompt, suppressID, onResponse) {
+  if (!session || typeof session.sendClientCallRequest !== "function") {
+    return false;
+  }
+  return session.sendClientCallRequest(
+    "agents",
+    "SingleChoiceBox",
+    [
+      prompt.title,
+      prompt.body,
+      { type: "list", items: prompt.choices },
+      agentID,
+      prompt.contentID,
+      suppressID,
+    ],
+    buildDict([["machoVersion", 1]]),
+    {
+      machoTimeout: 86400,
+      onResponse,
+    },
+  ) !== null;
+}
+
+// DoAction for a turn-in the pilot's fleet could share (doc/FLEET_SHARES.md → Fleet-share
+// prompt): answers provisionally, asks, and turns the mission in shared or kept by the
+// answer. A remembered Cancel or Close asks once more without the checkbox; anything else
+// turns nothing in and answers the conversation as it stands. A late answer counts only for
+// the mission it was asked about, still turned in by the same action, and DoAction always
+// answers. `agentID` is the bound agent's; the box carries the completing mission's
+// (`prompt.agentID`), which for a referral is another agent's.
+function runFleetSharePrompt(session, characterID, agentID, actionID, prompt) {
+  const askedTurnIn = prompt.turnIn;
+  return buildDeferredCallResponse(async ({
+    dispatcher,
+    packet,
+    responseServiceName,
+    responsePerfMeta,
+  }) => {
+    dispatcher._sendCallResponse(
+      packet,
+      buildMarshalTuple([]),
+      session,
+      responseServiceName,
+      responsePerfMeta,
+      {
+        // The decline and quit confirmations' provisional shape.
+        wrapResultInSubstream: false,
+        namedPayloadEntries: [
+          [
+            "provisional",
+            [86400, "OnAgentProvisionalResponse", buildMarshalTuple([])],
+          ],
+        ],
+      },
+    );
+
+    let answered = false;
+    const respond = (result) => {
+      if (answered) {
+        return;
+      }
+      answered = true;
+      dispatcher._sendCallResponse(
+        packet,
+        buildDoActionResponsePayload(result),
+        session,
+        responseServiceName,
+        responsePerfMeta,
+      );
+    };
+    // The conversation as it stands, for whoever the session now holds; nothing turned in,
+    // not even the referral that opening the conversation would carry out.
+    const respondAsItStands = async () => {
+      try {
+        respond(await agentMissionRuntime.doAgentAction(
+          normalizePositiveInteger(session && session.characterID, 0),
+          agentID,
+          null,
+          { session, completeNothing: true },
+        ));
+      } catch (error) {
+        log.warn(
+          `[AgentMgr] Fleet-share conversation failed char=${characterID} agent=${agentID}: ` +
+            `${error && error.message}`,
+        );
+        respond(null);
+      }
+    };
+    // The same pilot, and the same mission (agent, sequence and contentID) as was asked
+    // about, still ready to turn in by the same action: the same kind of turn-in, leading
+    // to the same next mission.
+    const askedMissionStillMatches = () => {
+      if (normalizePositiveInteger(session && session.characterID, 0) !== characterID) {
+        return false;
+      }
+      const currentTurnIn = agentMissionRuntime.getMissionTurnIn(characterID, agentID, actionID);
+      return Boolean(
+        askedTurnIn &&
+        currentTurnIn &&
+        currentTurnIn.kind === askedTurnIn.kind &&
+        currentTurnIn.agentID === askedTurnIn.agentID &&
+        currentTurnIn.missionSequence === askedTurnIn.missionSequence &&
+        normalizeText(currentTurnIn.contentID, "") === normalizeText(askedTurnIn.contentID, "") &&
+        normalizeText(currentTurnIn.nextMissionID, "") ===
+          normalizeText(askedTurnIn.nextMissionID, ""),
+      );
+    };
+
+    let raise = null;
+    const handleAnswer = async (clientResponse, suppressID) => {
+      try {
+        const answer = agentMissionRuntime.readFleetShareAnswer(clientResponse);
+        const missionMatches = askedMissionStillMatches();
+        log.info(
+          `[AgentMgr] Fleet-share answer char=${characterID} agent=${agentID} ` +
+            `answer=${answer} suppressID=${suppressID || "none"} missionMatches=${missionMatches}`,
+        );
+        if (!missionMatches) {
+          await respondAsItStands();
+          return;
+        }
+        if (answer === "share" || answer === "keep") {
+          respond(await agentMissionRuntime.doAgentAction(
+            characterID,
+            agentID,
+            actionID,
+            { share: answer === "share" },
+          ));
+          return;
+        }
+        if (answer === "no-preference" && suppressID !== null) {
+          await raise(null);
+          return;
+        }
+        await respondAsItStands();
+      } catch (error) {
+        log.warn(
+          `[AgentMgr] Fleet-share answer handling failed char=${characterID} agent=${agentID}: ` +
+            `${error && error.message}`,
+        );
+        await respondAsItStands();
+      }
+    };
+    raise = async (suppressID) => {
+      let sent = false;
+      try {
+        sent = sendFleetSharePrompt(
+          session,
+          prompt.agentID,
+          prompt,
+          suppressID,
+          (clientResponse) => handleAnswer(clientResponse, suppressID),
+        );
+      } catch (error) {
+        log.warn(
+          `[AgentMgr] Fleet-share prompt failed char=${characterID} agent=${agentID}: ` +
+            `${error && error.message}`,
+        );
+      }
+      // No window could be raised (the socket gone): a cancel.
+      if (!sent) {
+        await respondAsItStands();
+      }
+    };
+    await raise(FLEET_SHARE_SUPPRESS_ID);
+  }, { reason: "agent-fleet-share-prompt" });
+}
+
 function isSessionAtAgentLocation(session, agentID) {
   const agentRecord = getAgentByID(normalizePositiveInteger(agentID, 0));
   if (!session || !agentRecord) {
@@ -625,11 +816,18 @@ function resolveMissionLocationTarget(characterID, agentID, locationType, referr
     return null;
   }
 
-  const missionRecord = missionAgentID > 0
+  // Only an accepted mission has locations to warp to: the client holds agent
+  // bookmarks for accepted missions only, so an offered mission (the next part a
+  // turn-in rolls into) or a finished one leads nowhere.
+  const storedMissionRecord = missionAgentID > 0
     ? (
       agentMissionRuntime.getMissionRecord(characterID, missionAgentID) ||
       null
     )
+    : null;
+  const missionRecord = storedMissionRecord &&
+    normalizeText(storedMissionRecord.runtimeStatus, "").toLowerCase() === "accepted"
+    ? storedMissionRecord
     : null;
 
   if (missionRecord && missionRecord.bookmarkIDsByRole && typeof missionRecord.bookmarkIDsByRole === "object") {
@@ -900,6 +1098,17 @@ class AgentMgrService extends BaseService {
     const agentID = this._resolveBoundAgentID(session);
     const actionID = args && args.length > 0 ? args[0] : null;
     const normalizedActionID = agentMissionRuntime.normalizeAgentDialogueActionID(actionID);
+    // A site guide (Rulie Isoryn in the exploration tour) says the text of the pilot's site room.
+    const guideTextID = actionID === null || actionID === undefined
+      ? require(path.join(__dirname, "../dungeon/dungeonTrackingRuntime")).guideTextForSession(session, agentID)
+      : null;
+    if (guideTextID) {
+      return buildDoActionResponsePayload({ success: true, data: {
+        agentSays: [guideTextID, null],
+        actions: [],
+        lastActionInfo: { missionCompleted: null, missionQuit: null, missionCantReplay: null, loyaltyPoints: 0, missionDeclined: null },
+      } });
+    }
     const researchPlan = researchDialogue.planResearchAction(
       normalizePositiveInteger(session && session.characterID, 0),
       getAgentByID(agentID),
@@ -954,7 +1163,7 @@ class AgentMgrService extends BaseService {
                 normalizePositiveInteger(session && session.characterID, 0),
                 agentID,
                 null,
-                { session },
+                { session, completeNothing: true },
               );
             dispatcher._sendCallResponse(
               packet,
@@ -982,6 +1191,29 @@ class AgentMgrService extends BaseService {
       }, { reason: "agent-decline-confirmation" });
     }
     const characterID = normalizePositiveInteger(session && session.characterID, 0);
+    // A turn-in a fleet member could share asks the pilot first; with no prompt the
+    // mission is turned in at once, unshared, below.
+    let fleetSharePrompt = null;
+    try {
+      fleetSharePrompt = agentMissionRuntime.getFleetSharePrompt(characterID, agentID, actionID);
+    } catch (error) {
+      log.warn(
+        `[AgentMgr] Fleet-share prompt check failed char=${characterID} agent=${agentID}: ` +
+          `${error && error.message}`,
+      );
+      // The conversation as it stands, nothing turned in; it may settle later (a referred
+      // mission's), as the turn-in below may.
+      const currentConversation = agentMissionRuntime.doAgentAction(
+        characterID,
+        agentID,
+        null,
+        { session, completeNothing: true },
+      );
+      return answerDoAction(currentConversation);
+    }
+    if (fleetSharePrompt) {
+      return runFleetSharePrompt(session, characterID, agentID, actionID, fleetSharePrompt);
+    }
     const activeMission = normalizedActionID === agentMissionRuntime.AGENT_DIALOGUE_BUTTON_QUIT
       ? agentMissionRuntime.getMissionRecord(characterID, agentID)
       : null;
@@ -997,6 +1229,7 @@ class AgentMgrService extends BaseService {
         characterID,
         agentID,
         null,
+        { completeNothing: true },
       );
       return buildDoActionResponsePayload(currentConversation);
     }
@@ -1071,7 +1304,7 @@ class AgentMgrService extends BaseService {
                 characterID,
                 agentID,
                 null,
-                { session },
+                { session, completeNothing: true },
               );
             }
             const missionWasQuit = Boolean(
@@ -1098,6 +1331,7 @@ class AgentMgrService extends BaseService {
             characterID,
             agentID,
             null,
+            { completeNothing: true },
           );
           dispatcher._sendCallResponse(
             packet,
@@ -1114,9 +1348,7 @@ class AgentMgrService extends BaseService {
       agentID,
       actionID,
     );
-    return result && typeof result.then === "function"
-      ? result.then((settledResult) => buildDoActionResponsePayload(settledResult))
-      : buildDoActionResponsePayload(result);
+    return answerDoAction(result);
   }
 
   Handle_GetMissionBriefingInfo(args, session) {
@@ -1236,7 +1468,65 @@ class AgentMgrService extends BaseService {
     return null;
   }
 
+  // Client: movementFunctions.WarpToBookmark / WarpFleetToBookmark call
+  // GetAgentMoniker(agentID).WarpToLocation(locationType, locationNumber,
+  // warpRange, fleet, referringAgentID, GetFormationSettings()) for an agent
+  // location bookmark, in place of michelle.CmdWarpToStuff. "Warp Fleet" to a
+  // mission site therefore arrives here with fleet=True, and pulls the fleet
+  // as CmdWarpToStuff's fleet warp does.
   Handle_WarpToLocation(args, session) {
+    const fleetWarpRequested = Boolean(args && args.length > 3 ? args[3] : false);
+    const formationSettings = args && args.length > 5 ? args[5] : null;
+    // CmdWarpToStuff ignores any order while the commander is already in warp
+    // (it answers ShipInWarp) and so pulls no one; neither does this, whether
+    // the warp is a repeat (a redundant result) or one somewhere else.
+    const commanderWasWarping = fleetWarpRequested && this._isSessionShipWarping(session);
+    const result = this._warpToMissionLocation(args, session);
+    if (
+      fleetWarpRequested &&
+      !commanderWasWarping &&
+      result &&
+      result.success === true &&
+      result.redundant !== true
+    ) {
+      warpFleetFollowers(session, result, {
+        minimumRange: Number(args && args.length > 2 ? args[2] : 0) || 0,
+        formationSettings,
+      });
+    }
+    if (!result) {
+      // No location to go to (no accepted mission, or a stale bookmark): the
+      // client's own BookmarkNotAvailable, "This location is no longer
+      // available..." (dialogs.static.json 7326, message 551311).
+      log.warn(
+        `[AgentWarp] WarpToLocation found no location for char=${session && session.characterID}`,
+      );
+      throwWrappedUserError("BookmarkNotAvailable");
+    }
+    if (result.success !== true) {
+      // A refused warp tells the pilot why, as CmdWarpToStuff does, instead of
+      // leaving the ship where it is with nothing said.
+      const errorMsg = result.errorMsg || "WARP_REFUSED";
+      log.warn(
+        `[AgentWarp] WarpToLocation failed for char=${session && session.characterID}: ${errorMsg}`,
+      );
+      throwWarpFailureUserError(errorMsg);
+    }
+    return null;
+  }
+
+  _isSessionShipWarping(session) {
+    const scene = spaceRuntime.getSceneForSession(session);
+    const entity =
+      scene && typeof scene.getShipEntityForSession === "function"
+        ? scene.getShipEntityForSession(session)
+        : null;
+    return Boolean(entity && entity.mode === "WARP");
+  }
+
+  // The commander's own warp for WarpToLocation; returns the warp result, or
+  // null when there was nothing to warp to (WarpToLocation refuses that).
+  _warpToMissionLocation(args, session) {
     const characterID = normalizePositiveInteger(session && session.characterID, 0);
     const agentID = this._resolveBoundAgentID(session);
     const locationType = args && args.length > 0 ? args[0] : null;
@@ -1250,6 +1540,16 @@ class AgentMgrService extends BaseService {
     );
     if (!target) {
       return null;
+    }
+    // A location in another solar system is no warp target: its coordinates mean
+    // nothing in the pilot's own system.
+    const sessionSystemID = normalizePositiveInteger(
+      session && (session.solarsystemid2 || session.solarsystemid),
+      0,
+    );
+    const targetSystemID = normalizePositiveInteger(target.locationID, 0);
+    if (sessionSystemID > 0 && targetSystemID > 0 && targetSystemID !== sessionSystemID) {
+      return { success: false, errorMsg: "WARP_TARGET_NOT_IN_SYSTEM" };
     }
     // This is the warp path the retail client actually uses for agent-mission bookmarks
     // (movementFunctions.WarpToBookmark -> agents.WarpToLocation, NOT beyonce CmdWarpToStuff).
@@ -1269,20 +1569,18 @@ class AgentMgrService extends BaseService {
         missionInstanceID,
       );
       if (siteEntityID > 0) {
-        spaceRuntime.warpToEntity(session, siteEntityID, {
+        return spaceRuntime.warpToEntity(session, siteEntityID, {
           minimumRange: warpRange,
           stopDistance: warpRange,
           destinationStaticInstanceID: missionInstanceID,
         });
-        return null;
       }
       if (target.kind === "point" && target.point) {
-        spaceRuntime.warpToPoint(session, target.point, {
+        return spaceRuntime.warpToPoint(session, target.point, {
           minimumRange: warpRange,
           stopDistance: warpRange,
           destinationStaticInstanceID: missionInstanceID,
         });
-        return null;
       }
       log.warn(
         `[AgentWarp] Refusing item WarpToLocation fallback without materialized site char=${characterID} instance=${missionInstanceID}`,
@@ -1290,14 +1588,13 @@ class AgentMgrService extends BaseService {
       return null;
     }
     if (target.kind === "item" && normalizePositiveInteger(target.itemID, 0) > 0) {
-      spaceRuntime.warpToEntity(session, normalizePositiveInteger(target.itemID, 0), {
+      return spaceRuntime.warpToEntity(session, normalizePositiveInteger(target.itemID, 0), {
         minimumRange: warpRange,
         stopDistance: warpRange,
       });
-      return null;
     }
     if (target.kind === "point" && target.point) {
-      spaceRuntime.warpToPoint(session, target.point, {
+      return spaceRuntime.warpToPoint(session, target.point, {
         minimumRange: warpRange,
         stopDistance: warpRange,
       });

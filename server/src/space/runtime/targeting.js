@@ -35,7 +35,6 @@ const NON_TARGETABLE_GROUP_IDS = new Set([
   7, // Planet
   8, // Moon
   9, // Asteroid Belt (also the ice/gas field marker)
-  10, // Stargate
   885, // Cosmic Anomaly
   995, // Secondary Sun
 ]);

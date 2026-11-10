@@ -38,7 +38,6 @@ const {
   syncInventoryItemForSession,
 } = characterState;
 const {
-  ITEM_FLAGS,
   dockShipToLocation,
   findItemById,
   isCapsuleTypeID,
@@ -149,7 +148,7 @@ function getStructureByIDNoRefresh(structureID) {
   try {
     const structureState = require(path.join(__dirname, "../structure/structureState"));
     return structureState.getStructureByID(structureID, { refresh: false });
-  } catch (error) {
+  } catch {
     // ignored: the structure state is not loaded in this process; no structure (null)
     return null;
   }
@@ -165,7 +164,7 @@ function toFileTimeMs(value) {
       return 0;
     }
     return Number((filetime - FILETIME_EPOCH_OFFSET) / FILETIME_TICKS_PER_MS);
-  } catch (error) {
+  } catch {
     // ignored: an unreadable FILETIME counts as time zero
     return 0;
   }
@@ -1854,11 +1853,6 @@ function buildCloneJumpState(session, destLocationID, cloneID, confirmed = false
       notify: "UI/CharacterSheet/CharacterSheetWindow/JumpCloneScroll/JumpCooldownError",
     });
   }
-  const suppressCooldownUpdate =
-    current.kind === "structure" &&
-    targetClone.locationKind === "structure" &&
-    targetClone.locationID === current.locationID;
-
   const originClone = state.clones.find((clone) => (
     clone.locationID === current.locationID &&
     clone.jumpCloneID !== targetClone.jumpCloneID
@@ -1892,7 +1886,8 @@ function buildCloneJumpState(session, destLocationID, cloneID, confirmed = false
     ownerID: charID,
     locationID: current.locationID,
     locationKind: current.kind,
-    cloneName: originClone ? originClone.cloneName : "",
+    // The stored clone at the origin is discarded; this is the active body.
+    cloneName: state.record.activeJumpCloneName,
     implants: oldBodyImplants,
   });
   const nextClones = state.clones
@@ -1915,9 +1910,10 @@ function buildCloneJumpState(session, destLocationID, cloneID, confirmed = false
       replacementCloneID >= state.nextJumpCloneID
         ? replacementCloneID + 1
         : state.nextJumpCloneID,
-    timeLastCloneJump: suppressCooldownUpdate
-      ? String(state.timeLastCloneJump || "0")
-      : getNowFileTimeString(),
+    // Local swaps neither start nor reset a remote-jump cooldown.
+    timeLastCloneJump: shouldCheckTimer
+      ? getNowFileTimeString()
+      : String(state.timeLastCloneJump || "0"),
   };
 }
 
@@ -2257,6 +2253,7 @@ function applyCloneActivationState(settlement) {
     }
     const jumpState = settlement.jumpState;
     record.implants = jumpState.nextImplants;
+    record.activeJumpCloneName = normalizeCloneName(jumpState.targetClone.cloneName, "");
     record.jumpClones = jumpState.nextClones;
     record.nextJumpCloneID = jumpState.nextJumpCloneID;
     record.timeLastCloneJump = jumpState.timeLastCloneJump;
@@ -2410,6 +2407,9 @@ async function settlePendingCloneActivationInternal(operationID, options = {}) {
     settlement.charID,
   );
   syncCharacterDogmaAfterImplantChange(session, settlement.charID);
+  // The skills service caches active implants separately from stored clones.
+  // Refresh it only after the body swap has been committed.
+  emitSessionNotification(session, "OnServerImplantsChanged", []);
   return { success: true, operationID };
 }
 
@@ -2422,7 +2422,7 @@ function settlePendingCloneActivation(operationID, options = {}) {
     settlePendingCloneActivationInternal(operationID, options));
 }
 
-async function performCloneJump(session, destLocationID, cloneID, cost = null, confirmed = false) {
+async function performCloneJump(session, destLocationID, cloneID, _cost = null, confirmed = false) {
   assertAbyssalCloneJumpAllowed(session);
   const charID = toPositiveInt(session && session.characterID, 0);
   let settlement = findPendingCloneActivationForCharacter(charID);
@@ -2778,6 +2778,7 @@ function clearActiveImplantsForPodDeath(session, options = {}) {
       if (receipt) { removedTypeIDs = receipt.removedTypeIDs; return record; }
     }
     const activeImplants = normalizeActiveImplants(record);
+    record.activeJumpCloneName = "";
     if (activeImplants.length === 0 && !options.operationID && !options.airDeathKey && !options.durableDeathKey) {
       return record;
     }
@@ -2832,6 +2833,9 @@ function clearActiveImplantsForPodDeath(session, options = {}) {
     // but the authoritative character brain must still lose destroyed implant
     // modifiers before any later fitting or ship state is calculated.
     syncCharacterDogmaAfterImplantChange(session, charID);
+    if (options.emitNotifications !== false) {
+      emitSessionNotification(session, "OnServerImplantsChanged", []);
+    }
     log.info(
       `[JumpCloneRuntime] Cleared ${removedTypeIDs.length} active implants for pod death char=${charID}`,
     );

@@ -11,6 +11,8 @@ const {
   readCoreDungeonAuthorityPayload,
 } = require(path.join(__dirname, "../services/dungeon/dungeonAuthorityPayload"));
 const packReadRun = require("./packReadRun");
+const securityBindings = require("./securityMissionBinding");
+const careerMissionContent = require("./careerMissionContent");
 
 const CONTENT_PACK_SCHEMA = "evejs.content-pack.v1";
 const CONTENT_PACK_REGISTRY_SCHEMA = "evejs.content-pack-registry.v1";
@@ -26,6 +28,21 @@ const SAFE_FAMILY_RE = /^[a-z0-9](?:[a-z0-9_-]{0,126}[a-z0-9])?$/;
 // engine does not list is refused at verify/install time instead of being
 // installed and then silently misbehaving at runtime.
 const SUPPORTED_CAPABILITIES = Object.freeze([
+  "visions-of-greatness-v1",
+  "visions-caldari-progress-v1",
+  "visions-caldari-combat-roles-v1",
+  "fractured-legacy-v1",
+  "epic-scene-actions-v1",
+  "epic-cinematic-warp-v1",
+  "epic-branch-effects-v1",
+  "career-lessons-v1",
+  "career-agent-missions-v1",
+  securityBindings.CAPABILITY,
+  "security-mission-rescue-objective-v1",
+  "security-mission-native-containers-v1",
+  "security-mission-native-object-lifecycle-v1",
+  "security-mission-group-prerequisites-v1",
+  "security-mission-native-npc-behavior-v1",
   "dungeon.templates.ore-anomaly",
   "dungeon.spawn-profile.ore",
   "dungeon.templates.combat-anomaly",
@@ -47,6 +64,9 @@ const SUPPORTED_CAPABILITIES = Object.freeze([
   "dungeon.exact-client-encounters",
   "dungeon.content-pack-template-selection",
   "dungeon.homefront.v1",
+  "incursion-vanguard-v1",
+  "incursion-vanguard-entry-presentation-v1",
+  "incursion-sites-v2",
   "dungeon.templates.wormhole-site",
   "dungeon.spawn-profile.wormhole_anomaly",
   "dungeon.spawn-profile.wormhole_data",
@@ -72,6 +92,9 @@ const SUPPORTED_CAPABILITIES = Object.freeze([
   "dungeon.exact-client-mining-rocks",
   "dungeon.exact-client-environment-props",
   "dungeon.templates.air-tutorial",
+  // Career agent mission sites. Like mining mission sites they carry no spawn
+  // profile: the career agent's mission resolves the site by its dungeon id.
+  "dungeon.templates.career-agents",
 ]);
 
 let runtimeContentPackSnapshot = null;
@@ -85,7 +108,8 @@ function contentPackCompatibility(options = {}) {
     const hash = crypto.createHash("sha256");
     for (const file of [__filename, path.join(__dirname, "autoInstallContentPacks.js"),
       path.join(__dirname, "packReadRun.js"), path.join(__dirname, "dropFolderFingerprint.js"),
-      require.resolve("../services/dungeon/dungeonAuthorityPayload")]) {
+      require.resolve("../services/dungeon/dungeonAuthorityPayload"),
+      require.resolve("./securityMissionBinding"), require.resolve("./careerMissionContent")]) {
       hash.update(fs.readFileSync(file));
     }
     validatorSha256 = hash.digest("hex");
@@ -233,6 +257,18 @@ function validateContentPack(pack, options = {}) {
   }
 
   const manifest = normalizeManifest(pack);
+  if (pack?.payload?.careerAgents !== undefined) {
+    try {
+      if (manifest.id !== "evejs.career-agents") errors.push("career missions must belong to evejs.career-agents");
+      const counts = careerMissionContent.validate(pack.payload.careerAgents);
+      if (!manifest.capabilities?.includes(careerMissionContent.CAPABILITY)) errors.push("career missions require declared capability");
+      for (const [key, value] of Object.entries(counts)) if (manifest.counts?.[key] !== value) errors.push(`career ${key} count does not match payload`);
+      for (const mission of Object.values(pack.payload.careerAgents.missionsByID)) {
+        const dungeonID = Number(mission.killMission?.dungeonID);
+        if (dungeonID > 0 && !pack.payload.dungeon?.templatesByID?.[`client-dungeon:${dungeonID}`]) errors.push(`career mission ${mission.missionID} site ${dungeonID} is absent`);
+      }
+    } catch (error) { errors.push(error.message); }
+  }
   const id = String(manifest.id || "").trim();
   const version = String(manifest.version || "").trim();
   if (!SAFE_ID_RE.test(id)) {
@@ -263,6 +299,7 @@ function validateContentPack(pack, options = {}) {
     ? dungeon.spawnProfilesByFamily
     : {};
   const templateEntries = Object.entries(templatesByID);
+  const securityMissionIDs = new Set();
   if (templateEntries.length > MAX_DUNGEON_TEMPLATES) {
     errors.push(`contains more than ${MAX_DUNGEON_TEMPLATES} dungeon templates`);
   }
@@ -273,6 +310,16 @@ function validateContentPack(pack, options = {}) {
     }
     if (String(template.templateID || "").trim() !== templateID) {
       errors.push(`${templateID} does not match its templateID field`);
+    }
+    if (securityBindings.isSecurityMissionAlias(template, templateID)) {
+      if (!Array.isArray(manifest.capabilities) || !manifest.capabilities.includes(securityBindings.CAPABILITY)) {
+        errors.push(`${templateID} requires declared ${securityBindings.CAPABILITY}`);
+      }
+      try {
+        const binding = securityBindings.validateSecurityMissionBinding(template, templateID);
+        if (securityMissionIDs.has(binding.missionID)) errors.push(`duplicate Security mission ${binding.missionID}`);
+        securityMissionIDs.add(binding.missionID);
+      } catch (error) { errors.push(error.message); }
     }
   }
   for (const [family, profile] of Object.entries(spawnProfilesByFamily)) {
@@ -415,7 +462,7 @@ function readContentPackFile(filePath, options = {}, run = null) {
   const receipts = readValidationReceipts(options);
   const receipt = receipts.byDigest[digest];
   const validation = isPlainObject(receipt) ? { ...receipt } : validateContentPack(pack, options);
-  if (!isPlainObject(receipt)) {
+  if (!isPlainObject(receipt) && options.readOnly !== true) {
     recordValidationReceipt(receipts, digest, validation);
   }
   const loaded = { pack, validation, filePath: resolvedPath, bytes: raw.length };
@@ -815,6 +862,9 @@ function describeIntendedImport(candidate, options = {}, run = null) {
 // the newer version stays (see keepsNewerInstalledVersion). options.dryRun
 // reports what would happen and writes nothing, which is what a re-runnable
 // setup check needs.
+// Startup's reconcileRegistry mode instead validates and commits the folder's
+// complete active set under one mutation lock, deactivating absent IDs while
+// retaining their stored versions. Other directory imports remain additive.
 function importContentPackDirectory(directory, options = {}) {
   const resolved = path.resolve(directory);
   if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
@@ -863,6 +913,73 @@ function importContentPackDirectory(directory, options = {}) {
     if (!current || compareVersions(candidate.version, current.version) > 0) {
       newestById.set(candidate.id, candidate);
     }
+  }
+
+  // Startup owns the active set: preflight the folder's final registry, not
+  // intermediate registries containing retired packs. Publish it only after
+  // all offered files validate and their immutable stored copies are ready.
+  if (options.reconcileRegistry === true && options.dryRun !== true) {
+    let removed = [];
+    const chosen = [...newestById.values()];
+    if (results.length === 0) {
+      try {
+        const committed = withContentPackMutationLock(options, () => {
+          const registry = readRegistry(options);
+          const plans = chosen.map((candidate) => {
+            const plan = describeIntendedImport(candidate, options, run);
+            if (!plan.ok) throw contentPackError(plan.code, plan.message);
+            return { candidate, plan, loaded: readContentPackFile(candidate.filePath, options, run) };
+          });
+          const overrides = new Map();
+          const installed = plans.map(({ candidate, plan, loaded }) => {
+            if (plan.action === "kept") {
+              return registry.installed.find((entry) => entry.id === candidate.id);
+            }
+            overrides.set(candidate.id, loaded);
+            return { id: candidate.id, version: candidate.version, packSha256: candidate.packSha256 };
+          }).sort((left, right) => left.id.localeCompare(right.id));
+          const proposed = { schema: CONTENT_PACK_REGISTRY_SCHEMA, installed };
+          preflightContentPackRegistry(proposed, options, overrides, run);
+          for (const { candidate, plan, loaded } of plans) {
+            const destination = packFilePath(candidate.id, candidate.version, options);
+            if (!fs.existsSync(destination) || plan.action === "replaced") {
+              writeJsonRecoverably(destination, loaded.pack);
+            }
+          }
+          if (options.validateReconciliation) options.validateReconciliation();
+          const offered = new Set(installed.map((entry) => entry.id));
+          const retired = registry.installed.filter((entry) => !offered.has(entry.id));
+          writeRegistry(proposed, options);
+          if (retired.length > 0 && options.validateReconciliation) {
+            try {
+              options.validateReconciliation();
+            } catch (error) {
+              writeRegistry(registry, options);
+              throw error;
+            }
+          }
+          return {
+            plans,
+            removed: retired,
+          };
+        });
+        removed = committed.removed;
+        for (const { candidate, plan } of committed.plans) results.push({ file: candidate.name, ...plan });
+      } catch (error) {
+        if (chosen.length === 0) results.push({ file: resolved, ok: false, action: "failed",
+          code: error.code || "CONTENT_PACK_ERROR", message: error.message || String(error) });
+        for (const candidate of chosen) results.push({ file: candidate.name, ok: false, action: "failed",
+          code: error.code || "CONTENT_PACK_ERROR", message: error.message || String(error) });
+      }
+    }
+    for (const candidate of candidates) {
+      if (newestById.get(candidate.id).name !== candidate.name) results.push({ file: candidate.name,
+        ok: true, action: "skipped", id: candidate.id, version: candidate.version,
+        newerVersion: newestById.get(candidate.id).version });
+    }
+    return { directory: resolved, stats: { ...run.stats }, results, removed,
+      failed: results.filter((entry) => !entry.ok).length,
+      changed: results.filter((entry) => entry.ok && !["unchanged", "skipped", "kept"].includes(entry.action)).length };
   }
 
   for (const candidate of candidates) {
@@ -1157,9 +1274,11 @@ function stripExtractedBundledDungeonContent(payload) {
 }
 
 function rebuildDungeonDerivedFields(payload) {
-  return rebuildDungeonDerivedFieldsInPlace(
-    clone(payload && typeof payload === "object" ? payload : {}),
-  );
+  const normalized = clone(payload && typeof payload === "object" ? payload : {});
+  for (const [id, template] of Object.entries(normalized.templatesByID || {})) {
+    securityBindings.copyInstalledSecurityMissionMarker(payload.templatesByID[id], template);
+  }
+  return rebuildDungeonDerivedFieldsInPlace(normalized);
 }
 
 // The same rebuild on a payload the caller already owns. applyDungeonContentPacks
@@ -1191,7 +1310,7 @@ function rebuildDungeonDerivedFieldsInPlace(normalized) {
       append(indexes.templateIDsByArchetypeID, Math.trunc(archetypeID), templateID);
     }
     const sourceDungeonID = Number(template && template.sourceDungeonID);
-    if (Number.isFinite(sourceDungeonID) && sourceDungeonID > 0) {
+    if (Number.isFinite(sourceDungeonID) && sourceDungeonID > 0 && !securityBindings.isSecurityMissionAlias(template, templateID)) {
       indexes.templateIDsBySourceDungeonID[String(Math.trunc(sourceDungeonID))] = templateID;
     }
   }
@@ -1249,27 +1368,78 @@ function applyDungeonContentPacks(basePayload, loadedPacks) {
       if (replacement?.sourceDungeonID === dungeonID && replacement.siteFamily === "air_tutorial" && legacy?.source === "client" && legacy.populationHints?.source === "family_derived" && !legacy.clientDungeonContent) delete payload.templatesByID[legacyID];
     }
   }
+  const career = (loadedPacks || []).map(entry => entry.pack || entry)
+    .find(pack => pack.manifest?.id === "evejs.career-agents");
+  if (career) {
+    for (const replacement of Object.values(career.payload?.dungeon?.templatesByID || {})) {
+      const legacyID = `client-dungeon:${replacement.sourceDungeonID}`, legacy = payload.templatesByID[legacyID];
+      // As for the AIR tutorial: retire only the derived placeholders.
+      if (legacy?.source === "client" && legacy.populationHints?.source === "family_derived" && !legacy.clientDungeonContent) delete payload.templatesByID[legacyID];
+    }
+  }
+  const fractured = (loadedPacks || []).map(entry => entry.pack || entry)
+    .find(pack => pack.manifest?.id === "evejs.fractured-legacy");
+  if (fractured) {
+    for (const dungeonID of [13338, 13339, 13340]) {
+      const legacyID = `client-dungeon:${dungeonID}`, legacy = payload.templatesByID[legacyID];
+      const replacement = fractured.payload?.dungeon?.templatesByID?.[legacyID];
+      // Replace only the old inferred combat populations. A separately authored
+      // exact layout or a different pack still owns its normal collision error.
+      if (require("../services/dungeon/fracturedLegacyRuntime").contract(replacement) &&
+          legacy?.source === "client" && ["combat_wave_derived", "family_derived"].includes(legacy.populationHints?.source) &&
+          !legacy.clientDungeonContent && !legacy._contentPack) delete payload.templatesByID[legacyID];
+    }
+  }
+  const incursionPack = (loadedPacks || []).map(loaded => loaded.pack || loaded)
+    .find(pack => pack.manifest?.id === "evejs.incursions");
+  if (incursionPack) {
+    const admission = require("../services/incursion/incursionAdmission");
+    const replacement = incursionPack.payload?.dungeon?.templatesByID?.[admission.TEMPLATE_ID];
+    const legacy = payload.templatesByID["client-dungeon:5166"];
+    // Supersede only the inferred placeholder. Exact native content or a
+    // different pack retains the normal ownership conflict below.
+    if (admission.isTemplate(replacement) && legacy?.source === "client" &&
+        ["combat_wave_derived", "family_derived"].includes(legacy.populationHints?.source) &&
+        !legacy.clientDungeonContent && !legacy._contentPack) delete payload.templatesByID["client-dungeon:5166"];
+  }
+  if (incursionPack) {
+    const admission = require("../services/incursion/incursionSiteAdmission");
+    for (const replacement of Object.values(incursionPack.payload?.dungeon?.templatesByID || {})) {
+      const legacyID = `client-dungeon:${replacement.sourceDungeonID}`, legacy = payload.templatesByID[legacyID];
+      // Only the exact reviewed Sansha bindings can supersede an unowned
+      // inferred placeholder. Authored geometry and other packs keep ownership.
+      if (admission.isTemplate(replacement) && legacy?.source === "client" &&
+          ["combat_wave_derived", "family_derived"].includes(legacy.populationHints?.source) &&
+          !legacy.clientDungeonContent && !legacy._contentPack) delete payload.templatesByID[legacyID];
+    }
+  }
   payload.spawnProfiles = payload.spawnProfiles || {};
   payload.spawnProfiles.families = payload.spawnProfiles.families || {};
   const applied = [];
+  const securityMissionIDs = new Set();
   const sourceDungeonOwners = new Map();
   for (const [templateID, template] of Object.entries(payload.templatesByID)) {
     const numericSourceDungeonID = Number(template && template.sourceDungeonID);
     const sourceDungeonID = Number.isFinite(numericSourceDungeonID)
       ? Math.trunc(numericSourceDungeonID)
       : 0;
-    if (sourceDungeonID > 0 && !sourceDungeonOwners.has(sourceDungeonID)) {
+    if (securityBindings.isInstalledSecurityMissionBinding(template)) {
+      securityMissionIDs.add(template.securityMission.missionID);
+    } else if (sourceDungeonID > 0 && !sourceDungeonOwners.has(sourceDungeonID)) {
       sourceDungeonOwners.set(sourceDungeonID, templateID);
     }
   }
 
   for (const loaded of Array.isArray(loadedPacks) ? loadedPacks : []) {
     const pack = loaded && loaded.pack ? loaded.pack : loaded;
-    const validation = loaded && loaded.validation
-      ? loaded.validation
-      : validateContentPack(pack);
+    // Loaded envelopes are an I/O optimization, not a validation authority.
+    const validation = validateContentPack(pack);
     const dungeon = normalizeDungeonContribution(pack);
     for (const [templateID, template] of Object.entries(dungeon.templatesByID || {})) {
+      const isSecurityAlias = securityBindings.isSecurityMissionAlias(template, templateID);
+      if (isSecurityAlias && securityMissionIDs.has(template.securityMission.missionID)) {
+        throw contentPackError("CONTENT_PACK_INVALID", `duplicate Security mission ${template.securityMission.missionID}`);
+      }
       if (Object.prototype.hasOwnProperty.call(payload.templatesByID, templateID)) {
         throw contentPackError(
           "CONTENT_PACK_TEMPLATE_CONFLICT",
@@ -1280,14 +1450,14 @@ function applyDungeonContentPacks(basePayload, loadedPacks) {
       const sourceDungeonID = Number.isFinite(numericSourceDungeonID)
         ? Math.trunc(numericSourceDungeonID)
         : 0;
-      if (sourceDungeonID > 0 && sourceDungeonOwners.has(sourceDungeonID)) {
+      if (!isSecurityAlias && sourceDungeonID > 0 && sourceDungeonOwners.has(sourceDungeonID)) {
         throw contentPackError(
           "CONTENT_PACK_SOURCE_DUNGEON_CONFLICT",
           `${validation.id}@${validation.version} template ${templateID} reuses source dungeon ` +
             `${sourceDungeonID} owned by ${sourceDungeonOwners.get(sourceDungeonID)}`,
         );
       }
-      if (sourceDungeonID > 0) {
+      if (!isSecurityAlias && sourceDungeonID > 0) {
         sourceDungeonOwners.set(sourceDungeonID, templateID);
       }
       payload.templatesByID[templateID] = {
@@ -1299,6 +1469,12 @@ function applyDungeonContentPacks(basePayload, loadedPacks) {
           payloadSha256: validation.payloadSha256,
         },
       };
+      if (isSecurityAlias) {
+        securityMissionIDs.add(template.securityMission.missionID);
+        securityBindings.markInstalledSecurityMissionBinding(payload.templatesByID[templateID]);
+      } else {
+        delete payload.templatesByID[templateID].securityMissionBinding;
+      }
     }
     for (const [family, profile] of Object.entries(dungeon.spawnProfilesByFamily || {})) {
       const normalizedFamily = String(family || "").trim().toLowerCase();

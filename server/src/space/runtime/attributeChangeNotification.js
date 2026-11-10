@@ -119,6 +119,7 @@ const {
 } = require("./marshalWireValues");
 const {
   getGenericModuleRuntimeAttributes,
+  readFiniteAttributeOverride,
 } = require("./moduleAttributes");
 const {
   isMiningModuleItem,
@@ -216,6 +217,8 @@ function buildAttributeChange(
   }
   const normalizedAttributeID = toInt(attributeID, 0);
   // TQ parity: singular inner tuple tag + trailing time.
+  [newValue, oldValue] = require("../../services/incursion/incursionSystemEffects").projectAttributeChange(
+    session, itemID, normalizedAttributeID, newValue, oldValue);
   return [
     "OnModuleAttributeChange",
     toInt(session && session.characterID, 0),
@@ -555,10 +558,9 @@ function notifyGenericDerivedAttributesToSession(
     );
   }
 
-  const maxRangeValue = toFiniteNumber(
-    effectState.genericAttributeOverrides &&
-      effectState.genericAttributeOverrides[ATTRIBUTE_MAX_RANGE],
-    Number.NaN,
+  const maxRangeValue = readFiniteAttributeOverride(
+    effectState.genericAttributeOverrides,
+    ATTRIBUTE_MAX_RANGE,
   );
   if (Number.isFinite(maxRangeValue)) {
     changes.push(
@@ -573,10 +575,9 @@ function notifyGenericDerivedAttributesToSession(
     );
   }
 
-  const currentSpoolBonus = toFiniteNumber(
-    effectState.genericAttributeOverrides &&
-      effectState.genericAttributeOverrides[ATTRIBUTE_DAMAGE_MULTIPLIER_BONUS_CURRENT],
-    Number.NaN,
+  const currentSpoolBonus = readFiniteAttributeOverride(
+    effectState.genericAttributeOverrides,
+    ATTRIBUTE_DAMAGE_MULTIPLIER_BONUS_CURRENT,
   );
   if (Number.isFinite(currentSpoolBonus)) {
     changes.push(
@@ -591,10 +592,9 @@ function notifyGenericDerivedAttributesToSession(
     );
   }
 
-  const maxTimestampMs = toFiniteNumber(
-    effectState.genericAttributeOverrides &&
-      effectState.genericAttributeOverrides[ATTRIBUTE_DAMAGE_MULTIPLIER_BONUS_MAX_TIMESTAMP_RUNTIME],
-    Number.NaN,
+  const maxTimestampMs = readFiniteAttributeOverride(
+    effectState.genericAttributeOverrides,
+    ATTRIBUTE_DAMAGE_MULTIPLIER_BONUS_MAX_TIMESTAMP_RUNTIME,
   );
   if (Number.isFinite(maxTimestampMs)) {
     changes.push(
@@ -684,11 +684,9 @@ function notifyFittedGenericModuleRangeAttributesToSession(
           : [],
       },
     );
-    const maxRangeValue = toFiniteNumber(
-      runtimeAttrs &&
-        runtimeAttrs.attributeOverrides &&
-        runtimeAttrs.attributeOverrides[ATTRIBUTE_MAX_RANGE],
-      Number.NaN,
+    const maxRangeValue = readFiniteAttributeOverride(
+      runtimeAttrs && runtimeAttrs.attributeOverrides,
+      ATTRIBUTE_MAX_RANGE,
     );
     if (!Number.isFinite(maxRangeValue)) {
       continue;

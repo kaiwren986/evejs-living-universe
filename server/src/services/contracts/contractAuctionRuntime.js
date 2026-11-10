@@ -1,6 +1,10 @@
 "use strict";
 const { randomUUID } = require("node:crypto");
 
+// Coffee Edition's late-bid policy: each admitted bid leaves fifteen minutes
+// to respond. Freeze the deadline in the intent, never at settlement/replay time.
+const AUCTION_RESPONSE_WINDOW_TICKS = 15n * 60n * 10_000_000n;
+
 // Auction decisions live here; persistence, wallet authority and item custody remain
 // with their existing owners, injected by the contract runtime.
 function createContractAuctionRuntime(p) {
@@ -41,7 +45,7 @@ function createContractAuctionRuntime(p) {
       if (!result.success) {
         // The first debit is the only leg which can be rejected without any
         // obligation. Unknown/interrupted outcomes always retain the intent.
-        if (["INSUFFICIENT_FUNDS", "CHARACTER_NOT_FOUND", "CORPORATION_NOT_FOUND"].includes(result.errorMsg) &&
+        if (result.errorMsg === "INSUFFICIENT_FUNDS" && result.noEffectConfirmed === true &&
             !(state.getPendingContractSettlement(contractID).payload.walletLegs || []).some((leg) => leg.applied)) {
           const removed = state.updateContractSettlement(contractID, () => null);
           if (!removed.success) return removed;
@@ -59,12 +63,17 @@ function createContractAuctionRuntime(p) {
           !(bid.bidderID === payload.bid.bidderID && Boolean(bid.forCorp) === Boolean(payload.bid.forCorp)))],
         nextBidID: payload.bid.bidID + 1,
         auctionEnded: payload.buyout || false,
-        dateExpired: payload.buyout ? payload.bid.dateBid : record.dateExpired,
+        // Older in-flight intents have no frozen response window; preserve
+        // their original deadline instead of extending them during recovery.
+        dateExpired: payload.expiresAfterBid || (payload.buyout ? payload.bid.dateBid : record.dateExpired),
       };
       const written = p.putContractRecordDurably(next);
       if (!written.success) return written;
       record = next;
     }
+    // Re-arm even after a recovered record commit, before clearing its intent.
+    // A scheduler failure must leave a durable retry rather than lose the timer.
+    await p.scheduleAuctionExpiry(record);
     const removed = state.updateContractSettlement(contractID, () => null);
     if (!removed.success) return removed;
     if (!committed && options.notify !== false && p.notifyAuctionBid) {
@@ -122,14 +131,19 @@ function createContractAuctionRuntime(p) {
       const operationID = `contract:${contractID}:auction-bid:${expectedVersion + 1}:${randomUUID()}`;
       const walletLegs = [leg(record, operationID, "bid-escrow", ref, -debit / 100, record.issuerOwnerID || record.issuerID)];
       if (previousBid && !same) walletLegs.push(leg(record, operationID, "outbid-refund", walletForBid(previousBid), previousBid.amount, ref.ownerID));
+      const admittedAt = now();
+      const buyoutBid = Boolean(buyout && amountCents === buyout);
+      const responseDeadline = admittedAt + AUCTION_RESPONSE_WINDOW_TICKS;
+      const expiresAfterBid = buyoutBid ? admittedAt - 1n
+        : BigInt(record.dateExpired) > responseDeadline ? BigInt(record.dateExpired) : responseDeadline;
       const bid = {
         contractID, bidID: Number(record.nextBidID || expectedVersion + 1), bidderID: ref.ownerID,
         bidderCharacterID: actor, accountKey: ref.accountKey, forCorp: Boolean(forCorp),
-        wallet: copy(ref), amount: amountCents / 100, dateBid: now().toString(),
+        wallet: copy(ref), amount: amountCents / 100, dateBid: admittedAt.toString(),
       };
       const prepared = state.prepareContractSettlement({ contractID, kind: "auction-bid",
         requestFingerprint: operationID, payload: { operationID, actorCharacterID: actor,
-          expectedVersion, bid, previousBid, buyout: Boolean(buyout && amountCents === buyout), walletLegs } });
+          expectedVersion, bid, previousBid, buyout: buyoutBid, expiresAfterBid: expiresAfterBid.toString(), walletLegs } });
       if (!prepared.success) return prepared;
       return settle(contractID, { ...options, preferredSession: session });
     });

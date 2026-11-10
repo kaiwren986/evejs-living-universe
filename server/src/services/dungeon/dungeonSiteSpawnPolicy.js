@@ -15,11 +15,13 @@ const oreAnomalySecurityAuthority = require(path.join(
 const sovModernState = require(path.join(__dirname, "../sovereignty/sovModernState"));
 const sovState = require(path.join(__dirname, "../sovereignty/sovState"));
 const wormholeSpaceAuthority = require(path.join(__dirname, "../exploration/wormholes/wormholeSpaceAuthority"));
+const kspaceGasPlacementAuthority = require(path.join(__dirname, "../exploration/gas/kspaceGasPlacementAuthority"));
 
-const POLICY_VERSION = 3;
+const POLICY_VERSION = 4;
 const POWER_STATE_ONLINE = 2;
 
 const SOURCE_REFS = Object.freeze({
+  ...kspaceGasPlacementAuthority.SOURCE_REFS,
   ccpSovHub: Object.freeze({
     title: "EVE Online Support: Sovereignty Hub",
     url: "https://support.eveonline.com/hc/en-us/articles/14339751569436-Sovereignty-Hub",
@@ -71,6 +73,47 @@ const UPGRADE_CATEGORY_PATTERNS = Object.freeze({
   prospecting: Object.freeze([/\bprospecting array\b/i]),
   exploration_detector: Object.freeze([/\bexploration detector\b/i]),
 });
+
+// A newly running upgrade first waits one respawn before its sites appear
+// (patch notes 23.01: combat sites 12 minutes, mining sites 1 hour). No source
+// gives the Exploration Detector's; it takes the combat wait.
+const FIRST_SPAWN_WAIT_MS = Object.freeze({
+  threat_detection: 12 * 60 * 1000,
+  prospecting: 60 * 60 * 1000,
+  exploration_detector: 12 * 60 * 1000,
+});
+
+function getUpgradeCategory(name) {
+  const text = normalizeText(name, "");
+  for (const [category, patterns] of Object.entries(UPGRADE_CATEGORY_PATTERNS)) {
+    if (patterns.some((pattern) => pattern.test(text))) return category;
+  }
+  return null;
+}
+
+function getUpgradeName(upgrade) {
+  const definition = upgrade && upgrade.definition || {};
+  return normalizeText(upgrade && (upgrade.typeName || upgrade.name),
+    normalizeText(definition.typeName, normalizeText(definition.name, "")));
+}
+
+// When a running upgrade's first wait ends, or null when it has none left.
+function getFirstSpawnWaitEndMs(upgrade, nowMs = Date.now()) {
+  const since = Number(upgrade && upgrade.runningSinceMs);
+  const category = getUpgradeCategory(getUpgradeName(upgrade));
+  if (!Number.isFinite(since) || since <= 0 || !category) return null;
+  const endsAtMs = since + FIRST_SPAWN_WAIT_MS[category];
+  return endsAtMs > nowMs ? endsAtMs : null;
+}
+
+// Upgrades still in their first wait supply no sites yet.
+function applyFirstSpawnWait(upgrades, nowMs = Date.now()) {
+  return (Array.isArray(upgrades) ? upgrades : []).map((upgrade) => (
+    getFirstSpawnWaitEndMs(upgrade, nowMs)
+      ? { ...upgrade, powerState: "first_spawn_wait", online: false }
+      : upgrade
+  ));
+}
 
 const RULED_SITE_FAMILIES = new Set([
   "combat",
@@ -484,7 +527,10 @@ function buildRuntimeSystemPolicyContext(systemID, options = {}) {
 
   if (hubID > 0) {
     try {
-      hubUpgrades = extractHubUpgrades(sovModernState.getHubUpgrades(hubID));
+      hubUpgrades = applyFirstSpawnWait(
+        extractHubUpgrades(sovModernState.getHubUpgrades(hubID)),
+        Number(options.nowMs) || Date.now(),
+      );
     } catch (_) {
       hubUpgrades = [];
     }
@@ -1027,6 +1073,30 @@ function evaluateWormholeClassRule(site, context) {
   return mergeWormholeClassEvaluation(buildBlockedResult(site, "wormhole_class", verdict.reason, metadata), metadata);
 }
 
+// Documented Cytoserocin restrictions and positive Mykoserocin catalog entries.
+// Unlisted Mykoserocin regions defer to existing band rules; the authority owns
+// the separately documented provisional Pochven gas exclusion.
+function evaluateKspaceGasRegionRule(site) {
+  if (site.securityBand === "wormhole") {
+    return null;
+  }
+  const verdict = kspaceGasPlacementAuthority.evaluateTemplateInSystem(
+    site.template,
+    site.systemID,
+    site.securityBand,
+  );
+  if (!verdict) {
+    return null;
+  }
+  const metadata = {
+    sourceRefs: [verdict.source],
+    tags: ["kspace_gas_region"],
+  };
+  return verdict.allowed
+    ? buildAllowedResult(site, "kspace_gas_region", { ...metadata, reason: verdict.reason })
+    : buildBlockedResult(site, "kspace_gas_region", verdict.reason, metadata);
+}
+
 function mergeWormholeClassEvaluation(result, wormholeEvaluation) {
   if (!wormholeEvaluation) {
     return result;
@@ -1142,6 +1212,11 @@ function evaluateSiteSpawnPolicy(input = {}, context = {}, options = {}) {
       mergeWormholeClassEvaluation(securityBandEvaluation, wormholeClassEvaluation),
       securityBandEvaluation,
     );
+  }
+  // Within its bands a k-space gas site is further confined to its regions.
+  const kspaceGasRegionEvaluation = evaluateKspaceGasRegionRule(site);
+  if (kspaceGasRegionEvaluation && kspaceGasRegionEvaluation.allowed === false) {
+    return kspaceGasRegionEvaluation;
   }
   return mergeTemplateSecurityBandEvaluation(
     mergeWormholeClassEvaluation(
@@ -1301,8 +1376,11 @@ module.exports = {
   buildRuntimeSystemPolicyContext,
   buildSelectionMetadata,
   evaluateSiteSpawnPolicy,
+  FIRST_SPAWN_WAIT_MS,
+  getFirstSpawnWaitEndMs,
   evaluateTemplateSecurityBandRule,
   evaluateWormholeClassRule,
+  evaluateKspaceGasRegionRule,
   getCompletionRespawnRule,
   getPolicyDescriptor,
   hasOnlineUpgradeCategory,

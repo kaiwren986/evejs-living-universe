@@ -87,6 +87,7 @@ function createWarNotification(characterIDs, {
   created = null,
   emitLive = true,
   idempotencyKeyPrefix = "",
+  requireDurable = false,
 } = {}) {
   const normalizedTypeID = normalizePositiveInteger(typeID, null);
   if (!normalizedTypeID) {
@@ -106,6 +107,7 @@ function createWarNotification(characterIDs, {
       data,
       created: created || undefined,
       emitLive,
+      requireDurable,
       idempotencyKey: idempotencyKeyPrefix
         ? `${idempotencyKeyPrefix}:${normalizedTypeID}:${numericCharacterID}`
         : undefined,
@@ -161,6 +163,8 @@ function notifyModernWarDeclared(war, options = {}) {
     data: buildWarDeclarationData(war, options.structure || null, {
       cost: Number(options.cost || 0),
     }),
+    idempotencyKeyPrefix: options.idempotencyKeyPrefix,
+    requireDurable: options.requireDurable === true,
   });
 }
 
@@ -178,6 +182,8 @@ function notifyWarDeclaredV2(war, options = {}) {
     data: buildWarDeclarationData(war, options.structure || null, {
       cost: Number(options.cost || 0),
     }),
+    idempotencyKeyPrefix: options.idempotencyKeyPrefix,
+    requireDurable: options.requireDurable === true,
   });
 }
 

@@ -797,8 +797,17 @@ function deploySovereigntyFlexFromItem(session, item, options = {}) {
       reinforceWeekday: options.reinforceWeekday,
       reinforceHour: options.reinforceHour,
       destinationSolarsystemID: options.destinationSolarsystemID,
+      retailDeployment: true,
     },
   );
+  if (!deployResult.success && deployResult.errorMsg === "REQUIRED_HUB_UPGRADE_NOT_ONLINE") {
+    const upgradeTypeID = normalizePositiveInteger(deployResult.requiredUpgradeTypeID, null);
+    const { resolveItemByTypeID } = require(path.join(__dirname, "../inventory/itemTypeRegistry"));
+    const upgradeType = upgradeTypeID ? resolveItemByTypeID(upgradeTypeID) : null;
+    throwWrappedUserError("CantAnchorMissingUpgrade", {
+      needs: upgradeType && upgradeType.name ? String(upgradeType.name) : "Sovereignty Hub upgrade",
+    });
+  }
   if (!deployResult.success) {
     let notify = `Failed to deploy sovereignty flex structure: ${deployResult.errorMsg}.`;
     if (deployResult.errorMsg === "SOV_HUB_REQUIRED") {
@@ -910,6 +919,20 @@ function deployGenericStructureFromItem(session, item, options = {}) {
   };
 }
 
+// Keepstar, Palatine Keepstar, Sotiyo and Metenox carry disallowInHighSec
+// (1970). The client refuses them in highsec before it calls Anchor
+// (ui/services/structure/structureDeployment.py IsStructureDeploymentBlocked,
+// with eveuniverse.security's highsec class: security that rounds to 0.5 or up);
+// the server refuses a direct call the same way.
+function isDeploymentDisallowedInHighSec(solarSystemID, typeID) {
+  const system = worldData.getSolarSystemByID(Number(solarSystemID));
+  if (!system || Number(system.security) < 0.45) {
+    return false;
+  }
+  const { getTypeAttributeValue } = require(path.join(__dirname, "../fitting/liveFittingState"));
+  return Number(getTypeAttributeValue(Number(typeID), "disallowInHighSec")) > 0;
+}
+
 function deployStructureFromInventoryItem(session, itemID, options = {}) {
   // Sov Hub launch authority is based on persisted membership and deliberately
   // does not use the session's cached alliance or corporation-role mask. Peek
@@ -954,6 +977,11 @@ function deployStructureFromInventoryItem(session, itemID, options = {}) {
   if (abyssalRestriction) {
     throwWrappedUserError("CustomNotify", {
       notify: "Structures cannot be deployed inside Abyssal Deadspace.",
+    });
+  }
+  if (isDeploymentDisallowedInHighSec(getSessionSolarSystemID(session), item.typeID)) {
+    throwWrappedUserError("CantDeployBlocked", {
+      typeID: Number(item.typeID),
     });
   }
 
@@ -1071,7 +1099,10 @@ function deployStructureFromInventoryItem(session, itemID, options = {}) {
   if (
     deployResult &&
     deployResult.data &&
-    deployResult.data.type === "generic_structure" &&
+    (
+      deployResult.data.type === "generic_structure" ||
+      deployResult.data.type === "sovereignty_flex"
+    ) &&
     typeof spaceRuntime.syncStructureSceneState === "function"
   ) {
     spaceRuntime.syncStructureSceneState(deployResult.data.solarSystemID, {

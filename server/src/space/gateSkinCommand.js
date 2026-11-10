@@ -66,12 +66,14 @@ const SHARED_PREVIEW_MATERIAL_RACE_HINTS = Object.freeze(new Set([
   "concord",
   "generic",
 ]));
-const EXTRA_PREVIEW_MATERIAL_SET_IDS = Object.freeze(new Set([
-  327, // SARO 'Black Troop'
-  3636, // Concord Base, observed on TQ Yulai/Manifest gates.
-  3641, // AIR Structure
-]));
-const EXTRA_PREVIEW_MATERIAL_ORDER = Object.freeze([3636, 3641, 327]);
+// These showcase presets are available in the supported 3396210 client. A
+// deployed server can preview them without a developer's ClientSDE export.
+const EXTRA_PREVIEW_MATERIALS = [
+  { materialSetID: 3636, description: "Concord Base", sofFactionName: "concordbase", sofRaceHint: "concord" },
+  { materialSetID: 3641, description: "AIR Structure", sofFactionName: "air_structure", sofRaceHint: "amarr" },
+  { materialSetID: 327, description: "SARO 'Black Troop' (Concord Hulls)", sofFactionName: "swat", sofRaceHint: "concord" },
+];
+const EXTRA_PREVIEW_MATERIAL_ORDER = EXTRA_PREVIEW_MATERIALS.map(({ materialSetID }) => materialSetID);
 
 let cachedGraphicMaterialSets = null;
 let cachedGateTypeRecords = null;
@@ -201,13 +203,8 @@ function loadGraphicMaterialSets() {
     return cachedGraphicMaterialSets;
   }
   const filePath = findLatestGraphicMaterialSetsPath();
-  if (!filePath) {
-    cachedGraphicMaterialSets = [];
-    return cachedGraphicMaterialSets;
-  }
-
-  const rows = [];
-  const content = fs.readFileSync(filePath, "utf8");
+  const rows = new Map(EXTRA_PREVIEW_MATERIALS.map((row) => [row.materialSetID, row]));
+  const content = filePath ? fs.readFileSync(filePath, "utf8") : "";
   for (const line of content.split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed) {
@@ -215,14 +212,14 @@ function loadGraphicMaterialSets() {
     }
     try {
       const normalized = normalizeGraphicMaterialSet(JSON.parse(trimmed));
-      if (normalized) {
-        rows.push(normalized);
+      if (normalized && !EXTRA_PREVIEW_MATERIAL_ORDER.includes(normalized.materialSetID)) {
+        rows.set(normalized.materialSetID, normalized);
       }
     } catch (_error) {
       continue;
     }
   }
-  cachedGraphicMaterialSets = rows.sort(
+  cachedGraphicMaterialSets = [...rows.values()].sort(
     (left, right) => left.materialSetID - right.materialSetID,
   );
   return cachedGraphicMaterialSets;
@@ -236,7 +233,7 @@ function getGateSkinMaterialsForRaceHint(raceHint) {
     if (
       materialRaceHint === normalizedRaceHint ||
       SHARED_PREVIEW_MATERIAL_RACE_HINTS.has(materialRaceHint) ||
-      EXTRA_PREVIEW_MATERIAL_SET_IDS.has(material.materialSetID)
+      EXTRA_PREVIEW_MATERIAL_ORDER.includes(material.materialSetID)
     ) {
       byID.set(material.materialSetID, material);
     }

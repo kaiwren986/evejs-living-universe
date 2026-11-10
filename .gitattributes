@@ -4,3 +4,23 @@
 Dockerfile text eol=lf
 .dockerignore text eol=lf
 
+# Reward calibration pins these input/output bytes across platforms.
+server/src/config/securityMissionOfferObservations.json text eol=lf
+server/src/config/securityMissionRewardBaseline.json text eol=lf
+tools/TQMissionLogDecoder/fixtures/securityMissionRewardObservations.json text eol=lf
+server/src/config/securityMissionStandingBaseline.json text eol=lf
+tools/TQMissionLogDecoder/observations/securityCompletionStandings.json text eol=lf
+server/src/config/securityMissionDeclineBaseline.json text eol=lf
+server/src/config/securityMissionDeclineMeasured.json text eol=lf
+server/src/config/securityMissionCorporationStanding.json text eol=lf
+tools/TQMissionLogDecoder/observations/securityCorporationStandingShares.json text eol=lf
+server/src/config/securityMissionStandingMeasured.json text eol=lf
+
+
+server/src/config/securityMissionDestinations.json text eol=lf
+server/src/config/securityMissionDestinationMeasured.json text eol=lf
+server/src/config/securityMissionChains.json text eol=lf
+
+# Preserve the hashes of published Security mission packs and reports.
+/content-packs/evejs-security-missions-level-*.json text eol=lf linguist-generated=true
+/doc/security-missions/*.json text eol=lf

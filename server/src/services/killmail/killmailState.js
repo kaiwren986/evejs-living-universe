@@ -278,21 +278,19 @@ function appendRecordToIndex(indexMap, key, record) {
 
 function insertRecordDescending(records, record) {
   const killID = normalizePositiveInteger(record && record.killID, 0) || 0;
-  const existingIndex = records.findIndex(
-    (entry) => normalizePositiveInteger(entry && entry.killID, 0) === killID,
-  );
-  if (existingIndex >= 0) {
-    records[existingIndex] = record;
+  let low = 0;
+  let high = records.length;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    const candidate = normalizePositiveInteger(records[middle] && records[middle].killID, 0) || 0;
+    if (candidate > killID) low = middle + 1;
+    else high = middle;
+  }
+  if (low < records.length && normalizePositiveInteger(records[low] && records[low].killID, 0) === killID) {
+    records[low] = record;
     return;
   }
-  const insertAt = records.findIndex(
-    (entry) => normalizePositiveInteger(entry && entry.killID, 0) < killID,
-  );
-  if (insertAt < 0) {
-    records.push(record);
-  } else {
-    records.splice(insertAt, 0, record);
-  }
+  records.splice(low, 0, record);
 }
 
 function insertRecordIntoIndex(indexMap, key, record) {

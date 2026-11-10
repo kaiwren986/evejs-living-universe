@@ -54,13 +54,14 @@ function getReinforcementProfile(itemOrID) {
     table.typesByTypeID[String(item.typeID)].attributes || {};
   const size = integer(attributes[1031]);
   if (size < 1 || size > 3) return null;
-  // Pinned controlTowerResources purpose4: small100/medium200/large400 per
-  // tower period. Attribute1233 is exclusively the secondary Strontium bay.
+  const resource = require("./controlTowerResourceAuthority.json")
+    .resourcesByTypeID[String(item.typeID)]?.find(row => row.purpose === 4 &&
+      row.resourceTypeID === STRONTIUM_TYPE_ID);
+  if (!resource) return null;
   return {
-    typeID: STRONTIUM_TYPE_ID,
+    typeID: resource.resourceTypeID,
     flagID: STRONTIUM_BAY_FLAG,
-    quantityPerPeriod: [4361, 16286].includes(Number(item.typeID))
-      ? 200 : 100 * (2 ** (size - 1)),
+    quantityPerPeriod: resource.quantity,
     periodMs: Math.max(1, integer(attributes[722], 3600000)),
     capacity: Math.max(0, Number(attributes[1233]) || 0),
   };

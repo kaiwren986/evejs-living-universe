@@ -314,6 +314,7 @@ async function bootWorld(options = {}) {
   // Register optional encounter behavior before services/clients can process
   // scenes. Lower-level engine code imports only the dependency-free ports.
   require("./src/services/homefront/installHomefront").installHomefront();
+  require("./src/services/incursion/installIncursions").installIncursions();
   // Force the effective merge outside service discovery's recovery boundary so
   // cross-pack or core collisions fail the whole startup instead of leaving a
   // partially initialized server.

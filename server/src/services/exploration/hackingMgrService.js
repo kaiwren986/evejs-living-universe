@@ -211,6 +211,7 @@ function resolveContainerTarget(targetID, session) {
   ) {
     return null;
   }
+  if (entity.incursionControlKey && !require("../incursion/incursionLogistics").canHack(scene, shipEntity, entity)) return null;
   return {
     scene,
     entity,
@@ -609,6 +610,7 @@ function beginAttempt(session, fields = {}) {
   if (!key) throw new Error("A logged-in character is required to hack.");
   const numericTargetID = toPositiveInt(targetID, 0);
   const target = resolveContainerTarget(targetID, session);
+  if (target?.entity?.incursionControlKey && fields.serverAnalyzer !== true) throw new Error("Activate a fitted analyzer on this control array.");
   if (!fields.qa && (!target || fields.serverAnalyzer !== true)) {
     throw new Error("Activate a fitted analyzer on a local container.");
   }
@@ -616,6 +618,10 @@ function beginAttempt(session, fields = {}) {
       containerState.getPendingFailureOutcomes(target.entity).length > 0 ||
       containerState.getState(target.entity) !== HACKING_CONSTANTS.HACKING_STATE_SECURE)) {
     throw new Error("This container is already hacked or being hacked.");
+  }
+  if (target && !require("../dungeon/fracturedLegacyRuntime").canHack(target.scene,
+    getSessionShipEntity(target.scene, session), target.entity)) {
+    throw new Error("Complete this site's mining and navigation objectives before hacking this console.");
   }
   // Starting on another container while a hack is open closes the open one the
   // way any other interruption does.
@@ -675,6 +681,7 @@ function beginAttempt(session, fields = {}) {
     coherence: attempt.virusCoherence,
     strength: attempt.virusStrength,
     slots: attempt.virusSlots,
+    siteBoard: target?.entity?.dungeonSiteContentHackingBoard || null,
   });
   attempt.board = board;
   attempt.tiles = board.tiles;
@@ -697,6 +704,7 @@ function deliverSuccessEffects(attempt, session, nowMs) {
   if (!(target && target.scene && target.entity)) {
     return null;
   }
+  if (target.entity.incursionControlKey) return require("../incursion/incursionLogistics").acceptWin(target.entity, attempt.outcomeID);
   if (target.entity.homefrontKey) {
     const runtime = require("../homefront/homefrontHooks").runtime;
     attempt.preparedHomefrontHack ||= runtime.prepareHackOutcome(target.scene, target.entity,
@@ -776,7 +784,7 @@ function retryPendingFailureEffects(scene, entity, options = {}) {
 
 function evaluateSiteCompletion(attempt, session, nowMs) {
   const target = attempt?.target;
-  if (!target?.scene || !target.entity || target.entity.homefrontKey) return null;
+  if (!target?.scene || !target.entity || target.entity.homefrontKey || target.entity.incursionControlKey) return null;
   return dungeonUniverseSiteService.maybeCompleteMaterializedDataRelicSite(
     target.scene,
     target.entity,
@@ -824,6 +832,9 @@ function settleWin(attempt, session, nowMs) {
     // Repeating Homefront objectives have their own durable operation/receipt.
     deliverSuccessEffects(attempt, session, nowMs);
   } else {
+    if (target.entity.incursionControlKey && !attempt.preparedIncursionWin) {
+      attempt.preparedIncursionWin = require("../incursion/incursionLogistics").prepareWin(attempt, session);
+    }
     if (!attempt.preparedCareerWin) {
       const career = require("../career/careerHackingEvidence").prepareWin(attempt, session, { nowMs });
       if (!career.success) throw new Error(career.errorMsg || "CAREER_HACK_WRITE_FAILED");
@@ -832,6 +843,7 @@ function settleWin(attempt, session, nowMs) {
     const committed = containerState.commitOutcome(target.entity, {
       outcomeID: attempt.outcomeID, outcome: "won", characterID: Number(attempt.key),
       moduleItemID: attempt.moduleItemID, careerWin: attempt.preparedCareerWin.prepared, nowMs,
+      ...(attempt.preparedIncursionWin ? { incursionWin: attempt.preparedIncursionWin } : {}),
     });
     if (!committed?.success) throw outcomeWriteError(committed);
     (target.scene._pendingHackingSuccessEntityIDs ||= new Set()).add(target.entity.itemID);

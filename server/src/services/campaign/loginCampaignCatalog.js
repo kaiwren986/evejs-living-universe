@@ -5,6 +5,7 @@ const database = require("../../gameStore");
 const { validateLoginCampaigns } = require("../../config/loginCampaigns");
 const { resolveItemByTypeID } = require("../inventory/itemTypeRegistry");
 const election = require("./gallenteElectionLoginRewards.json");
+const warpath = require("./warpathLoginRewards");
 const schedule = require("../seasons/eventSchedule");
 const DAY_MS = 86400000, PYTHON_ORDINAL = 719163;
 const fingerprint = value => createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -38,6 +39,16 @@ function list() {
     startsAtMs: Date.parse(row.startsAt), endsAtMs: Date.parse(row.endsAt),
     ...(row.kind === "seasonal" ? { days: election.days, retroClaim: election.retroClaim } : {}) }));
   if (!rows.some(row => row.id === election.campaignID)) rows.push(validateRewards(seasonal));
+  const warpathEvent = schedule.get(schedule.WARPATH);
+  if (warpathEvent?.enabled) rows.push(validateRewards({
+    id: warpath.campaignID, version: warpath.version, name: warpath.name,
+    kind: "seasonal", enabled: true, audience: "all", priority: 0,
+    repeat: false, turnoverHourUTC: 11, graceDays: 0, honorRedeemExpiry: true,
+    startsAtMs: warpathEvent.startsAtMs, endsAtMs: warpathEvent.endsAtMs,
+    days: warpath.days, retroClaim: warpath.retroClaim,
+    // Preserve the offset of the native injection deadline from event closure.
+    boosterInjectionEndsAtMs: warpathEvent.endsAtMs + 7 * DAY_MS - 60000,
+  }));
   return [daily, ...rows].sort((a, b) => b.priority - a.priority || a.id - b.id);
 }
 function ordinal(nowMs, row) { return Math.floor((nowMs - row.turnoverHourUTC * 3600000) / DAY_MS) + PYTHON_ORDINAL; }
@@ -59,7 +70,9 @@ function eligibility(row, accountID, nowMs, enrolled = false) {
 }
 function select(kind, accountID, nowMs, progress = {}) {
   if (!Number.isSafeInteger(accountID) || accountID <= 0) return null;
-  return list().find(row => row.kind === kind && active(row, nowMs) && eligibility(row, accountID, nowMs,
-    Boolean(progress[`${row.id}:${row.version}`]?.eligibility?.eligible)).eligible) || null;
+  const row = list().find(row => row.kind === kind && active(row, nowMs) && eligibility(row, accountID, nowMs,
+    Boolean(progress[`${row.id}:${row.version}`]?.eligibility?.eligible)).eligible);
+  if (row?.id === warpath.campaignID) schedule.openWarpath(nowMs);
+  return row || null;
 }
 module.exports = { DAY_MS, PYTHON_ORDINAL, fingerprint, list, select, ordinal, active, eligibility };

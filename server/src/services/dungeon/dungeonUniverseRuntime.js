@@ -19,6 +19,10 @@ const dungeonRuntime = require(path.join(__dirname, "./dungeonRuntime"));
 const dungeonSiteAdapter = require(path.join(__dirname, "./dungeonSiteAdapter"));
 const dungeonSiteSpawnPolicy = require(path.join(__dirname, "./dungeonSiteSpawnPolicy"));
 const dungeonRuntimeState = require(path.join(__dirname, "./dungeonRuntimeState"));
+const {
+  getSovProspectingRepairTemplateName,
+  isValidSovProspectingClientNameTemplate,
+} = require("./sovProspectingNameRepair");
 const wormholeAuthority = require(path.join(__dirname, "../exploration/wormholes/wormholeAuthority"));
 const {
   buildAnchorRelativeSignaturePlacement,
@@ -1639,6 +1643,9 @@ function isMissionOnlyUniverseTemplate(template) {
 }
 
 function templateMatchesSpawnFamily(template, family, bandProfile) {
+  // Phase 7 provides controlled placement. Organic incursion activation and
+  // site scheduling must supply their own admitted context in Phase 8.
+  if (template?.templateID === "evejs-incursion-vanguard:nation-commander-outpost") return false;
   // The event pack supplies explicit Depot variants. Never schedule the old
   // family-derived generic research-container placeholder as an ordinary site.
   if (String(template?.templateID).startsWith("evejs-fw:open:") && `${template.templateID.split(":").at(-1)}_fw_open` !== family) return false;
@@ -1983,10 +1990,16 @@ function listCombatAnomalyTemplatesForLabel(label, options = {}) {
     const lookupLabel = normalizedLabel === "teeming drone horde"
       ? "drone horde"
       : normalizedLabel;
+    // Classify on the authority's small selection descriptors, then hydrate
+    // only the matches. Cloning the whole combat family (room graphs and
+    // all) for each new label held the event loop for over 30 s when a Hub
+    // first brought in a Major and a Minor Threat Detection Array.
     const templates = Object.freeze(dungeonAuthority
-      .listTemplatesByFamily("combat")
+      .listTemplateSelectionDescriptorsByFamily("combat")
       .filter((template) => normalizeLowerText(template && template.siteKind, "") === "anomaly")
       .filter((template) => normalizeLowerText(classifyCombatAnomalyTemplate(template), "") === lookupLabel)
+      .map((descriptor) => dungeonAuthority.getTemplateByID(descriptor.templateID))
+      .filter(Boolean)
       .sort((left, right) => (
         toInt(left && left.sourceDungeonID, Number.MAX_SAFE_INTEGER) -
         toInt(right && right.sourceDungeonID, Number.MAX_SAFE_INTEGER)
@@ -2055,6 +2068,12 @@ function listProspectingOreTemplates(mineral, tier) {
   const candidates = dungeonAuthority
     .listTemplatesByFamily("ore")
     .filter((template) => normalizeLowerText(template && template.siteKind, "") === "anomaly")
+    // Reference-only ore templates cannot supply the client's localized anomaly
+    // name. Keep them out of both initial prospecting slots and later rotations.
+    .filter((template) => (
+      toInt(template && template.sourceDungeonID, 0) > 0 &&
+      toInt(template && template.dungeonNameID, 0) > 0
+    ))
     .filter((template) => {
       const name = normalizeLowerText(template && (template.resolvedName || template.name || ""), "");
       return oreNames.some((oreName) => name.includes(normalizeLowerText(oreName, "")));
@@ -2105,11 +2124,11 @@ function getStargateAdjacency() {
   return stargateAdjacencyCache;
 }
 
-function listSystemsWithinJumps(sourceSystemID, maxJumps) {
+function listSystemJumpDistances(sourceSystemID, maxJumps) {
   const source = toInt(sourceSystemID, 0);
   const limit = Math.max(0, toInt(maxJumps, 0));
   if (source <= 0) {
-    return [];
+    return new Map();
   }
   const adjacency = getStargateAdjacency();
   const visited = new Map([[source, 0]]);
@@ -2128,7 +2147,11 @@ function listSystemsWithinJumps(sourceSystemID, maxJumps) {
       queue.push(next);
     }
   }
-  return [...visited.entries()]
+  return visited;
+}
+
+function listSystemsWithinJumps(sourceSystemID, maxJumps) {
+  return [...listSystemJumpDistances(sourceSystemID, maxJumps).entries()]
     .filter(([systemID]) => getSecurityBand(systemID) === "nullsec")
     .sort((left, right) => (left[1] - right[1]) || (left[0] - right[0]))
     .map(([systemID, jumps]) => ({
@@ -2195,8 +2218,19 @@ function buildPolicyCandidateCacheKey(family, systemID, band, bandProfile, polic
   const oreSecurityTier = selectionAuthority === STRICT_SECURITY_ORE_SELECTION_AUTHORITY
     ? oreAnomalySecurityAuthority.resolveSecurityTierForSystemID(systemID)
     : null;
+  // K-space gas is region- and constellation-locked, so its candidates differ
+  // between systems that share every other key field.
+  const selectsGas = Boolean(spawnProfile && spawnProfile.templateFilters &&
+    Array.isArray(spawnProfile.templateFilters.siteFamilies) &&
+    spawnProfile.templateFilters.siteFamilies.includes("gas"));
+  const gasSystem = selectsGas && normalizeSecurityBand(band) !== "wormhole"
+    ? worldData.getSolarSystemByID(systemID)
+    : null;
   return JSON.stringify({
     policyVersion: dungeonSiteSpawnPolicy.POLICY_VERSION,
+    gasPlacement: gasSystem
+      ? [toInt(gasSystem.regionID, 0), toInt(gasSystem.constellationID, 0)]
+      : null,
     factionClassifierVersion: Math.max(
       0,
       toInt(dungeonSiteSpawnPolicy.getPolicyDescriptor().factionClassifierVersion, 0),
@@ -3047,6 +3081,7 @@ function buildExplorationDetectorDefinitions(targetSystemIDs, nowMs, slotAllocat
   for (const sourceSystemID of listSovereigntySourceSystemIDs()) {
     const context = dungeonSiteSpawnPolicy.buildRuntimeSystemPolicyContext(sourceSystemID, {
       securityBand: getSecurityBand(sourceSystemID),
+      nowMs,
     });
     const normalizedContext = dungeonSiteSpawnPolicy.normalizePolicyContext(context);
     if (
@@ -3242,6 +3277,61 @@ function buildExistingSovRotationBySlot(systemIDs) {
   return rotations;
 }
 
+function preserveRepairedProspectingDefinition(definition) {
+  if (getInstanceSpawnFamilyKey(definition) !== "sov_prospecting") {
+    return definition;
+  }
+  const existing = dungeonRuntimeState.findInstanceSummaryBySiteKey(definition.siteKey);
+  const marker = existing && existing.metadata && existing.metadata.sovProspectingNameRepair;
+  if (
+    !existing || !dungeonRuntimeState.isActiveLifecycleState(existing.lifecycleState) ||
+    existing.runtimeFlags?.universeSeeded !== true ||
+    normalizeLowerText(existing.siteOrigin, "") !== SOV_GUARANTEED_SITE_ORIGIN ||
+    getInstanceSpawnFamilyKey(existing) !== "sov_prospecting" ||
+    normalizeLowerText(existing.siteFamily, "") !== "ore" ||
+    normalizeLowerText(existing.siteKind, "") !== "anomaly" ||
+    !normalizeText(existing.templateID, "").startsWith("eve-university:") ||
+    marker?.version !== 1 ||
+    !Number.isSafeInteger(marker.dungeonNameID) || marker.dungeonNameID <= 0 ||
+    existing.dungeonNameID !== marker.dungeonNameID ||
+    !normalizeText(existing.metadata.definitionHash, "") ||
+    getInstanceRotationIndex(existing) !== getInstanceRotationIndex(definition)
+  ) {
+    return definition;
+  }
+
+  // The repair changes presentation only. Retain its original population and
+  // definition hash while this exact online upgrade still owns the slot. A
+  // removed/replaced upgrade must retain the ordinary reconciliation behavior.
+  const previousHub = normalizeObject(existing.metadata.sovHub);
+  const desiredHub = normalizeObject(definition.metadata && definition.metadata.sovHub);
+  const hubNumberFields = [
+    "sourceHubID", "sourceSystemID", "targetSystemID", "upgradeTypeID", "upgradeTier",
+  ];
+  if (
+    hubNumberFields.some((field) => (
+      toInt(previousHub[field], 0) <= 0 ||
+      toInt(previousHub[field], 0) !== toInt(desiredHub[field], 0)
+    )) ||
+    normalizeLowerText(previousHub.upgradeCategory, "") !== "prospecting" ||
+    normalizeLowerText(previousHub.mineral, "") !== normalizeLowerText(desiredHub.mineral, "")
+  ) {
+    return definition;
+  }
+
+  const original = dungeonAuthority.getTemplateByIDReadOnly(existing.templateID);
+  const client = dungeonAuthority.getTemplateByIDReadOnly(marker.clientTemplateID);
+  if (
+    !original || original.siteFamily !== "ore" || original.siteKind !== "anomaly" ||
+    !isValidSovProspectingClientNameTemplate(client) ||
+    getSovProspectingRepairTemplateName(original) !== getSovProspectingRepairTemplateName(client) ||
+    client.dungeonNameID !== marker.dungeonNameID
+  ) {
+    return definition;
+  }
+  return dungeonRuntime.getInstance(existing.instanceID) || definition;
+}
+
 function listDesiredSovereigntyDungeonSiteDefinitions(systemIDs = null, nowMs = Date.now(), options = {}) {
   const targetSystemIDs = normalizeSystemIDs(systemIDs);
   const familyFilter = new Set((Array.isArray(options.families) ? options.families : [])
@@ -3265,6 +3355,7 @@ function listDesiredSovereigntyDungeonSiteDefinitions(systemIDs = null, nowMs = 
       }
       const context = dungeonSiteSpawnPolicy.buildRuntimeSystemPolicyContext(systemID, {
         securityBand: "nullsec",
+        nowMs,
       });
       if (includeFamily("sov_threat_detection")) {
         definitions.push(...buildThreatDetectionDefinitionsForSystem(
@@ -3296,9 +3387,10 @@ function listDesiredSovereigntyDungeonSiteDefinitions(systemIDs = null, nowMs = 
     ));
   }
 
-  summarizeSovDefinitions(definitions, families);
+  const preservedDefinitions = definitions.map(preserveRepairedProspectingDefinition);
+  summarizeSovDefinitions(preservedDefinitions, families);
   return {
-    definitions,
+    definitions: preservedDefinitions,
     families,
   };
 }
@@ -3918,17 +4010,16 @@ function shouldRotateUniversePersistentTerminalInstance(instance, nowMs) {
   return respawnAtMs <= 0 || respawnAtMs <= Math.max(0, toInt(nowMs, Date.now()));
 }
 
-function getUniversePersistentLifecycleBoundary(nowMs = Date.now(), options = {}) {
+function getUniversePersistentLifecycleBoundariesBySystem(nowMs = Date.now(), options = {}) {
   const normalizedNowMs = Math.max(0, toInt(nowMs, Date.now()));
   const hasSystemFilter = Array.isArray(options.systemIDs);
   const scopedSystemIDs = hasSystemFilter
     ? normalizeProvidedSystemIDs(options.systemIDs)
     : [];
   if (hasSystemFilter && scopedSystemIDs.length <= 0) {
-    return null;
+    return [];
   }
-  const scopedSystemIDSet = hasSystemFilter ? new Set(scopedSystemIDs) : null;
-  let boundary = null;
+  const boundaries = new Map();
   const consider = (instance, boundaryAtMs, phase) => {
     const numericBoundaryAtMs = Math.max(0, toInt(boundaryAtMs, 0));
     const instanceID = Math.max(0, toInt(instance && instance.instanceID, 0));
@@ -3936,10 +4027,11 @@ function getUniversePersistentLifecycleBoundary(nowMs = Date.now(), options = {}
     if (
       numericBoundaryAtMs <= 0 ||
       instanceID <= 0 ||
-      (hasSystemFilter && !scopedSystemIDSet.has(systemID))
+      systemID <= 0
     ) {
       return;
     }
+    const boundary = boundaries.get(systemID);
     if (
       !boundary ||
       numericBoundaryAtMs < boundary.boundaryAtMs ||
@@ -3948,33 +4040,29 @@ function getUniversePersistentLifecycleBoundary(nowMs = Date.now(), options = {}
         instanceID < boundary.instanceID
       )
     ) {
-      boundary = {
+      boundaries.set(systemID, {
         boundaryAtMs: numericBoundaryAtMs,
         instanceID,
         phase,
-      };
+        solarSystemID: systemID,
+      });
     }
   };
 
-  for (const lifecycleState of ["seeded", "active", "paused"]) {
-    for (const instance of dungeonRuntime.listInstancesByLifecycle(lifecycleState)) {
-      if (!(
-        instance &&
-        instance.runtimeFlags &&
-        instance.runtimeFlags.universePersistent === true &&
-        instance.runtimeFlags.universeSeeded === true
-      )) {
-        continue;
-      }
+  // The owner projects only lifecycle scalars. A local update never clones
+  // unrelated systems' metadata, encounter plans or complete instance records.
+  const entries = dungeonRuntimeState.listUniversePersistentLifecycleEntries({
+    systemIDs: hasSystemFilter ? scopedSystemIDs : undefined,
+  });
+  for (const instance of entries) {
+    if (dungeonRuntimeState.isActiveLifecycleState(instance.lifecycleState)) {
       consider(
         instance,
         instance.timers && instance.timers.expiresAtMs,
         "expiry",
       );
+      continue;
     }
-  }
-
-  for (const instance of dungeonRuntime.listUniversePersistentTerminalInstances()) {
     // A cleared site whose grid is still occupied is not ready to rotate, so it must not name the
     // boundary either: the scheduler throws if the boundary it just tried to settle is still due,
     // and advanceUniversePersistentSites skips the same instances. Both reads share one predicate
@@ -4012,6 +4100,22 @@ function getUniversePersistentLifecycleBoundary(nowMs = Date.now(), options = {}
     );
   }
 
+  return [...boundaries.values()];
+}
+
+function getUniversePersistentLifecycleBoundary(nowMs = Date.now(), options = {}) {
+  let boundary = null;
+  for (const candidate of getUniversePersistentLifecycleBoundariesBySystem(nowMs, options)) {
+    if (!boundary || candidate.boundaryAtMs < boundary.boundaryAtMs || (
+      candidate.boundaryAtMs === boundary.boundaryAtMs && candidate.instanceID < boundary.instanceID
+    )) {
+      boundary = {
+        boundaryAtMs: candidate.boundaryAtMs,
+        instanceID: candidate.instanceID,
+        phase: candidate.phase,
+      };
+    }
+  }
   return boundary;
 }
 
@@ -4121,7 +4225,6 @@ function advanceUniversePersistentSites(options = {}) {
       reason: "no_awake_systems",
     };
   }
-  const scopedSystemIDSet = hasSystemFilter ? new Set(scopedSystemIDs) : null;
   const emitExpiryEvents =
     options.emitExpiryEvents !== false &&
     lifecycleReason !== "startup-resume";
@@ -4132,16 +4235,16 @@ function advanceUniversePersistentSites(options = {}) {
     systemIDs: hasSystemFilter ? scopedSystemIDs : undefined,
     universePersistentOnly: true,
   });
-  const candidates = dungeonRuntime
-    .listUniversePersistentTerminalInstances({ full: true })
-    .filter((instance) => (
-      !hasSystemFilter ||
-      scopedSystemIDSet.has(Math.max(0, toInt(instance && instance.solarSystemID, 0)))
-    ))
+  const terminalSummaries = hasSystemFilter
+    ? listUniversePersistentTerminalSummariesBySystems(scopedSystemIDs)
+    : dungeonRuntime.listUniversePersistentTerminalInstances();
+  const candidates = terminalSummaries
     .filter((instance) => shouldRotateUniversePersistentTerminalInstance(instance, nowMs))
     // Must mirror the boundary's own skip, or the scheduler settles a boundary that still names one
     // of these and throws "remains unsettled".
-    .filter((instance) => !terminalInstanceStillHoldsItsGrid(instance));
+    .filter((instance) => !terminalInstanceStillHoldsItsGrid(instance))
+    .map((instance) => dungeonRuntime.getInstance(instance.instanceID))
+    .filter(Boolean);
 
   if (
     Math.max(0, toInt(expired && expired.expiredCount, 0)) <= 0 &&
@@ -5546,11 +5649,14 @@ function stopTicker() {
 
 function clearPolicyCandidateCachesForTests() {
   policyEligibleTemplateCandidatesCache.clear();
+  prospectingOreTemplatesByKeyCache.clear();
+  combatAnomalyTemplatesByLabelCache.clear();
 }
 
 module.exports = {
   summarizeActiveUniverseSeededCounts,
   buildUniverseSpawnCountMap,
+  listSystemJumpDistances,
   getSystemUniverseReconcileJob,
   listDesiredGeneratedMiningDefinitions,
   listDesiredUniverseDungeonSiteDefinitions,
@@ -5558,6 +5664,7 @@ module.exports = {
   listUniverseSeededPersistentSiteInstances,
   advanceUniversePersistentSites,
   getUniversePersistentLifecycleBoundary,
+  getUniversePersistentLifecycleBoundariesBySystem,
   resetStartupMiningAnomalies,
   resetStartupOrphanedUniverseSites,
   auditGeneratedIceAuthority,
@@ -5594,6 +5701,7 @@ module.exports = {
     isSovereigntyGuaranteedSpawnFamily,
     resolveThreatDetectionSecurityBracket,
     listCombatAnomalyTemplatesForLabel,
+    listProspectingOreTemplates,
     parseThreatDetectionUpgrade,
     parseProspectingUpgrade,
     parseExplorationDetectorUpgrade,

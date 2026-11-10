@@ -46,6 +46,9 @@ echo   ============================================================
 echo     Eve.JS Elysian Market Seeder (by Elysian)
 echo   ============================================================
 echo.
+echo     v1 - Offline synthetic prices from static data, with geography presets.
+echo     For all four seed types, run BuildMarketSeed.bat in the repo root.
+echo.
 echo     [1] Full universe rebuild - release build
 echo     [2] Jita + New Caldari rebuild - release build
 echo     [3] Quick smoke rebuild - 25 stations x 250 item types

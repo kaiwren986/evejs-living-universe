@@ -44,9 +44,11 @@ const CHARACTER_FIELDS = Object.freeze([
   "crewPurchaseWalletReceipts",
   "crewEquipmentWalletReceipts",
   "nodeGraphWalletReceipts",
+  "incursionWalletReceipts",
   "freelanceWalletReceipts",
   "contractWalletReceipts",
   "campaignWalletReceipts",
+  "discoveryWalletReceipts",
   "walletAuthorityReceipts",
 ]);
 

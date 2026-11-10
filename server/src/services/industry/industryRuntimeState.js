@@ -2142,7 +2142,7 @@ function createIndustryJobStructureNotification(job, notificationTypeID) {
       groupID: NOTIFICATION_GROUP.STRUCTURES,
       processed: false,
       data,
-      emitLive: false,
+      emitLive: true,
     });
   }
 }
@@ -3661,11 +3661,15 @@ function syncInventoryChanges(session, changes = []) {
     if (!change) {
       continue;
     }
+    // TQ's OnItemsChanged: the client's invCache turns it into OnItemChange per item plus
+    // OnMultipleItemChange, which recounts item goals (career Industry part 3: the built
+    // afterburner).
     if (change.item) {
       syncInventoryItemForSession(
         session,
         change.item,
         change.previousState || change.previousData || {},
+        { emitItemsChangedBatch: true },
       );
       continue;
     }
@@ -3674,7 +3678,7 @@ function syncInventoryChanges(session, changes = []) {
         ...change.previousData,
         locationID: 6,
       };
-      syncInventoryItemForSession(session, removedState, change.previousData);
+      syncInventoryItemForSession(session, removedState, change.previousData, { emitItemsChangedBatch: true });
     }
   }
 }

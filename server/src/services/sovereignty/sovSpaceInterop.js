@@ -7,6 +7,7 @@ const {
 const path = require("path");
 
 const spaceRuntime = require(path.join(__dirname, "../../space/runtime"));
+const log = require(path.join(__dirname, "../../utils/logger"));
 const structureState = require(path.join(__dirname, "../structure/structureState"));
 const {
   STRUCTURE_STATE,
@@ -275,6 +276,11 @@ function syncSovereigntyStructureRuntime(systemState, options = {}) {
     refresh: false,
   }).filter((structure) => isSovereigntyMirrorStructure(structure));
 
+  // One mirror that cannot be written or removed (a command node numbered past
+  // 2^53 before 85e3b4734) must not stop the rest of the system's mirrors, or
+  // a captured node stays in space and a new one never appears. Each failure
+  // is logged and reported; the others still sync.
+  const failures = [];
   for (const mirror of desiredStructures) {
     const upsertResult = structureState.upsertStructureRecord(mirror, {
       // Startup/recovery callers request a silent canonical-to-mirror repair.
@@ -284,7 +290,7 @@ function syncSovereigntyStructureRuntime(systemState, options = {}) {
       emitLive: options.syncScene !== false,
     });
     if (!upsertResult.success) {
-      return upsertResult;
+      failures.push({ structureID: mirror && mirror.structureID, errorMsg: upsertResult.errorMsg });
     }
   }
 
@@ -297,8 +303,14 @@ function syncSovereigntyStructureRuntime(systemState, options = {}) {
       emitLive: options.syncScene !== false,
     });
     if (!removeResult.success) {
-      return removeResult;
+      failures.push({ structureID, errorMsg: removeResult.errorMsg });
     }
+  }
+  for (const failure of failures) {
+    log.warn(
+      `[SovSpaceInterop] Mirror sync failed system=${solarSystemID} ` +
+      `structure=${failure.structureID}: ${failure.errorMsg || "UNKNOWN"}`,
+    );
   }
 
   if (options.syncScene !== false && typeof spaceRuntime.syncStructureSceneState === "function") {
@@ -308,6 +320,13 @@ function syncSovereigntyStructureRuntime(systemState, options = {}) {
     });
   }
 
+  if (failures.length > 0) {
+    return {
+      success: false,
+      errorMsg: failures[0].errorMsg || "SOVEREIGNTY_MIRROR_SYNC_FAILED",
+      data: { solarSystemID, failures },
+    };
+  }
   return {
     success: true,
     data: {

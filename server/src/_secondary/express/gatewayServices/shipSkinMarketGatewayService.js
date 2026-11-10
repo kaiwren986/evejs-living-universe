@@ -115,8 +115,10 @@ function createShipSkinMarketGatewayService(context = {}) {
     const kind = kinds[0], memberFilter = Number(selected[kind]?.required_membership || 0);
     if (!Number.isInteger(memberFilter) || memberFilter < 0 || memberFilter > 3) return state.fail("INVALID_SELLER_MEMBERSHIP_FILTER", 400);
     const corporationID = Number(getCharacterRecord(characterID)?.corporationID), allianceID = Number(getCorporationRecord(corporationID)?.allianceID);
-    let listings = runtime.getListings(characterID).filter(listing => {
-      if (shipTypes.length && !shipTypes.includes(Number(drafts.getShipSkinDesign(listing.hex)?.layout.ship_type.sequential))) return false;
+    let listings = runtime.getListings(characterID);
+    const typesByHex = shipTypes.length ? drafts.getShipSkinDesignShipTypes(listings.map(listing => listing.hex)) : null;
+    listings = listings.filter(listing => {
+      if (typesByHex && !shipTypes.includes(typesByHex.get(listing.hex))) return false;
       if (kind === "all") return true;
       if (kind === "public") return listing.target.kind === "public";
       if (kind === "my_character") return listing.target.kind === "character" && listing.target.id === characterID;

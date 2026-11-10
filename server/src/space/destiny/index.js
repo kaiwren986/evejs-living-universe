@@ -170,8 +170,11 @@ function buildStructureSlimTimer(entity) {
 }
 
 function buildStructureSlimDeployTimes(entity) {
-  const timerStart = buildWallclockFiletimeFromMs(entity && entity.stateStartedAt);
-  const timerEnd = buildWallclockFiletimeFromMs(entity && entity.stateEndsAt);
+  const start = Number(entity && entity.deployStartedAt);
+  const end = Number(entity && entity.deployEndsAt);
+  const independent = Number.isFinite(start) && start > 0 && Number.isFinite(end) && end >= start;
+  const timerStart = buildWallclockFiletimeFromMs(independent ? start : entity && entity.stateStartedAt);
+  const timerEnd = buildWallclockFiletimeFromMs(independent ? end : entity && entity.stateEndsAt);
   if (!timerStart || !timerEnd) {
     return null;
   }
@@ -389,9 +392,21 @@ function buildSlimItemDict(entity) {
     ["typeID", slimTypeID],
     ["ownerID", entity.ownerID || 0],
   ];
+  if (slimGroupID === 4079) {
+    // The target client's RefreshEssState model controller reads these fields
+    // on initial creation and OnSlimItemChange. State owners project them onto
+    // the bank entity before publication, with no persistent reads here.
+    entries.push(["reserveUnlocked", Boolean(entity.reserveUnlocked)]);
+    entries.push(["reserveLinkCount", Math.max(0, toInt32(entity.reserveLinkCount, 0))]);
+    entries.push(["mainLinkCount", Math.max(0, toInt32(entity.mainLinkCount, 0))]);
+  }
   const slimNameID = buildSlimNameIDValue(entity && entity.nameID);
   if (hackingContainerState.isHackable(entity)) {
     entries.push(["hackingSecurityState", hackingContainerState.getState(entity)]);
+  }
+  if (entity.kind === "siteEnvironmentProp" && entity.dungeonNativeWeatherAnchor === true) {
+    // Native environmentSvc.DoBallsAdded reads this even without a skin override.
+    entries.push(["skinMaterialSetID", entity.skinMaterialSetID ?? null]);
   }
   if ((entity.kind === "ship" || entity.kind === "structure") && hasEntityField("selfDestructTime")) {
     entries.push(["selfDestructTime", entity.selfDestructTime ?? null]);
@@ -423,6 +438,17 @@ function buildSlimItemDict(entity) {
   );
   if (dunObjectID > 0) {
     entries.push(["dunObjectID", dunObjectID]);
+  }
+  // Native Agency identifies incursion beacons by archetype, then reads the
+  // dungeon ID/name from that same slim. Keep the dungeon owner's identity
+  // on the wire rather than asking the client to infer it from the type.
+  for (const field of ["archetypeID", "dungeonID", "dungeonNameID"]) {
+    const value = toInt32(entity && entity[field], 0);
+    if (value > 0) entries.push([field, value]);
+  }
+  if (hasEntityField("dunRadius") && entity.dunRadius !== null &&
+      Number.isFinite(Number(entity.dunRadius)) && Number(entity.dunRadius) >= 0) {
+    entries.push(["dunRadius", Number(entity.dunRadius)]);
   }
   if (hasEntityField("dunObjectNameID")) {
     entries.push(["dunObjectNameID", entity.dunObjectNameID ?? null]);
@@ -633,6 +659,11 @@ function buildSlimItemDict(entity) {
     ]);
     entries.push(["docked", toInt32(entity.docked, 0)]);
     entries.push(["damage", buildUpwellStructureSlimDamage(entity)]);
+    // A FLEX structure's graphic animates on it (staticSceneEntity.js
+    // resolveFlexActivationState).
+    if (entity.activationState !== undefined && entity.activationState !== null) {
+      entries.push(["activationState", toInt32(entity.activationState, 0)]);
+    }
     // Moon drills aim at their moon. A refinery's drill turret reads
     // closestMoonID (structureDrillingPlatform.py); the Metenox beam reads
     // moonID and fires when component_autoMoonMiner_lastHarvest changes
@@ -766,7 +797,9 @@ function buildSlimItemDict(entity) {
       "securityStatus",
       toFiniteNumber(entity.securityStatus, 0.0),
     ]);
-    entries.push(["isEmpty", entity.isEmpty ? 1 : 0]);
+    // A site wreck that always shows it holds something (the AIR item-retrieval wrecks, whose item
+    // spawns when one is opened) never shows as empty.
+    entries.push(["isEmpty", entity.isEmpty && entity.dungeonSiteContentShowsContents !== true ? 1 : 0]);
     if (
       entity.kind === "container" &&
       entity.cargoContainerAnchorable === true
@@ -878,6 +911,11 @@ function buildSlimItemDict(entity) {
       ]),
     ]);
   }
+  if (entity && Array.isArray(entity.component_hostileBaiter)) {
+    entries.push(["component_hostileBaiter", buildList(
+      entity.component_hostileBaiter.map(buildOptionalWallclockFiletimeValue),
+    )]);
+  }
   if (entity && entity.evejsSkyhookReagentSilo === true) {
     entries.push(["component_skyhookReagentSilo_skyhookID", toOptionalInt64(entity.parentID, null)]);
     entries.push(["parentID", toOptionalInt64(entity.parentID, null)]);
@@ -896,6 +934,20 @@ function buildSlimItemDict(entity) {
   }
   if (entity && Number(entity.typeID) === 81080 && entity.skyhook_state !== undefined) {
     entries.push(["skyhook_state", toInt32(entity.skyhook_state, 0)]);
+    // skyhookBracket.py:57-95 and selectedItemTimers.py:46: the reinforcement
+    // timer (start, end, paused) and the [shield, armor, hull] left, as TQ sends
+    // them beside skyhook_state 211 (LOGS\Tutorial\nullexplored.lsw). TQ sends
+    // skyhook_damage always (None when whole) and skyhook_timer only while it runs.
+    if (Array.isArray(entity.skyhook_timer)) {
+      entries.push(["skyhook_timer", [
+        buildOptionalWallclockFiletimeValue(entity.skyhook_timer[0]),
+        buildOptionalWallclockFiletimeValue(entity.skyhook_timer[1]),
+        null,
+      ]]);
+    }
+    entries.push(["skyhook_damage", Array.isArray(entity.skyhook_damage)
+      ? entity.skyhook_damage.map((value) => Number(value))
+      : null]);
   }
   if (
     entity &&

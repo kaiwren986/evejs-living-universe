@@ -1,0 +1,28 @@
+{
+  "source": {
+    "build": 3396210,
+    "generator": "scripts/DataSync/generate-native-item-trader.js",
+    "recipeResourceSHA256": "1f8c6b6105822b106644d0058892b51d84137e5b40fac998fd2e6c4a9280e469",
+    "componentResourceSHA256": "f221ba50cb4af4f56b82a535708c77d3e7927a6e9cb79b452d4a6fd013fb0818",
+    "scope": "One reviewed recipe, only while the existing captured authored prop is admitted. No seasonal activation or other native recipes."
+  },
+  "typeID": 93547,
+  "interactionRange": 10000,
+  "admittedSystems": [
+    30002187,
+    30002974
+  ],
+  "dungeonObjectID": 1492060,
+  "recipe": {
+    "inputItems": {
+      "93592": 250
+    },
+    "_key": 405,
+    "internalName": "Augoror Navy Issue Capsuleer Day XXIII SKIN",
+    "inputIsk": 0,
+    "outputItems": {
+      "93729": 1
+    },
+    "groupID": "SKINS"
+  }
+}

@@ -125,6 +125,19 @@ retireAbyssalOfflineSessionsForAttachment(scene, session, entity) {
     return retiredCount;
   },
 
+// Every route into space (gate, wormhole, GM move, jump drive, undock, login,
+// Abyssal entry and return) brings the HUD's system-wide effects in step with
+// the scene. A same-scene re-attach sends nothing.
+syncSystemWideEffectsForAttachment(scene, session, systemID) {
+    return require(path.join(
+      runtimeEntryDirname,
+      "../services/exploration/wormholes/systemWideEffectsSync",
+    )).syncSessionSystemWideEffects(
+      session,
+      scene && scene.sceneKind === SCENE_KIND_SOLAR_SYSTEM ? systemID : 0,
+    );
+  },
+
 attachSession(session, shipItem, options = {}) {
     if (!session || !shipItem) {
       return null;
@@ -268,6 +281,7 @@ attachSession(session, shipItem, options = {}) {
     if (attached) {
       this.noteSolarSystemSceneOccupied(scene);
       this.retireAbyssalOfflineSessionsForAttachment(scene, session, attached);
+      this.syncSystemWideEffectsForAttachment(scene, session, numericSystemID);
     }
     const attachElapsedMs = Date.now() - attachStartedAtMs;
     if (attachElapsedMs >= 500) {
@@ -480,6 +494,7 @@ attachSessionToExistingEntity(session, shipItem, entity, options = {}) {
     if (attached) {
       this.noteSolarSystemSceneOccupied(scene);
       this.retireAbyssalOfflineSessionsForAttachment(scene, session, attached);
+      this.syncSystemWideEffectsForAttachment(scene, session, numericSystemID);
     }
     if (
       shouldReconcileUniverseSites &&

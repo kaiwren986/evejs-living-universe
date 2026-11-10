@@ -10,6 +10,8 @@ const marketEscrow = require("../market/marketEscrowState");
 const { graphError } = require("../nodegraph/nodeGraphCompiler");
 const { effectKey, checkCharacter } = require("../nodegraph/nodeGraphEffects");
 const { cloneValue: clone } = require("../../common/clone");
+const log = require("../../utils/logger");
+const { RANGE_STATION } = require("../market/marketRules");
 
 function ok(result) {
   if (!result?.success) throw graphError("AIR_ECONOMY_ACTION_FAILED", result?.errorMsg);
@@ -21,8 +23,53 @@ function save(characterID, economy, initialState = null) {
   })));
   ok(require("../../gameStore").flushTableSync("characters"));
 }
+// The lesson sells the ore to Ms. Calytrix, and the client's Sell window defaults to an
+// immediate sale, whose Sell button does nothing without a buy order in range. The market
+// seeds carry none around the AIR stations, so the chapter places one owned by the station's
+// NPC corporation: marketProxy settles that like a seeded bid, paying the seller and debiting
+// nobody. The daemon lists only player-table rows and seed tables, and has no call to write
+// the seed tables, so it goes in as an ordinary order. Fills reduce it, so its size outlasts
+// any save; it is checked once a process. 250 ISK is Tranquility's average for type 60771
+// (tools/market-seederv3/data/price-manifest.json). Owner's decision, 2026-10-30: TQ's own
+// sale is not in the golden logs.
+const ORE_TYPE_ID = 60771;
+const ORE_BUY_ORDER = Object.freeze({ price: 250, quantity: 1000000, durationDays: 3650 });
+const checkedOreStations = new Set();
+async function ensureOreBuyOrder(stationID, options = {}) {
+  // Tests share the real market daemon: an order placed by any tutorial test would stay in it.
+  if (process.env.EVEJS_TEST_STORE_BASELINE_ROOT && !options.force) return null;
+  if (checkedOreStations.has(stationID)) return null;
+  checkedOreStations.add(stationID);
+  try {
+    const station = require("../../space/worldData").getStationByID(stationID);
+    if (!station) return null;
+    const { marketDaemonClient } = require("../market/marketDaemonClient");
+    const book = await marketDaemonClient.call("GetOrders", { region_id: Number(station.regionID), type_id: ORE_TYPE_ID });
+    const held = (book?.buys || []).find(order => Number(order.station_id) === Number(stationID) &&
+      Number(order.vol_remaining) >= 114);
+    if (held) return null;
+    return await marketDaemonClient.call("PlaceOrder", {
+      owner_id: Number(station.corporationID), is_corp: true, station_id: stationID,
+      station_metadata: {
+        station_id: Number(station.stationID), solar_system_id: Number(station.solarSystemID),
+        constellation_id: Number(station.constellationID), region_id: Number(station.regionID),
+        station_name: String(station.stationName || ""), security: Number(station.security || 0),
+      },
+      type_id: ORE_TYPE_ID, price: ORE_BUY_ORDER.price, quantity: ORE_BUY_ORDER.quantity, min_volume: 1,
+      duration_days: ORE_BUY_ORDER.durationDays, range_value: RANGE_STATION, bid: true, source: "player",
+    });
+  } catch (error) {
+    // The market may be down. A timed listing still passes the lesson; try again next time.
+    checkedOreStations.delete(stationID);
+    log.warn(`[AirEconomy] ore buy order at station ${stationID}: ${error.message}`);
+    return null;
+  }
+}
 function prepare(session, state) {
-  if (state.economy) return state;
+  if (state.economy) {
+    void ensureOreBuyOrder(state.economy.stationID);
+    return state;
+  }
   const record = characters.getCharacterRecord(state.characterID);
   const ship = characters.getActiveShipRecord(state.characterID);
   if (session._space || !record.stationID || ship?.ownerID !== state.characterID) throw graphError("AIR_ECONOMY_STATION_REQUIRED");
@@ -34,6 +81,7 @@ function prepare(session, state) {
   };
   if (economy.previousOrderIDs.length > 8192 || economy.previousTransactionIDs.length > 8192 || economy.originalBoxIDs.length > 8 || economy.originalBoxIDs.some(id => !Number.isSafeInteger(id) || id <= 0)) throw graphError("AIR_ECONOMY_ITEM_ID_INVALID");
   save(state.characterID, economy, state);
+  void ensureOreBuyOrder(economy.stationID);
   return characters.getCharacterRecord(state.characterID).authoredAirTutorial;
 }
 function quantity(characterID, locationID, flagID = null) {
@@ -50,8 +98,11 @@ function evidence(session, task, state) {
   if (session._space || record.stationID !== economy.stationID) return false;
   if (task === "2.2.01_move_ore") return ship.itemID === economy.shipID && quantity(state.characterID, economy.stationID, inventory.ITEM_FLAGS.HANGAR) >= 114 && quantity(state.characterID, ship.itemID) === 0;
   if (task === "2.2.02_market_introduction") {
+    // A sale into a buy order is recorded at the order's station, often another station in
+    // range of the tutorial station, so sales count wherever they were recorded. The ore must
+    // still be gone from the ship and the tutorial station's hangar.
     const sold = wallet.getCharacterMarketTransactions(state.characterID)
-      .filter(entry => !economy.previousTransactionIDs.includes(entry.transactionID) && entry.sellerID === state.characterID && entry.buyerID !== state.characterID && entry.typeID === 60771 && entry.stationID === economy.stationID && entry.quantity > 0 && entry.price > 0)
+      .filter(entry => !economy.previousTransactionIDs.includes(entry.transactionID) && entry.sellerID === state.characterID && entry.buyerID !== state.characterID && entry.typeID === 60771 && entry.quantity > 0 && entry.price > 0)
       .reduce((sum, entry) => sum + entry.quantity, 0);
     const listed = marketEscrow.listEscrowRecords()
       .filter(entry => !economy.previousOrderIDs.includes(entry.orderId) && entry.escrowType === "sell" && entry.escrowState === "active" && entry.ownerId === state.characterID && entry.sourceOwnerId === state.characterID && !entry.isCorp && entry.typeId === 60771 && entry.stationId === economy.stationID)
@@ -103,4 +154,4 @@ function register(graphs) {
     : require("./airMiningRuntime").retainOre(context),
   ({ graphID, ownerKey }) => ownerKey === "air" && [711, 737, 712].includes(graphID));
 }
-module.exports = { prepare, evidence, register };
+module.exports = { prepare, evidence, register, ensureOreBuyOrder };

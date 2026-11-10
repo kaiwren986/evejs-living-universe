@@ -3,6 +3,7 @@
 const {
   toFiniteNumber,
 } = require("../../common/numbers");
+const { cloneValue } = require("../../common/clone");
 
 const path = require("path");
 const { performance } = require("perf_hooks");
@@ -40,7 +41,6 @@ const DURABLE_PAYOUT_JOB_PREFIX = "npc-bounty:";
 const FILETIME_EPOCH_OFFSET = 116444736000000000n;
 const FILETIME_TICKS_PER_MS = 10000n;
 const DEFAULT_PAYOUT_INTERVAL_MS = 20 * 60 * 1000;
-const MAX_SOURCE_REFERENCES = 32;
 const ATTRIBUTE_FAST_TALK_PERCENTAGE = 359;
 const SECURITY_STATUS_RECOVERY_MODIFIER_PER_ISK = 1 / 100_000_000;
 const SECURITY_STATUS_RECOVERY_MODIFIER_CAP = 0.0025;
@@ -57,13 +57,22 @@ let durableScheduleLane = Promise.resolve();
 let durableSchedulerGeneration = 0;
 let persistenceEnabled = true;
 let persistenceLoaded = false;
+let pendingPersistenceRollback = null;
 let characterStateModule = null;
 let crimewatchStateModule = null;
 let standingRuntimeModule = null;
 let corporationTaxModule = null;
 let corpWalletStateModule = null;
+let securityTaxModule = null;
+let fleetShareModule = null;
+const ESS_FUNDING_FIELDS = Object.freeze(["essMainBankAmount", "reserveBankAmount", "grossAmount"]);
 
 const bucketsByKey = new Map();
+// NPC item ID -> keys of the buckets that recorded it, so a kill's once-only
+// check reads only those buckets. A hint: findBucketBySourceReference confirms
+// each key against the bucket itself, so a bucket removed, rolled back or
+// reloaded leaves only stale keys behind, which it drops.
+const bucketKeysBySourceReference = new Map();
 
 function getCharacterStateModule() {
   if (!characterStateModule) {
@@ -86,11 +95,26 @@ function getCorporationTaxModule() {
   return corporationTaxModule;
 }
 
+function getSecurityTaxModule() {
+  if (!securityTaxModule) {
+    securityTaxModule = require(path.join(__dirname, "../security/securityTax"));
+  }
+  return securityTaxModule;
+}
+
 function getCorpWalletStateModule() {
   if (!corpWalletStateModule) {
     corpWalletStateModule = require(path.join(__dirname, "../corporation/corpWalletState"));
   }
   return corpWalletStateModule;
+}
+
+// Fleet share → Bounty sharers, Even split.
+function getFleetShareModule() {
+  if (!fleetShareModule) {
+    fleetShareModule = require(path.join(__dirname, "../fleetShare/fleetShare"));
+  }
+  return fleetShareModule;
 }
 
 function getStandingRuntimeModule() {
@@ -489,7 +513,8 @@ function resolveNpcBountyAmount(victimEntity = {}, context = {}) {
   ) || 0;
   const authoredMultiplier = resolveAuthoredMultiplier(victimEntity, context);
   const solarSystemMultiplier = resolveSolarSystemBountyMultiplier(solarSystemID, context);
-  const grossAmount = normalizeMoney(baseAmount * authoredMultiplier * solarSystemMultiplier, 0);
+  const incursionMultiplier = require("../incursion/incursionSystemEffects").bountyMultiplier(solarSystemID);
+  const grossAmount = normalizeMoney(baseAmount * authoredMultiplier * solarSystemMultiplier * incursionMultiplier, 0);
   const split = resolveEssBountySplit(solarSystemID, grossAmount, context);
   const amount = Math.max(0, normalizeMoney(split.playerAmount, 0));
 
@@ -501,6 +526,7 @@ function resolveNpcBountyAmount(victimEntity = {}, context = {}) {
     solarSystemID,
     authoredMultiplier,
     solarSystemMultiplier,
+    ...(incursionMultiplier !== 1 ? { incursionMultiplier } : {}),
     essMainBankAmount: normalizeMoney(split.essMainBankAmount, 0),
     reserveBankAmount: normalizeMoney(split.reserveBankAmount, 0),
     securityTaxAmount: normalizeMoney(split.securityTaxAmount, 0),
@@ -643,6 +669,7 @@ function getOrCreateBucket(characterID, solarSystemID, payoutAtMs) {
     payoutTime,
     amount: 0,
     essFunding: { essMainBankAmount: 0, reserveBankAmount: 0, grossAmount: 0 },
+    securityTaxAmount: 0,
     kills: 0,
     npcTypes: {},
     sourceReferences: [],
@@ -657,6 +684,10 @@ function addToBucket(bucket, award = {}) {
   bucket.amount = normalizeMoney(bucket.amount + normalizeMoney(award.amount, 0), 0);
   bucket.essFunding ||= { essMainBankAmount: 0, reserveBankAmount: 0, grossAmount: 0 };
   for (const key of ["essMainBankAmount", "reserveBankAmount", "grossAmount"]) bucket.essFunding[key] = normalizeMoney(bucket.essFunding[key] + (award[key] || 0));
+  bucket.securityTaxAmount = normalizeMoney(
+    normalizeMoney(bucket.securityTaxAmount, 0) + normalizeMoney(award.securityTaxAmount, 0),
+    0,
+  );
   bucket.kills += 1;
 
   const typeID = toPositiveInt(award.enemyTypeID, 0) || 0;
@@ -664,25 +695,132 @@ function addToBucket(bucket, award = {}) {
     bucket.npcTypes[String(typeID)] = (toInt(bucket.npcTypes[String(typeID)], 0) || 0) + 1;
   }
 
+  // The kill's NPC item ID, uncapped, in the final-blow pilot's bucket: it is
+  // the once-per-kill mark. A sharer's bucket keeps only its first, the
+  // journal's reference (resolveBountyJournalReferenceID), so a fleet kill
+  // does not grow every member's stored bucket.
   const sourceReference = toPositiveInt(award.referenceID, null);
-  if (sourceReference && bucket.sourceReferences.length < MAX_SOURCE_REFERENCES) {
+  if (
+    sourceReference &&
+    (award.marksKill !== false || bucket.sourceReferences.length === 0)
+  ) {
     bucket.sourceReferences.push(sourceReference);
+    indexSourceReference(sourceReference, bucket.key);
   }
 }
 
-function findBucketBySourceReference(referenceID) {
+function indexSourceReference(referenceID, bucketKey) {
+  const normalizedReferenceID = toPositiveInt(referenceID, null);
+  if (!normalizedReferenceID) {
+    return;
+  }
+  let keys = bucketKeysBySourceReference.get(normalizedReferenceID);
+  if (!keys) {
+    keys = new Set();
+    bucketKeysBySourceReference.set(normalizedReferenceID, keys);
+  }
+  keys.add(bucketKey);
+}
+
+// The bucket a kill is already recorded in, preferring the given pilot's own
+// when several recipients' buckets hold it.
+function findBucketBySourceReference(referenceID, preferredCharacterID = 0) {
   const normalizedReferenceID = toPositiveInt(referenceID, null);
   if (!normalizedReferenceID) {
     return null;
   }
 
-  return Array.from(bucketsByKey.values()).find((bucket) => (
-    bucket &&
-    Array.isArray(bucket.sourceReferences) &&
-    bucket.sourceReferences.some(
-      (sourceReference) => toPositiveInt(sourceReference, null) === normalizedReferenceID,
-    )
-  )) || null;
+  const keys = bucketKeysBySourceReference.get(normalizedReferenceID);
+  if (!keys) {
+    return null;
+  }
+  let found = null;
+  for (const key of [...keys]) {
+    const bucket = bucketsByKey.get(key);
+    if (
+      !bucket ||
+      !Array.isArray(bucket.sourceReferences) ||
+      !bucket.sourceReferences.some(
+        (sourceReference) => toPositiveInt(sourceReference, null) === normalizedReferenceID,
+      )
+    ) {
+      keys.delete(key);
+      continue;
+    }
+    if (bucket.characterID === preferredCharacterID) {
+      return bucket;
+    }
+    found = found || bucket;
+  }
+  if (keys.size === 0) {
+    bucketKeysBySourceReference.delete(normalizedReferenceID);
+  }
+  return found;
+}
+
+// NPC bounty kill's parts: the final-blow pilot alone without a scene or a
+// Grid bubble; otherwise Fleet share's Bounty sharers, divided by Even split to
+// the cent. The first part is always the final-blow pilot's.
+function resolveBountyParts(characterID, amount, context = {}) {
+  const alone = [{ characterID, amount }];
+  const { scene, gridBubbleID } = context;
+  if (!scene || gridBubbleID === null || gridBubbleID === undefined || gridBubbleID === "") {
+    return alone;
+  }
+  try {
+    const fleetShare = getFleetShareModule();
+    const sharers = fleetShare.resolveBountySharers(characterID, { scene, gridBubbleID });
+    if (!Array.isArray(sharers) || sharers.length <= 1 || sharers[0] !== characterID) {
+      return alone;
+    }
+    const parts = fleetShare.splitEvenly(amount, sharers, "cent");
+    return Array.isArray(parts) && parts.length === sharers.length ? parts : alone;
+  } catch (error) {
+    log.warn(
+      `[BountyRuntime] fleet share failed char=${characterID}; paying the final blow alone: ${error.message}`,
+    );
+    return alone;
+  }
+}
+
+// ESS's cut comes off the whole bounty before the split, and it diverts
+// part of each earner's bounty, so each recipient's part carries an even part of
+// that funding, keeping the totals and making each sharer a bank contributor.
+function splitEssFunding(resolution, recipientIDs) {
+  const whole = Object.fromEntries(ESS_FUNDING_FIELDS.map((field) => [field, resolution[field] || 0]));
+  if (recipientIDs.length <= 1) {
+    return recipientIDs.map(() => whole);
+  }
+  const { splitEvenly } = getFleetShareModule();
+  const fieldParts = ESS_FUNDING_FIELDS.map((field) => splitEvenly(whole[field], recipientIDs, "cent"));
+  return recipientIDs.map((_recipientID, index) =>
+    Object.fromEntries(ESS_FUNDING_FIELDS.map((field, fieldIndex) => [field, fieldParts[fieldIndex][index].amount])));
+}
+
+// What the ESS leaves the players of a kill, before CONCORD's Safe Security
+// share: what fleet shares divide.
+function untaxedBountyAmount(resolution) {
+  return normalizeMoney(
+    normalizeMoney(resolution.amount, 0) + normalizeMoney(resolution.securityTaxAmount, 0),
+    0,
+  );
+}
+
+// One recipient's part of a kill, less CONCORD's Safe Security share of that
+// part. Each part is taxed on its own, rounded to the cent, as each recipient's
+// mission reward is: every part is its own journal entry, and the client reads
+// each entry's gross and tax on its own (_GetDerivedSecurityTaxTransaction).
+// A kill paid to one pilot keeps the tax the ESS split already worked out.
+function taxBountyPart(resolution, solarSystemID, gross, alone) {
+  const wholeTax = normalizeMoney(resolution.securityTaxAmount, 0);
+  if (!(wholeTax > 0)) {
+    return { amount: gross, securityTaxAmount: 0 };
+  }
+  if (alone) {
+    return { amount: normalizeMoney(resolution.amount, 0), securityTaxAmount: wholeTax };
+  }
+  const { tax } = getSecurityTaxModule().computeNpcBountySecurityTax(solarSystemID, gross);
+  return { amount: normalizeMoney(gross - tax, 0), securityTaxAmount: normalizeMoney(tax, 0) };
 }
 
 function serializeBucket(bucket) {
@@ -694,6 +832,7 @@ function serializeBucket(bucket) {
     payoutTime: bucket.payoutTime,
     amount: bucket.amount,
     essFunding: bucket.essFunding ? { ...bucket.essFunding } : null,
+    securityTaxAmount: bucket.securityTaxAmount,
     kills: bucket.kills,
     npcTypes: { ...bucket.npcTypes },
     sourceReferences: [...bucket.sourceReferences],
@@ -707,25 +846,136 @@ function ensurePendingTable() {
   }
 }
 
-function persistBuckets() {
+// A bounty and its permanent source receipt cross one durable table fence.
+// Only those paths are copied/written; paid history never joins an ordinary
+// accrual snapshot. Compensate both cache and disk if that fence is refused.
+function persistPendingChanges(changes) {
+  const recovery = retryPendingRollback();
+  if (!recovery.success) return recovery;
   if (!persistenceEnabled) {
     return { success: true };
   }
-  ensurePendingTable();
-  const payload = { __events: { ...recordedEvents } };
-  for (const [key, bucket] of bucketsByKey.entries()) {
-    payload[key] = serializeBucket(bucket);
+  const previous = [];
+  let createdEventCollection = false;
+  try {
+    ensurePendingTable();
+    if (changes.some((change) => change.path.startsWith("/__events/"))) {
+      const events = repo.read(PENDING_TABLE_NAME, "/__events");
+      if (!events.success && events.errorMsg !== "ENTRY_NOT_FOUND") return events;
+      createdEventCollection = !events.success;
+    }
+    for (const change of changes) {
+      const before = repo.read(PENDING_TABLE_NAME, change.path);
+      if (!before.success && before.errorMsg !== "ENTRY_NOT_FOUND") return before;
+      previous.push({ path: change.path, exists: before.success, value: cloneValue(before.data) });
+    }
+  } catch (error) {
+    return { success: false, errorMsg: error.message || "BOUNTY_PENDING_READ_FAILED" };
   }
-  const result = repo.write(PENDING_TABLE_NAME, "/", payload);
-  if (!result?.success) return result || { success: false, errorMsg: "WRITE_FAILED" };
-  return repo.flushTableSync(PENDING_TABLE_NAME);
+
+  let failure;
+  try {
+    for (const change of changes) {
+      const result = change.remove
+        ? repo.remove(PENDING_TABLE_NAME, change.path)
+        : repo.write(PENDING_TABLE_NAME, change.path, cloneValue(change.value));
+      if (!result?.success && !(change.remove && result?.errorMsg === "ENTRY_NOT_FOUND")) {
+        failure = result || { success: false, errorMsg: "BOUNTY_PENDING_WRITE_FAILED" };
+        break;
+      }
+    }
+    if (!failure) {
+      const flushed = repo.flushTableSync(PENDING_TABLE_NAME);
+      if (flushed?.success) return flushed;
+      failure = flushed || { success: false, errorMsg: "BOUNTY_PENDING_FLUSH_FAILED" };
+    }
+  } catch (error) {
+    failure = { success: false, errorMsg: error.message || "BOUNTY_PENDING_COMMIT_FAILED" };
+  }
+
+  pendingPersistenceRollback = { previous, createdEventCollection };
+  const rollback = retryPendingRollback();
+  return { ...failure, success: false, rollback };
+}
+
+// A refused compensation must remain an owner obligation. Otherwise a later
+// payout window could accept the same source while its first bucket survives.
+function retryPendingRollback() {
+  if (!pendingPersistenceRollback) return { success: true, errors: [] };
+  const debt = pendingPersistenceRollback;
+  const { previous, createdEventCollection } = debt;
+  const rollbackErrors = [];
+  // Row restoration can itself fail. Hold every automatic/explicit table flush
+  // until all preimages have been staged, so a background worker cannot publish
+  // a bucket without its receipt while the owner is waiting to recover.
+  if (!debt.releaseFlush) {
+    try {
+      if (typeof repo.holdTableFlush !== "function") throw new Error("BOUNTY_FLUSH_HOLD_UNAVAILABLE");
+      debt.releaseFlush = repo.holdTableFlush(PENDING_TABLE_NAME);
+      if (typeof debt.releaseFlush !== "function") throw new Error("BOUNTY_FLUSH_HOLD_UNAVAILABLE");
+    } catch (error) {
+      return { success: false, errorMsg: "BOUNTY_PENDING_ROLLBACK_REQUIRED", errors: [error.message] };
+    }
+  }
+  for (const before of [...previous].reverse()) {
+    try {
+      const restored = before.exists
+        ? repo.write(PENDING_TABLE_NAME, before.path, cloneValue(before.value), { force: true })
+        : repo.remove(PENDING_TABLE_NAME, before.path);
+      if (!restored?.success && !(restored?.errorMsg === "ENTRY_NOT_FOUND" && !before.exists)) {
+        rollbackErrors.push(restored?.errorMsg || "BOUNTY_ROLLBACK_FAILED");
+      }
+    } catch (error) { rollbackErrors.push(error.message); }
+  }
+  if (createdEventCollection) {
+    try {
+      const removed = repo.remove(PENDING_TABLE_NAME, "/__events");
+      if (!removed?.success && removed?.errorMsg !== "ENTRY_NOT_FOUND") rollbackErrors.push(removed?.errorMsg || "BOUNTY_ROLLBACK_FAILED");
+    } catch (error) { rollbackErrors.push(error.message); }
+  }
+  // Never commit a partial compensation. The durable transaction must remain
+  // either the accepted bucket/receipt pair or the complete preimage.
+  if (rollbackErrors.length === 0) {
+    try {
+      debt.releaseFlush();
+      debt.releaseFlush = null;
+      const flushed = repo.flushTableSync(PENDING_TABLE_NAME);
+      if (!flushed?.success) rollbackErrors.push(flushed?.errorMsg || "BOUNTY_ROLLBACK_FLUSH_FAILED");
+    } catch (error) { rollbackErrors.push(error.message); }
+  }
+  if (rollbackErrors.length === 0) pendingPersistenceRollback = null;
+  return {
+    success: rollbackErrors.length === 0,
+    errorMsg: rollbackErrors.length > 0 ? "BOUNTY_PENDING_ROLLBACK_REQUIRED" : undefined,
+    errors: rollbackErrors,
+  };
+}
+
+// Every recipient's bucket and the kill's one receipt cross the same fence, so
+// a fleet kill is recorded for all of them or none. The receipt names the
+// final-blow pilot's bucket.
+function pendingAccrualChanges(buckets, receiptBucket, eventID) {
+  const changes = buckets.map((bucket) => ({ path: `/${bucket.key}`, value: serializeBucket(bucket) }));
+  if (eventID) {
+    // Store paths do not escape slash-containing keys. Preserve those uncommon
+    // legacy identifiers through the collection path, without renaming receipts.
+    changes.push(String(eventID).includes("/")
+      ? { path: "/__events", value: { ...recordedEvents, [eventID]: receiptBucket.key } }
+      : { path: `/__events/${eventID}`, value: receiptBucket.key });
+  }
+  return changes;
 }
 
 function loadPersistedBuckets() {
-  persistenceLoaded = true;
+  const recovery = retryPendingRollback();
+  if (!recovery.success) throw new Error(recovery.errorMsg);
   ensurePendingTable();
   const result = repo.read(PENDING_TABLE_NAME, "/");
-  if (!result.success || !result.data || typeof result.data !== "object") {
+  if (!result?.success) {
+    throw new Error(result?.errorMsg || "BOUNTY_PENDING_READ_FAILED");
+  }
+  if (!result.data || typeof result.data !== "object") {
+    persistenceLoaded = true;
     return;
   }
   recordedEvents = { ...(result.data.__events || {}) };
@@ -747,11 +997,14 @@ function loadPersistedBuckets() {
       payoutTime: String(raw.payoutTime || formatFiletime(payoutAtMs)),
       amount,
       essFunding: raw.essFunding ? { ...raw.essFunding } : null,
+      // Absent on a bucket persisted before the Safe Security tax, which
+      // withheld nothing.
+      securityTaxAmount: normalizeMoney(raw.securityTaxAmount, 0),
       kills: Math.max(0, toInt(raw.kills, 0)),
       npcTypes:
         raw.npcTypes && typeof raw.npcTypes === "object" ? { ...raw.npcTypes } : {},
       sourceReferences: Array.isArray(raw.sourceReferences)
-        ? raw.sourceReferences.slice(0, MAX_SOURCE_REFERENCES)
+        ? [...raw.sourceReferences]
         : [],
       // Absent on a bucket persisted before Corporation tax, and on one whose
       // payout was never attempted: the split is locked in on the next attempt.
@@ -760,12 +1013,18 @@ function loadPersistedBuckets() {
           ? { ...raw.corporationTax }
           : null,
     });
+    for (const sourceReference of bucketsByKey.get(key).sourceReferences) {
+      indexSourceReference(sourceReference, key);
+    }
   }
+  persistenceLoaded = true;
   refreshNextDueAt();
   scheduleTimer();
 }
 
 function ensureLoaded() {
+  const recovery = retryPendingRollback();
+  if (!recovery.success) throw new Error(recovery.errorMsg);
   if (persistenceLoaded || !persistenceEnabled) {
     return;
   }
@@ -788,19 +1047,11 @@ function recordNpcBountyKill(victimEntity = {}, finalAttacker = {}, context = {}
     resolution.solarSystemID,
     toPositiveInt(victimEntity && victimEntity.systemID, 0),
   ) || 0;
-  // Schedule the payout against the wall clock (not sim time) so a persisted
-  // bucket stays comparable after a restart, when the scene's sim clock resets.
-  // The first kill starts the character's payout window; later kills before the
-  // bucket comes due reuse that same payout time instead of snapping to a
-  // cluster-wide wall-clock boundary.
-  const payoutAtMs = Number.isFinite(Number(context.payoutAtMs))
-    ? Math.trunc(Number(context.payoutAtMs))
-    : resolvePayoutAtMsForCharacter(characterID, nowProvider());
   const enemyTypeID = toPositiveInt(victimEntity && victimEntity.typeID, 0) || 0;
   const referenceID = toPositiveInt(victimEntity && victimEntity.itemID, null);
   const eventID = context.bountyEventID || victimEntity._bountyEventID || (referenceID ? `${bountyBootID}:${solarSystemID}:${referenceID}` : null);
   if (eventID && recordedEvents[eventID]) return { ...resolution, characterID, alreadyRecorded: true };
-  const existingReferenceBucket = findBucketBySourceReference(referenceID);
+  const existingReferenceBucket = findBucketBySourceReference(referenceID, characterID);
   const existingPayload = existingReferenceBucket
     ? {
         enemyTypeID,
@@ -823,31 +1074,78 @@ function recordNpcBountyKill(victimEntity = {}, finalAttacker = {}, context = {}
     };
   }
 
-  const bucket = getOrCreateBucket(characterID, solarSystemID, payoutAtMs);
-  const beforeBucket = serializeBucket(bucket);
-  addToBucket(bucket, {
-    ...resolution,
-    amount: resolution.amount,
-    enemyTypeID,
-    referenceID,
-  });
-  if (eventID) recordedEvents[eventID] = bucket.key;
-  const saved = persistBuckets();
+  // Each part joins its recipient's own payout for this system. Schedule it
+  // against the wall clock (not sim time) so a persisted bucket stays
+  // comparable after a restart, when the scene's sim clock resets. A pilot's
+  // first kill starts their payout window; later kills and shares before the
+  // bucket comes due reuse that same payout time instead of snapping to a
+  // cluster-wide wall-clock boundary. A given payoutAtMs is the final-blow
+  // pilot's alone.
+  const nowMs = nowProvider();
+  const parts = resolveBountyParts(characterID, untaxedBountyAmount(resolution), context)
+    .map((part) => ({
+      characterID: toPositiveInt(part && part.characterID, 0),
+      amount: normalizeMoney(part && part.amount, 0),
+    }))
+    .filter((part) => part.characterID && part.amount > 0)
+    .map((part, _index, all) => ({
+      characterID: part.characterID,
+      ...taxBountyPart(resolution, solarSystemID, part.amount, all.length === 1),
+    }));
+  const essParts = splitEssFunding(resolution, parts.map((part) => part.characterID));
+  const shares = [];
+  for (const [index, { characterID: recipientID, amount, securityTaxAmount }] of parts.entries()) {
+    const payoutAtMs = recipientID === characterID && Number.isFinite(Number(context.payoutAtMs))
+      ? Math.trunc(Number(context.payoutAtMs))
+      : resolvePayoutAtMsForCharacter(recipientID, nowMs);
+    const bucketKey = buildBucketKey(recipientID, solarSystemID, formatFiletime(payoutAtMs));
+    const existed = bucketsByKey.has(bucketKey);
+    const bucket = getOrCreateBucket(recipientID, solarSystemID, payoutAtMs);
+    const beforeBucket = serializeBucket(bucket);
+    addToBucket(bucket, {
+      ...essParts[index],
+      amount,
+      securityTaxAmount,
+      enemyTypeID,
+      referenceID,
+      marksKill: recipientID === characterID,
+    });
+    shares.push({ characterID: recipientID, amount, bucket, existed, beforeBucket });
+  }
+  // Even split gives the final-blow pilot the first part and the remainder,
+  // so theirs is never zero.
+  const { bucket } = shares.find((share) => share.characterID === characterID) || shares[0];
+  const saved = persistPendingChanges(pendingAccrualChanges(
+    shares.map((share) => share.bucket),
+    bucket,
+    eventID,
+  ));
   if (!saved?.success) {
-    Object.assign(bucket, beforeBucket);
-    if (eventID) delete recordedEvents[eventID];
+    for (const share of shares) {
+      if (share.existed) Object.assign(share.bucket, share.beforeBucket);
+      else bucketsByKey.delete(share.bucket.key);
+    }
+    refreshNextDueAt();
+    scheduleTimer();
     throw new Error(saved?.errorMsg || "BOUNTY_ACCRUAL_NOT_DURABLE");
   }
+  if (eventID) recordedEvents[eventID] = bucket.key;
   if (eventID) victimEntity._bountyEventID = eventID;
-  queueDurableBucket(bucket);
 
-  const payload = {
-    enemyTypeID,
-    amount: resolution.amount,
-    payoutTime: bucket.payoutTime,
-    isModified: Boolean(resolution.isModified),
-  };
-  notifyBountyAdded(characterID, payload);
+  let payload = null;
+  for (const share of shares) {
+    queueDurableBucket(share.bucket);
+    const sharePayload = {
+      enemyTypeID,
+      amount: share.amount,
+      payoutTime: share.bucket.payoutTime,
+      isModified: Boolean(resolution.isModified),
+    };
+    if (share.characterID === characterID) {
+      payload = sharePayload;
+    }
+    notifyBountyAdded(share.characterID, sharePayload);
+  }
   // Advance the "Destroy N non-capsuleers" AIR daily goal on each fresh NPC
   // kill. Lazy-required and fully defensive so daily-goal bookkeeping can never
   // disrupt bounty payouts.
@@ -873,10 +1171,16 @@ function recordNpcBountyKill(victimEntity = {}, finalAttacker = {}, context = {}
     ...resolution,
     characterID,
     solarSystemID,
-    payoutAtMs,
+    payoutAtMs: bucket.payoutAtMs,
     payoutTime: bucket.payoutTime,
     bucketKey: bucket.key,
     notification: payload,
+    shares: shares.map((share) => ({
+      characterID: share.characterID,
+      amount: share.amount,
+      payoutTime: share.bucket.payoutTime,
+      bucketKey: share.bucket.key,
+    })),
     securityStatusRecovery,
   };
 }
@@ -952,7 +1256,7 @@ function lockInCorporationTax(bucket) {
     net: split.net,
     credit: split.credit,
   };
-  const persisted = persistBuckets();
+  const persisted = persistPendingChanges([{ path: `/${bucket.key}`, value: serializeBucket(bucket) }]);
   if (!persisted || persisted.success !== true) {
     bucket.corporationTax = null;
     return { success: false, errorMsg: "BOUNTY_TAX_SPLIT_NOT_PERSISTED" };
@@ -1011,9 +1315,11 @@ async function payoutBucket(bucket) {
     return locked;
   }
   const split = locked.data;
-  // The tax key is merged into the NBL: description, never replacing it, so the
-  // client still lists the killed NPCs on hover.
-  const description = split.tax > 0
+  // The tax keys are merged into the NBL: description, never replacing it, so
+  // the client still lists the killed NPCs on hover. CONCORD's Safe Security
+  // share was withheld kill by kill, before the corporation's rate, so the
+  // gross the client shows is the payout plus both taxes.
+  const corporationTaxed = split.tax > 0
     ? getCorporationTaxModule().buildCorporationTaxDescription(
       JOURNAL_ENTRY_TYPE.CORPORATION_TAX_NPC_BOUNTIES,
       split.corporationID,
@@ -1021,6 +1327,15 @@ async function payoutBucket(bucket) {
       { into: buildWalletDescription(bucket) },
     )
     : buildWalletDescription(bucket);
+  const securityTaxAmount = normalizeMoney(bucket.securityTaxAmount, 0);
+  const description = securityTaxAmount > 0
+    ? getSecurityTaxModule().buildSecurityTaxDescription(
+      "grossBountyAmount",
+      normalizeMoney(bucket.amount + securityTaxAmount, 0),
+      securityTaxAmount,
+      { into: corporationTaxed },
+    )
+    : corporationTaxed;
   const memberResult = await adjustCharacterBalanceAsync(bucket.characterID, split.net, {
     entryTypeID: bucket.kills > 1
       ? JOURNAL_ENTRY_TYPE.NPC_BOUNTY_PRIZES
@@ -1039,11 +1354,27 @@ async function payoutBucket(bucket) {
     const corporationResult = await creditCorporationTax(bucket, split);
     if (!corporationResult || corporationResult.success !== true) return corporationResult;
   }
-  const amountCents = Math.round(split.net * 100);
+  // AIR's captured bounty counters advance by journal gross, before personal
+  // security/corporation taxes. ESS bank funding is outside this journal sum.
+  const amountCents = Math.round(normalizeMoney(bucket.amount + securityTaxAmount, 0) * 100);
   if (amountCents > 0) {
-    const career = require("../career/careerEventLedger").record(bucket.characterID,
-      { kind: "economy", action: "bounty-earned", amountCents,
-        id: buildDurablePayoutJobID(bucket.key) });
+    const ledger = require("../career/careerEventLedger");
+    let event = { kind: "economy", action: "bounty-earned", amountCents,
+      id: buildDurablePayoutJobID(bucket.key) };
+    const character = resolveCharacterRecord(bucket.characterID);
+    const staged = ledger.stageCharacter(character, bucket.characterID, event);
+    if (!staged.success) {
+      // An older pending payout may already have committed its net-valued
+      // receipt. Recognize that exact receipt without backfilling or paying
+      // again; unrelated conflicts remain failures.
+      const legacy = { ...event, amountCents: Math.round(split.net * 100) };
+      const previous = staged.errorMsg === "CAREER_EVENT_RECEIPT_CONFLICT" &&
+        legacy.amountCents > 0 && legacy.amountCents !== amountCents
+        ? ledger.stageCharacter(character, bucket.characterID, legacy) : null;
+      if (!previous?.success || previous.data.duplicate !== true) return staged;
+      event = legacy;
+    }
+    const career = ledger.record(bucket.characterID, event);
     if (!career.success) return career;
   }
   return memberResult;
@@ -1061,7 +1392,6 @@ async function flushDuePayoutsUnlocked(nowMs = nowProvider()) {
 
   let flushed = 0;
   let amount = 0;
-  let mutated = false;
   const results = [];
   for (const [key, bucket] of bucketsByKey.entries()) {
     if (bucket.payoutAtMs > nowMs) {
@@ -1072,6 +1402,10 @@ async function flushDuePayoutsUnlocked(nowMs = nowProvider()) {
       result = await payoutBucket(bucket);
     } catch (error) {
       result = { success: false, errorMsg: error && error.message ? error.message : "PAYOUT_THREW" };
+    }
+    if (result && result.success === true) {
+      const removed = persistPendingChanges([{ path: `/${key}`, remove: true }]);
+      if (!removed?.success) result = { success: false, errorMsg: removed?.errorMsg || "BOUNTY_PENDING_REMOVE_NOT_DURABLE" };
     }
     results.push({
       key,
@@ -1085,15 +1419,11 @@ async function flushDuePayoutsUnlocked(nowMs = nowProvider()) {
       // next tick instead of silently destroying the ISK.
       bucketsByKey.delete(key);
       durableScheduledBucketKeys.delete(key);
-      mutated = true;
       flushed += 1;
       amount = normalizeMoney(amount + bucket.amount, 0);
     }
   }
 
-  if (mutated) {
-    persistBuckets();
-  }
   refreshNextDueAt();
   scheduleTimer();
   return {
@@ -1175,6 +1505,8 @@ function listPendingBuckets() {
 }
 
 function resetForTests() {
+  pendingPersistenceRollback?.releaseFlush?.();
+  pendingPersistenceRollback = null;
   recordedEvents = {};
   clearTimer();
   durableSchedulerGeneration += 1;
@@ -1182,10 +1514,12 @@ function resetForTests() {
   durableScheduledBucketKeys.clear();
   durableScheduleLane = Promise.resolve();
   bucketsByKey.clear();
+  bucketKeysBySourceReference.clear();
   payoutIntervalMs = DEFAULT_PAYOUT_INTERVAL_MS;
   nowProvider = () => Date.now();
   timerEnabled = true;
   nextDueAtMs = Number.POSITIVE_INFINITY;
+  fleetShareModule = null;
   // Tests opt into persistence explicitly so the default in-memory suites do
   // not read or write the shared pendingNpcBounties table.
   persistenceEnabled = false;
@@ -1201,6 +1535,9 @@ function configureForTests(options = {}) {
   }
   if (options.timerEnabled !== undefined) {
     timerEnabled = options.timerEnabled === true;
+  }
+  if (options.fleetShare) {
+    fleetShareModule = options.fleetShare;
   }
   if (options.persistenceEnabled !== undefined) {
     persistenceEnabled = options.persistenceEnabled === true;
@@ -1289,6 +1626,6 @@ module.exports = {
     buildDurablePayoutJobID,
     buildWalletDescription,
     loadPersistedBuckets,
-    persistBuckets,
+    persistPendingChanges,
   },
 };

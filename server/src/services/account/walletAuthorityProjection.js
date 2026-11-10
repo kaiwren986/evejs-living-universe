@@ -127,6 +127,16 @@ function getCorporationProjection(corporationID) {
   return entry ? cloneValue(entry) : null;
 }
 
+function getCorporationBalanceProjection(corporationID, accountKey) {
+  const entry = corporations.get(Math.trunc(Number(corporationID) || 0));
+  if (!entry) {
+    return null;
+  }
+  return {
+    balance: entry.wallet?.divisions?.[String(accountKey)]?.balance ?? 0,
+  };
+}
+
 function getDiagnostics() {
   return Object.freeze({
     characterCount: characters.size,
@@ -146,6 +156,7 @@ function resetForTests() {
 module.exports = {
   getCharacterBalanceProjection,
   getCharacterProjection,
+  getCorporationBalanceProjection,
   getCorporationProjection,
   getDiagnostics,
   publishCommittedProjection,

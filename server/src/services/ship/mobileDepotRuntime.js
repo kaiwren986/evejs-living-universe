@@ -1576,6 +1576,10 @@ function launchMobileDepotFromShip(session, itemID, options = {}) {
 
   const sourceTypeID = toInt(item.typeID, 0);
   const spawnState = buildDeployableSpawnState(session, context);
+  const essRestriction = require("../dynamic/essFieldRuntime").resolveShipDeploymentRestriction(
+    context.systemID, context.shipID, spawnState?.position,
+  );
+  if (essRestriction) return essRestriction;
   const placementConflict = findMobileDepotPlacementConflict(
     session,
     item,
@@ -1616,6 +1620,7 @@ function launchMobileDepotFromShip(session, itemID, options = {}) {
 
   const transferResult = mobileItemCustody.deployFromShip({
     item: findItemById(launchSourceItemID),
+    position: spawnState.position,
     ownerID: context.ownerID,
     shipID: context.shipID,
     systemID: context.systemID,

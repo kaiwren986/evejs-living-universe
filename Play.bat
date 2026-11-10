@@ -595,7 +595,7 @@ set "EO_REMOTEFILECACHEFOLDER=%EVEJS_CLIENT_RESFILES%"
 exit /b 0
 
 :ValidateClientResourceCache
-echo   Checking every indexed client resource...
+echo   Checking client resource folder and indexes...
 powershell -NoProfile -ExecutionPolicy Bypass -File "%EVEJS_REPO_ROOT%\tools\ClientSETUP\scripts\Test-EvEJSResources.ps1" -ClientPath "%EVEJS_CLIENT_PATH%" -ResFilesPath "%EO_REMOTEFILECACHEFOLDER%"
 exit /b %errorlevel%
 

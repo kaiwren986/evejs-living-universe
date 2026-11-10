@@ -9,6 +9,7 @@ const database = require("../../gameStore");
 const { getWallclockNowMs } = require("../../space/runtime/runtimeClock");
 const catalog = require("./careerCatalog");
 const sources = require("./careerGameplaySources");
+const { migrateProgress } = require("./careerIdentityMigration");
 const events = new EventEmitter();
 const activeSyncs = new Set();
 
@@ -18,8 +19,12 @@ function characterID(value) {
 function empty(definition) {
   return { goalID: definition.id, progress: 0, completedAtMs: 0, source: null };
 }
-function entry(record, definition) {
-  const stored = record?.careerProgramProgress?.goals?.[definition.id];
+function projectedGoals(record) {
+  try { return migrateProgress(record?.careerProgramProgress, catalog.list()).goals; }
+  catch (_) { return {}; }
+}
+function entry(record, definition, goals = projectedGoals(record)) {
+  const stored = goals[definition.id];
   if (!stored || stored.goalID !== definition.id || !Number.isSafeInteger(stored.progress) ||
       stored.progress < 0 || stored.progress > definition.target ||
       stored.source?.kind !== definition.source?.kind || typeof stored.source?.id !== "string") return empty(definition);
@@ -27,7 +32,8 @@ function entry(record, definition) {
 }
 function list(value) {
   const id = characterID(value), record = id && characters.getCharacterRecord(id);
-  return record ? catalog.list().map(definition => entry(record, definition)) : [];
+  const goals = record ? projectedGoals(record) : {};
+  return record ? catalog.list().map(definition => entry(record, definition, goals)) : [];
 }
 function get(value, goalID) {
   const definition = catalog.get(goalID), id = characterID(value);
@@ -61,14 +67,17 @@ function syncCharacter(id) {
   if (!combat?.success) return combat || { success: false, errorMsg: "CAREER_COMBAT_RECOVERY_FAILED" };
   record = characters.getCharacterRecord(id);
   const definitions = catalog.list();
+  let identityMigration;
+  try { identityMigration = migrateProgress(record.careerProgramProgress, definitions); }
+  catch (error) { return { success: false, errorMsg: error.message }; }
   const context = sources.createContext(id);
   const ownerContext = {};
-  const goals = cloneValue(record.careerProgramProgress?.goals || {}), notices = [];
+  const goals = identityMigration.goals, notices = [...identityMigration.migrated];
   let observed = false;
   function project(definition, source) {
     if (!source || !Number.isSafeInteger(source.progress) || source.progress <= 0) return null;
     observed = true;
-    const existing = entry(record, definition);
+    const existing = entry(record, definition, goals);
     if (existing.source && existing.source.id !== source.id)
       return { success: false, errorMsg: "CAREER_SOURCE_CONFLICT" };
     // Career completions remain earned when a source owner prunes old receipts
@@ -81,6 +90,7 @@ function syncCharacter(id) {
       completedAtMs: progress >= definition.target
         ? existing.completedAtMs || source.updatedAtMs || Math.max(1, Math.trunc(getWallclockNowMs())) : 0,
       source: { kind: source.kind, id: source.id },
+      ...(definition.symbol ? { goalSymbol: definition.symbol } : {}),
     };
     goals[definition.id] = next;
     notices.push(next);
@@ -101,10 +111,10 @@ function syncCharacter(id) {
     const failed = project(definition, sources.careerPoints(id, definition, definitions, goals));
     if (failed) return failed;
   }
-  if (!observed) return { success: true, changed: false, data: list(id) };
+  if (!observed && !notices.length) return { success: true, changed: false, data: list(id) };
   if (notices.length) {
     const written = characters.updateCharacterRecord(id, current => ({ ...current,
-      careerProgramProgress: { version: 1, goals },
+      careerProgramProgress: { version: 2, goals },
     }));
     if (!written?.success) return written || { success: false, errorMsg: "CAREER_PROGRESS_WRITE_FAILED" };
   }
@@ -117,7 +127,8 @@ function syncCharacter(id) {
     }
     return durable;
   }
-  for (const notice of notices) events.emit("progressed", { characterID: id, ...cloneValue(notice) });
+  for (const notice of new Map(notices.map(row => [row.goalID, row])).values())
+    events.emit("progressed", { characterID: id, ...cloneValue(notice) });
   return { success: true, changed: notices.length > 0, data: list(id) };
 }
 

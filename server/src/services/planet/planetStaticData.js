@@ -6,6 +6,7 @@ const {
 } = require("../../common/numbers");
 
 const path = require("path");
+const nativeResources = require("./planetResourceDistribution.json");
 
 const {
   TABLE,
@@ -438,7 +439,18 @@ function canPutTypeInCustomsOffice(typeID) {
 }
 
 function getPlanetResourceTypeIDs(planetTypeID) {
+  const distribution = nativeResources.distributionByPlanetTypeID[toInt(planetTypeID, 0)];
+  if (distribution) {
+    // The target client uses quality > 0 for its availability reverse lookup.
+    // Keep the raw qualities out of the server's physical extraction formula.
+    return Object.entries(distribution).filter(([, quality]) => quality > 0).map(([id]) => Number(id));
+  }
   return [...(PLANET_RESOURCES_BY_TYPE_ID[toInt(planetTypeID, 0)] || [])];
+}
+
+function getNativePlanetResourceQualities(planetTypeID) {
+  const distribution = nativeResources.distributionByPlanetTypeID[toInt(planetTypeID, 0)];
+  return distribution ? { ...distribution } : null;
 }
 
 function getCommandCenterInfo(level) {
@@ -566,6 +578,7 @@ module.exports = {
   isPlanetaryIndustryType,
   canPutTypeInCustomsOffice,
   getPlanetResourceTypeIDs,
+  getNativePlanetResourceQualities,
   getCommandCenterInfo,
   getCommandCenterUpgradeCost,
   getTypeBasePrice,

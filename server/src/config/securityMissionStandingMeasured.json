@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "TQ_standing_packet",
+  "validationTODO": "TODO: Direct TQ packets, which outrank the screenshot-derived baseline for these dungeons. A packet is the final fraction after Social. pilotSocial 0 means the capture shows Social 0, so the value is the base fraction. pilotSocial null means it is unknown, so the value is an upper bound on the base fraction. A shared dungeon is not proof that every mission variant has identical gains.",
+  "dungeonsByID": {
+    "229": {
+      "level": 1,
+      "agentRaw": 0.017409576535370612,
+      "pilotSocial": 0,
+      "observations": [
+        {
+          "agentID": 3020249,
+          "missionID": 921,
+          "agentRaw": 0.017409576535370612,
+          "capture": "Tutorial/cruiser.lsw",
+          "sha256": "29f04cd0e30129c91d5eebd8596ca3e3bbd266dc00c43659526f66ef114e941a",
+          "packetRow": 525056,
+          "completionRow": 525146
+        },
+        {
+          "agentID": 3020249,
+          "missionID": 921,
+          "agentRaw": 0.017409576535370612,
+          "capture": "Tutorial/cruiser.lsw",
+          "sha256": "29f04cd0e30129c91d5eebd8596ca3e3bbd266dc00c43659526f66ef114e941a",
+          "packetRow": 594765,
+          "completionRow": 594862
+        },
+        {
+          "agentID": 3020249,
+          "missionID": 921,
+          "agentRaw": 0.01740961010152435,
+          "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+          "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+          "packetRow": 754233,
+          "completionRow": 754302
+        },
+        {
+          "agentID": 3020249,
+          "missionID": 921,
+          "agentRaw": 0.017409576535370612,
+          "capture": "Tutorial/part tre.lsw",
+          "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+          "packetRow": 352390,
+          "completionRow": 352877
+        }
+      ]
+    },
+    "968": {
+      "level": 1,
+      "agentRaw": 0.04302219432484659,
+      "pilotSocial": 0,
+      "observations": [
+        {
+          "agentID": 3020249,
+          "missionID": 2545,
+          "agentRaw": 0.04302219432484659,
+          "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+          "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+          "packetRow": 480197,
+          "completionRow": 480226
+        }
+      ]
+    },
+    "2026": {
+      "level": 1,
+      "agentRaw": 0.03280439028446778,
+      "pilotSocial": 0,
+      "observations": [
+        {
+          "agentID": 3020249,
+          "missionID": 3062,
+          "agentRaw": 0.03280439028446778,
+          "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+          "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+          "packetRow": 677825,
+          "completionRow": 677921
+        }
+      ]
+    },
+    "2543": {
+      "level": 1,
+      "agentRaw": 0.025846794989186843,
+      "pilotSocial": null,
+      "observations": [
+        {
+          "agentID": 3009846,
+          "missionID": 4752,
+          "agentRaw": 0.025846794989186843,
+          "capture": "Missions/Done/Combat/Carrying AIMEDs - Cargo Container Spawns with the objective item.txt",
+          "sha256": "b8b7b630ad8e0d33a3267afe8a13f34b981168178c16ed2efc5cd1b2997c0cde",
+          "packetRow": 84209,
+          "completionRow": 84305
+        }
+      ]
+    },
+    "4257": {
+      "level": 1,
+      "agentRaw": 0.05469430722598493,
+      "pilotSocial": 0,
+      "observations": [
+        {
+          "agentID": 3020249,
+          "missionID": 15168,
+          "agentRaw": 0.05469430722598493,
+          "capture": "Tutorial/part tre.lsw",
+          "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+          "packetRow": 467410,
+          "completionRow": 467653
+        }
+      ]
+    }
+  }
+}

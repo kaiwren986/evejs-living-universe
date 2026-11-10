@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const EVEJS_VERSION = "261028.1";
+const EVEJS_VERSION = "261108.1";
 const CONFIG_SCHEMA_VERSION = 1;
 const DOMAIN_NAMES = Object.freeze([
   "server",
@@ -457,7 +457,7 @@ function configDomainForKey(key) {
   if (key.startsWith("mining") || key.startsWith("industry") || key === "asteroidFieldsEnabled" || key === "asteroidBeltStartupReset") return "mining";
   if (key.startsWith("asteroidBeltNpcRat") || key.startsWith("npc") || key.startsWith("crimewatch")) return "npc";
   if (key.startsWith("hyperNet") || key.startsWith("newEdenStore") || key.startsWith("marketDaemon")) return "economy";
-  if (key.startsWith("abyssal") || key.startsWith("wormhole") || key.startsWith("universeSite") || key.startsWith("homefront") || [
+  if (key.startsWith("abyssal") || key.startsWith("wormhole") || key.startsWith("universeSite") || key.startsWith("homefront") || key.startsWith("incursion") || key === "voidReplayEnabled" || [
     "spaceDebrisLifetimeMs",
     "randomSeed",
     "tidiAutoscaler",
@@ -475,7 +475,7 @@ function configSectionForKey(domain, key) {
   if (key.startsWith("crew")) return "crew";
   if (key === "loginCampaigns") return "rewards";
   if (domain === "server") {
-    if (key.startsWith("dev") || key === "playerConnectToken") return "development";
+    if (key.startsWith("dev") || key === "playerConnectToken" || key === "qaStarterSystemPicker") return "development";
     if (key === "logLevel" || key === "logRetentionHours" || key === "logArchiveMaxMegabytes" || key === "logPacketPayloadDetails" || key === "spaceBubbleDebugEnabled" || key === "spaceMissileDebugEnabled") return "logging";
     if (key.startsWith("presence")) return "presence";
     if (key.startsWith("image")) return "images";
@@ -500,9 +500,9 @@ function configSectionForKey(domain, key) {
     return "missions";
   }
   if (domain === "world") {
-    if (key.startsWith("abyssal")) return "abyssal";
+    if (key.startsWith("abyssal") || key === "voidReplayEnabled") return "abyssal";
     if (key.startsWith("wormhole")) return "wormholes";
-    if (key.startsWith("universeSite") || key.startsWith("homefront"))
+    if (key.startsWith("universeSite") || key.startsWith("homefront") || key.startsWith("incursion"))
       return "cosmicSites";
     if (key.startsWith("default") || key.startsWith("deadspace")) return "scenery";
     return "simulation";

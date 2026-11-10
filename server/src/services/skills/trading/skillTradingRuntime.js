@@ -23,6 +23,7 @@ const {
   resolveCharacterCloneGrade,
 } = require(path.join(__dirname, "../training/skillCloneRestrictions"));
 const {
+  getCharacterBaseSkillMap,
   replaceCharacterSkillRecords,
 } = require(path.join(__dirname, "../skillState"));
 const {
@@ -877,7 +878,18 @@ function extractSkills(characterID, selection, itemID, session = null) {
     requestedSelections,
   );
 
-  const replaceResult = replaceCharacterSkillRecords(characterID, nextSkillRecords);
+  const changedSkillTypeIDs = new Set(
+    requestedSelections.map((entry) => toInt(entry.skillTypeID, 0)).filter(Boolean),
+  );
+  // Validation needs the live snapshot, but persisting its active skill
+  // would count the projected progress again from the same queue start.
+  const storedSkillMap = getCharacterBaseSkillMap(characterID, { skipBootstrap: true });
+  for (const record of nextSkillRecords) {
+    if (changedSkillTypeIDs.has(toInt(record.typeID, 0))) {
+      storedSkillMap.set(record.typeID, record);
+    }
+  }
+  const replaceResult = replaceCharacterSkillRecords(characterID, [...storedSkillMap.values()]);
   if (!replaceResult.success) {
     throwWrappedUserError("CustomNotify", {
       notify: "Failed to persist extracted skill state.",
@@ -902,9 +914,6 @@ function extractSkills(characterID, selection, itemID, session = null) {
     });
   }
 
-  const changedSkillTypeIDs = new Set(
-    requestedSelections.map((entry) => toInt(entry.skillTypeID, 0)).filter(Boolean),
-  );
   const changedSkills = (replaceResult.data || []).filter((record) =>
     changedSkillTypeIDs.has(toInt(record.typeID, 0)),
   );

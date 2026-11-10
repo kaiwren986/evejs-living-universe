@@ -43,6 +43,51 @@ const LOCATION_TYPE_CONSTELLATION = 4;
 const EXPIRY_SWEEP_INTERVAL_MS = 60 * 1000;
 
 let lastExpirySweepAtMs = 0;
+let folderAccessWatchDepth = 0;
+
+function loadBookmarkNotifications() {
+  try {
+    // Lazy: bookmarkNotifications requires this module.
+    return require(path.join(__dirname, "./bookmarkNotifications"));
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Run a mutation that can change shared-folder access (folder group edits,
+ * access-group membership, group deletion) and tell online characters whose
+ * access level changed. Nested calls (membership-type updates delete then
+ * re-add members) report once, from the outermost call.
+ */
+function withFolderAccessWatch(options, mutate) {
+  if (folderAccessWatchDepth > 0) {
+    return mutate();
+  }
+  ensureLoaded();
+  const notifications = loadBookmarkNotifications();
+  let snapshot = null;
+  try {
+    snapshot = notifications ? notifications.captureFolderAccess() : null;
+  } catch (error) {
+    snapshot = null;
+  }
+  folderAccessWatchDepth += 1;
+  let result;
+  try {
+    result = mutate();
+  } finally {
+    folderAccessWatchDepth -= 1;
+  }
+  if (snapshot && snapshot.size > 0) {
+    try {
+      notifications.notifyFolderAccessChanges(snapshot, options || {});
+    } catch (error) {
+      // ignored: a failed notice must not undo a committed access change
+    }
+  }
+  return result;
+}
 
 function bookmarkError(code) {
   const error = new Error(String(code || "BOOKMARK_ERROR"));
@@ -755,7 +800,7 @@ function updateAccessGroup(groupID, options = {}) {
   return updated;
 }
 
-function addAccessGroupMembers(groupID, memberships = {}) {
+function addAccessGroupMembersUnwatched(groupID, memberships = {}) {
   const group = getAccessGroup(groupID);
   if (!group) {
     return [[0, "GROUP_NOT_FOUND"]];
@@ -788,7 +833,7 @@ function addAccessGroupMembers(groupID, memberships = {}) {
   return [];
 }
 
-function deleteAccessGroupMembers(groupID, memberIDs = []) {
+function deleteAccessGroupMembersUnwatched(groupID, memberIDs = []) {
   const group = getAccessGroup(groupID);
   if (!group) {
     return [[0, "GROUP_NOT_FOUND"]];
@@ -812,7 +857,7 @@ function deleteAccessGroupMembers(groupID, memberIDs = []) {
   return [];
 }
 
-function updateAccessGroupMembershipTypes(groupID, memberIDs = [], membershipType = 0) {
+function updateAccessGroupMembershipTypesUnwatched(groupID, memberIDs = [], membershipType = 0) {
   const group = getAccessGroup(groupID);
   if (!group) {
     return [[0, "GROUP_NOT_FOUND"]];
@@ -829,7 +874,7 @@ function updateAccessGroupMembershipTypes(groupID, memberIDs = [], membershipTyp
   return addAccessGroupMembers(groupID, updates);
 }
 
-function deleteAccessGroup(groupID) {
+function deleteAccessGroupUnwatched(groupID) {
   const numericGroupID = toPositiveInt(groupID, 0);
   if (!store.state.groupsByID.has(numericGroupID)) {
     return false;
@@ -838,6 +883,25 @@ function deleteAccessGroup(groupID) {
   delete store.state.groupRoot.records[String(numericGroupID)];
   finalizeChanges({ groups: true, rebuild: true });
   return true;
+}
+
+function addAccessGroupMembers(groupID, memberships = {}) {
+  return withFolderAccessWatch({}, () => addAccessGroupMembersUnwatched(groupID, memberships));
+}
+
+function deleteAccessGroupMembers(groupID, memberIDs = []) {
+  return withFolderAccessWatch({}, () => deleteAccessGroupMembersUnwatched(groupID, memberIDs));
+}
+
+function updateAccessGroupMembershipTypes(groupID, memberIDs = [], membershipType = 0) {
+  return withFolderAccessWatch(
+    {},
+    () => updateAccessGroupMembershipTypesUnwatched(groupID, memberIDs, membershipType),
+  );
+}
+
+function deleteAccessGroup(groupID) {
+  return withFolderAccessWatch({}, () => deleteAccessGroupUnwatched(groupID));
 }
 
 function listGroupsForCharacter(characterID) {
@@ -1120,6 +1184,17 @@ function updateFolder(characterID, folderID, options = {}) {
   if (!view.folder.isPersonal && view.accessLevel < ACCESS_ADMIN) {
     throw bookmarkError("AdminAccessRequired");
   }
+  if (view.folder.isPersonal) {
+    return applyFolderUpdate(numericCharacterID, view, options);
+  }
+  // The editor learns its own new level from the call's return value.
+  return withFolderAccessWatch(
+    { excludeCharacterID: numericCharacterID },
+    () => applyFolderUpdate(numericCharacterID, view, options),
+  );
+}
+
+function applyFolderUpdate(numericCharacterID, view, options = {}) {
   const updatedFolder = setFolderRecord({
     ...view.folder,
     folderName: sanitizeFolderName(options.folderName, view.folder.folderName),

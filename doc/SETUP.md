@@ -17,7 +17,7 @@ The supported address is `127.0.0.1`. The Docker configuration publishes every r
 Docker is the easiest backend setup. It builds a Linux image containing:
 
 - the Node.js game server;
-- the Rust market daemon plus the v1, v2, and v3 market seed engines;
+- the Rust market daemon and all four seed types: synthetic, Tranquility snapshot, cost-priced Jita and Iron Man;
 - automatic first-run static game-data initialization;
 - persistent game and market SQLite databases.
 
@@ -72,7 +72,7 @@ docker build --tag evejs-local .
 
 ### 2. Choose and build the market once
 
-There is one Rust market daemon and three ways to populate its SQLite database. Docker never chooses or replaces a market during normal startup. List the choices:
+There is one Rust market daemon and four ways to populate its SQLite database. Docker never chooses or replaces a market during normal startup. List the choices:
 
 ```powershell
 docker compose run --rm --no-deps market-tools engines
@@ -98,7 +98,13 @@ Or seed Jita 4-4 from the game's own manufacturing cost, with the Tranquility NP
 docker compose run --rm --no-deps market-tools rebuild v3
 ```
 
-The first rebuild also downloads the approximately 80 MB EVE SDE and generates the static game tables. V2 and v3 additionally download the current market snapshot.
+Or start an Iron Man run with only authentic NPC stock and buybacks (BPOs, skillbooks, command centers and trade goods):
+
+```powershell
+docker compose run --rm --no-deps market-tools rebuild v4
+```
+
+The first rebuild also downloads the approximately 80 MB EVE SDE and generates the static game tables. V2, v3 and v4 additionally download the current market snapshot.
 
 ### 3. Start the backend
 
@@ -168,13 +174,14 @@ Normal startup preserves both databases. The initializer only creates missing st
 
 ### Market seed engines and maintenance
 
-V1, v2, and v3 are seed engines, not different market daemons. All three produce `market.sqlite` for the same Rust server.
+V1, v2, v3 and v4 are seed types for the same Rust market daemon. All four produce `market.sqlite`.
 
 | Engine | Source | Best use |
 |---|---|---|
 | `v1` | Deterministic synthetic prices and quantities from local static data | Fast, repeatable local worlds |
 | `v2` | Latest EVE Ref Tranquility station-order snapshot | TQ-like station liquidity and NPC stock |
 | `v3` | Manufacturing cost computed from local static data, plus the Tranquility NPC catalog | A cost-anchored Jita trade hub with authentic NPC blueprints and skillbooks |
+| `v4` | Only authentic NPC orders from the Tranquility snapshot | Iron Man runs: NPC BPOs, skillbooks and other NPC stock; players produce the rest |
 
 V1 supports `jita_new_caldari`, `jita_only`, `new_caldari_only`, and `full_universe`. List them with:
 
@@ -192,9 +199,14 @@ docker compose run --rm --no-deps market-tools snapshot-info
 
 V2 reuses the current matching snapshot from the persistent download cache by default. Add `--fresh-download` to a v2 rebuild command to ignore that cache and download the snapshot again.
 
+V4 reuses the v2 importer and cache with a strict Iron Man filter: NPC orders only,
+at original stations, prices and quantities, including NPC buybacks. Custom-station
+stock is disabled. Run `docker compose run --rm --no-deps market-tools rebuild v4`
+with `server` and `market` stopped. Add `--fresh-download` to fetch the snapshot again.
+
 V3 is new. It prices Jita 4-4 from the game's own manufacturing cost — each type costed bottom-up through its blueprint tree, then asked at 3x that cost and bid at 1x — and lays the Tranquility NPC catalog underneath it: T1 blueprint originals, skillbooks, planetary command centers, and the trade goods NPCs buy back, at the stations, prices, and volumes TQ itself uses. Its prices come from a manifest committed to this repository, so every deployment seeds identical economics and a build is deterministic and offline once the snapshot is cached. V3 takes no preset or order filter; `rebuild v3` is the whole command. Add `--skip-overlay` to build the Jita seed without the NPC catalog, or `--fresh-download` to ignore the cached snapshot.
 
-A money-pump audit gates a v3 rebuild. If any loop would let a player turn seed-bought goods back into more ISK than they cost, the candidate is not installed and the live market database is left exactly as it was. See [the v3 seeder guide](../tools/market-seederv3/README.md) for the detail and [the Jita index seed plan](JITA_INDEX_SEED_PLAN.md) for the design.
+A money-pump audit gates a v3 rebuild. If any loop would let a player turn seed-bought goods back into more ISK than they cost, the candidate is not installed and the live market database is left exactly as it was. See [the v3 seeder guide](../tools/market-seederv3/README.md) for the detail and [Readme](../tools/market-seederv3/README.md) for the design.
 
 #### Rebuild an existing market
 
@@ -338,7 +350,7 @@ The tool is not in the Docker image yet, so Docker installs cannot run it.
 
 ### Changing server configuration
 
-Server configuration lives in the repository-root `config/` directory. EvEJS 261028.1 config schema 1 exposes 172 active settings, divided by purpose so you can find and review them without editing one generated megafile:
+Server configuration lives in the repository-root `config/` directory. EvEJS 261108.1 config schema 1 exposes 172 active settings, divided by purpose so you can find and review them without editing one generated megafile:
 
 | File | Settings | Contents |
 |---|---:|---|
@@ -535,7 +547,7 @@ npm --prefix server ci
 1. `tools\ClientSETUP\StartClientSetup.bat`
 2. `tools\DatabaseCreator\CreateDatabase.bat`
 3. `tools\InstallRustForMarket.bat`
-4. `BuildMarketSeed.bat` — choose **Jita + New Caldari**
+4. `BuildMarketSeed.bat` — choose a seed type; for a quick starter market, choose **v1**, then **Jita + New Caldari**
 5. `StartMarketServer.bat` — choose the release-server option
 6. `StartServer.bat` — choose **Server + Play**
 
@@ -637,7 +649,7 @@ The same two commands make a complete backup and restore on one PC.
 - `curl.exe http://127.0.0.1:26002/health` — check the Node HTTP side.
 - `curl.exe http://127.0.0.1:40110/health` — check the Rust market.
 - If Docker cannot publish port `443`, stop the other local program using it before starting EVE.js.
-- If the market database is missing, run `docker compose run --rm --no-deps market-tools status`, then choose an explicit v1, v2, or v3 rebuild command above.
+- If the market database is missing, run `docker compose run --rm --no-deps market-tools status`, then choose an explicit v1, v2, v3 or v4 rebuild command above.
 - If a v3 rebuild stops on its money-pump audit, the live market database was not replaced; read the reported loops before changing any pricing and rebuilding.
 - If a rebuild says the market is in use, run `docker compose stop server market` and retry it.
 - If the client rejects local TLS, rerun the client setup wizard while the Docker backend is healthy so it installs the persisted Docker CA.
@@ -649,7 +661,6 @@ The same two commands make a complete backup and restore on one PC.
 - [Market setup](MARKET_SETUP.md)
 - [Market seeder guide](MARKET_SEEDER.md)
 - [Jita index seeder, v3](../tools/market-seederv3/README.md)
-- [Jita index seed design plan](JITA_INDEX_SEED_PLAN.md)
+- [Iron Man NPC-only seeder, v4](../tools/market-seederv4/README.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
 - [Tools and admin basics](TOOLS.md)
-- [Non-Docker setup audit and improvement report](NON_DOCKER_SETUP_AUDIT.md)

@@ -59,6 +59,7 @@ const {
 const DEFAULT_MCT_GRANT_DAYS = 30;
 const OLD_ACCOUNT_CREATE_FILETIME = "132000000000000000";
 const LOCAL_QA_REDEEM_TOKEN_BASE = 700000000;
+const redeemClaimLanes = new Map();
 const TYPE_THAT_GIVES_ISK = 52996;
 const TYPE_THAT_GIVES_HERALDRY_LP = 73277;
 const MULTIPLE_CHARACTER_TRAINING_TOKEN_TYPE_IDS = new Set([
@@ -190,6 +191,34 @@ function getMergedTrainingSlots(accountID) {
   return getTrainingSlotsForAccount(accountID);
 }
 
+// The slots as the client of a character in the AIR tutorial is told them: one more. The client
+// counts slots against the character selection data it cached at login, and when it finds them
+// all in use, its "Train Skills" reloads the queue from the server and drops the skill just added
+// (skillQueueSvc.OnClientQueueModified). The account keeps its licensed training-slot limit:
+// a valid tutorial activation preempts only the busy slots it needs; saving a
+// paused queue never does (skillQueueRuntime.saveQueue).
+//
+// Only running queues are listed. The client reads every entry as an active queue: the
+// activation dialog labels it AdditionalQueueActive with an Extend button, the character
+// sheet's plexPanel draws it green, and skillQueueSvc.IsAllCharacterTrainingSlotsUsed counts
+// 1 + len(slots) queues. TQ answers {} for an account without MCT (GetMultiCharactersTrainingSlots
+// retval={} in every golden login log). An expired queue keeps its key in the account record so
+// a later activation still picks it first (selectTrainingSlot).
+function getSessionTrainingSlots(session) {
+  const now = currentFileTime();
+  const slots = Object.fromEntries(
+    Object.entries(getMergedTrainingSlots(getAccountIDFromSession(session)))
+      .filter(([, expiry]) => toFileTimeBigInt(expiry, 0n) > now),
+  );
+  const characterID = Number(session && (session.characterID || session.charid)) || 0;
+  if (characterID > 0 && require(path.join(__dirname, "../npe/airNpeRuntime")).isTutorialActive(characterID)) {
+    let slot = 2;
+    while (Object.prototype.hasOwnProperty.call(slots, String(slot))) slot += 1;
+    slots[String(slot)] = DEFAULT_MCT_EXPIRY_FILETIME;
+  }
+  return slots;
+}
+
 function buildTrainingSlotList(trainingSlots) {
   return {
     type: "list",
@@ -270,6 +299,7 @@ function normalizeRedeemTokenRecord(token) {
     typeID,
     quantity,
     ...(source.campaignGrant ? { campaignGrant: { ...source.campaignGrant } } : {}),
+    ...(source.projectDiscoveryGrant ? { projectDiscoveryGrant: { ...source.projectDiscoveryGrant } } : {}),
     stationID: normalizePositiveInteger(source.stationID, 0),
     dateTime: normalizeFileTimeString(source.dateTime, "0"),
     expireDateTime: normalizeFileTimeString(source.expireDateTime, "0"),
@@ -300,11 +330,11 @@ function writeRedeemTokensForAccount(accountID, tokens) {
   const normalizedTokens = (Array.isArray(tokens) ? tokens : [])
     .map(normalizeRedeemTokenRecord)
     .filter(Boolean);
-  writeRuntimeAccount(accountID, {
+  const written = writeRuntimeAccount(accountID, {
     ...runtimeAccount,
     redeemTokens: normalizedTokens,
   });
-  return normalizedTokens;
+  return written ? normalizedTokens : null;
 }
 
 function buildRedeemTokenPayload(token) {
@@ -512,9 +542,19 @@ function syncInventoryItemChange(session, item, previousState = {}) {
 }
 
 function selectTrainingSlot(trainingSlots, requestedTrainingID) {
+  // The client offers two extra queues, trainingIDs 2 and 3.
   const requestedSlot = Number(requestedTrainingID) || 0;
-  if (requestedSlot >= 2) {
+  if (requestedSlot === 2 || requestedSlot === 3) {
     return String(requestedSlot);
+  }
+
+  // No trainingID is the dialog's "Activate" button: open a queue that is not
+  // running before extending one that is.
+  const now = currentFileTime();
+  for (const slot of ["2", "3"]) {
+    if (BigInt(String(trainingSlots[slot] || "0")) <= now) {
+      return slot;
+    }
   }
 
   return Object.entries(trainingSlots)
@@ -741,6 +781,7 @@ class UserService extends BaseService {
       if (!token.available) {
         return false;
       }
+      if (token.campaignGrant) return !require("../campaign/loginCampaignRuntime").isExpired(token);
       const expiry = toFileTimeBigInt(token.expireDateTime, 0n);
       return expiry <= 0n || expiry > now;
     });
@@ -752,7 +793,7 @@ class UserService extends BaseService {
 
   Handle_GetMultiCharactersTrainingSlots(args, session) {
     log.debug("[userSvc] GetMultiCharactersTrainingSlots called");
-    const configuredSlots = getMergedTrainingSlots(getAccountIDFromSession(session));
+    const configuredSlots = getSessionTrainingSlots(session);
 
     return {
       type: "dict",
@@ -765,16 +806,20 @@ class UserService extends BaseService {
 
   Handle_GetUpdatedMultiCharacterTraining(args, session) {
     log.debug("[userSvc] GetUpdatedMultiCharacterTraining called");
-    return buildTrainingSlotList(getMergedTrainingSlots(getAccountIDFromSession(session)));
+    return buildTrainingSlotList(getSessionTrainingSlots(session));
   }
 
-  Handle_ActivateMultiTraining(args, session, kwargs) {
+  Handle_ActivateMultiTraining(args, session, kwargs, callContext = null) {
     const accountID = getAccountIDFromSession(session);
-    log.info(
-      `[userSvc] ActivateMultiTraining denied user=${accountID}: no MCT entitlement supplied`,
+    // Native Activate supplies None; Extend supplies the queue's own ID.
+    const rawItemIDs = unwrapMarshalValue(args && args[0]);
+    const itemID = normalizePositiveInteger(
+      Array.isArray(rawItemIDs) ? rawItemIDs[0] : rawItemIDs,
+      0,
     );
-    // Store purchases settle their MCT entitlement immediately. A bare client
-    // RPC has no proof of payment, so it can only refresh the current slots.
+    const trainingID = getKwargValue(kwargs, "trainingID", null);
+    const result = require("./mctCertificateActivation").activate(itemID, trainingID, session, callContext);
+    if (!result.success) log.info(`[userSvc] ActivateMultiTraining denied user=${accountID} itemID=${itemID}: ${result.errorMsg}`);
     return buildTrainingSlotList(getMergedTrainingSlots(accountID));
   }
 
@@ -821,7 +866,36 @@ class UserService extends BaseService {
     return true;
   }
 
-  async Handle_ClaimRedeemTokens(args, session, kwargs) {
+  Handle_ClaimRedeemTokens(args, session, kwargs) {
+    const accountID = getAccountIDFromSession(session);
+    const characterID = normalizePositiveInteger(args?.[1], 0) || getCharacterIDFromSession(session);
+    const claim = async () => {
+      const consumedTokenIDs = new Set();
+      try {
+        return await this._claimRedeemTokens(args, session, kwargs, accountID, characterID, consumedTokenIDs);
+      } finally {
+        // Preserve earlier successes even if a later grant throws. Read the
+        // queue again so rewards enqueued during wallet I/O are retained.
+        if (consumedTokenIDs.size > 0) {
+          const remaining = getRedeemTokensForAccount(accountID)
+            .filter((token) => !consumedTokenIDs.has(Number(token.tokenID)));
+          if (!writeRedeemTokensForAccount(accountID, remaining)) {
+            throw new Error("REDEEM_TOKEN_WRITE_FAILED");
+          }
+        }
+      }
+    };
+    const previous = redeemClaimLanes.get(accountID) || Promise.resolve();
+    const next = previous.then(claim, claim);
+    redeemClaimLanes.set(accountID, next);
+    return next.finally(() => {
+      if (redeemClaimLanes.get(accountID) === next) {
+        redeemClaimLanes.delete(accountID);
+      }
+    });
+  }
+
+  async _claimRedeemTokens(args, session, kwargs, accountID, characterID, consumedTokenIDs) {
     const requestedTokens = extractRequestedRedeemTokens(args && args[0]);
     const tokenCount = requestedTokens.length;
     log.info(`[userSvc] ClaimRedeemTokens tokenCount=${tokenCount}`);
@@ -834,10 +908,6 @@ class UserService extends BaseService {
       });
     }
 
-    const accountID = getAccountIDFromSession(session);
-    const characterID =
-      normalizePositiveInteger(args && args.length > 1 ? args[1] : 0, 0) ||
-      getCharacterIDFromSession(session);
     const useHomeStation = Boolean(getKwargValue(kwargs, "useHomeStation", false));
     const destinationID = resolveRedeemDestinationID(session, characterID, useHomeStation);
     const currentTokens = getRedeemTokensForAccount(accountID);
@@ -845,11 +915,9 @@ class UserService extends BaseService {
     const itemsCreated = [];
     let iskRewarded = 0;
     let skillPointsRewarded = 0;
-    const consumedTokenIDs = new Set();
-
     for (const request of requestedTokens) {
       const token = currentTokens.find((candidate) => tokenMatchesRequest(candidate, request));
-      if (!token) {
+      if (!token || consumedTokenIDs.has(Number(token.tokenID))) {
         errors.push([
           request.tokenID || request.massTokenID,
           buildRedeemErrorPayload("RedeemTokenNotFound"),
@@ -864,7 +932,7 @@ class UserService extends BaseService {
         continue;
       }
 
-      if (token.campaignGrant) {
+      if (token.campaignGrant || token.projectDiscoveryGrant) {
         try {
           const delivered = await require("../campaign/loginCampaignRedemption").redeem(
             accountID, token, characterID, destinationID, session,
@@ -1032,13 +1100,6 @@ class UserService extends BaseService {
           );
         }
       }
-    }
-
-    if (consumedTokenIDs.size > 0) {
-      writeRedeemTokensForAccount(
-        accountID,
-        getRedeemTokensForAccount(accountID).filter((token) => !consumedTokenIDs.has(Number(token.tokenID))),
-      );
     }
 
     return {

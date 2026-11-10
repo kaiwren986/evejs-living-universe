@@ -42,8 +42,46 @@ const {
   getCorporationRecord,
 } = require("../corporation/corporationState");
 const {
+  buildAllianceMemberSnapshot,
+  buildAllianceSummary,
+  buildCorporationSnapshot,
+  notifyAllianceChanged,
+  notifyAllianceMemberChanged,
   notifyCorporationChanged,
 } = require("../corporation/corporationNotifications");
+
+// The GM alliance commands change a corporation's alliance outside the normal
+// founding/application flows, which tell everyone through these events. Take
+// the snapshots before the change, then send the same notifications.
+function captureAllianceAffiliationBefore(corporationRecord) {
+  const corporationID = Number(corporationRecord && corporationRecord.corporationID) || 0;
+  const previousAllianceID = Number(corporationRecord && corporationRecord.allianceID) || 0;
+  return {
+    corporationID,
+    previousAllianceID,
+    corporation: corporationID ? buildCorporationSnapshot(corporationID) : null,
+    previousAlliance: previousAllianceID ? buildAllianceSummary(previousAllianceID) : null,
+    previousMember: previousAllianceID
+      ? buildAllianceMemberSnapshot(previousAllianceID, corporationID)
+      : null,
+  };
+}
+
+function notifyAllianceAffiliationChanged(before, allianceID) {
+  const nextAllianceID = Number(allianceID) || 0;
+  if (!before || !before.corporationID) {
+    return;
+  }
+  if (before.previousAllianceID && before.previousAllianceID !== nextAllianceID) {
+    notifyAllianceMemberChanged(before.previousAllianceID, before.corporationID, before.previousMember);
+    notifyAllianceChanged(before.previousAllianceID, before.previousAlliance);
+  }
+  if (nextAllianceID) {
+    notifyAllianceChanged(nextAllianceID, null);
+    notifyAllianceMemberChanged(nextAllianceID, before.corporationID, null);
+  }
+  notifyCorporationChanged(before.corporationID, before.corporation);
+}
 const worldData = require("../../space/worldData");
 const spaceRuntime = require("../../space/runtime");
 const {
@@ -78,6 +116,8 @@ const {
   getDockedLocationKind,
 } = require(path.join(__dirname, "../structure/structureLocation"));
 const {
+  executeExtractionGmCommand,
+  executeStructureGmCommand,
   executeUpwellCommand,
 } = require(path.join(__dirname, "../structure/structureChatCommands"));
 const {
@@ -178,6 +218,7 @@ const {
 const {
   handleSolarTeleport,
   handleTransportCommand,
+  handleFetchCommand,
   handleTeleCommand,
   handleHomeDock,
   handleDeadwarpCommand,
@@ -243,6 +284,8 @@ const {
 const {
   handleInvuCommand,
   handleHealCommand,
+  handleRepairModulesCommand,
+  handleNativeHealCommand,
   handleDamageCommand,
 } = require(path.join(__dirname, "./commands/shipHealth"));
 const {
@@ -298,6 +341,7 @@ const {
 } = require(path.join(__dirname, "./commands/specialEffects"));
 
 const AVAILABLE_SLASH_COMMANDS = [
+  "copyship",
   "orbitals",
   "events",
   "addisk",
@@ -324,7 +368,10 @@ const AVAILABLE_SLASH_COMMANDS = [
   "grantalliancelogo",
   "hangar",
   "dmg",
+  "dogma",
   "heal",
+  "ceq",
+  "interference",
   "help",
   "item",
   "iteminfo",
@@ -334,6 +381,9 @@ const AVAILABLE_SLASH_COMMANDS = [
   "pos",
   "upwell",
   "upwellauto",
+  "structure",
+  "extraction",
+  "war",
   "bpauto",
   "bp",
   "bookmarkauto",
@@ -380,6 +430,16 @@ const AVAILABLE_SLASH_COMMANDS = [
   "giveitem",
   "fit",
   "unfit",
+  "unload",
+  "online",
+  "getshipsetup",
+  "repairmodules",
+  "reportdesync",
+  "fetch",
+  "spawn",
+  "spawnn",
+  "entity",
+  "unspawn",
   "create",
   "createitem",
   "load",
@@ -498,6 +558,9 @@ const COMMANDS_HELP_TEXT = [
   "/dmg [light|medium|heavy]",
   "/killmarks <count> [shipID]",
   "/heal",
+  "/ceq <0-100> (GM only; /ceq 100 refills your CEQ)",
+  "/interference reset (GM only; resets signal interference in your current system)",
+  "/chowner <containerID> <characterID>",
   "/deer_hunter",
   "/effect <name>",
   "/keepstar",
@@ -505,6 +568,9 @@ const COMMANDS_HELP_TEXT = [
   "/upwell <subcommand>",
   "/upwellauto <type|structureID>",
   "/upwellauto undock <structureID> [count] [all|unpublished|published]",
+  "/structure <state|timer|deploytimer|unanchor|abandontimer> <structureID> [value]",
+  "/extraction advance <mid|stop|ready|decay> [structureID]",
+  "/war start <warID>",
   "/bpauto <subcommand>",
   "/bp <subcommand>",
   "/bookmarkauto <subcommand>",
@@ -521,7 +587,9 @@ const COMMANDS_HELP_TEXT = [
   "/titansupershow [count]",
   "/giveitem <item name|typeID> [amount]",
   "/fit me <module name|typeID>",
+  "/copyship <activeShipID> 1",
   "/unfit me <module name|typeID|itemID|all>",
+  "/dogma <me|activeShipID> <attributeName> = <value> | /dogma me reset",
   "/create <item name|typeID> [amount]",
   "/createitem <item name|typeID> [amount]",
   "/minerals",
@@ -529,8 +597,10 @@ const COMMANDS_HELP_TEXT = [
   "/giveskill <target> <skill|all|super> [level]",
   "/allskins [me|characterID|character name]",
   "/allskinr [me|characterID|character name]",
-  "/skinr list [target] | /skinr delete <draft UUID|all> [target]",
+  "/skinr list [target]",
+  "/skinr skins [target] | /skinr delete <SKIN hash> [target] | /skinr delete confirm all [target]",
   "/skinr export <draft UUID> [target] | /skinr import <filename.skinr.json> [target]",
+  "/skinr store import <filename.skinr.json> [price [ISK|PLEX] [quantity]]",
   "/removeskill <target> <skill|all>",
   "/laser",
   "/lasers",
@@ -1083,10 +1153,13 @@ function sendAnnouncement(chatHub, session, message) {
 }
 
 function getCommandsHelpText(session) {
+  const voidReplayHelp = require("../../config").voidReplayEnabled === true
+    ? "\n/voidreplay — replay Ruined Electrical from an expired filament in cargo"
+    : "";
   if (!hasStaffDebugRole(session)) {
-    return `${COMMANDS_HELP_TEXT}\n\n${ABYSSAL_PLAYER_HELP_TEXT}`;
+    return `${COMMANDS_HELP_TEXT}\n\n${ABYSSAL_PLAYER_HELP_TEXT}${voidReplayHelp}`;
   }
-  return `${COMMANDS_HELP_TEXT}\n\n${ABYSSAL_PLAYER_HELP_TEXT}\n\n${STAFF_ABYSSAL_HELP_TEXT}\n/fireshow [count|stop] — temporary native festival formation\n/gate <type> <destination> | /gate stop\n/gateshowcase [destination|stop]`;
+  return `${COMMANDS_HELP_TEXT}\n\n${ABYSSAL_PLAYER_HELP_TEXT}${voidReplayHelp}\n\n${STAFF_ABYSSAL_HELP_TEXT}\n/fireshow [count|stop] — temporary native festival formation\n/gate <type> <destination> | /gate stop\n/gateshowcase [destination|stop]`;
 }
 
 function executeChatCommand(session, rawMessage, chatHub, options = {}) {
@@ -1117,6 +1190,10 @@ function executeChatCommand(session, rawMessage, chatHub, options = {}) {
     return handledResult(chatHub, session, options, getCommandsHelpText(session));
   }
 
+  if (command === "copyship") {
+    return require("./commands/copyShip").handleCopyShipCommand(session, argumentText, chatHub, options);
+  }
+
   if (command === "motd") {
     return handledResult(chatHub, session, options, DEFAULT_MOTD_MESSAGE);
   }
@@ -1140,6 +1217,9 @@ function executeChatCommand(session, rawMessage, chatHub, options = {}) {
 
   if (command === "where") {
     return handledResult(chatHub, session, options, getLocationSummary(session));
+  }
+  if (command === "voidreplay") {
+    return require("./commands/voidReplay").handleVoidReplayCommand(session, argumentText, chatHub, options);
   }
   if (command === "orbitals") {
     return handledResult(chatHub, session, options,
@@ -1171,11 +1251,69 @@ function executeChatCommand(session, rawMessage, chatHub, options = {}) {
   }
 
   if (command === "heal") {
+    if (/^\d+\s+0$/.test(argumentText.trim())) {
+      return require("./commands/nativeDestroy").handleNativeDestroyCommand(session, argumentText, chatHub, options);
+    }
+    if (argumentText) return handleNativeHealCommand(session, argumentText, chatHub, options);
     return handleHealCommand(session, chatHub, options);
+  }
+
+  if (command === "ceq") {
+    const { normalizeRoleValue, ROLE_GML, ROLE_WORLDMOD } = require("../account/accountRoleProfiles");
+    const role = normalizeRoleValue(session?.accountRole ?? session?.role, 0n);
+    if ((role & (ROLE_GML | ROLE_WORLDMOD)) === 0n) {
+      return handledResult(chatHub, session, options, "Only GM accounts can use /ceq.");
+    }
+    const level = Number(argumentText);
+    if (rest.length !== 1 || !/^(?:\d+(?:\.\d+)?|\.\d+)$/.test(argumentText) ||
+        !Number.isFinite(level) || level < 0 || level > 100) {
+      return handledResult(chatHub, session, options, "Usage: /ceq <0-100> (for example, /ceq 100).");
+    }
+    const result = require("../character/characterEnergyMgrService").setCharacterEnergyLevel(session, level);
+    const message = result.success ? `Set your CEQ to ${level}.`
+      : result.errorMsg === "CHARACTER_NOT_FOUND" ? "Select a character before using /ceq."
+        : result.errorMsg === "INVALID_CHARACTER_ENERGY_LEVEL" ? "CEQ must be within your character's energy limits (0-100)."
+          : `Unable to set CEQ: ${result.errorMsg || "storage failed"}.`;
+    return handledResult(chatHub, session, options, message);
+  }
+
+  if (command === "interference") {
+    const { normalizeRoleValue, ROLE_GML, ROLE_WORLDMOD } = require("../account/accountRoleProfiles");
+    const role = normalizeRoleValue(session?.accountRole ?? session?.role, 0n);
+    if ((role & (ROLE_GML | ROLE_WORLDMOD)) === 0n) {
+      return handledResult(chatHub, session, options, "Only GM accounts can use /interference.");
+    }
+    if (rest.length !== 1 || argumentText.toLowerCase() !== "reset") {
+      return handledResult(chatHub, session, options, "Usage: /interference reset");
+    }
+    const result = require("../map/solarsystemInterferenceMgrService").resetLocalInterference(session);
+    let message;
+    if (result.success) {
+      const id = result.data.solarSystemID;
+      const name = worldData.getSolarSystemByID(id)?.solarSystemName || `system ${id}`;
+      message = `Reset signal interference in ${name} to 0%.`;
+    } else {
+      message = result.errorMsg === "CHARACTER_NOT_FOUND" ? "Select a character before using /interference."
+        : result.errorMsg === "SOLAR_SYSTEM_NOT_FOUND" ? "No current public solar system is available."
+          : `Unable to reset signal interference: ${result.errorMsg || "storage failed"}.`;
+    }
+    return handledResult(chatHub, session, options, message);
+  }
+
+  if (command === "repairmodules") {
+    return handleRepairModulesCommand(session, argumentText, chatHub, options);
+  }
+
+  if (command === "chowner") {
+    return require("./commands/changeOwner").handleChangeOwnerCommand(session, argumentText, chatHub, options);
   }
 
   if (command === "effect") {
     return handleEffectCommand(session, argumentText, chatHub, options);
+  }
+
+  if (command === "dogma") {
+    return require("./commands/dogma").handleDogmaCommand(session, argumentText, chatHub, options);
   }
 
   if (command === "fireshow") {
@@ -1189,6 +1327,27 @@ function executeChatCommand(session, rawMessage, chatHub, options = {}) {
   if (command === "upwell") {
     const result = executeUpwellCommand(session, argumentText);
     structureLog.logCommand(session, `/upwell ${argumentText}`.trim(), result);
+    return handledResult(chatHub, session, options, result.message);
+  }
+
+  // The client's own GM structure menu (eve/client/script/ui/structure/
+  // structuremenu.py:74-94) sends /structure state|timer|unanchor|deploytimer|
+  // abandontimer through the slash service.
+  if (command === "structure") {
+    const result = executeStructureGmCommand(session, argumentText);
+    structureLog.logCommand(session, `/structure ${argumentText}`.trim(), result);
+    return handledResult(chatHub, session, options, result.message);
+  }
+
+  if (command === "war") {
+    const result = require("../corporation/warGmCommands").executeWarGmCommand(session, argumentText);
+    return handledResult(chatHub, session, options, result.message);
+  }
+
+  // The client's moon scheduling window GM buttons (ui/moonmining/scheduling.py:275-278).
+  if (command === "extraction") {
+    const result = executeExtractionGmCommand(session, argumentText);
+    structureLog.logCommand(session, `/extraction ${argumentText}`.trim(), result);
     return handledResult(chatHub, session, options, result.message);
   }
 
@@ -1654,7 +1813,15 @@ function executeChatCommand(session, rawMessage, chatHub, options = {}) {
       );
     }
 
-    const result = createCustomCorporation(session.characterID, argumentText);
+    // A corporation's headquarters must be an NPC station. The client's own
+    // creation flow takes the station from the session (empty when the founder
+    // sits in a player structure); this GM shortcut has no client flow behind
+    // it, so it fixes a valid default instead: Jita IV-4, which a director can
+    // move later with the normal Move HQ action.
+    const GM_CORP_CREATE_STATION_ID = 60003760;
+    const result = createCustomCorporation(session.characterID, argumentText, {
+      stationID: GM_CORP_CREATE_STATION_ID,
+    });
     if (!result.success) {
       const message =
         result.errorMsg === "CORPORATION_NAME_TAKEN"
@@ -1704,6 +1871,7 @@ function executeChatCommand(session, rawMessage, chatHub, options = {}) {
       );
     }
 
+    const affiliationBefore = captureAllianceAffiliationBefore(corporationRecord);
     const result = createCustomAllianceForCorporation(
       session.characterID,
       corporationRecord.corporationID,
@@ -1720,6 +1888,7 @@ function executeChatCommand(session, rawMessage, chatHub, options = {}) {
     }
 
     refreshAffiliationSessions(result.data.affectedCharacterIDs);
+    notifyAllianceAffiliationChanged(affiliationBefore, result.data.allianceID);
     return handledResult(
       chatHub,
       session,
@@ -1757,6 +1926,7 @@ function executeChatCommand(session, rawMessage, chatHub, options = {}) {
       );
     }
 
+    const affiliationBefore = captureAllianceAffiliationBefore(corporationRecord);
     const result = joinCorporationToAllianceByName(
       corporationRecord.corporationID,
       argumentText,
@@ -1774,6 +1944,7 @@ function executeChatCommand(session, rawMessage, chatHub, options = {}) {
     }
 
     refreshAffiliationSessions(result.data.affectedCharacterIDs);
+    notifyAllianceAffiliationChanged(affiliationBefore, result.data.allianceID);
     return handledResult(
       chatHub,
       session,
@@ -2395,6 +2566,38 @@ function executeChatCommand(session, rawMessage, chatHub, options = {}) {
 
   if (command === "unfit") {
     return handleUnfitCommand(session, argumentText, chatHub, options);
+  }
+
+  // menusvc.py and the GM "Unload All" macro use this spelling for unfitting.
+  if (command === "unload") {
+    if (!hasStaffDebugRole(session)) {
+      return handledResult(chatHub, session, options, "/unload requires a staff/admin role.");
+    }
+    return handleUnfitCommand(session, argumentText, chatHub, options);
+  }
+
+  if (command === "online") {
+    return require("./commands/onlineModules").handleOnlineCommand(session, argumentText, chatHub, options);
+  }
+
+  if (command === "getshipsetup") {
+    return require("./commands/shipSetup").handleGetShipSetupCommand(session, argumentText, chatHub, options);
+  }
+
+  if (command === "reportdesync") {
+    return require("./commands/reportDesync").handleReportDesyncCommand(session, argumentText, chatHub, options);
+  }
+
+  if (command === "fetch") {
+    return handleFetchCommand(session, argumentText, chatHub, options);
+  }
+
+  if (["spawn", "spawnn", "entity"].includes(command)) {
+    return require("./commands/nativeSpawns").handleNativeSpawnCommand(session, command, argumentText, chatHub, options);
+  }
+
+  if (command === "unspawn") {
+    return require("./commands/unspawn").handleUnspawnCommand(session, argumentText, chatHub, options);
   }
 
   if (command === "hangar") {

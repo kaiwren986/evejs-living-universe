@@ -65,6 +65,16 @@ const profiles = freeze([
     defenseTypes: [101, 100, 103, 102], utilityTypes: [0, 1, 3, 2], cacheUtilityTypes: [0, 1, 3, 2]},
 ]);
 
+// A site container may bring its own board (populationHints.containers[].hackingBoard, the
+// career agents' Training Containers): these fields replace the tier profile's.
+const BOARD_FIELDS = freeze(["width", "height", "core", "antivirus", "firewall", "restoration", "suppressor",
+  "defenseTypes", "utilityTypes", "cacheUtilityTypes", "randomDefenseCount", "cacheDefenses"]);
+function boardProfileFor(tier, board) {
+  if (!board || typeof board !== "object" || Array.isArray(board)) return profiles[tier];
+  const own = Object.fromEntries(BOARD_FIELDS.filter(key => board[key] !== undefined).map(key => [key, board[key]]));
+  return freeze({...profiles[tier], ...own, name: `${profiles[tier].name} (site board)`});
+}
+
 // Per-size soft fits to PR #201's mixed-size sample. The exemption chance keeps
 // the observed short tail of cells with one or two surviving neighbours.
 const holeFits = freeze({
@@ -165,7 +175,8 @@ function digPresentTiles(board, profile) {
   // Store full-grid adjacency once: the hole fit counts surviving neighbours,
   // whereas Rule of Eight measures distance through the complete envelope.
   const adjacent = new Map(cells.map(node => [key(node), neighbours(cells, node)]));
-  const fit = holeFits[`${profile.height}x${profile.width}`];
+  // A size without its own fit (the training board) digs like the 8x8 sample.
+  const fit = holeFits[`${profile.height}x${profile.width}`] || holeFits["8x8"];
   const removed = new Set();
   const canRemove = (node, cluster) => {
     if (random(board) < fit.exemptChance) return true;
@@ -289,13 +300,14 @@ function populate(board, profile) {
     }
     return selected;
   };
-  const defenseCount = Math.floor(defensePool.length / 15) + 1;
+  const hasDefenses = profile.defenseTypes.length > 0;
+  const defenseCount = !hasDefenses ? 0 : profile.randomDefenseCount ?? Math.floor(defensePool.length / 15) + 1;
   for (const node of take(defensePool, defenseCount)) {
     Object.assign(node, defense(profile, choose(board, profile.defenseTypes)));
   }
-  const guardPool = neighbours(tiles, core).filter(node => !occupied.has(key(node)) &&
-    neighborCount.get(key(node)) < 6 && !startNeighbors.has(key(node)));
-  const guard = choose(board, guardPool);
+  const guardPool = hasDefenses ? neighbours(tiles, core).filter(node => !occupied.has(key(node)) &&
+    neighborCount.get(key(node)) < 6 && !startNeighbors.has(key(node))) : [];
+  const guard = guardPool.length ? choose(board, guardPool) : null;
   if (guard) {
     occupied.add(key(guard));
     Object.assign(guard, defense(profile, choose(board, profile.defenseTypes)));
@@ -319,7 +331,7 @@ function populate(board, profile) {
   // the PR's reported +10 coherence; its unverified repair bonus is omitted.
   for (const node of utilities) node.utility = utility(board, node.subtype);
   for (const node of caches) {
-    if (random(board) < 0.5) {
+    if (!hasDefenses || profile.cacheDefenses === false || random(board) < 0.5) {
       node.cacheContents = {type: 5, ...utility(board, choose(board, profile.cacheUtilityTypes))};
     } else {
       const types = profile.tier <= 2 ? [101, 100] : profile.defenseTypes;
@@ -328,9 +340,9 @@ function populate(board, profile) {
     }
   }
 }
-function create({difficulty = 1, seed = 0, coherence = 100, strength = 20, slots = 3} = {}) {
+function create({difficulty = 1, seed = 0, coherence = 100, strength = 20, slots = 3, siteBoard = null} = {}) {
   const tier = resolveHackingDifficultyTier(difficulty);
-  const profile = profiles[tier];
+  const profile = boardProfileFor(tier, siteBoard);
   const initialCoherence = positiveInteger(coherence, 100, 1000000);
   const initialStrength = positiveInteger(strength, 20, 1000000);
   const slotCount = typeof slots === "number" && Number.isFinite(slots) && slots >= 0

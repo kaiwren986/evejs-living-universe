@@ -1,0 +1,517 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "TQ_standing_packet",
+  "validationTODO": "TODO: Direct TQ decline packets for agents outside the decline studies. Each is an observed loss, so it outranks the per-LP projection for that exact agent context and mission. Losses are published without Social, so these are final values. Repeated declines of one mission use the median.",
+  "agentsByID": {
+    "3020249": {
+      "agentID": 3020249,
+      "agentTypeID": 2,
+      "level": 1,
+      "missionKind": "encounter",
+      "corporationID": 1000035,
+      "factionID": 500001,
+      "stationID": 60015218,
+      "solarSystemID": 30100067,
+      "missionsByID": {
+        "921": {
+          "missionID": 921,
+          "titleID": 54288,
+          "dungeonID": 229,
+          "name": "The Disgruntled Employee",
+          "agentRaw": -0.017409576535370612,
+          "corpRaw": -0.001492249,
+          "observations": [
+            {
+              "capture": "Tutorial/part tre.lsw",
+              "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+              "directRow": 144131,
+              "declinedRow": 144273,
+              "agentRaw": -0.017409576535370612,
+              "corpRaw": -0.001492249
+            },
+            {
+              "capture": "Tutorial/part tre.lsw",
+              "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+              "directRow": 362827,
+              "declinedRow": 362993,
+              "agentRaw": -0.017409576535370612,
+              "corpRaw": -0.001492249
+            }
+          ]
+        },
+        "1182": {
+          "missionID": 1182,
+          "titleID": 57802,
+          "dungeonID": 283,
+          "name": "Avenge a Fallen Comrade",
+          "agentRaw": -0.033545409266727284,
+          "corpRaw": -0.002875321,
+          "observations": [
+            {
+              "capture": "Tutorial/part tre.lsw",
+              "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+              "directRow": 160672,
+              "declinedRow": 160814,
+              "agentRaw": -0.033545409266727284,
+              "corpRaw": -0.002875321
+            }
+          ]
+        },
+        "1214": {
+          "missionID": 1214,
+          "titleID": 54358,
+          "dungeonID": 305,
+          "name": "The Drone Infestation",
+          "agentRaw": -0.027229992060410053,
+          "corpRaw": -0.002333999,
+          "observations": [
+            {
+              "capture": "Tutorial/part deux.lsw",
+              "sha256": "f572614e9286e84f2ba4c3e814d618f5b0fb809ad5d786f064bee432803d5436",
+              "directRow": 85865,
+              "declinedRow": 86008,
+              "agentRaw": -0.027229992060410053,
+              "corpRaw": -0.002333999
+            }
+          ]
+        },
+        "1237": {
+          "missionID": 1237,
+          "titleID": 54381,
+          "dungeonID": 309,
+          "name": "The Roving Rogue Drones",
+          "agentRaw": -0.026178024340060318,
+          "corpRaw": -0.002243831,
+          "observations": [
+            {
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "directRow": 766029,
+              "declinedRow": 766196,
+              "agentRaw": -0.026178024340060318,
+              "corpRaw": -0.002243831
+            },
+            {
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "directRow": 1510180,
+              "declinedRow": 1510346,
+              "agentRaw": -0.026178024340060318,
+              "corpRaw": -0.002243831
+            }
+          ]
+        },
+        "2248": {
+          "missionID": 2248,
+          "titleID": 54963,
+          "dungeonID": 778,
+          "name": "Eliminate the Pirate Campers",
+          "agentRaw": -0.01793171314994012,
+          "corpRaw": -0.001537004,
+          "observations": [
+            {
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "directRow": 556164,
+              "declinedRow": 556306,
+              "agentRaw": -0.01793171314994012,
+              "corpRaw": -0.001537004
+            },
+            {
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "directRow": 683083,
+              "declinedRow": 683251,
+              "agentRaw": -0.01793171314994012,
+              "corpRaw": -0.001537004
+            },
+            {
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "directRow": 691633,
+              "declinedRow": 691775,
+              "agentRaw": -0.01793171314994012,
+              "corpRaw": -0.001537004
+            },
+            {
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "directRow": 774002,
+              "declinedRow": 774145,
+              "agentRaw": -0.01793171314994012,
+              "corpRaw": -0.001537004
+            }
+          ]
+        },
+        "2389": {
+          "missionID": 2389,
+          "titleID": 55056,
+          "dungeonID": 943,
+          "name": "Unauthorized Military Presence",
+          "agentRaw": -0.04416600806715796,
+          "corpRaw": -0.003785658,
+          "observations": [
+            {
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "directRow": 762149,
+              "declinedRow": 762292,
+              "agentRaw": -0.04416600806715796,
+              "corpRaw": -0.003785658
+            },
+            {
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "directRow": 778440,
+              "declinedRow": 778582,
+              "agentRaw": -0.04416600806715796,
+              "corpRaw": -0.003785658
+            }
+          ]
+        },
+        "2391": {
+          "missionID": 2391,
+          "titleID": 55058,
+          "dungeonID": 921,
+          "name": "The Score",
+          "agentRaw": -0.04620691134001856,
+          "corpRaw": -0.003960592,
+          "observations": [
+            {
+              "capture": "Tutorial/part tre.lsw",
+              "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+              "directRow": 122569,
+              "declinedRow": 122711,
+              "agentRaw": -0.04620691134001856,
+              "corpRaw": -0.003960592
+            }
+          ]
+        },
+        "2504": {
+          "missionID": 2504,
+          "titleID": 55099,
+          "dungeonID": 875,
+          "name": "Gone Berserk",
+          "agentRaw": -0.04301081710097178,
+          "corpRaw": -0.0036866415,
+          "observations": [
+            {
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "directRow": 769985,
+              "declinedRow": 770127,
+              "agentRaw": -0.04301104456932183,
+              "corpRaw": -0.003686661
+            },
+            {
+              "capture": "Tutorial/part tre.lsw",
+              "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+              "directRow": 358612,
+              "declinedRow": 358754,
+              "agentRaw": -0.043010589632621735,
+              "corpRaw": -0.003686622
+            }
+          ]
+        },
+        "2545": {
+          "missionID": 2545,
+          "titleID": 55111,
+          "dungeonID": 968,
+          "name": "Smuggler Interception",
+          "agentRaw": -0.04302219432484659,
+          "corpRaw": -0.003687617,
+          "observations": [
+            {
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "directRow": 560565,
+              "declinedRow": 560710,
+              "agentRaw": -0.04302219432484659,
+              "corpRaw": -0.003687617
+            },
+            {
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "directRow": 914199,
+              "declinedRow": 914341,
+              "agentRaw": -0.04302219432484659,
+              "corpRaw": -0.003687617
+            }
+          ]
+        },
+        "3062": {
+          "missionID": 3062,
+          "titleID": 57807,
+          "dungeonID": 2026,
+          "name": "Break Their Will",
+          "agentRaw": -0.03280407187680213,
+          "corpRaw": -0.002811778,
+          "observations": [
+            {
+              "capture": "Tutorial/part tre.lsw",
+              "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+              "directRow": 126524,
+              "declinedRow": 126666,
+              "agentRaw": -0.03280407187680213,
+              "corpRaw": -0.002811778
+            }
+          ]
+        },
+        "4661": {
+          "missionID": 4661,
+          "titleID": 56754,
+          "dungeonID": 2493,
+          "name": "Soft Drink Wars",
+          "agentRaw": -0.027316510675877252,
+          "corpRaw": -0.002341415,
+          "observations": [
+            {
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "directRow": 1514684,
+              "declinedRow": 1514828,
+              "agentRaw": -0.027316510675877252,
+              "corpRaw": -0.002341415
+            }
+          ]
+        },
+        "4714": {
+          "missionID": 4714,
+          "titleID": 56799,
+          "dungeonID": 2553,
+          "name": "For the Birds",
+          "agentRaw": -0.0389889626871518,
+          "corpRaw": -0.003341911,
+          "observations": [
+            {
+              "capture": "Tutorial/cruiser.lsw",
+              "sha256": "29f04cd0e30129c91d5eebd8596ca3e3bbd266dc00c43659526f66ef114e941a",
+              "directRow": 602931,
+              "declinedRow": 603074,
+              "agentRaw": -0.0389889626871518,
+              "corpRaw": -0.003341911
+            },
+            {
+              "capture": "Tutorial/part deux.lsw",
+              "sha256": "f572614e9286e84f2ba4c3e814d618f5b0fb809ad5d786f064bee432803d5436",
+              "directRow": 81425,
+              "declinedRow": 81567,
+              "agentRaw": -0.038990370561254616,
+              "corpRaw": -0.003342032
+            },
+            {
+              "capture": "Tutorial/part tre.lsw",
+              "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+              "directRow": 156645,
+              "declinedRow": 156789,
+              "agentRaw": -0.0389889626871518,
+              "corpRaw": -0.003341911
+            }
+          ]
+        },
+        "4728": {
+          "missionID": 4728,
+          "titleID": 56948,
+          "dungeonID": 2523,
+          "name": "Drone Detritus",
+          "agentRaw": -0.05787789180602917,
+          "corpRaw": -0.004960961999999999,
+          "observations": [
+            {
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "directRow": 1506214,
+              "declinedRow": 1506381,
+              "agentRaw": -0.057878324534436476,
+              "corpRaw": -0.004960999
+            },
+            {
+              "capture": "Tutorial/part tre.lsw",
+              "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+              "directRow": 118818,
+              "declinedRow": 118960,
+              "agentRaw": -0.05787745907762186,
+              "corpRaw": -0.004960925
+            }
+          ]
+        },
+        "4752": {
+          "missionID": 4752,
+          "titleID": 57211,
+          "dungeonID": 2543,
+          "name": "Carrying AIMEDs",
+          "agentRaw": -0.02579104149186557,
+          "corpRaw": -0.002210661,
+          "observations": [
+            {
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "directRow": 687463,
+              "declinedRow": 687605,
+              "agentRaw": -0.025791828388923105,
+              "corpRaw": -0.002210728
+            },
+            {
+              "capture": "Tutorial/part tre.lsw",
+              "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+              "directRow": 136647,
+              "declinedRow": 136791,
+              "agentRaw": -0.02579104149186557,
+              "corpRaw": -0.002210661
+            },
+            {
+              "capture": "Tutorial/part tre.lsw",
+              "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+              "directRow": 148371,
+              "declinedRow": 148513,
+              "agentRaw": -0.02579104149186557,
+              "corpRaw": -0.002210661
+            }
+          ]
+        },
+        "4815": {
+          "missionID": 4815,
+          "titleID": 56884,
+          "dungeonID": 2551,
+          "name": "Furrier Fiasco",
+          "agentRaw": -0.030910668708080853,
+          "corpRaw": -0.002649486,
+          "observations": [
+            {
+              "capture": "Tutorial/part tre.lsw",
+              "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+              "directRow": 132395,
+              "declinedRow": 132537,
+              "agentRaw": -0.030910668708080853,
+              "corpRaw": -0.002649486
+            }
+          ]
+        },
+        "4817": {
+          "missionID": 4817,
+          "titleID": 56886,
+          "dungeonID": 2568,
+          "name": "Escaped Spy",
+          "agentRaw": -0.02570635497330571,
+          "corpRaw": -0.002203402,
+          "observations": [
+            {
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "directRow": 1394529,
+              "declinedRow": 1394671,
+              "agentRaw": -0.02570635497330571,
+              "corpRaw": -0.002203402
+            }
+          ]
+        },
+        "13464": {
+          "missionID": 13464,
+          "titleID": 56970,
+          "dungeonID": 2695,
+          "name": "Athran Exigency (1 of 5)",
+          "agentRaw": -0.022569640858184727,
+          "corpRaw": -0.001934541,
+          "observations": [
+            {
+              "capture": "Tutorial/cruiser.lsw",
+              "sha256": "29f04cd0e30129c91d5eebd8596ca3e3bbd266dc00c43659526f66ef114e941a",
+              "directRow": 530605,
+              "declinedRow": 530771,
+              "agentRaw": -0.022569640858184727,
+              "corpRaw": -0.001934541
+            },
+            {
+              "capture": "Tutorial/cruiser.lsw",
+              "sha256": "29f04cd0e30129c91d5eebd8596ca3e3bbd266dc00c43659526f66ef114e941a",
+              "directRow": 607006,
+              "declinedRow": 607148,
+              "agentRaw": -0.022569640858184727,
+              "corpRaw": -0.001934541
+            }
+          ]
+        },
+        "13490": {
+          "missionID": 13490,
+          "titleID": 56982,
+          "dungeonID": 2734,
+          "name": "Interstellar Railroad (1 of 4)",
+          "agentRaw": -0.019800495760447255,
+          "corpRaw": -0.001697185,
+          "observations": [
+            {
+              "capture": "Tutorial/cruiser.lsw",
+              "sha256": "29f04cd0e30129c91d5eebd8596ca3e3bbd266dc00c43659526f66ef114e941a",
+              "directRow": 703627,
+              "declinedRow": 703769,
+              "agentRaw": -0.019800495760447255,
+              "corpRaw": -0.001697185
+            }
+          ]
+        },
+        "13496": {
+          "missionID": 13496,
+          "titleID": 57010,
+          "dungeonID": 2719,
+          "name": "Fair Play - To the Rescue (1 of 5)",
+          "agentRaw": -0.022218387705391623,
+          "corpRaw": -0.001904433,
+          "observations": [
+            {
+              "capture": "Tutorial/part tre.lsw",
+              "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+              "directRow": 140262,
+              "declinedRow": 140404,
+              "agentRaw": -0.022218387705391623,
+              "corpRaw": -0.001904433
+            },
+            {
+              "capture": "Tutorial/part tre.lsw",
+              "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+              "directRow": 366664,
+              "declinedRow": 366806,
+              "agentRaw": -0.022218387705391623,
+              "corpRaw": -0.001904433
+            }
+          ]
+        },
+        "15168": {
+          "missionID": 15168,
+          "titleID": 57785,
+          "dungeonID": 4257,
+          "name": "Onslaught",
+          "agentRaw": -0.05469437094925633,
+          "corpRaw": -0.004688089,
+          "observations": [
+            {
+              "capture": "Tutorial/part deux.lsw",
+              "sha256": "f572614e9286e84f2ba4c3e814d618f5b0fb809ad5d786f064bee432803d5436",
+              "directRow": 89798,
+              "declinedRow": 89964,
+              "agentRaw": -0.05469437094925633,
+              "corpRaw": -0.004688089
+            }
+          ]
+        },
+        "15169": {
+          "missionID": 15169,
+          "titleID": 57786,
+          "dungeonID": 4250,
+          "name": "After The Seven (1 of 5) \"Replacement\"",
+          "agentRaw": -0.02607754074992632,
+          "corpRaw": -0.002235218,
+          "observations": [
+            {
+              "capture": "Tutorial/part tre.lsw",
+              "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+              "directRow": 152216,
+              "declinedRow": 152382,
+              "agentRaw": -0.02607754074992632,
+              "corpRaw": -0.002235218
+            }
+          ]
+        }
+      }
+    }
+  }
+}

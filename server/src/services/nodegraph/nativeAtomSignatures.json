@@ -1,0 +1,49 @@
+{
+  "source": {
+    "clientBuild": 3396210,
+    "resource": "res:/staticdata/atoms.fsdbinary",
+    "sha256": "9b8ec7966f6514fdf1f411266d286ab6dea6919092be18eb4d844c0d35834635",
+    "extractedRowsSha256": "32ef6184f295e98d030aecc65f519713c8adacc3a29970fa241982ff286f71ef",
+    "generator": "scripts/DataSync/generate-nodegraph-atom-signatures.js",
+    "selection": "Only newly implemented getters. editorRequired is an editor hint; native GetValue explicitly permits None and returns its default."
+  },
+  "atomsByID": {
+    "333": {
+      "name": "Get Value",
+      "atomType": 4,
+      "inputs": {
+        "key": {
+          "type": "stringType",
+          "editorRequired": true
+        },
+        "object": {
+          "type": "objectType",
+          "editorRequired": false
+        },
+        "default_value": {
+          "type": "stringType",
+          "editorRequired": false
+        }
+      },
+      "outputs": [
+        "value"
+      ]
+    },
+    "600": {
+      "name": "Get Solar System Info",
+      "atomType": 4,
+      "inputs": {
+        "solar_system_id": {
+          "type": "solarSystemIdType",
+          "editorRequired": false
+        }
+      },
+      "outputs": [
+        "faction_id",
+        "region_id",
+        "constellation_id",
+        "security_level"
+      ]
+    }
+  }
+}

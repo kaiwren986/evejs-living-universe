@@ -2,7 +2,7 @@
 
 This guide explains the tools that build the optional standalone market database.
 
-There are three of them. They all write the same kind of database for the same market server, so you pick one and run it.
+There are four seed types. They all write the same kind of database for the same market server, so you pick one and run it.
 
 - `v1`
   Works prices out from the static data's own base prices and seeds many stations at once. Fully offline. The prices are invented.
@@ -13,8 +13,12 @@ There are three of them. They all write the same kind of database for the same m
 - `v3`
   Builds a Jita 4-4 trade hub priced from what things cost to make, and lays the real Tranquility NPC catalog underneath it.
   Launcher: `tools\market-seederv3\BuildMarketSeedV3.bat`
+- `v4` — Iron Man
+  Seeds only authentic NPC station orders: BPOs, skillbooks, command centers, trade goods and other NPC stock, including NPC buybacks. Players obtain everything else through gameplay and industry.
+  Launcher: `tools\market-seederv4\BuildMarketSeedV4.bat`
 
-Only v1 has a launcher in the repo root. The other two live in their own tool folders.
+`BuildMarketSeed.bat` in the repo root lists all four seed types with descriptions
+and opens the builder you choose. Each builder also has its own launcher under `tools`.
 
 ## What A Seeder Does
 
@@ -33,7 +37,7 @@ Double-click:
 BuildMarketSeed.bat
 ```
 
-Then choose:
+Choose `[1] v1 - Synthetic starter market`, then choose:
 
 ```text
 Jita + New Caldari
@@ -45,7 +49,8 @@ It is much faster than a full-universe build and still gives you a realistic mar
 
 ## v1: The Main Options
 
-`BuildMarketSeed.bat` in the repo root opens the seed builder window. Its buttons are:
+Choose v1 in the root `BuildMarketSeed.bat` menu to open the synthetic seed builder
+window. Its buttons are:
 
 - `Full Universe`
   Biggest build. Takes longer and creates a much larger database.
@@ -203,6 +208,27 @@ Player orders and order history do not survive it, and the price charts are rege
 
 Re-running the seeder is also the only way to restock, because there is no restock button on the market server. At 2.1 billion units per order, that is rarely why you would rebuild.
 
+## v4: Iron Man
+
+Run `tools\market-seederv4\BuildMarketSeedV4.bat` and choose `[1]`.
+It reuses the v2 snapshot importer with a strict NPC-only filter. Original
+stations, prices and quantities are preserved. There is no synthetic Jita stock
+or custom-station stock, even if a custom station is configured. NPC identification
+uses snapshot order duration greater than the normal 90-day player limit.
+
+The config is `tools\market-seederv4\config\market-seederv4.local.toml`.
+It needs network access to the snapshot index and can reuse a matching cached
+snapshot. Like the other seed types, rebuilding replaces player orders and history.
+This is a market seed option; it does not change mission rewards or GM commands.
+
+For Docker, stop `server` and `market`, then run:
+
+```text
+docker compose run --rm --no-deps market-tools rebuild v4
+```
+
+See the [Iron Man guide](../tools/market-seederv4/README.md) for direct CLI usage.
+
 ## What Most People Should Do
 
 If you are not sure which seeder to pick:
@@ -215,7 +241,7 @@ If you want real blueprints and skillbooks, or a hub whose prices make sense aga
 
 ## If Rust Is Missing
 
-All three seeders need Rust. Whichever one you ran will tell you and stop cleanly.
+All four seed types need Rust. Whichever one you ran will tell you and stop cleanly.
 
 The easiest path here is:
 
@@ -230,5 +256,4 @@ Run that helper, let it finish installing Rust, then run the same market seeder 
 - [MARKET_SETUP.md](MARKET_SETUP.md)
 - [../tools/market-seederv2/README.md](../tools/market-seederv2/README.md) - the v2 snapshot seeder in full
 - [../tools/market-seederv3/README.md](../tools/market-seederv3/README.md) - the v3 Jita index seeder in full
-- [JITA_INDEX_SEED_PLAN.md](JITA_INDEX_SEED_PLAN.md) - the design behind v3
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md)

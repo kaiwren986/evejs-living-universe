@@ -143,7 +143,9 @@ function buildIndexes(agentsByID) {
 }
 
 function buildCache() {
-  const payload = normalizePayload(readStaticTable(TABLE.AGENT_AUTHORITY));
+  const payload = normalizePayload(require("./visionsOfGreatness").applyToAgentAuthorityPayload(
+    readStaticTable(TABLE.AGENT_AUTHORITY),
+  ));
   const agentsInSpaceByID = buildAgentsInSpaceByID();
   const agentsByID = new Map();
   for (const [agentID, record] of Object.entries(payload.agentsByID || {})) {

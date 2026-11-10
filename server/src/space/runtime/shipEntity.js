@@ -391,6 +391,8 @@ function refreshEntitiesForSlimPayload(entities) {
         entity.state = latestStructure.state;
         entity.stateStartedAt = latestStructure.stateStartedAt;
         entity.stateEndsAt = latestStructure.stateEndsAt;
+        entity.deployStartedAt = latestStructure.deployStartedAt || null;
+        entity.deployEndsAt = latestStructure.deployEndsAt || null;
         entity.timerPausedAt = latestStructure.timerPausedAt || null;
         entity.upkeepState = latestStructure.upkeepState;
         entity.deedState = latestStructure.hasQuantumCore === true ? 1 : 0;

@@ -14,7 +14,16 @@ const {
 } = require(path.join(__dirname, "../../config/productionMissionPolicy"));
 const {
   isRetiredOrdinaryEncounterMissionForAgent,
+  getRetirementGeneration,
 } = require(path.join(__dirname, "../agent/missionAuthority"));
+const { createInstanceTable, updateInstanceTable } = require("./dungeonInstanceTable");
+const { resolveSavedTemplateID } = require("./capturedSecurityLegacyScenes");
+const {
+  buildPendingSiteHazardEntry,
+  listPendingSiteHazardEntries,
+  initializeIncrementalIndexes,
+  updateIncrementalIndexes,
+} = require("./dungeonRuntimeIndexes");
 const repo = createTableRepository("service:dungeon", { strict: true });
 
 const DUNGEON_RUNTIME_TABLE = "dungeonRuntimeState";
@@ -29,6 +38,8 @@ const VALID_LIFECYCLE_STATES = new Set([
 ]);
 
 let cache = null;
+let coldHazardState = null;
+let coldPendingSiteHazardEntries = null;
 // Only reuse the cache as a persistence mirror after a fully successful write.
 let persistedMirrorTrusted = false;
 
@@ -360,7 +371,7 @@ function normalizeInstanceRecord(record = {}) {
 
   return {
     instanceID,
-    templateID: normalizeText(record.templateID, ""),
+    templateID: resolveSavedTemplateID(normalizeText(record.templateID, ""), record),
     solarSystemID: Math.max(0, toInt(record.solarSystemID, 0)),
     siteKey: normalizeText(record.siteKey, "") || null,
     lifecycleState,
@@ -530,6 +541,9 @@ function buildCache(sourceState = null) {
       throw error;
     }
   }
+  // Persistent rows keep historical loadState/result.data views stable without
+  // copying every instance key on a local mutation.
+  state = { ...state, instancesByID: createInstanceTable(state.instancesByID || {}) };
   const instancesByID = new Map();
   const summariesByID = new Map();
   const instanceIDsBySystem = new Map();
@@ -611,7 +625,7 @@ function buildCache(sourceState = null) {
   ));
   universePersistentTerminalInstanceIDs.sort((left, right) => left - right);
 
-  return {
+  const nextCache = {
     state,
     instancesByID,
     summariesByID,
@@ -627,6 +641,15 @@ function buildCache(sourceState = null) {
     nextUniversePersistentActiveExpiryAtMs,
     universePersistentTerminalInstanceIDs,
   };
+  initializeIncrementalIndexes(nextCache, {
+    buildInstanceSummary,
+    isActiveLifecycleState,
+    isUniversePersistentInstance,
+  });
+  nextCache.retirementGeneration = getRetirementGeneration();
+  coldHazardState = null;
+  coldPendingSiteHazardEntries = null;
+  return nextCache;
 }
 
 function ensureCache() {
@@ -654,6 +677,35 @@ function peekState() {
     throw error;
   }
   return result.data && typeof result.data === "object" ? result.data : {};
+}
+
+function peekPendingSiteHazardIndex() {
+  if (cache) return cache.pendingSiteHazardEntriesByID;
+  // Admission without debt must not initialize the dungeon owner or run its
+  // startup normalization/inventory cleanup. The store's cached read is stable
+  // until normal owner hydration, and clearRuntimeCache invalidates this view.
+  const state = peekState();
+  if (state !== coldHazardState || !coldPendingSiteHazardEntries) {
+    const entries = new Map();
+    for (const instance of Object.values(state.instancesByID || {})) {
+      const entry = buildPendingSiteHazardEntry(instance);
+      if (entry) entries.set(entry.instanceID, entry);
+    }
+    coldHazardState = state;
+    coldPendingSiteHazardEntries = entries;
+  }
+  return coldPendingSiteHazardEntries;
+}
+
+// Internal recovery views: callers read these events without mutating them.
+// Take a bounded list snapshot so delivery can update the live index safely.
+function peekPendingSiteHazardEntries() {
+  if (cache) return listPendingSiteHazardEntries(cache);
+  return [...peekPendingSiteHazardIndex().values()];
+}
+
+function peekPendingSiteHazardEntry(instanceID) {
+  return peekPendingSiteHazardIndex().get(Math.max(0, toInt(instanceID, 0))) || null;
 }
 
 // Preserve per-row persistence for shared dungeon users. A normal
@@ -751,7 +803,7 @@ function buildPersistedDiffFailure(
   };
 }
 
-function applyPersistedDiff(nextState, options = {}, knownCurrentState = null) {
+function applyPersistedDiff(nextState, options = {}, knownCurrentState = null, changedInstances = null) {
   const canUseMirror = persistedMirrorTrusted && knownCurrentState;
   persistedMirrorTrusted = false;
   const currentResult = canUseMirror
@@ -779,7 +831,16 @@ function applyPersistedDiff(nextState, options = {}, knownCurrentState = null) {
       ? current.instancesByID
       : {};
   const nextInstances = nextState.instancesByID || {};
-  for (const instanceID of Object.keys(nextInstances)) {
+  // A trusted mirror plus an owned mutation delta identifies every row that can
+  // differ. Recovery, root replacements and startup retain the exact full diff.
+  const scopedIDs = canUseMirror && changedInstances
+    ? new Set(changedInstances.keys())
+    : null;
+  if (scopedIDs && options.force === true && forceInstanceID > 0) {
+    scopedIDs.add(String(forceInstanceID));
+  }
+  for (const instanceID of scopedIDs || Object.keys(nextInstances)) {
+    if (!Object.prototype.hasOwnProperty.call(nextInstances, instanceID)) continue;
     if (
       !isDeepStrictEqual(prevInstances[instanceID], nextInstances[instanceID]) ||
       (options.force === true && toInt(instanceID, 0) === forceInstanceID)
@@ -787,8 +848,11 @@ function applyPersistedDiff(nextState, options = {}, knownCurrentState = null) {
       writes.push([`/instancesByID/${instanceID}`, nextInstances[instanceID]]);
     }
   }
-  for (const instanceID of Object.keys(prevInstances)) {
-    if (!Object.prototype.hasOwnProperty.call(nextInstances, instanceID)) {
+  for (const instanceID of scopedIDs || Object.keys(prevInstances)) {
+    if (
+      Object.prototype.hasOwnProperty.call(prevInstances, instanceID) &&
+      !Object.prototype.hasOwnProperty.call(nextInstances, instanceID)
+    ) {
       removes.push(`/instancesByID/${instanceID}`);
     }
   }
@@ -962,122 +1026,147 @@ function addLazyStateData(result, state) {
   return result;
 }
 
-// Copy-on-write working view over the cache's instance table.
-//
-// mutateState used to hand the mutator a deep clone of the ENTIRE state, so that
-// it could edit freely without corrupting the cache. That pays a full JSON round
-// trip over every instance in order to change one field, and almost every mutator
-// here touches exactly one record (`const target = table.instancesByID[id]`).
-//
-// Instead, expose each instance as an accessor that deep-clones on first touch and
-// records the id. The mutator sees a plain object and keeps working unchanged --
-// read, in-place mutation, assignment and `delete` all behave the same -- while the
-// clone, the re-normalize and the diff afterwards become proportional to what it
-// actually touched. A mutator that sweeps the table with Object.entries still
-// materializes everything, which is correct, just not cheaper.
-//
-// Marking on *read* is deliberately conservative: a record that was only inspected
-// is treated as dirty, because an in-place mutation is indistinguishable from a
-// read once the getter has returned the object.
-function createWorkingInstances(baseInstances, touched, originalGetters) {
-  const working = {};
-  for (const instanceID of Object.keys(baseInstances)) {
-    let materialized = false;
-    let value;
-    const get = function getWorkingInstance() {
-      if (!materialized) {
-        materialized = true;
-        touched.add(instanceID);
-        value = cloneValue(baseInstances[instanceID]);
+// Only accessed rows acquire working copies. Enumeration is still supported for
+// batch mutators, but an ordinary direct-key mutation never enumerates the base.
+// Reads count as touches because callers may edit the returned row in place.
+function createWorkingInstances(baseInstances, touched, reinsertKeys) {
+  const target = {};
+  const deleted = new Set();
+  const owns = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+  const hasBase = (key) => owns(baseInstances, key) && !deleted.has(key);
+  const get = (key) => {
+    if (!owns(target, key) && hasBase(key)) {
+      touched.add(key);
+      Object.defineProperty(target, key, {
+        value: cloneValue(baseInstances[key]), enumerable: true, writable: true, configurable: true,
+      });
+    }
+    return Reflect.get(target, key);
+  };
+  const markAssignment = (key) => {
+    touched.add(key);
+    if (deleted.has(key)) reinsertKeys.add(key);
+    deleted.delete(key);
+  };
+  let proxy;
+  proxy = new Proxy(target, {
+    get(_target, key) { return get(key); },
+    has(_target, key) { return Reflect.has(target, key) || hasBase(key); },
+    set(_target, key, value) {
+      const assigned = Reflect.set(target, key, value, target);
+      if (assigned) markAssignment(key);
+      return assigned;
+    },
+    defineProperty(_target, key, descriptor) {
+      // Omitted attributes must inherit the existing row's descriptor rather
+      // than defaulting to a non-enumerable new overlay property.
+      if (!owns(target, key) && hasBase(key)) get(key);
+      const defined = Reflect.defineProperty(target, key, descriptor);
+      if (defined) markAssignment(key);
+      return defined;
+    },
+    deleteProperty(_target, key) {
+      const removed = Reflect.deleteProperty(target, key);
+      if (removed) {
+        touched.add(key);
+        deleted.add(key);
       }
-      return value;
-    };
-    originalGetters.set(instanceID, get);
-    Object.defineProperty(working, instanceID, {
-      enumerable: true,
-      configurable: true,
-      get,
-      set(nextValue) {
-        materialized = true;
-        touched.add(instanceID);
-        value = nextValue;
-      },
-    });
-  }
-  return working;
+      return removed;
+    },
+    ownKeys() {
+      // A real object supplies JS's numeric-index/string/symbol key ordering.
+      // Only callers explicitly enumerating the table pay this full traversal.
+      const keys = {};
+      for (const key of Reflect.ownKeys(baseInstances)) {
+        if (!deleted.has(key) && !reinsertKeys.has(key)) {
+          Object.defineProperty(keys, key, { configurable: true });
+        }
+      }
+      for (const key of Reflect.ownKeys(target)) {
+        if (!owns(keys, key)) Object.defineProperty(keys, key, { configurable: true });
+      }
+      return Reflect.ownKeys(keys);
+    },
+    getOwnPropertyDescriptor(_target, key) {
+      if (owns(target, key)) return Reflect.getOwnPropertyDescriptor(target, key);
+      if (!hasBase(key)) return undefined;
+      // Object.keys must inspect enumerability without materializing each row.
+      return {
+        enumerable: true, configurable: true,
+        get() { return get(key); },
+        set(value) { proxy[key] = value; },
+      };
+    },
+    preventExtensions() {
+      for (const key of Reflect.ownKeys(proxy)) get(key);
+      return Reflect.preventExtensions(target);
+    },
+  });
+  return { proxy, materialized: target };
 }
 
-// An id counts as untouched only if its slot is still the untriggered accessor we
-// installed. `touched` alone is not enough: `delete table.instancesByID[id]`
-// followed by a fresh assignment replaces the accessor with a plain data property
-// without ever running the getter or the setter, and treating that as untouched
-// would silently keep the record the mutator just replaced.
-function isUntouchedWorkingSlot(workingInstances, instanceID, touched, originalGetters) {
-  if (touched.has(instanceID)) {
-    return false;
-  }
-  const descriptor = Object.getOwnPropertyDescriptor(workingInstances, instanceID);
-  return Boolean(
-    descriptor &&
-    typeof descriptor.get === "function" &&
-    descriptor.get === originalGetters.get(instanceID),
-  );
-}
-
-// normalizeState, but reusing the already-normalized record for every instance the
-// mutator did not touch. Those are shared by reference with the previous state,
-// which is also what makes the subsequent diff cheap: isDeepStrictEqual short
-// circuits on identity, so an untouched instance costs one pointer comparison
-// instead of a deep structural walk.
-//
-// The retired-record filter is still applied to every instance, touched or not: it
-// is a cheap predicate over a handful of fields and its answer depends on config
-// that can change independently of the table.
-function normalizeWorkingState(working, workingInstances, baseInstances, touched, originalGetters) {
-  const instancesByID = {};
-  for (const instanceID of Object.keys(workingInstances)) {
-    const untouched =
-      Object.prototype.hasOwnProperty.call(baseInstances, instanceID) &&
-      isUntouchedWorkingSlot(workingInstances, instanceID, touched, originalGetters);
-
-    if (untouched) {
-      const record = baseInstances[instanceID];
-      if (isRetiredMissionInstanceRecord(record)) {
-        continue;
+function normalizeWorkingState(working, workingInstances, materialized, baseInstances, touched, reinsertKeys) {
+  const pending = new Map();
+  for (const instanceID of touched) {
+    if (typeof instanceID !== "string") continue;
+    const descriptor = Object.getOwnPropertyDescriptor(workingInstances, instanceID);
+    let normalized = null;
+    if (descriptor && descriptor.enumerable) {
+      const record = workingInstances[instanceID];
+      if (!isRetiredMissionInstanceRecord(record)) {
+        const candidate = normalizeInstanceRecord({
+          ...record,
+          instanceID: toInt(record && record.instanceID, toInt(instanceID, 0)),
+        });
+        if (candidate.instanceID > 0 && candidate.templateID && candidate.solarSystemID > 0) {
+          // Rekeying/colliding aliases depend on complete object iteration order.
+          // Keep that uncommon operation on the established full-normalize path.
+          if (String(candidate.instanceID) !== instanceID) return null;
+          normalized = candidate;
+        }
       }
-      instancesByID[String(record.instanceID)] = record;
-      continue;
     }
-
-    const record = workingInstances[instanceID];
-    if (isRetiredMissionInstanceRecord(record)) {
-      continue;
-    }
-    const normalized = normalizeInstanceRecord({
-      ...record,
-      instanceID: toInt(record && record.instanceID, toInt(instanceID, 0)),
-    });
-    if (normalized.instanceID > 0 && normalized.templateID && normalized.solarSystemID > 0) {
-      instancesByID[String(normalized.instanceID)] = normalized;
+    const before = Object.prototype.hasOwnProperty.call(baseInstances, instanceID)
+      ? baseInstances[instanceID]
+      : null;
+    if (isDeepStrictEqual(before, normalized)) normalized = before;
+    if (before !== normalized || (normalized && reinsertKeys.has(instanceID))) {
+      pending.set(instanceID, normalized);
     }
   }
-
+  const changedInstances = new Map();
+  for (const [key, after] of pending) {
+    if (after === null || (
+      Object.prototype.hasOwnProperty.call(baseInstances, key) && !reinsertKeys.has(key)
+    )) changedInstances.set(key, after);
+  }
+  // Touched/read order may differ from final insertion order after delete/add.
+  // Only inspect the small overlay to rank new and reinserted string-key IDs.
+  for (const key of Reflect.ownKeys(materialized)) {
+    if (pending.has(key) && !changedInstances.has(key)) changedInstances.set(key, pending.get(key));
+  }
   return {
-    version: DUNGEON_RUNTIME_VERSION,
-    nextInstanceSequence: Math.max(1, toInt(working.nextInstanceSequence, 1)),
-    instancesByID,
-    universeReconcileMeta: normalizeUniverseReconcileMeta(working.universeReconcileMeta || {}),
+    state: {
+      version: DUNGEON_RUNTIME_VERSION,
+      nextInstanceSequence: Math.max(1, toInt(working.nextInstanceSequence, 1)),
+      instancesByID: updateInstanceTable(baseInstances, changedInstances, reinsertKeys),
+      universeReconcileMeta: normalizeUniverseReconcileMeta(working.universeReconcileMeta || {}),
+    },
+    changedInstances,
   };
 }
 
 function mutateState(mutator, options = {}) {
   const previousState = loadState();
   let normalizedNext;
+  let changedInstances = null;
+  let reinsertKeys;
   try {
     const baseInstances = previousState.instancesByID || {};
     const touched = new Set();
-    const originalGetters = new Map();
-    const workingInstances = createWorkingInstances(baseInstances, touched, originalGetters);
+    reinsertKeys = new Set();
+    const { proxy: workingInstances, materialized } =
+      createWorkingInstances(baseInstances, touched, reinsertKeys);
 
     // Top-level scalars are copied; universeReconcileMeta is small and is cloned so a
     // mutator editing it in place cannot reach into the cache.
@@ -1092,9 +1181,12 @@ function mutateState(mutator, options = {}) {
     // The copy-on-write bookkeeping only describes `working`. A mutator that returns
     // a different object, or swaps the instance table out wholesale, invalidates it,
     // so fall back to normalizing whatever came back in full.
-    normalizedNext = (next === working && next.instancesByID === workingInstances)
-      ? normalizeWorkingState(working, workingInstances, baseInstances, touched, originalGetters)
-      : normalizeState(next);
+    const incremental = next === working && next.instancesByID === workingInstances &&
+      cache.retirementGeneration === getRetirementGeneration()
+      ? normalizeWorkingState(working, workingInstances, materialized, baseInstances, touched, reinsertKeys)
+      : null;
+    normalizedNext = incremental ? incremental.state : normalizeState(next);
+    changedInstances = incremental ? incremental.changedInstances : null;
 
   } catch (error) {
     return addLazyStateData({
@@ -1106,7 +1198,7 @@ function mutateState(mutator, options = {}) {
     }, previousState);
   }
 
-  const result = applyPersistedDiff(normalizedNext, options, previousState);
+  const result = applyPersistedDiff(normalizedNext, options, previousState, changedInstances);
   if (!result.success) {
     const failure = addLazyStateData({
       success: false,
@@ -1120,7 +1212,19 @@ function mutateState(mutator, options = {}) {
     return failure;
   }
 
-  cache = buildCache(normalizedNext);
+  if (changedInstances) {
+    const changes = new Map();
+    for (const [instanceID, after] of changedInstances) {
+      changes.set(instanceID, {
+        before: previousState.instancesByID[instanceID] || null,
+        after,
+        orderChanged: reinsertKeys.has(instanceID),
+      });
+    }
+    updateIncrementalIndexes(cache, changes, normalizedNext);
+  } else {
+    cache = buildCache(normalizedNext);
+  }
   return addLazyStateData({
     success: true,
     skippedWrite: result.changed === 0,
@@ -1361,6 +1465,32 @@ function listUniversePersistentTerminalInstanceIDs() {
   return [...ensureCache().universePersistentTerminalInstanceIDs];
 }
 
+function listUniversePersistentLifecycleEntries(options = {}) {
+  const cacheState = ensureCache();
+  const entries = [];
+  const append = instance => {
+    if (!isUniversePersistentInstance(instance)) return;
+    entries.push({
+      instanceID: instance.instanceID,
+      solarSystemID: instance.solarSystemID,
+      lifecycleState: instance.lifecycleState,
+      lifecycleReason: instance.lifecycleReason,
+      siteOrigin: instance.siteOrigin,
+      timers: { ...instance.timers },
+    });
+  };
+  if (Array.isArray(options.systemIDs)) {
+    for (const systemID of normalizeIDList(options.systemIDs)) {
+      for (const instanceID of cacheState.instanceIDsBySystem.get(String(systemID)) || []) {
+        append(cacheState.instancesByID.get(instanceID));
+      }
+    }
+  } else {
+    for (const instance of cacheState.instancesByID.values()) append(instance);
+  }
+  return entries;
+}
+
 function findInstanceSummaryBySiteKey(siteKey) {
   const normalizedSiteKey = normalizeText(siteKey, "");
   if (!normalizedSiteKey) {
@@ -1375,6 +1505,8 @@ function findInstanceSummaryBySiteKey(siteKey) {
 
 function clearRuntimeCache() {
   cache = null;
+  coldHazardState = null;
+  coldPendingSiteHazardEntries = null;
   persistedMirrorTrusted = false;
 }
 
@@ -1439,8 +1571,11 @@ module.exports = {
   listInstanceSummariesBySystem,
   listInstanceSummariesByTemplate,
   listUniversePersistentTerminalInstanceIDs,
+  listUniversePersistentLifecycleEntries,
   loadState,
   peekState,
+  peekPendingSiteHazardEntries,
+  peekPendingSiteHazardEntry,
   mutateState,
   normalizeInstanceRecord,
   normalizeUniverseReconcileMeta,

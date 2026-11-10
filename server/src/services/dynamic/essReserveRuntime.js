@@ -17,6 +17,27 @@ function notifyItems(characterID, result) {
     item: inventory.findItemById(change.item?.itemID) || change.item }));
   require("../raffles/raffleInventory").notifyInventoryChangesToCharacter(characterID, changes);
 }
+// essNotificationAdapter.OnReserveBankUnlock({'regionID': id}) raises the
+// "reserve bank unlocked" toast for pilots in that region. No retail capture
+// exists; the region audience and idtype follow the handler's region check.
+function notifyReserveBankUnlocked(systemID) {
+  const system = require("../../space/worldData").getSolarSystemByID(systemID);
+  const regionID = Number(system && system.regionID) || 0;
+  if (!regionID) return 0;
+  const { buildDict } = require("../_shared/serviceHelpers");
+  let sent = 0;
+  for (const session of require("../chat/sessionRegistry").getSessions()) {
+    if (Number(session.regionid || session.regionID) !== regionID ||
+        typeof session.sendNotification !== "function") continue;
+    try {
+      session.sendNotification("OnReserveBankUnlock", "regionid", [buildDict([["regionID", regionID]])]);
+      sent += 1;
+    } catch (_error) {
+      // A disconnecting client must not undo the durable unlock.
+    }
+  }
+  return sent;
+}
 function pulsePayout(pulse, total, settings = banks.DEFAULT_DYNAMIC_RESOURCE_SETTINGS) {
   if (pulse < 1 || pulse > total) return 0;
   // dynamicresources/common/ess/formulas.py, build 3396210. Policy parameters
@@ -60,6 +81,7 @@ function settleUnlock(id) {
   });
   notifyItems(op.characterID, result);
   coordinator().changed(op.systemID);
+  notifyReserveBankUnlocked(op.systemID);
   return repository.read().unlocks[id];
 }
 function requestUnlock(session, keyTypeID) {
@@ -168,4 +190,4 @@ async function scheduleSystem(bank) {
   const op = repository.read().unlocks[bank.reserveWindowID];
   if (op?.state === "prepared") await owner.schedule(bank.solarSystemID, "unlock", banks.now(), op.id);
 }
-module.exports = { requestUnlock, link, settleUnlock, deliver, maintain, scheduleSystem, pulsePayout, bondPlan };
+module.exports = { requestUnlock, link, settleUnlock, deliver, maintain, scheduleSystem, pulsePayout, bondPlan, notifyReserveBankUnlocked };

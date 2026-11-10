@@ -1080,6 +1080,38 @@ function refreshCorporationHeadquartersSessions(
   return refreshedSessionCount;
 }
 
+/**
+ * svc.corpvotes (voting.py 77 to 105) caches vote cases, votes and sanctioned
+ * actions for the session and drops them only on these events, even after the
+ * member's own create or cast. All three carry (corporationID, voteCaseID).
+ * No retail capture exists; corpid matches the other corporation fan-outs.
+ */
+function notifyVoteCaseChanged(corporationID, voteCaseID) {
+  sendVoteNotification("OnVoteCaseChanged", corporationID, voteCaseID);
+}
+
+function notifyVoteCast(corporationID, voteCaseID) {
+  sendVoteNotification("OnVoteCast", corporationID, voteCaseID);
+}
+
+function notifySanctionedActionChanged(corporationID, voteCaseID) {
+  sendVoteNotification("OnSanctionedActionChanged", corporationID, voteCaseID);
+}
+
+function sendVoteNotification(notifyType, corporationID, voteCaseID) {
+  const numericCorporationID = normalizePositiveInteger(corporationID, null);
+  const numericVoteCaseID = normalizePositiveInteger(voteCaseID, null);
+  if (!numericCorporationID || !numericVoteCaseID) {
+    return;
+  }
+  sendNotificationToCorporationSessions(
+    numericCorporationID,
+    notifyType,
+    "corpid",
+    [numericCorporationID, numericVoteCaseID],
+  );
+}
+
 function notifyCorporationTitleChanged(
   corporationID,
   titleID,
@@ -1515,6 +1547,9 @@ module.exports = {
   notifyCorporationShareChanges,
   notifyCorporationMemberChanged,
   notifyCorporationTitleChanged,
+  notifySanctionedActionChanged,
+  notifyVoteCaseChanged,
+  notifyVoteCast,
   notifyCorporationRecruitmentAdChanged,
   notifyCorporationRemoved,
   notifyCorporationWelcomeMailChanged,

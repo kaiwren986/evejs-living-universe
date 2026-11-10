@@ -25,6 +25,7 @@ const {
 const {
   canEntitiesInteractLocally,
 } = require(path.join(__dirname, "../destiny/identity/interactionScope"));
+const nativeNpcAbilities = require("../npc/nativeNpcAbilities");
 
 const ATTRIBUTE_CAPACITOR_NEED = getAttributeIDByNames("capacitorNeed") || 6;
 const ATTRIBUTE_DURATION = getAttributeIDByNames("duration") || 73;
@@ -627,7 +628,7 @@ function resolveJammerModuleActivation({
   options = {},
   callbacks = {},
 } = {}) {
-  const definition = resolveJammerDefinition(effectRecord);
+  let definition = resolveJammerDefinition(effectRecord);
   if (!definition) {
     return { matched: false };
   }
@@ -671,6 +672,9 @@ function resolveJammerModuleActivation({
       errorMsg: "UNSUPPORTED_MODULE",
     };
   }
+  const bossBurst = Number(effectRecord?.effectID) === 4656 && nativeNpcAbilities.bossEnabled(entity)
+    ? nativeNpcAbilities.ecmInputs(entity, nativeNpcAbilities.bossPlayers(scene, entity).length, moduleAttributes) : null;
+  if (bossBurst) definition = { ...definition, family: ECM_BURST_FAMILY, burst: true, breakLocksOnly: true };
 
   // The cycle is the effect record's business, not this lane's. `remoteECMFalloff`,
   // `structureModuleEffectECM` and both burst jammers name 73 themselves, so a player
@@ -688,7 +692,7 @@ function resolveJammerModuleActivation({
     ],
     0,
   );
-  const rawDurationMs = durationResolution.value;
+  const rawDurationMs = bossBurst ? bossBurst.durationMs : durationResolution.value;
   const durationAttributeID =
     durationResolution.attributeID > 0 ? durationResolution.attributeID : ATTRIBUTE_SPEED;
 
@@ -736,7 +740,7 @@ function resolveJammerModuleActivation({
     };
   }
   const effectiveBurstRangeMeters =
-    definition.burst === true
+    bossBurst ? bossBurst.radiusMeters : definition.burst === true
       ? resolveEffectiveEcmBurstRange(moduleAttributes, moduleItem, characterID)
       : 0;
   if (definition.burst === true && effectiveBurstRangeMeters > 0) {
@@ -780,6 +784,7 @@ function resolveJammerModuleActivation({
     jammerMaxStrength: roundNumber(jammerMaxStrength, 6),
     forceFreshAcquireSpecialFxReplay: true,
     repeat: resolvePersistentRepeat(rawDurationMs),
+    ...(bossBurst ? { nativeBossBurstVersion: nativeNpcAbilities.BOSS_VERSION } : {}),
   };
 
   if (definition.burst === true) {
@@ -904,6 +909,8 @@ function listJammerBurstTargets(scene, sourceEntity, effectState, callbacks = {}
   }
 
   const targets = [];
+  const bossTargets = effectState.nativeBossBurstVersion === nativeNpcAbilities.BOSS_VERSION
+    ? new Set(nativeNpcAbilities.bossPlayers(scene, sourceEntity).map(target => Number(target.itemID))) : null;
   for (const targetEntity of scene.dynamicEntities.values()) {
     if (
       !targetEntity ||
@@ -911,6 +918,7 @@ function listJammerBurstTargets(scene, sourceEntity, effectState, callbacks = {}
       targetEntity.kind !== "ship" ||
       isCloakedTargetEntity(targetEntity) ||
       !canEntitiesInteractLocally(sourceEntity, targetEntity)
+      || bossTargets && !bossTargets.has(Number(targetEntity.itemID))
     ) {
       continue;
     }
@@ -1193,6 +1201,23 @@ function executeJammerBurstCycle({
       success: false,
       stopReason: "module",
     };
+  }
+  if (effectState.nativeBossBurstVersion === nativeNpcAbilities.BOSS_VERSION) {
+    if (!nativeNpcAbilities.bossEnabled(entity) || !nativeNpcAbilities.live(entity)) {
+      return { success: false, stopReason: "npc-burst", errorMsg: "NPC_BURST_SOURCE_INVALID" };
+    }
+    const owner = require("../npc/nativeNpcService"), stamp = Math.trunc(nowMs);
+    const reserved = owner.reserveNativeNpcAbilityCycle({ scene, source: entity, effectID: 4656,
+      nowMs: stamp, random: callbacks.random });
+    if (!reserved.success || !reserved.handled) return { success: false, stopReason: "npc-burst",
+      errorMsg: reserved.errorMsg || "NPC_BURST_DURABLE_OWNER_REQUIRED" };
+    const empty = () => ({ success: true, data: { affectedTargets: [], jammedTargetIDs: [], duplicate: true } });
+    if (reserved.pending || !reserved.cycle?.fired) return empty();
+    const consumed = owner.consumeNativeNpcBurst({ scene, source: entity, cycleAtMs: reserved.cycle.atMs });
+    if (!consumed.success || !consumed.consumed) return empty();
+    effectState.durationMs = reserved.inputs.durationMs;
+    effectState.jammerBurstRadiusMeters = reserved.inputs.radiusMeters;
+    if (effectState.genericAttributeOverrides) effectState.genericAttributeOverrides[1658] = reserved.inputs.durationMs;
   }
 
   const affectedTargets = [];

@@ -36,20 +36,31 @@ function resolveAbyssalNpcControllerStaleThresholdMs(controller, scene) {
     ABYSSAL_NPC_CONTROLLER_MISSED_TICK_ALLOWANCE;
 }
 
+function getControllerHeartbeatAtMs(controller) {
+  // Keep combat-only controllers compatible while measuring successful idle
+  // thinks separately from engagement. Neither activation nor a watchdog poll
+  // manufactures a heartbeat.
+  return Math.max(
+    toInt(controller && controller.lastBehaviorTickAtMs, 0),
+    toInt(controller && controller.lastCombatTickAtMs, 0),
+  );
+}
+
 function resolveAbyssalNpcControllerLiveness(controller, scene, nowMs) {
   if (!controller) {
-    return { state: "missing", lastCombatTickAtMs: 0, tickAgeMs: 0, thresholdMs: 0 };
+    return { state: "missing", lastCombatTickAtMs: 0, lastControllerTickAtMs: 0, tickAgeMs: 0, thresholdMs: 0 };
   }
   if (
     controller.controllerPaused === true ||
     controller.controllerLifecycleState === "materialized_paused"
   ) {
-    return { state: "paused", lastCombatTickAtMs: 0, tickAgeMs: 0, thresholdMs: 0 };
+    return { state: "paused", lastCombatTickAtMs: 0, lastControllerTickAtMs: 0, tickAgeMs: 0, thresholdMs: 0 };
   }
   const thresholdMs = resolveAbyssalNpcControllerStaleThresholdMs(controller, scene);
   const activatedAtMs = toInt(controller.activatedAtMs, 0);
   const lastCombatTickAtMs = toInt(controller.lastCombatTickAtMs, 0);
-  if (lastCombatTickAtMs <= 0) {
+  const lastControllerTickAtMs = getControllerHeartbeatAtMs(controller);
+  if (lastControllerTickAtMs <= 0) {
     const startupThresholdMs = ABYSSAL_NPC_CONTROLLER_STARTUP_GRACE_MS;
     const tickAgeMs = activatedAtMs > 0
       ? Math.max(0, toInt(nowMs, 0) - activatedAtMs)
@@ -60,15 +71,17 @@ function resolveAbyssalNpcControllerLiveness(controller, scene, nowMs) {
         : "startup",
       activatedAtMs,
       lastCombatTickAtMs,
+      lastControllerTickAtMs,
       tickAgeMs,
       thresholdMs: startupThresholdMs,
     };
   }
-  const tickAgeMs = Math.max(0, toInt(nowMs, 0) - lastCombatTickAtMs);
+  const tickAgeMs = Math.max(0, toInt(nowMs, 0) - lastControllerTickAtMs);
   return {
     state: tickAgeMs > thresholdMs ? "stalled" : "healthy",
     activatedAtMs,
     lastCombatTickAtMs,
+    lastControllerTickAtMs,
     tickAgeMs,
     thresholdMs,
   };
@@ -284,13 +297,13 @@ function inspectWatchdogLiveness(ports, work) {
     );
     if (
       priorRearmAttemptAtMs > 0 &&
-      liveness.lastCombatTickAtMs > priorRearmBaselineTickAtMs
+      liveness.lastControllerTickAtMs > priorRearmBaselineTickAtMs
     ) {
       clearAbyssalNpcControllerWatchdogRearmState(controller);
       recoveredControllerIDs.push(npcID);
       log.info(
         `[NpcControllerWatchdog] npc=${npcID} run=${toInt(pocketState && pocketState.instanceID, 0)} ` +
-          `room=${roomIndex} state=recovered lastTickAt=${liveness.lastCombatTickAtMs} ` +
+          `room=${roomIndex} state=recovered lastTickAt=${liveness.lastControllerTickAtMs} ` +
           `baselineTickAt=${priorRearmBaselineTickAtMs || "none"} ` +
           `rearmAttempt=1 action=healthy`,
       );
@@ -388,7 +401,7 @@ function rejectRepeatedStall(ports, work) {
       controller && controller.abyssalWatchdogRearmBaselineCombatTickAtMs,
       0,
     );
-    const currentLastTickAtMs = toInt(controller && controller.lastCombatTickAtMs, 0);
+    const currentLastTickAtMs = getControllerHeartbeatAtMs(controller);
     // Revalidate forward progress immediately before fail-closed degradation.
     // A natural scene tick can resume after the watchdog's stale snapshot.
     if (currentLastTickAtMs > baselineTickAtMs) {
@@ -429,7 +442,7 @@ function rejectRepeatedStall(ports, work) {
         ? {
             ...entry,
             ready: false,
-            failure: liveness && liveness.lastCombatTickAtMs > 0
+            failure: liveness && liveness.lastControllerTickAtMs > 0
               ? "WATCHDOG_STALE_COMBAT_TICK"
               : "WATCHDOG_NO_COMBAT_TICK",
           }
@@ -443,7 +456,7 @@ function rejectRepeatedStall(ports, work) {
       );
       log.warn(
         `[NpcControllerWatchdog] npc=${npcID} run=${toInt(roomAuthority.pocketState.instanceID, 0)} ` +
-          `room=${roomIndex} state=${liveness.lastCombatTickAtMs > 0 ? "stalled" : "active_no_tick"} ` +
+          `room=${roomIndex} state=${liveness.lastControllerTickAtMs > 0 ? "stalled" : "active_no_tick"} ` +
           `lastTickAgeMs=${liveness.tickAgeMs} thresholdMs=${liveness.thresholdMs} ` +
           `rearmAttempt=1 action=degrade`,
       );
@@ -455,7 +468,7 @@ function rejectRepeatedStall(ports, work) {
       nowMs,
       reason: alreadyRearmed.some((npcID) => {
         const liveness = controllerLivenessByNpcID.get(npcID);
-        return liveness && liveness.lastCombatTickAtMs > 0;
+        return liveness && liveness.lastControllerTickAtMs > 0;
       })
         ? "ABYSSAL_NPC_WATCHDOG_STALE_COMBAT_TICK"
         : "ABYSSAL_NPC_WATCHDOG_NO_COMBAT_TICK",
@@ -523,8 +536,10 @@ function rearmStalledController(ports, work) {
     rearmFailures.push({ npcID, failure: preRearmSelection.reason });
     return;
   }
-  const baselineTickAtMs = currentLiveness.lastCombatTickAtMs;
+  const baselineTickAtMs = currentLiveness.lastControllerTickAtMs;
   controller.abyssalWatchdogRearmAttemptedAtMs = nowMs;
+  // Retain the existing retry-state field for controller/test compatibility;
+  // its baseline now covers completed idle thinks as well as combat.
   controller.abyssalWatchdogRearmBaselineCombatTickAtMs = baselineTickAtMs;
   controller.abyssalWatchdogRearmReason = currentLiveness.state;
   rearmBaselinesByNpcID.set(npcID, {
@@ -674,7 +689,7 @@ function finishWatchdogRearm(ports, work) {
   for (const npcID of rearmedControllerIDs) {
     const rearmBaseline = rearmBaselinesByNpcID.get(npcID);
     const controller = npcRuntime.getControllerByEntityID(npcID);
-    const currentLastTickAtMs = toInt(controller && controller.lastCombatTickAtMs, 0);
+    const currentLastTickAtMs = getControllerHeartbeatAtMs(controller);
     if (
       rearmBaseline &&
       controller === rearmBaseline.controller &&

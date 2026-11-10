@@ -186,6 +186,25 @@ function touchedOwnerIDs(commandType, payload = {}) {
   return { characterIDs: [], corporationIDs: [] };
 }
 
+function buildCorporationProjectionEntry(corporationID, runtime) {
+  if (!runtime.wallet) {
+    return { corporationID, wallet: null };
+  }
+  const wallet = { ...runtime.wallet };
+  delete wallet.authorityReceipts;
+  if (wallet.divisions && typeof wallet.divisions === "object") {
+    wallet.divisions = Object.fromEntries(Object.entries(wallet.divisions).map(([key, division]) => {
+      if (!division || typeof division !== "object") {
+        return [key, division];
+      }
+      const projectedDivision = { ...division };
+      delete projectedDivision.adjustmentReceipts;
+      return [key, projectedDivision];
+    }));
+  }
+  return { corporationID, wallet: cloneValue(wallet) };
+}
+
 function buildProjection(commandType, payload) {
   const touched = touchedOwnerIDs(commandType, payload);
   const pendingHistory = [...new Set(
@@ -206,10 +225,7 @@ function buildProjection(commandType, payload) {
       runtime: ownerState.getCorporationRuntime(corporationID),
     }))
     .filter((entry) => entry.runtime)
-    .map((entry) => ({
-      corporationID: entry.corporationID,
-      wallet: cloneValue(entry.runtime.wallet || null),
-    }));
+    .map((entry) => buildCorporationProjectionEntry(entry.corporationID, entry.runtime));
   return {
     characters: pendingHistory.map((pending) => pending.entry),
     corporations,
@@ -228,10 +244,7 @@ function buildStartupProjection() {
     }
     const corporationID = Math.trunc(Number(record && record.corporationID) || 0);
     if (corporationID > 0) {
-      corporations.push({
-        corporationID,
-        wallet: cloneValue(record.wallet || null),
-      });
+      corporations.push(buildCorporationProjectionEntry(corporationID, record));
     }
   }
   return {

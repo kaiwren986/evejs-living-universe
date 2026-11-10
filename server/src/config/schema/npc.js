@@ -21,7 +21,7 @@ module.exports = [
     "envType": "boolean",
     "valueType": "boolean",
     "description": [
-      "Enables lazy normal pirate rat spawns when a player arrives at an asteroid belt. Disable to remove belt-rat spawning entirely."
+      "Enables lazy pirate rat spawns on arrival and while players remain at asteroid belts or undefended public ore anomalies. Disable to remove these spawns entirely."
     ],
     "validValues": "true or false.",
     "allowBlank": false,
@@ -79,7 +79,7 @@ module.exports = [
     "envType": "number",
     "valueType": "number",
     "description": [
-      "Minimum time before the same empty belt can roll for another rat spawn after a player arrival check."
+      "Minimum time before the same empty belt or ore anomaly can roll for another rat spawn on arrival or while occupied."
     ],
     "validValues": "Non-negative duration in milliseconds.",
     "minValue": 0,

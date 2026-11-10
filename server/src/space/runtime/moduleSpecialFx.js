@@ -133,6 +133,9 @@ function resolveGenericModuleControlSpecialFxGuid(effectState) {
 }
 
 function buildGenericModuleSpecialFxGraphicInfo(effectState) {
+  if (effectState && effectState.essFieldVisual === true) {
+    return { range: effectState.essFieldRadiusMeters };
+  }
   // effects/EMPWave.py Prepare reads graphicInfo.graphicID when graphicInfo is
   // not None, and takes the wave's radius from the module type's
   // empFieldRange. Any other KeyVal raises AttributeError there, the wave never

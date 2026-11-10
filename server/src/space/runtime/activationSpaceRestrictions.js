@@ -190,6 +190,10 @@ function resolveCynosuralActivationSpaceRestriction(scene, moduleItem) {
     return null;
   }
 
+  if (require("../../services/incursion/incursionSystemEffects").blocksCyno(systemID)) {
+    return { blocked: true, systemID, reason: "INCURSION_SYSTEM_JAMMER", errorMsg: "CYNOSURAL_FIELD_JAMMED" };
+  }
+
   const { isSolarSystemCynoJammed } = lazyRequire(
     "../services/sovereignty/sovSuppressionState",
   );

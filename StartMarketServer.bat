@@ -40,7 +40,7 @@ echo     [2] Start market server - debug build
 echo     [3] Doctor - inspect manifest and cache state
   echo     [4] Build release binary only
   echo     [5] Edit market server config
-  echo     [6] Build or refresh market seed
+  echo     [6] Choose market seed - v1 synthetic, v2 TQ, v3 cost-priced, v4 Iron Man
   echo     [7] Open market server README
   echo.
   echo     Ctrl+C in the live server console now performs a clean stop

@@ -1,0 +1,3511 @@
+{
+  "schemaVersion": 1,
+  "levels": {
+    "1": {
+      "isk": 46000,
+      "bonusISK": 43750,
+      "baseLP": 71.18725869,
+      "bonusMinutes": 128,
+      "missionCount": 88,
+      "evidenceClass": "TQ_mission_medians_with_provisional_normalization",
+      "validationTODO": "TODO: Equal weight per mission median, not per offer or agent. L3-5 LP extends the L1-to-L2 ratio; ISK/bonus/timers follow captured median ratios to normalized LP. Timers are bounded by the observed maximum, not a proven TQ cap. Four L2 missions with unknown skills are not a representative higher-level sample. Replace projections with captures."
+    },
+    "2": {
+      "isk": 58500,
+      "bonusISK": 59000,
+      "baseLP": 147.50274424,
+      "bonusMinutes": 94,
+      "missionCount": 4,
+      "evidenceClass": "TQ_mission_medians_with_provisional_normalization",
+      "validationTODO": "TODO: Equal weight per mission median, not per offer or agent. L3-5 LP extends the L1-to-L2 ratio; ISK/bonus/timers follow captured median ratios to normalized LP. Timers are bounded by the observed maximum, not a proven TQ cap. Four L2 missions with unknown skills are not a representative higher-level sample. Replace projections with captures."
+    },
+    "3": {
+      "baseLP": 305.6313722,
+      "isk": 192996.02384325,
+      "bonusISK": 188361.46065969,
+      "bonusMinutes": 360,
+      "missionCount": 0,
+      "evidenceClass": "TODO_projection_from_TQ_levels_1_and_2",
+      "validationTODO": "TODO: Equal weight per mission median, not per offer or agent. L3-5 LP extends the L1-to-L2 ratio; ISK/bonus/timers follow captured median ratios to normalized LP. Timers are bounded by the observed maximum, not a proven TQ cap. Four L2 missions with unknown skills are not a representative higher-level sample. Replace projections with captures."
+    },
+    "4": {
+      "baseLP": 633.27998513,
+      "isk": 399895.20129284,
+      "bonusISK": 390292.20771667,
+      "bonusMinutes": 360,
+      "missionCount": 0,
+      "evidenceClass": "TODO_projection_from_TQ_levels_1_and_2",
+      "validationTODO": "TODO: Equal weight per mission median, not per offer or agent. L3-5 LP extends the L1-to-L2 ratio; ISK/bonus/timers follow captured median ratios to normalized LP. Timers are bounded by the observed maximum, not a proven TQ cap. Four L2 missions with unknown skills are not a representative higher-level sample. Replace projections with captures."
+    },
+    "5": {
+      "baseLP": 1312.18054177,
+      "isk": 828598.27281687,
+      "bonusISK": 808700.49993696,
+      "bonusMinutes": 360,
+      "missionCount": 0,
+      "evidenceClass": "TODO_projection_from_TQ_levels_1_and_2",
+      "validationTODO": "TODO: Equal weight per mission median, not per offer or agent. L3-5 LP extends the L1-to-L2 ratio; ISK/bonus/timers follow captured median ratios to normalized LP. Timers are bounded by the observed maximum, not a proven TQ cap. Four L2 missions with unknown skills are not a representative higher-level sample. Replace projections with captures."
+    }
+  },
+  "missionsByID": {
+    "875": {
+      "missionID": 875,
+      "level": 1,
+      "dungeonID": 213,
+      "isk": 42500,
+      "bonusISK": 40500,
+      "baseLP": 66.96428571,
+      "bonusMinutes": 118,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 12,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 13,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "895": {
+      "missionID": 895,
+      "level": 1,
+      "dungeonID": 221,
+      "isk": 39000,
+      "bonusISK": 36500,
+      "baseLP": 60.32818533,
+      "bonusMinutes": 112,
+      "sources": [
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 2,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "909": {
+      "missionID": 909,
+      "level": 2,
+      "dungeonID": 209,
+      "isk": 52000,
+      "bonusISK": 54000,
+      "baseLP": 150.93304061,
+      "bonusMinutes": 96,
+      "sources": [
+        {
+          "observationID": "decoded-The_Sevens_Brothel",
+          "sourceRefs": [
+            {
+              "source": "TQ_decoded_log",
+              "file": "tools/TQMissionLogDecoder/packs/The_Sevens_Brothel/missionCheck.json",
+              "sha256": "f2e3d28b969e45c6c002b32a0339a6939f4e700fa952db0f6fb459fd56126f20"
+            },
+            {
+              "source": "TQ_decoded_log_context",
+              "file": "tools/TQMissionLogDecoder/packs/The_Sevens_Brothel/README.md",
+              "sha256": "4274d1e45efe4ec252a31c1ea073517dd90f8bd1a72f597a60b0253b78c1ca10"
+            },
+            {
+              "source": "existing_TQ_captured_setup",
+              "file": "tools/DatabaseCreator/staticTables/dungeonAuthority/data.json",
+              "revision": "4cd57197c2a5db6b422f0f424ea19b9ce0a74903",
+              "jsonPointer": "/templatesByID/client-dungeon:209/missionSetupByMissionID/909",
+              "sha256": "3d18b229ec7743987c9292a4fd0966dd1c31086432798477350d51cdc5e48c60"
+            }
+          ],
+          "rewardSkills": "unknown; TODO zero is only a normalization assumption"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "916": {
+      "missionID": 916,
+      "level": 1,
+      "dungeonID": 233,
+      "isk": 26750,
+      "bonusISK": 28500,
+      "baseLP": 42.22972973,
+      "bonusMinutes": 74,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 10,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 2,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "919": {
+      "missionID": 919,
+      "level": 1,
+      "dungeonID": 236,
+      "isk": 32750,
+      "bonusISK": 32750,
+      "baseLP": 51.88223938,
+      "bonusMinutes": 94,
+      "sources": [
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "921": {
+      "missionID": 921,
+      "level": 1,
+      "dungeonID": 229,
+      "isk": 29750,
+      "bonusISK": 27500,
+      "baseLP": 45.246139,
+      "bonusMinutes": 80,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 12,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "922": {
+      "missionID": 922,
+      "level": 1,
+      "dungeonID": 185,
+      "isk": 39000,
+      "bonusISK": 38500,
+      "baseLP": 61.53474903,
+      "bonusMinutes": 108,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 12,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "934": {
+      "missionID": 934,
+      "level": 1,
+      "dungeonID": 201,
+      "isk": 36500,
+      "bonusISK": 35250,
+      "baseLP": 53.08880309,
+      "bonusMinutes": 98,
+      "sources": [
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "1178": {
+      "missionID": 1178,
+      "level": 1,
+      "dungeonID": 279,
+      "isk": 48000,
+      "bonusISK": 51000,
+      "baseLP": 76.01351351,
+      "bonusMinutes": 140,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "1181": {
+      "missionID": 1181,
+      "level": 1,
+      "dungeonID": 282,
+      "isk": 61000,
+      "bonusISK": 60000,
+      "baseLP": 89.28571429,
+      "bonusMinutes": 154,
+      "sources": [
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 12,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "1182": {
+      "missionID": 1182,
+      "level": 1,
+      "dungeonID": 283,
+      "isk": 51500,
+      "bonusISK": 49500,
+      "baseLP": 86.87258687,
+      "bonusMinutes": 156,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 10,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "1183": {
+      "missionID": 1183,
+      "level": 1,
+      "dungeonID": 284,
+      "isk": 60000,
+      "bonusISK": 51000,
+      "baseLP": 90.49227799,
+      "bonusMinutes": 156,
+      "sources": [
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "1214": {
+      "missionID": 1214,
+      "level": 1,
+      "dungeonID": 305,
+      "isk": 45000,
+      "bonusISK": 47500,
+      "baseLP": 71.18725869,
+      "bonusMinutes": 128,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 15,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "1218": {
+      "missionID": 1218,
+      "level": 1,
+      "dungeonID": 310,
+      "isk": 65500,
+      "bonusISK": 61750,
+      "baseLP": 100.7480695,
+      "bonusMinutes": 180,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "1227": {
+      "missionID": 1227,
+      "level": 1,
+      "dungeonID": 315,
+      "isk": 36250,
+      "bonusISK": 37000,
+      "baseLP": 57.91505792,
+      "bonusMinutes": 106,
+      "sources": [
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "1228": {
+      "missionID": 1228,
+      "level": 1,
+      "dungeonID": 316,
+      "isk": 32250,
+      "bonusISK": 33250,
+      "baseLP": 54.2953668,
+      "bonusMinutes": 94,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "1237": {
+      "missionID": 1237,
+      "level": 1,
+      "dungeonID": 309,
+      "isk": 42000,
+      "bonusISK": 41000,
+      "baseLP": 67.56756757,
+      "bonusMinutes": 122,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 1,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 13,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "1570": {
+      "missionID": 1570,
+      "level": 1,
+      "dungeonID": 310,
+      "isk": 69000,
+      "bonusISK": 66500,
+      "baseLP": 103.76447876,
+      "bonusMinutes": 192,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 10,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 17,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2211": {
+      "missionID": 2211,
+      "level": 1,
+      "dungeonID": 229,
+      "isk": 30000,
+      "bonusISK": 31000,
+      "baseLP": 48.26254826,
+      "bonusMinutes": 88,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 10,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 13,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2232": {
+      "missionID": 2232,
+      "level": 1,
+      "dungeonID": 768,
+      "isk": 36000,
+      "bonusISK": 35000,
+      "baseLP": 51.88223938,
+      "bonusMinutes": 90,
+      "sources": [
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2235": {
+      "missionID": 2235,
+      "level": 1,
+      "dungeonID": 769,
+      "isk": 28250,
+      "bonusISK": 26500,
+      "baseLP": 44.64285714,
+      "bonusMinutes": 80,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 11,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 11,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2236": {
+      "missionID": 2236,
+      "level": 1,
+      "dungeonID": 770,
+      "isk": 32000,
+      "bonusISK": 31000,
+      "baseLP": 53.08880309,
+      "bonusMinutes": 96,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 10,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 20,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2248": {
+      "missionID": 2248,
+      "level": 1,
+      "dungeonID": 778,
+      "isk": 26000,
+      "bonusISK": 31000,
+      "baseLP": 47.05598456,
+      "bonusMinutes": 84,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2249": {
+      "missionID": 2249,
+      "level": 1,
+      "dungeonID": 779,
+      "isk": 32500,
+      "bonusISK": 31000,
+      "baseLP": 49.46911197,
+      "bonusMinutes": 90,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2337": {
+      "missionID": 2337,
+      "level": 1,
+      "dungeonID": 840,
+      "isk": 130000,
+      "bonusISK": 120750,
+      "baseLP": 203.30598456,
+      "bonusMinutes": 360,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 12,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2340": {
+      "missionID": 2340,
+      "level": 1,
+      "dungeonID": 842,
+      "isk": 117500,
+      "bonusISK": 120750,
+      "baseLP": 194.25675676,
+      "bonusMinutes": 360,
+      "sources": [
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2356": {
+      "missionID": 2356,
+      "level": 1,
+      "dungeonID": 995,
+      "isk": 107500,
+      "bonusISK": 110750,
+      "baseLP": 168.91891892,
+      "bonusMinutes": 304,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 2,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 10,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2357": {
+      "missionID": 2357,
+      "level": 1,
+      "dungeonID": 994,
+      "isk": 111000,
+      "bonusISK": 101000,
+      "baseLP": 165.2992278,
+      "bonusMinutes": 306,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 11,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 15,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2389": {
+      "missionID": 2389,
+      "level": 1,
+      "dungeonID": 943,
+      "isk": 75750,
+      "bonusISK": 76750,
+      "baseLP": 115.22683398,
+      "bonusMinutes": 206,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 11,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2390": {
+      "missionID": 2390,
+      "level": 1,
+      "dungeonID": 944,
+      "isk": 82000,
+      "bonusISK": 80000,
+      "baseLP": 127.8957529,
+      "bonusMinutes": 236,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 1,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 14,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2391": {
+      "missionID": 2391,
+      "level": 1,
+      "dungeonID": 921,
+      "isk": 77250,
+      "bonusISK": 75750,
+      "baseLP": 120.0530888,
+      "bonusMinutes": 216,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 12,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 14,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2407": {
+      "missionID": 2407,
+      "level": 1,
+      "dungeonID": 918,
+      "isk": 66000,
+      "bonusISK": 68000,
+      "baseLP": 112.21042471,
+      "bonusMinutes": 206,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 10,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2504": {
+      "missionID": 2504,
+      "level": 1,
+      "dungeonID": 875,
+      "isk": 75000,
+      "bonusISK": 70000,
+      "baseLP": 111.003861,
+      "bonusMinutes": 202,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 10,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 14,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2541": {
+      "missionID": 2541,
+      "level": 1,
+      "dungeonID": 969,
+      "isk": 71000,
+      "bonusISK": 72000,
+      "baseLP": 118.24324324,
+      "bonusMinutes": 218,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 17,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2545": {
+      "missionID": 2545,
+      "level": 1,
+      "dungeonID": 968,
+      "isk": 68500,
+      "bonusISK": 66250,
+      "baseLP": 111.60714286,
+      "bonusMinutes": 202,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2550": {
+      "missionID": 2550,
+      "level": 1,
+      "dungeonID": 987,
+      "isk": 63000,
+      "bonusISK": 61000,
+      "baseLP": 102.55791506,
+      "bonusMinutes": 188,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 10,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 14,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2925": {
+      "missionID": 2925,
+      "level": 1,
+      "dungeonID": 1940,
+      "isk": 70000,
+      "bonusISK": 72750,
+      "baseLP": 117.03667954,
+      "bonusMinutes": 206,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 10,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2927": {
+      "missionID": 2927,
+      "level": 1,
+      "dungeonID": 1942,
+      "isk": 65000,
+      "bonusISK": 72000,
+      "baseLP": 104.97104247,
+      "bonusMinutes": 194,
+      "sources": [
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 2,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2956": {
+      "missionID": 2956,
+      "level": 2,
+      "dungeonID": 1979,
+      "isk": 103000,
+      "bonusISK": 103000,
+      "baseLP": 233.26015368,
+      "bonusMinutes": 148,
+      "sources": [
+        {
+          "observationID": "decoded-The_Damsel_In_Distress",
+          "sourceRefs": [
+            {
+              "source": "TQ_decoded_log",
+              "file": "tools/TQMissionLogDecoder/packs/The_Damsel_In_Distress/missionCheck.json",
+              "sha256": "69a77a8a3b87b56c500e2fd1d896441800b7c9982a5de152148e62217eec50c2"
+            },
+            {
+              "source": "TQ_decoded_log_context",
+              "file": "tools/TQMissionLogDecoder/packs/The_Damsel_In_Distress/README.md",
+              "sha256": "2586bbd99a496c8215736623fb08268a6ef341cab6112d80570322571ea1b290"
+            },
+            {
+              "source": "existing_TQ_captured_setup",
+              "file": "tools/DatabaseCreator/staticTables/dungeonAuthority/data.json",
+              "revision": "4cd57197c2a5db6b422f0f424ea19b9ce0a74903",
+              "jsonPointer": "/templatesByID/client-dungeon:1979/missionSetupByMissionID/2956",
+              "sha256": "3d18b229ec7743987c9292a4fd0966dd1c31086432798477350d51cdc5e48c60"
+            }
+          ],
+          "rewardSkills": "unknown; TODO zero is only a normalization assumption"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2959": {
+      "missionID": 2959,
+      "level": 1,
+      "dungeonID": 1982,
+      "isk": 33000,
+      "bonusISK": 31000,
+      "baseLP": 51.88223938,
+      "bonusMinutes": 94,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 2,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 15,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2962": {
+      "missionID": 2962,
+      "level": 1,
+      "dungeonID": 1983,
+      "isk": 33500,
+      "bonusISK": 32000,
+      "baseLP": 52.48552124,
+      "bonusMinutes": 94,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 1,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "2964": {
+      "missionID": 2964,
+      "level": 2,
+      "dungeonID": 1986,
+      "isk": 65000,
+      "bonusISK": 64000,
+      "baseLP": 144.07244786,
+      "bonusMinutes": 92,
+      "sources": [
+        {
+          "observationID": "decoded-Cargo_Delivery",
+          "sourceRefs": [
+            {
+              "source": "TQ_decoded_log",
+              "file": "tools/TQMissionLogDecoder/packs/Cargo_Delivery/missionCheck.json",
+              "sha256": "6b2f170afe007e11d4ca4c013595166af6c89f9c1eafe19f177f0920c85d457c"
+            },
+            {
+              "source": "TQ_decoded_log_context",
+              "file": "tools/TQMissionLogDecoder/packs/Cargo_Delivery/README.md",
+              "sha256": "5ede4f58b9520b2518b3271d29aa97bfc2bf4f72d2cd26d875dccf0ccddabeaf"
+            },
+            {
+              "source": "existing_TQ_captured_setup",
+              "file": "tools/DatabaseCreator/staticTables/dungeonAuthority/data.json",
+              "revision": "4cd57197c2a5db6b422f0f424ea19b9ce0a74903",
+              "jsonPointer": "/templatesByID/client-dungeon:1986/missionSetupByMissionID/2964",
+              "sha256": "3d18b229ec7743987c9292a4fd0966dd1c31086432798477350d51cdc5e48c60"
+            }
+          ],
+          "rewardSkills": "unknown; TODO zero is only a normalization assumption"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "3061": {
+      "missionID": 3061,
+      "level": 1,
+      "dungeonID": 2029,
+      "isk": 51000,
+      "bonusISK": 58500,
+      "baseLP": 91.6988417,
+      "bonusMinutes": 158,
+      "sources": [
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "3062": {
+      "missionID": 3062,
+      "level": 1,
+      "dungeonID": 2026,
+      "isk": 54000,
+      "bonusISK": 51000,
+      "baseLP": 85.66602317,
+      "bonusMinutes": 154,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "3063": {
+      "missionID": 3063,
+      "level": 1,
+      "dungeonID": 2027,
+      "isk": 46000,
+      "bonusISK": 47000,
+      "baseLP": 78.42664093,
+      "bonusMinutes": 134,
+      "sources": [
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 11,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "3064": {
+      "missionID": 3064,
+      "level": 1,
+      "dungeonID": 2025,
+      "isk": 57500,
+      "bonusISK": 52500,
+      "baseLP": 84.45945946,
+      "bonusMinutes": 144,
+      "sources": [
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "3065": {
+      "missionID": 3065,
+      "level": 1,
+      "dungeonID": 2028,
+      "isk": 50000,
+      "bonusISK": 51500,
+      "baseLP": 78.42664093,
+      "bonusMinutes": 144,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4659": {
+      "missionID": 4659,
+      "level": 1,
+      "dungeonID": 2492,
+      "isk": 45500,
+      "bonusISK": 43000,
+      "baseLP": 68.77413127,
+      "bonusMinutes": 120,
+      "sources": [
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4661": {
+      "missionID": 4661,
+      "level": 1,
+      "dungeonID": 2493,
+      "isk": 42500,
+      "bonusISK": 37500,
+      "baseLP": 71.18725869,
+      "bonusMinutes": 128,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 1,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 11,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4662": {
+      "missionID": 4662,
+      "level": 1,
+      "dungeonID": 2494,
+      "isk": 41500,
+      "bonusISK": 39000,
+      "baseLP": 67.56756757,
+      "bonusMinutes": 124,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4663": {
+      "missionID": 4663,
+      "level": 1,
+      "dungeonID": 2496,
+      "isk": 53000,
+      "bonusISK": 53000,
+      "baseLP": 86.87258687,
+      "bonusMinutes": 150,
+      "sources": [
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 11,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4667": {
+      "missionID": 4667,
+      "level": 1,
+      "dungeonID": 2497,
+      "isk": 37000,
+      "bonusISK": 36000,
+      "baseLP": 57.91505792,
+      "bonusMinutes": 100,
+      "sources": [
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4701": {
+      "missionID": 4701,
+      "level": 1,
+      "dungeonID": 2515,
+      "isk": 53000,
+      "bonusISK": 43000,
+      "baseLP": 73.6003861,
+      "bonusMinutes": 128,
+      "sources": [
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 12,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4702": {
+      "missionID": 4702,
+      "level": 1,
+      "dungeonID": 2511,
+      "isk": 48000,
+      "bonusISK": 43500,
+      "baseLP": 71.18725869,
+      "bonusMinutes": 122,
+      "sources": [
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4703": {
+      "missionID": 4703,
+      "level": 1,
+      "dungeonID": 2505,
+      "isk": 95000,
+      "bonusISK": 91000,
+      "baseLP": 149.61389961,
+      "bonusMinutes": 276,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4708": {
+      "missionID": 4708,
+      "level": 1,
+      "dungeonID": 2513,
+      "isk": 42000,
+      "bonusISK": 44000,
+      "baseLP": 68.77413127,
+      "bonusMinutes": 124,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 12,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4709": {
+      "missionID": 4709,
+      "level": 1,
+      "dungeonID": 2514,
+      "isk": 42000,
+      "bonusISK": 45000,
+      "baseLP": 69.98069498,
+      "bonusMinutes": 128,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4713": {
+      "missionID": 4713,
+      "level": 1,
+      "dungeonID": 2500,
+      "isk": 62000,
+      "bonusISK": 63000,
+      "baseLP": 101.35135135,
+      "bonusMinutes": 176,
+      "sources": [
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4714": {
+      "missionID": 4714,
+      "level": 1,
+      "dungeonID": 2553,
+      "isk": 58000,
+      "bonusISK": 63000,
+      "baseLP": 101.35135135,
+      "bonusMinutes": 182,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4715": {
+      "missionID": 4715,
+      "level": 1,
+      "dungeonID": 2554,
+      "isk": 71000,
+      "bonusISK": 69000,
+      "baseLP": 113.41698842,
+      "bonusMinutes": 210,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4716": {
+      "missionID": 4716,
+      "level": 1,
+      "dungeonID": 2555,
+      "isk": 64000,
+      "bonusISK": 55000,
+      "baseLP": 91.6988417,
+      "bonusMinutes": 160,
+      "sources": [
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 11,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4722": {
+      "missionID": 4722,
+      "level": 1,
+      "dungeonID": 2517,
+      "isk": 46000,
+      "bonusISK": 42500,
+      "baseLP": 67.56756757,
+      "bonusMinutes": 122,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 2,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4728": {
+      "missionID": 4728,
+      "level": 1,
+      "dungeonID": 2523,
+      "isk": 93000,
+      "bonusISK": 92000,
+      "baseLP": 149.61389961,
+      "bonusMinutes": 272,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4749": {
+      "missionID": 4749,
+      "level": 1,
+      "dungeonID": 2547,
+      "isk": 27500,
+      "bonusISK": 30000,
+      "baseLP": 52.14050494,
+      "bonusMinutes": 98,
+      "sources": [
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 12,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4750": {
+      "missionID": 4750,
+      "level": 1,
+      "dungeonID": 2548,
+      "isk": 25000,
+      "bonusISK": 24000,
+      "baseLP": 41.02316602,
+      "bonusMinutes": 74,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 2,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4751": {
+      "missionID": 4751,
+      "level": 1,
+      "dungeonID": 2549,
+      "isk": 25000,
+      "bonusISK": 21000,
+      "baseLP": 37.4034749,
+      "bonusMinutes": 64,
+      "sources": [
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 13,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4752": {
+      "missionID": 4752,
+      "level": 1,
+      "dungeonID": 2543,
+      "isk": 40750,
+      "bonusISK": 41000,
+      "baseLP": 66.5774485,
+      "bonusMinutes": 120,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 11,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4815": {
+      "missionID": 4815,
+      "level": 1,
+      "dungeonID": 2551,
+      "isk": 51500,
+      "bonusISK": 49000,
+      "baseLP": 79.63320463,
+      "bonusMinutes": 144,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 10,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 2,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 15,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4816": {
+      "missionID": 4816,
+      "level": 1,
+      "dungeonID": 2562,
+      "bonusISK": 40000,
+      "baseLP": 62.74131274,
+      "bonusMinutes": 108,
+      "sources": [
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4817": {
+      "missionID": 4817,
+      "level": 1,
+      "dungeonID": 2568,
+      "isk": 41000,
+      "bonusISK": 37000,
+      "baseLP": 66.36100386,
+      "bonusMinutes": 120,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4818": {
+      "missionID": 4818,
+      "level": 1,
+      "dungeonID": 2569,
+      "isk": 38000,
+      "bonusISK": 41000,
+      "baseLP": 66.36100386,
+      "bonusMinutes": 122,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 10,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4819": {
+      "missionID": 4819,
+      "level": 1,
+      "dungeonID": 2570,
+      "isk": 53000,
+      "bonusISK": 39500,
+      "baseLP": 74.80694981,
+      "bonusMinutes": 128,
+      "sources": [
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4885": {
+      "missionID": 4885,
+      "level": 1,
+      "dungeonID": 2628,
+      "isk": 52000,
+      "bonusISK": 53000,
+      "baseLP": 80.83976834,
+      "bonusMinutes": 146,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4901": {
+      "missionID": 4901,
+      "level": 1,
+      "dungeonID": 2638,
+      "isk": 128000,
+      "bonusISK": 133500,
+      "baseLP": 194.25675676,
+      "bonusMinutes": 360,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "4908": {
+      "missionID": 4908,
+      "level": 1,
+      "dungeonID": 2634,
+      "isk": 26000,
+      "bonusISK": 28000,
+      "baseLP": 48.26254826,
+      "bonusMinutes": 84,
+      "sources": [
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "13464": {
+      "missionID": 13464,
+      "level": 1,
+      "dungeonID": 2695,
+      "isk": 36750,
+      "bonusISK": 34750,
+      "baseLP": 59.12162162,
+      "bonusMinutes": 106,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "13486": {
+      "missionID": 13486,
+      "level": 1,
+      "dungeonID": 2718,
+      "isk": 29000,
+      "bonusISK": 30000,
+      "baseLP": 45.84942085,
+      "bonusMinutes": 84,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 1,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 13,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "13490": {
+      "missionID": 13490,
+      "level": 1,
+      "dungeonID": 2734,
+      "isk": 31000,
+      "bonusISK": 29500,
+      "baseLP": 51.88223938,
+      "bonusMinutes": 92,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "13492": {
+      "missionID": 13492,
+      "level": 1,
+      "dungeonID": 2735,
+      "isk": 16000,
+      "sources": [
+        {
+          "observationID": "decoded-Interstellar_Railroad__3_of_4_",
+          "sourceRefs": [
+            {
+              "source": "TQ_decoded_log",
+              "file": "tools/TQMissionLogDecoder/packs/Interstellar_Railroad__3_of_4_/missionCheck.json",
+              "sha256": "ecec8dd844fd3d178ba1d7f2f4a76e09594b81cff87fd0e974c46fecbcf4be32"
+            },
+            {
+              "source": "TQ_decoded_log_context",
+              "file": "tools/TQMissionLogDecoder/packs/Interstellar_Railroad__3_of_4_/README.md",
+              "sha256": "80258ec1538ac8338892b624090825ba4d1e5a660e777bcf0b182d0472123e78"
+            }
+          ],
+          "rewardSkills": "unknown; TODO zero is only a normalization assumption"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "13493": {
+      "missionID": 13493,
+      "level": 1,
+      "dungeonID": 2744,
+      "isk": 18000,
+      "sources": [
+        {
+          "observationID": "decoded-Interstellar_Railroad__4_of_4_",
+          "sourceRefs": [
+            {
+              "source": "TQ_decoded_log",
+              "file": "tools/TQMissionLogDecoder/packs/Interstellar_Railroad__4_of_4_/missionCheck.json",
+              "sha256": "0351b847f45a3833e2da245cbb1bfa1b0937ccc3cb777f693a682805aecebfb2"
+            },
+            {
+              "source": "TQ_decoded_log_context",
+              "file": "tools/TQMissionLogDecoder/packs/Interstellar_Railroad__4_of_4_/README.md",
+              "sha256": "a44cf1504a41f15d065265c62aed205c179f0e13276023d564e57686c63390c0"
+            }
+          ],
+          "rewardSkills": "unknown; TODO zero is only a normalization assumption"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "13496": {
+      "missionID": 13496,
+      "level": 1,
+      "dungeonID": 2719,
+      "isk": 36500,
+      "bonusISK": 39000,
+      "baseLP": 57.91505792,
+      "bonusMinutes": 104,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 10,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 14,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "13511": {
+      "missionID": 13511,
+      "level": 1,
+      "dungeonID": 2745,
+      "isk": 45000,
+      "bonusISK": 42000,
+      "baseLP": 67.56756757,
+      "bonusMinutes": 124,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 2,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "13523": {
+      "missionID": 13523,
+      "level": 1,
+      "dungeonID": 2782,
+      "isk": 53000,
+      "bonusISK": 41500,
+      "baseLP": 74.80694981,
+      "bonusMinutes": 134,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 1,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "13735": {
+      "missionID": 13735,
+      "level": 1,
+      "dungeonID": 3030,
+      "isk": 33000,
+      "bonusISK": 32000,
+      "baseLP": 51.88223938,
+      "bonusMinutes": 92,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 11,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 10,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "13755": {
+      "missionID": 13755,
+      "level": 1,
+      "dungeonID": 3050,
+      "isk": 58000,
+      "bonusISK": 62000,
+      "baseLP": 96.52509653,
+      "bonusMinutes": 178,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 2,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "13777": {
+      "missionID": 13777,
+      "level": 1,
+      "dungeonID": 3087,
+      "isk": 57500,
+      "bonusISK": 60000,
+      "baseLP": 92.90540541,
+      "bonusMinutes": 168,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "13779": {
+      "missionID": 13779,
+      "level": 2,
+      "dungeonID": 3093,
+      "isk": 43000,
+      "bonusISK": 40000,
+      "baseLP": 108.39736553,
+      "bonusMinutes": 68,
+      "sources": [
+        {
+          "observationID": "decoded-Vigilance",
+          "sourceRefs": [
+            {
+              "source": "TQ_decoded_log",
+              "file": "tools/TQMissionLogDecoder/packs/Vigilance/missionCheck.json",
+              "sha256": "3298068705ccf3c1e0b70ff77c2c02b6f07d05e27edbde2a8c05caab88fd4d29"
+            },
+            {
+              "source": "TQ_decoded_log_context",
+              "file": "tools/TQMissionLogDecoder/packs/Vigilance/README.md",
+              "sha256": "1de7a6a882a4dcf883c39ff75d5aa0aa0e59f614890e1e7fcf032a50f57ae7b3"
+            },
+            {
+              "source": "existing_TQ_captured_setup",
+              "file": "tools/DatabaseCreator/staticTables/dungeonAuthority/data.json",
+              "revision": "4cd57197c2a5db6b422f0f424ea19b9ce0a74903",
+              "jsonPointer": "/templatesByID/client-dungeon:3093/missionSetupByMissionID/13779",
+              "sha256": "3d18b229ec7743987c9292a4fd0966dd1c31086432798477350d51cdc5e48c60"
+            }
+          ],
+          "rewardSkills": "unknown; TODO zero is only a normalization assumption"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "13780": {
+      "missionID": 13780,
+      "level": 1,
+      "dungeonID": 3090,
+      "isk": 31000,
+      "bonusISK": 31000,
+      "baseLP": 48.26254826,
+      "bonusMinutes": 88,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 1,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "13814": {
+      "missionID": 13814,
+      "level": 1,
+      "dungeonID": 3096,
+      "isk": 47000,
+      "bonusISK": 44000,
+      "baseLP": 66.36100386,
+      "bonusMinutes": 114,
+      "sources": [
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "15168": {
+      "missionID": 15168,
+      "level": 1,
+      "dungeonID": 4257,
+      "isk": 88000,
+      "bonusISK": 80000,
+      "baseLP": 142.97779923,
+      "bonusMinutes": 256,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "15169": {
+      "missionID": 15169,
+      "level": 1,
+      "dungeonID": 4250,
+      "isk": 38000,
+      "bonusISK": 42000,
+      "baseLP": 67.56756757,
+      "bonusMinutes": 122,
+      "sources": [
+        {
+          "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+          "agentID": 3008451,
+          "solarSystemID": 30002776,
+          "sampleCount": 3,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+          "agentID": 3008494,
+          "solarSystemID": 30005001,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+          "agentID": 3012077,
+          "solarSystemID": 30000143,
+          "sampleCount": 9,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 6,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+          "agentID": 3014667,
+          "solarSystemID": 30001394,
+          "sampleCount": 10,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 7,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 11,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    },
+    "15170": {
+      "missionID": 15170,
+      "level": 1,
+      "dungeonID": 4257,
+      "isk": 82500,
+      "bonusISK": 83000,
+      "baseLP": 129.1023166,
+      "bonusMinutes": 240,
+      "sources": [
+        {
+          "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+          "agentID": 3009905,
+          "solarSystemID": 30002660,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+          "agentID": 3009912,
+          "solarSystemID": 30002660,
+          "sampleCount": 8,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+          "agentID": 3014146,
+          "solarSystemID": 30001394,
+          "sampleCount": 4,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+          "agentID": 3015641,
+          "solarSystemID": 30002660,
+          "sampleCount": 5,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        },
+        {
+          "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+          "agentID": 3020239,
+          "solarSystemID": 30100038,
+          "sampleCount": 12,
+          "rewardSkills": "user_reported_new_character_zero; TODO verify"
+        }
+      ],
+      "validationTODO": "TODO: Mission medians are extrapolations across captured agent/location contexts. Validate normalization, skills, rounding, current date and the full reward range. Raw exact-context quotes take precedence."
+    }
+  },
+  "projection": {
+    "perLP": {
+      "isk": 631.4666666958545,
+      "bonusISK": 616.3027679437713,
+      "bonusMinutes": 1.7986392981743695
+    },
+    "observedMaximumBonusMinutes": 360
+  },
+  "normalizationTODO": "TODO: LP inversion deliberately matches the current displayed-security model (1.6288-security). Validate true-security behavior separately. New-character zero skills are reported, older unknown skills provisionally zero. These are modeled bases, not exact TQ server parameters. Native authored values, exact quotes and mission-specific wiki observations outrank generic level medians.",
+  "inputs": [
+    {
+      "file": "securityMissionOfferObservations.json",
+      "sha256": "a73f668c1bc7608e89a9e45712f5b3bc7a0b95580ce12ce90103843654aee097"
+    },
+    {
+      "file": "securityMissionRewardObservations.json",
+      "sha256": "46cb166f15a90f1f01e38a55c16c490b2d95a790d1c831e23c8d4436569ab2d8"
+    },
+    {
+      "file": "systems.jsonl",
+      "sha256": "3984ea9a8e66d80ac1b087cd1a62f7d620f8d0d06dcf3ec2f84cd15c4ed4bc1d"
+    }
+  ],
+  "securityBySystemID": {
+    "30000143": 0.9490000009536743,
+    "30001394": 0.770921528339386,
+    "30002660": 0.8241636753082275,
+    "30002750": 0.7185566425323486,
+    "30002776": 0.8074703812599182,
+    "30004972": 0.925366222858429,
+    "30005001": 0.800000011920929,
+    "30100038": 1
+  }
+}

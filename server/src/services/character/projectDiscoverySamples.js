@@ -128,6 +128,11 @@ function chunk(type, data) {
 }
 const images = new Map();
 function getSampleAsset(routePath) {
+  if (typeof routePath === "string" && routePath.startsWith("/project-discovery/samples/corpus-v1/")) {
+    const match = /^\/project-discovery\/samples\/corpus-v1\/([a-z0-9-]{1,40})\.png$/.exec(routePath);
+    const buffer = match && require("./projectDiscoveryCorpus").renderPng(match[1]);
+    return buffer ? { contentType: "image/png", buffer: Buffer.from(buffer) } : null;
+  }
   if (typeof routePath !== "string" || !routePath.startsWith(PREFIX)) return null;
   const match = /^([1-6])\.png$/.exec(routePath.slice(PREFIX.length));
   if (!match) return null;

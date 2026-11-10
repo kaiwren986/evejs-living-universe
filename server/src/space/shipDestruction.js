@@ -77,9 +77,9 @@ const pendingDeathTests = new Map();
 let nextPendingDeathTestID = 1;
 let pendingDeathTestTimer = null;
 
-function prepareDurableShipDeath(shipEntity, shipRecord, key, scene, session) {
+function prepareDurableShipDeath(shipEntity, shipRecord, key, scene, session, options = {}) {
   const capsule = isCapsuleTypeID(shipRecord.typeID);
-  const suppressWreck = !capsule && scene.sceneKind === "abyssal";
+  const suppressWreck = !capsule && (scene.sceneKind === "abyssal" || options.suppressWreck === true);
   const pilotCharacterID = Number(shipEntity.pilotCharacterID || shipEntity.characterID ||
     session?.characterID || shipRecord.ownerID);
   const character = require("../services/character/characterState").peekCharacterRecord(pilotCharacterID) || {};
@@ -176,11 +176,15 @@ function finishDurablePodDeath(plan, liveSession = null) {
   const session = liveSession || { characterID, shipID: plan.shipRecord.itemID,
     sendNotification() {}, sendSessionChange() {} };
   try {
+    // The AIR tutorial's pilot wakes in the capsule: its step 1.3.04 (client graph 688)
+    // highlights the station's corvette button and waits for the pilot to board the corvette
+    // (group 237) there. Boarding it here would complete that step before it is shown.
+    const boardNewbieShip = !plan.airDeathKey;
     // Character normalization can already select a spare docked capsule after
     // the original pod is removed. AIR still needs its explicit clone receipt.
     if (plan.airDeathKey ? !placed : plan.durablePodDeathKey ? !placed && !docked : !docked) {
       const rebuilt = rebuildDockedSessionAtStation(session, plan.homeStationID, {
-        emitNotifications: Boolean(liveSession), boardNewbieShip: true, logSelection: false,
+        emitNotifications: Boolean(liveSession), boardNewbieShip, logSelection: false,
         airDeathKey: plan.airDeathKey, durablePodDeathKey: plan.durablePodDeathKey,
         durableRecovery: Boolean(plan.airDeathKey || plan.durablePodDeathKey) });
       if (!rebuilt.success) return rebuilt;
@@ -201,7 +205,7 @@ function finishDurablePodDeath(plan, liveSession = null) {
     // A crash can commit clone placement before the native corvette provision.
     // Resume only that recorded capsule; never replace a later player-owned hull.
     const replacementCapsuleID = plan.airDeathKey ? placement?.capsuleID : hazardPlacement?.capsuleID;
-    if (placed && getActiveShipRecord(characterID)?.itemID === replacementCapsuleID) {
+    if (boardNewbieShip && placed && getActiveShipRecord(characterID)?.itemID === replacementCapsuleID) {
       const applied = require("../services/character/characterState").applyCharacterToSession(session, characterID, { emitNotifications: false });
       if (!applied.success) return applied;
       const boarded = require("../services/dogma/dogmaService").boardNewbieShipForSession(session, {
@@ -741,6 +745,15 @@ function destroyShipEntityWithWreck(systemID, shipEntity, options = {}) {
       ? getActiveShipRecord(ownerCharacterID)
       : findShipItemById(shipEntity.itemID)) ||
     null;
+  if (!options.deathReceipt && shipRecord) {
+    try {
+      const careerPlan = require("../services/dungeon/careerLessonRuntime").prepareShipLoss(destructionScene, shipEntity, shipRecord);
+      if (careerPlan) {
+        options = { ...options, deathReceipt: careerPlan, lossID: careerPlan.key };
+        Object.assign(destructionOptions, { deathReceipt: careerPlan, lossID: careerPlan.key });
+      }
+    } catch (error) { return { success: false, errorMsg: error.message }; }
+  }
   const wreckLootContext = resolveCharacterSpaceLootContext(
     ownerCharacterID,
     {
@@ -966,6 +979,9 @@ function destroyShipEntityWithoutWreck(systemID, shipEntity, options = {}) {
       sceneDescriptor: destructionOptions.sceneDescriptor,
       removeContents: destructionOptions.removeContents !== false,
       suppressWreck: destructionOptions.suppressWreck === true,
+      // The destruction effect goes out with the broadcast. Without it the client
+      // never explodes the ball, and OnObjectExplode is what counts the kill.
+      broadcast: destructionOptions.broadcast !== false,
       terminalDestructionEffectID: destructionOptions.terminalDestructionEffectID,
       destructionReason: destructionOptions.destructionReason,
       notifyNpcDestroyed: destructionOptions.notifyNpcDestroyed,
@@ -1831,10 +1847,19 @@ function destroySessionCapsuleToHomeStation(session, activeShip, options = {}) {
   if (options.emitNotifications !== false) {
     sendPodDeathNotifications(session, abandonedCapsuleEntity.itemID);
   }
+  // A caller that moves the pilot to the station itself, a tick later (the AIR tutorial's durable
+  // pod death), stops here: the client plays its pod death scene while the pilot is still in space.
+  if (options.deferRespawn === true) {
+    return {
+      success: true,
+      data: { deferredRespawn: true, destroyedShipID: activeShip.itemID },
+    };
+  }
   const respawnResult = rebuildDockedSessionAtStation(session, targetStationID, {
     emitNotifications: options.emitNotifications !== false,
     logSelection: true,
-    boardNewbieShip: true,
+    // The AIR tutorial's pilot wakes in the capsule (finishDurablePodDeath).
+    boardNewbieShip: !options.deathReceipt?.airDeathKey,
     newbieShipLogLabel: "PodRespawn",
     airDeathKey: options.deathReceipt?.airDeathKey,
     durablePodDeathKey: options.deathReceipt?.durablePodDeathKey,

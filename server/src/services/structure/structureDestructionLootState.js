@@ -11,6 +11,7 @@ const {
   grantItemToOwnerLocation,
   grantItemToOwnerLocationIdempotent,
   listContainerItems,
+  removeInventoryItem,
   updateInventoryItem,
   updateInventoryItemsAtomic,
 } = require(path.join(__dirname, "../inventory/itemStore"));
@@ -224,8 +225,31 @@ function handleStructureDestroyedLoot(structure, options = {}) {
     ? listContainerItems(null, structureID, null)
         .filter((item) => toPositiveInt(item && item.locationID, 0) === structureID)
     : [];
+  // With asset safety the hangars are wrapped, but the structure's own fittings
+  // stay here: service modules, fuel, fighters and the installed core drop in
+  // the wreck, and rigs are destroyed, as a completed unanchor treats them
+  // (structureAssetSafetyState handleStructureUnanchored). No published loot
+  // roll exists for structure fittings, so all of them drop, as the
+  // asset-safety-off path drops every top-level item.
+  const assetSafety = require(path.join(__dirname, "./structureAssetSafetyState"));
+  const fittingItems = includeContents
+    ? []
+    : listContainerItems(null, structureID, null)
+        .filter((item) => toPositiveInt(item && item.locationID, 0) === structureID)
+        .filter((item) => (
+          assetSafety.isStructureRigSlotItem(item) ||
+          assetSafety.isStructureAttachedItemForUnanchor(item)
+        ));
+  const droppedFittings = fittingItems.filter((item) => !assetSafety.isStructureRigSlotItem(item));
+  const destroyedRigs = fittingItems.filter((item) => assetSafety.isStructureRigSlotItem(item));
+  // The core a pilot installed is a real item at the deed flag; it drops as
+  // itself. Only a structure with no core item gets one made for its drop.
+  const hasInstalledCoreItem = [...topLevelContents, ...droppedFittings].some(
+    (item) => toPositiveInt(item && item.flagID, 0) === ITEM_FLAGS.STRUCTURE_DEED,
+  );
   const killmailItems = [];
-  const needsDropLocation = Boolean(resolvedWreckType) || topLevelContents.length > 0 || (
+  const needsDropLocation = Boolean(resolvedWreckType) || topLevelContents.length > 0 ||
+    droppedFittings.length > 0 || (
     includeQuantumCore &&
     structure &&
     structure.hasQuantumCore === true
@@ -291,9 +315,52 @@ function handleStructureDestroyedLoot(structure, options = {}) {
   if (Array.isArray(deathOutcome.items)) {
     killmailItems.push(...deathOutcome.items);
   }
-  const quantumCoreResult = includeQuantumCore
+  if (droppedFittings.length > 0) {
+    const moveResult = updateInventoryItemsAtomic(
+      droppedFittings.map((item) => toPositiveInt(item.itemID, 0)),
+      (item) => ({ ...item, locationID: dropLocation.itemID, flagID: ITEM_FLAGS.HANGAR }),
+    );
+    if (!moveResult.success) {
+      return moveResult;
+    }
+    for (const item of droppedFittings) {
+      killmailItems.push({
+        typeID: toPositiveInt(item.typeID, 0),
+        flag: toPositiveInt(item.flagID, 0),
+        singleton: toPositiveInt(item.singleton, 0),
+        qtyDropped: Math.max(1, toPositiveInt(item.stacksize ?? item.quantity, 1)),
+        qtyDestroyed: 0,
+        contents: [],
+      });
+    }
+  }
+  for (const item of destroyedRigs) {
+    const removeResult = removeInventoryItem(toPositiveInt(item.itemID, 0), { removeContents: true });
+    if (!removeResult.success) {
+      return removeResult;
+    }
+    killmailItems.push({
+      typeID: toPositiveInt(item.typeID, 0),
+      flag: toPositiveInt(item.flagID, 0),
+      singleton: 1,
+      qtyDropped: 0,
+      qtyDestroyed: 1,
+      contents: [],
+    });
+  }
+  const installedCore = hasInstalledCoreItem
+    ? {
+        success: true,
+        data: {
+          dropped: true,
+          typeID: toPositiveInt(structure.quantumCoreItemTypeID, 0),
+          installedItem: true,
+        },
+      }
+    : null;
+  const quantumCoreResult = installedCore || (includeQuantumCore
     ? addQuantumCoreToDropLocation(structure, dropLocation.itemID, options)
-    : { success: true, data: { dropped: false } };
+    : { success: true, data: { dropped: false } });
   if (!quantumCoreResult.success) {
     log.warn(
       `[StructureDestructionLoot] Failed to create quantum-core drop for structure ${structureID}: ${quantumCoreResult.errorMsg}`,
@@ -301,6 +368,7 @@ function handleStructureDestroyedLoot(structure, options = {}) {
   }
 
   if (
+    !installedCore &&
     quantumCoreResult.success &&
     quantumCoreResult.data &&
     quantumCoreResult.data.dropped === true &&

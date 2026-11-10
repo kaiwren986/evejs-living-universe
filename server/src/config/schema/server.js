@@ -41,6 +41,20 @@ module.exports = [
     "integer": false
   },
   {
+    "key": "qaStarterSystemPicker",
+    "defaultValue": false,
+    "envVar": "EVEJS_QA_STARTER_SYSTEM_PICKER",
+    "envType": "boolean",
+    "valueType": "boolean",
+    "description": [
+      "Shows the client's 'QA - Pick Starter System' dialog when an account with the QA role creates a character.",
+      "false (default) sends an empty list, so the client skips the dialog and the character starts in the normal starter system. The QA role and its commands are unaffected."
+    ],
+    "validValues": "true or false.",
+    "allowBlank": false,
+    "integer": false
+  },
+  {
     "key": "clusterDowntimeStarts",
     "defaultValue": "11:00:00",
     "envVar": "EVEJS_CLUSTER_DOWNTIME_STARTS",

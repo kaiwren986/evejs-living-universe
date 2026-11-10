@@ -186,10 +186,20 @@ function revokeOutput(command = {}) {
   );
 }
 
+function retireReceipts(idempotencyKeys) {
+  return itemCustody.retireCommittedReceipts(idempotencyKeys);
+}
+
+function pruneReceipts(isDeadIdempotencyKey) {
+  return itemCustody.pruneCommittedReceipts(isDeadIdempotencyKey);
+}
+
 module.exports = {
   commitInput,
   deliverOutput,
   grantOutput,
+  pruneReceipts,
+  retireReceipts,
   returnInput,
   revokeOutput,
   stageInput,

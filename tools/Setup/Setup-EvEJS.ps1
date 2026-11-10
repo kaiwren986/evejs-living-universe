@@ -87,9 +87,10 @@ $ClientSetupBat = Join-Path $RepoRoot "tools\ClientSETUP\StartClientSetup.bat"
 $LauncherConfig = Join-Path $ClientSetupScripts "EvEJSConfig.bat"
 $CreateDatabaseBat = Join-Path $RepoRoot "tools\DatabaseCreator\CreateDatabase.bat"
 $InstallRustBat = Join-Path $RepoRoot "tools\InstallRustForMarket.bat"
-$BuildMarketSeedBat = Join-Path $RepoRoot "BuildMarketSeed.bat"
+$BuildMarketSeedBat = Join-Path $RepoRoot "tools\market-seed\BuildMarketSeedGui.bat"
 $BuildMarketSeedV2Bat = Join-Path $RepoRoot "tools\market-seederv2\BuildMarketSeedV2.bat"
 $BuildMarketSeedV3Bat = Join-Path $RepoRoot "tools\market-seederv3\BuildMarketSeedV3.bat"
+$BuildMarketSeedV4Bat = Join-Path $RepoRoot "tools\market-seederv4\BuildMarketSeedV4.bat"
 
 # The certificates live in the data root's certs folder: EVEJS_DATA_ROOT, else <repo>\_local,
 # so <repo>\_local\certs on a native install. compose.yaml mounts that folder into the
@@ -782,12 +783,13 @@ function Get-AllPhases {
       }
     }
     $choice = Read-Choice -Question "Which market do you want?" -DefaultIndex 0 -Options @(
-      "Synthetic starter market (v1, Jita + New Caldari) -- fast, recommended",
-      "Live Tranquility snapshot (v2) -- downloads a large snapshot",
-      "Cost-priced Jita hub plus the NPC catalog (v3) -- blueprints and skillbooks included"
+      "v1 Synthetic starter -- offline prices, Jita + New Caldari; recommended",
+      "v2 Tranquility snapshot -- real Jita prices and quantities plus NPC stock; downloads a snapshot",
+      "v3 Cost-priced Jita hub -- ships, modules and materials at build-cost prices plus authentic NPC stock",
+      "v4 Iron Man -- only NPC BPOs, skillbooks, command centers and trade goods; players produce the rest"
     )
     $seedLauncher = $BuildMarketSeedBat
-    $seedLabel = "BuildMarketSeed.bat"
+    $seedLabel = "tools\market-seed\BuildMarketSeedGui.bat"
     switch ($choice) {
       1 {
         $seedLauncher = $BuildMarketSeedV2Bat
@@ -796,6 +798,10 @@ function Get-AllPhases {
       2 {
         $seedLauncher = $BuildMarketSeedV3Bat
         $seedLabel = "tools\market-seederv3\BuildMarketSeedV3.bat"
+      }
+      3 {
+        $seedLauncher = $BuildMarketSeedV4Bat
+        $seedLabel = "tools\market-seederv4\BuildMarketSeedV4.bat"
       }
     }
     if (-not (Test-Path $seedLauncher)) {
@@ -817,6 +823,8 @@ function Get-AllPhases {
       Write-Host "    3. choose [1] Build the Jita index seed" -ForegroundColor Yellow
       Write-Host "  Already have the snapshot? Just choose [1]." -ForegroundColor Yellow
       Write-Host ""
+    } elseif ($choice -eq 3) {
+      Write-Info "Opening the v4 Iron Man builder. Choose [1] to import only NPC stock and buybacks."
     } else {
       Write-Info "Opening the market seed builder. Choose 'Jita + New Caldari' if you are unsure."
     }
@@ -831,9 +839,10 @@ function Get-AllPhases {
     return @{ Ok = $false; Detail = "no market database -- the server cannot start without one" }
   } -Fix {
     $choice = Read-Choice -Question "Which market do you want?" -DefaultIndex 0 -Options @(
-      "Synthetic starter market (v1, Jita + New Caldari) -- fast, recommended",
-      "Live Tranquility snapshot (v2) -- downloads a large snapshot",
-      "Cost-priced Jita hub plus the NPC catalog (v3) -- blueprints and skillbooks included"
+      "v1 Synthetic starter -- offline prices, Jita + New Caldari; recommended",
+      "v2 Tranquility snapshot -- real Jita prices and quantities plus NPC stock; downloads a snapshot",
+      "v3 Cost-priced Jita hub -- ships, modules and materials at build-cost prices plus authentic NPC stock",
+      "v4 Iron Man -- only NPC BPOs, skillbooks, command centers and trade goods; players produce the rest"
     )
     if ($choice -eq 0) {
       Write-Info "Building the v1 starter market ..."
@@ -846,12 +855,17 @@ function Get-AllPhases {
         "run", "--rm", "--no-deps", "market-tools", "rebuild", "v2",
         "--order-filter", "market-scope-with-npc", "--market-solar-system-id", "30000142"
       )
-    } else {
+    } elseif ($choice -eq 2) {
       # v3 takes no preset and no order filter. The rebuild caches the Tranquility
       # snapshot itself before building, so there is no separate download step here.
       Write-Info "Building the v3 cost-priced Jita market with the NPC catalog ..."
       $exit = Invoke-Compose -Arguments @(
         "run", "--rm", "--no-deps", "market-tools", "rebuild", "v3"
+      )
+    } else {
+      Write-Info "Building the v4 Iron Man market with only authentic NPC stock and buybacks ..."
+      $exit = Invoke-Compose -Arguments @(
+        "run", "--rm", "--no-deps", "market-tools", "rebuild", "v4"
       )
     }
     return ($exit -eq 0)

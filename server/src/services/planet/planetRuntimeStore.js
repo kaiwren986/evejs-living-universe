@@ -47,6 +47,9 @@ const RESOURCE_DEPLETION_RECOVERY_HOURS = 96;
 const RESOURCE_SH_MAX_BANDS = 30;
 const RESOURCE_SH_COEFFICIENT_BYTES = 4;
 const DEFAULT_ECU_TYPE_ID = 2848;
+const INTERPLANETARY_CONSOLIDATION_TYPE_ID = 2495;
+const COMMAND_CENTER_UPGRADES_TYPE_ID = 2505;
+const OMNIPOTENT_TYPE_ID = 19430;
 // The client previews ECU programs by evaluating the float32 spherical-
 // harmonic coefficients returned by GetResourceData. Keep that coefficient
 // field authoritative for server quotes and installs too. This multiplier is
@@ -1463,6 +1466,19 @@ function validatePinTypeForCreate(colony, typeID, context = {}) {
     planetRestrictionTypeID !== planetTypeID
   ) {
     throw new Error("CannotCreatePinWrongPlanetType");
+  }
+}
+
+function validatePinSkills(typeID, getSkillLevel) {
+  const { getRequiredSkillRequirements } = require("../fitting/liveFittingState");
+  const missing = getRequiredSkillRequirements(typeID)
+    .filter(({ skillTypeID, level }) => getSkillLevel(skillTypeID) < level)
+    .map(({ skillTypeID, level }) => `${planetStaticData.getType(skillTypeID)?.name || skillTypeID} ${level}`);
+  if (missing.length > 0) {
+    throwWrappedUserError("CannotPlacePinNotEnoughSkill", {
+      itemName: planetStaticData.getType(typeID)?.name || String(typeID),
+      requiredSkills: missing.join(", "),
+    });
   }
 }
 
@@ -3608,6 +3624,15 @@ function applyUserUpdateNetwork({
   // a program, applied together once the stream has been replayed. Stop Program is applied at
   // once instead. See the INSTALLPROGRAM case below.
   const pendingProgramInstalls = new Map();
+  let skillMap;
+  const getSkills = () => {
+    skillMap ??= require("../skills/skillState").getCharacterSkillMap(normalizedOwnerID, { skipBootstrap: true });
+    return skillMap;
+  };
+  const getSkillLevel = (typeID) => {
+    const skill = getSkills().get(typeID);
+    return Math.max(0, Math.min(5, normalizeInteger(skill?.effectiveSkillLevel ?? skill?.skillLevel, 0)));
+  };
 
   for (const command of commandStream) {
     const args = Array.isArray(command.args) ? command.args : [];
@@ -3619,6 +3644,22 @@ function applyUserUpdateNetwork({
         validatePinTypeForCreate(colony, typeID, {
           planetTypeID,
         });
+        validatePinSkills(typeID, getSkillLevel);
+        if (
+          planetStaticData.getPinEntityType(typeID) === "command" &&
+          !getCommandPin(storedColony) &&
+          !getSkills().has(OMNIPOTENT_TYPE_ID)
+        ) {
+          const maxPlanets = 1 + getSkillLevel(INTERPLANETARY_CONSOLIDATION_TYPE_ID);
+          const occupied = Object.values(state.coloniesByKey).filter((other) =>
+            normalizeInteger(other.ownerID, 0) === normalizedOwnerID &&
+            normalizeInteger(other.planetID, 0) !== normalizedPlanetID &&
+            getCommandPin(other),
+          ).length;
+          if (occupied >= maxPlanets) {
+            throwWrappedUserError("CannotPlaceCommandCenterNotEnoughSkill", { maxPlanets });
+          }
+        }
         const pinID = isTemporaryID(submittedPinID, 1)
           ? allocateNextID(state, "pinID", usedPinIDs)
           : normalizeInteger(submittedPinID, 0);
@@ -3781,6 +3822,14 @@ function applyUserUpdateNetwork({
         }
         if (level > 5) {
           throw new Error("Trying to upgrade past maximum level");
+        }
+        const currentLevel = getSkillLevel(COMMAND_CENTER_UPGRADES_TYPE_ID);
+        if (level > currentLevel) {
+          throwWrappedUserError("CantUpgradeCommandCenterSkillRequired", {
+            skillName: [4, COMMAND_CENTER_UPGRADES_TYPE_ID],
+            currentLevel,
+            requestedLevel: level,
+          });
         }
         colony.level = level;
         colony.commandCenterLevel = level;

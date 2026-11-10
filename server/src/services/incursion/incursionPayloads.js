@@ -1,4 +1,5 @@
 "use strict";
+const incursionClock = require("./incursionClock");
 
 const path = require("path");
 
@@ -7,6 +8,7 @@ const {
   buildList,
   buildRowset,
   normalizeNumber,
+  buildFiletimeLong,
 } = require(path.join(__dirname, "../_shared/serviceHelpers"));
 
 const MAP_ROWSET = "eve.common.script.sys.rowset.Rowset";
@@ -72,6 +74,11 @@ function buildIncursionReportEntry(rawIncursion = {}) {
     ],
     ["state", normalizeIncursionState(rawIncursion.state)],
     ["influence", normalizeInfluence(rawIncursion.influence)],
+    // Journal.ShowIncursionTab reads all four influence-data attributes even
+    // for a report with no system effects or changing influence.
+    ["lastUpdated", rawIncursion.lastUpdated || buildFiletimeLong(116444736000000000n + BigInt(incursionClock.now()) * 10000n)],
+    ["graceTime", Math.max(0, normalizeNumber(rawIncursion.graceTime, 0))],
+    ["decayRate", Math.max(0, normalizeNumber(rawIncursion.decayRate, 0))],
     ["hasFinalEncounter", Boolean(rawIncursion.hasFinalEncounter)],
     ["effects", normalizeList(rawIncursion.effects)],
     ["rewardGroupID", normalizePositiveInteger(rawIncursion.rewardGroupID, 0)],

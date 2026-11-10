@@ -16,7 +16,6 @@ const {
   buildPackedRow,
   buildPagedResultSet,
   buildRow,
-  buildRowset,
   currentFileTime,
   extractList,
 } = require(path.join(__dirname, "../_shared/serviceHelpers"));
@@ -38,15 +37,17 @@ const {
   throwWrappedUserError,
 } = require(path.join(__dirname, "../../common/machoErrors"));
 const {
-  getAllianceRecord,
   getCorporationInfoRecord,
-  getCorporationOwnerRecord,
   getCorporationRecord,
   getOwnerLookupRecord,
   isNpcCorporationID,
   setCharacterAffiliation,
   NPC_STARTER_CORPORATION_ID,
 } = require(path.join(__dirname, "./corporationState"));
+const {
+  computeCharacterCorporationMemberLimit,
+  hasRoomForAnotherMember,
+} = require(path.join(__dirname, "./corporationMemberLimit"));
 const {
   CORP_ROLE_ACCOUNTANT,
   CORP_ROLE_CHAT_MANAGER,
@@ -77,25 +78,18 @@ const {
   normalizeText,
   recordCorporationRoleHistory,
   toRoleMaskBigInt,
-  updateAllianceRuntime,
   updateCorporationRecord,
   updateCorporationRuntime,
-  updateRuntimeState,
-  setCorporationAlliance,
   syncMemberStateToCharacterRecord,
 } = require(path.join(__dirname, "./corporationRuntimeState"));
 const {
   NO_REINFORCEMENT_WEEKDAY,
 } = require(path.join(__dirname, "../structure/structureConstants"));
 const { buildWarPayload } = require("./warPayloads");
-const { requireWarAuthority } = require("./warAuthority");
-const { requireOwnedWarHeadquarters } = require("./warHeadquartersAuthority");
+const { declareWar } = require("./warDeclarationState");
 const {
   corporationsWithArchivableApplications,
 } = require("./applicationArchiveScope");
-const {
-  createWarRecord,
-} = require(path.join(__dirname, "./warRuntimeState"));
 const {
   corporationAuthorityHasRole,
   getPersistedCorporationAuthority,
@@ -151,10 +145,6 @@ const {
   executeCorporationMemberActions,
 } = require(path.join(__dirname, "./corpMemberActionState"));
 const {
-  BILL_TYPE_WAR,
-  createBill,
-} = require(path.join(__dirname, "../account/billRuntimeState"));
-const {
   getCharacterAllyBaseCost,
 } = require(path.join(__dirname, "./warCostState"));
 const {
@@ -182,8 +172,6 @@ const {
   buildCorporationMemberSnapshot,
   buildCorporationSnapshot,
   notifyAllianceApplicationChanged,
-  notifyAllianceChanged,
-  notifyAllianceMemberChanged,
   notifyCorporationAggressionSettingsChanged,
   notifyCorporationApplicationChanged,
   notifyCorporationChanged,
@@ -210,30 +198,6 @@ const {
   notifyCorporationTaxRateChanged,
 } = require(path.join(__dirname, "./corpLifecycleNotifications"));
 
-const MEMBER_HEADER = [
-  "characterID",
-  "corporationID",
-  "startDate",
-  "title",
-  "divisionID",
-  "squadronID",
-  "roles",
-  "grantableRoles",
-  "rolesAtHQ",
-  "grantableRolesAtHQ",
-  "rolesAtBase",
-  "grantableRolesAtBase",
-  "rolesAtOther",
-  "grantableRolesAtOther",
-  "baseID",
-  "titleMask",
-  "blockRoles",
-  "accountKey",
-  "isCEO",
-  "lastOnline",
-  "locationID",
-  "shipTypeID",
-];
 const MEMBER_DBROW_COLUMNS = [
   ["characterID", 0x03],
   ["corporationID", 0x03],
@@ -255,19 +219,6 @@ const MEMBER_DBROW_COLUMNS = [
   ["rowDate", 0x40],
   ["blockRoles", 0x0b],
   ["ownerName", 0x82],
-];
-const TITLE_HEADER = [
-  "corporationID",
-  "titleID",
-  "titleName",
-  "roles",
-  "grantableRoles",
-  "rolesAtHQ",
-  "grantableRolesAtHQ",
-  "rolesAtBase",
-  "grantableRolesAtBase",
-  "rolesAtOther",
-  "grantableRolesAtOther",
 ];
 const TITLE_DBROW_COLUMNS = [
   ["corporationID", 0x03],
@@ -302,16 +253,6 @@ const TITLE_ROLE_FIELD_SPECS = Object.freeze([
   { index: 8, property: "rolesAtOther", allowedMask: FULL_LOCATIONAL_ROLE_MASK },
   { index: 9, property: "grantableRolesAtOther", allowedMask: FULL_LOCATIONAL_ROLE_MASK },
 ]);
-const BULLETIN_HEADER = [
-  "bulletinID",
-  "ownerID",
-  "createDateTime",
-  "editDateTime",
-  "editCharacterID",
-  "title",
-  "body",
-  "sortOrder",
-];
 const BULLETIN_DBROW_COLUMNS = [
   ["bulletinID", 0x03],
   ["ownerID", 0x03],
@@ -374,10 +315,7 @@ const SHARE_HOLDING_DBROW_COLUMNS = [
   ["shares", 0x14],
 ];
 const DEFAULT_NPC_CORPORATION_ID = NPC_STARTER_CORPORATION_ID;
-const CONCORD_CORPORATION_ID = 1000125;
-const WAR_BILL_AMOUNT = 100000000;
 const FILETIME_TICKS_PER_DAY = 24n * 60n * 60n * 10000000n;
-const FILETIME_TICKS_PER_WEEK = 7n * 24n * 60n * 60n * 10000000n;
 const CORPORATION_FOUNDING_COST = 1599800;
 const TICKER_SUGGESTION_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const CREATE_MEMBER_CHANGE_HEADER = [
@@ -755,7 +693,9 @@ function moveCharacterToCorporation(
         idTypes: ["clientID"],
         clientCharacterIDs: [characterID],
         refreshSessionOptions: {
-          sessionChangeKeys: ["corpid", "hqID"],
+          // allianceid only goes out when it changed. Without it the client stays
+          // outside the corporation's alliance until the pilot relogs.
+          sessionChangeKeys: ["corpid", "hqID", "allianceid"],
           suppressCorpAccountKeyWithCorpChange: true,
         },
         targeted: true,
@@ -846,7 +786,7 @@ function parsePersistedRoleMask(value) {
     ) {
       return parsePersistedRoleMask(value.value);
     }
-  } catch (error) {
+  } catch (_error) {
     // ignored: a mask that does not parse is no mask (null)
     return null;
   }
@@ -1977,10 +1917,6 @@ function findApplicationByID(runtime, applicationID) {
 }
 
 
-function buildEmptyKillReportList() {
-  return buildList([]);
-}
-
 function buildMemberTrackingRows(corporationID) {
   return buildCorporationMemberTrackingRowset(corporationID);
 }
@@ -2565,6 +2501,19 @@ class CorpRegistryRuntimeService extends BaseService {
         );
       }
     }
+    // A full corporation takes no one more, checked before any state changes.
+    // The client has no message of its own for this, so the reason is text.
+    if (
+      status === APP_STATUS_ACCEPTED_BY_CHARACTER &&
+      currentCorporationID !== corporationID
+    ) {
+      const targetCorporation = getCorporationRecord(corporationID) || {};
+      if (!hasRoomForAnotherMember(targetCorporation.memberLimit, targetCorporation.memberCount)) {
+        throwWrappedUserError("CrpAccessDenied", {
+          reason: `This corporation is at its member limit (${targetCorporation.memberLimit}).`,
+        });
+      }
+    }
     let joinedCharacterID = null;
     let nextApplicationRow = null;
     let applicationFound = false;
@@ -2699,6 +2648,8 @@ class CorpRegistryRuntimeService extends BaseService {
     if (!canManageCorporationRecruitment(corporationID, session)) {
       throwCorporationAccessDenied();
     }
+    requireSessionCharacter(session);
+    const invokingCharacterID = resolveCharacterID(session, []);
     const characterID = normalizePositiveInteger(args && args[0], null);
     let invitationID = null;
     let applicationID = null;
@@ -2734,7 +2685,11 @@ class CorpRegistryRuntimeService extends BaseService {
       applicationID,
       buildCorporationApplicationRow(invitationApplication),
     );
-    notifyCorporationApplicationInvited(corporationID, characterID);
+    notifyCorporationApplicationInvited(
+      corporationID,
+      characterID,
+      invokingCharacterID,
+    );
     return invitationID;
   }
 
@@ -3544,19 +3499,41 @@ class CorpRegistryRuntimeService extends BaseService {
     return null;
   }
 
+  // "Update with my skills" (corp_dlg_editcorpdetails.UpdateWithSkills) calls
+  // this with no arguments: the CEO's skills set the member limit
+  // (corporationMemberLimit). The client reads the corporation again only when
+  // this returns something other than None, so it answers the new limit.
+  //
+  // Called with an argument, it is the server's own applications switch, which
+  // the client never sends; the harness's setCorporationApplicationsEnabled
+  // uses it.
   Handle_UpdateCorporationAbilities(args, session) {
     const corporationID = resolveCorporationID(session);
     if (!canAdministerCorporation(corporationID, session)) {
       throwCorporationAccessDenied();
     }
     const previousCorporation = buildCorporationSnapshot(corporationID);
-    const applicationsEnabled = normalizeBoolean(args && args[0], true);
-    updateCorporationRuntime(corporationID, (runtime) => {
-      runtime.applicationsEnabled = applicationsEnabled ? 1 : 0;
-      return runtime;
-    });
+    if (Array.isArray(args) && args.length > 0) {
+      const applicationsEnabled = normalizeBoolean(args[0], true);
+      updateCorporationRuntime(corporationID, (runtime) => {
+        runtime.applicationsEnabled = applicationsEnabled ? 1 : 0;
+        return runtime;
+      });
+      notifyCorporationChanged(corporationID, previousCorporation);
+      return null;
+    }
+    const characterID = resolveCharacterID(session, []);
+    const corporationRecord = getCorporationRecord(corporationID);
+    if (!corporationRecord || Number(corporationRecord.ceoID) !== Number(characterID)) {
+      // The client's own CEO-only refusal (base_corporation.py:322).
+      throwWrappedUserError("CrpAccessDenied", {
+        reason: [101, "UI/Corporations/AccessRestrictions/OnlyForActiveCEO"],
+      });
+    }
+    const memberLimit = computeCharacterCorporationMemberLimit(characterID);
+    updateCorporationRecord(corporationID, { memberLimit });
     notifyCorporationChanged(corporationID, previousCorporation);
-    return null;
+    return memberLimit;
   }
 
   Handle_UpdateLogo(args, session) {
@@ -3625,7 +3602,7 @@ class CorpRegistryRuntimeService extends BaseService {
     return null;
   }
 
-  Handle_GetSuggestedTickerNames(args) {
+  Handle_GetSuggestedTickerNames(_args) {
     return buildList([
       buildKeyVal([["tickerName", buildRandomTickerSuggestion()]]),
     ]);
@@ -3867,29 +3844,8 @@ class CorpRegistryRuntimeService extends BaseService {
     return getCharacterAllyBaseCost(resolveCharacterID(session, args));
   }
 
-  Handle_DeclareWarAgainst(args, session) {
-    const authority = requireWarAuthority(session);
-    const againstID = normalizePositiveInteger(args && args[0], null);
-    const warHQ = requireOwnedWarHeadquarters(authority, args && args[1]);
-    const declaredByID = authority.warEntityID;
-    const bill = createBill({
-      billTypeID: BILL_TYPE_WAR,
-      amount: WAR_BILL_AMOUNT,
-      debtorID: declaredByID,
-      creditorID: CONCORD_CORPORATION_ID,
-      externalID: againstID || -1,
-      externalID2: -1,
-      dueDateTime: String(currentFileTime() + FILETIME_TICKS_PER_WEEK),
-    });
-    const war = createWarRecord({
-      declaredByID,
-      againstID,
-      warHQ,
-      mutual: false,
-      billID: bill ? bill.billID : null,
-      declaredByCharacterID: authority.characterID,
-    });
-    return buildWarPayload(war);
+  async Handle_DeclareWarAgainst(args, session) {
+    return buildWarPayload(await declareWar(session, args && args[0], args && args[1]));
   }
 
   Handle_CanLeaveCurrentCorporation(args, session) {

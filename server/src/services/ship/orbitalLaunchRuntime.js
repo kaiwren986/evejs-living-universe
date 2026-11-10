@@ -39,6 +39,7 @@ const mobileSiphonUnitRuntime = require(path.join(__dirname, "./mobileSiphonUnit
 const mobileTractorUnitRuntime = require(path.join(__dirname, "./mobileTractorUnitRuntime"));
 const mobileWarpDisruptorRuntime = require(path.join(__dirname, "./mobileWarpDisruptorRuntime"));
 const cargoContainerRuntime = require(path.join(__dirname, "./cargoContainerRuntime"));
+const mercenaryDenRuntime = require(path.join(__dirname, "./mercenaryDenRuntime"));
 const {
   deployStructureFromInventoryItem,
   getSovereigntyFlexKindForTypeID,
@@ -53,6 +54,13 @@ const ABYSSAL_DEPLOYABLE_BLOCKED_ERROR = "ABYSSAL_DEPLOYABLES_FORBIDDEN";
 const CATEGORY_STARBASE = 23;
 const GROUP_CONTROL_TOWER = 365;
 const STARBASE_ANCHOR_STATE_UNANCHORED = "unanchored";
+// menucheckers.itemCheckers.OfferLaunchForCorp accepts these ship holds for
+// both orbitals and starbases. Hold admission rules govern what fits in each.
+const ORBITAL_LAUNCH_SOURCE_FLAGS = new Set([
+  ITEM_FLAGS.CARGO_HOLD,
+  ITEM_FLAGS.FLEET_HANGAR,
+  ITEM_FLAGS.INFRASTRUCTURE_HOLD,
+]);
 
 function getAbyssalMgrService() {
   return require("../../abyssal").orbitalLaunchPolicy;
@@ -108,6 +116,9 @@ function scaleVector(vector, scalar) {
 }
 
 function buildNotifyErrorTuple(message) {
+  if (message === "ESS_DEPLOYABLE_RESTRICTED") {
+    message = "Deployables must be placed at least 1,000 km from the ESS bank.";
+  }
   return [
     "CustomNotify",
     buildDict([["notify", String(message || "Unable to launch item.")]]),
@@ -381,7 +392,7 @@ function launchOrbitalItem(session, itemID, options = {}) {
   if (
     ![context.characterID, context.corporationID, context.ownerID].includes(toInt(item.ownerID, 0)) ||
     toInt(item.locationID, 0) !== context.shipID ||
-    toInt(item.flagID, 0) !== ITEM_FLAGS.CARGO_HOLD
+    !ORBITAL_LAUNCH_SOURCE_FLAGS.has(toInt(item.flagID, 0))
   ) {
     return {
       success: false,
@@ -644,6 +655,8 @@ function launchOrbitalsFromShip(session, rawItemIDs, options = {}) {
               request.itemID,
               options,
             )
+          : sourceItem && mercenaryDenRuntime.isMercenaryDenType(sourceItem)
+            ? mercenaryDenRuntime.launchMercenaryDenFromShip(session, request.itemID)
           : sourceItem && isSovereigntyDeploymentType(sourceItem)
             ? launchSovereigntyStructureFromShip(
               session,
@@ -661,11 +674,21 @@ function launchOrbitalsFromShip(session, rawItemIDs, options = {}) {
         errorMsg: result.errorMsg || "UNKNOWN_ERROR",
       };
       errors.push(error);
-      appendLaunchResponseValue(
-        response,
-        request.itemID,
-        buildNotifyErrorTuple(error.errorMsg),
-      );
+      // A client message with its own arguments is raised by the client as
+      // UserError(*tuple) (eveMisc.LaunchFromShip); a refusal the runtime
+      // already sent as a notify event adds nothing here.
+      if (result.userError) {
+        appendLaunchResponseValue(response, request.itemID, [
+          result.userError.message,
+          buildDict(Object.entries(result.userError.values || {})),
+        ]);
+      } else if (!result.registrationInvalid) {
+        appendLaunchResponseValue(
+          response,
+          request.itemID,
+          buildNotifyErrorTuple(error.errorMsg),
+        );
+      }
       log.warn(
         `[OrbitalLaunch] LaunchFromShip failed itemID=${request.itemID}: ${error.errorMsg}`,
       );

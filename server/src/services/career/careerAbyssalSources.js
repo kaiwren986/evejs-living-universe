@@ -7,10 +7,10 @@ const ledger = require("./careerEventLedger");
 const { resolveItemByTypeID } = require("../inventory/itemTypeRegistry");
 const positive = value => Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : 0;
 const ENTERED = new Set(["active", "disconnected", "exited", "destroyed", "evacuated"]);
-function readRuns() {
-  const result = database.readPersisted("dungeonRuntimeState", "/");
+function readRuns(characterID = 0) {
+  const result = database.readPersistedAbyssalInstances(characterID);
   if (!result?.success) throw new Error(result?.errorMsg || "CAREER_ABYSSAL_READ_FAILED");
-  return result.data?.instancesByID || {};
+  return result.data || {};
 }
 function runFrom(instance) {
   const run = instance?.environmentState?.abyssalRuntimeState?.pocketState;
@@ -103,11 +103,15 @@ function reconcileRunValue(run, characterID = 0, options = {}) {
   return { success: true, changedCharacterIDs: [...changed] };
 }
 function reconcileRun(instanceID, options = {}) {
-  const run = runFrom(readRuns()[String(positive(instanceID))]);
+  const result = database.readPersisted("dungeonRuntimeState", `/instancesByID/${positive(instanceID)}`);
+  if (!result?.success && result?.errorMsg !== "ENTRY_NOT_FOUND") {
+    throw new Error(result?.errorMsg || "CAREER_ABYSSAL_READ_FAILED");
+  }
+  const run = runFrom(result?.success ? result.data : null);
   return run ? reconcileRunValue(run, 0, options) : { success: true, skipped: true };
 }
 function reconcile(characterID) {
-  for (const instance of Object.values(readRuns())) {
+  for (const instance of Object.values(readRuns(characterID))) {
     const run = runFrom(instance);
     if (!run) continue;
     const result = reconcileRunValue(run, positive(characterID), { publish: false });

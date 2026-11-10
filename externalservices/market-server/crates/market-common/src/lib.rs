@@ -230,9 +230,9 @@ CREATE INDEX IF NOT EXISTS idx_market_orders_player_owner_updated
   ON market_orders (owner_id, is_corp, updated_at DESC, order_id DESC)
   WHERE source = 'player';
 
-CREATE INDEX IF NOT EXISTS idx_market_orders_player_expiry
-  ON market_orders (state, issued_at, duration_days, order_id)
-  WHERE source = 'player';
+CREATE INDEX IF NOT EXISTS idx_market_orders_player_due
+  ON market_orders (datetime(issued_at, '+' || duration_days || ' days'), order_id)
+  WHERE source = 'player' AND state = 'open';
 
 CREATE INDEX IF NOT EXISTS idx_market_order_events_type_id
   ON market_order_events (event_type, event_id);
@@ -273,9 +273,9 @@ CREATE INDEX IF NOT EXISTS idx_market_orders_player_owner_updated
   ON market_orders (owner_id, is_corp, updated_at DESC, order_id DESC)
   WHERE source = 'player';
 
-CREATE INDEX IF NOT EXISTS idx_market_orders_player_expiry
-  ON market_orders (state, issued_at, duration_days, order_id)
-  WHERE source = 'player';
+CREATE INDEX IF NOT EXISTS idx_market_orders_player_due
+  ON market_orders (datetime(issued_at, '+' || duration_days || ' days'), order_id)
+  WHERE source = 'player' AND state = 'open';
 
 CREATE INDEX IF NOT EXISTS idx_market_order_events_type_id
   ON market_order_events (event_type, event_id);
@@ -294,6 +294,7 @@ DROP INDEX IF EXISTS idx_market_orders_station_type_bid_state_price;
 DROP INDEX IF EXISTS idx_market_orders_owner_state;
 DROP INDEX IF EXISTS idx_market_orders_player_owner_updated;
 DROP INDEX IF EXISTS idx_market_orders_player_expiry;
+DROP INDEX IF EXISTS idx_market_orders_player_due;
 DROP INDEX IF EXISTS idx_market_order_events_type_id;
 "#;
 

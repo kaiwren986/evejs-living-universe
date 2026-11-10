@@ -2,13 +2,15 @@
 
 // Mission evidence is staged inside the mission owner's completion checkpoint.
 // It outlives the 128-entry journal without retaining another mission snapshot.
-const database = require("../../gameStore");
+const { readDurablePath } = require("./careerOwnerReads");
+// A career agent's chain: one metric per part ("career-agent-<division>-<part>"), each done once.
+const CAREER_AGENT_CAPS = Object.fromEntries(Object.entries(require("../agent/careerAgentMissions").listChainLengths())
+  .flatMap(([divisionID, length]) => Array.from({ length }, (_, index) => [`career-agent-${divisionID}-${index + 1}`, 1])));
 const CAPS = Object.freeze({ "security-level-1": 20, distribution: 20, mining: 20,
-  "bloodstained-stars": 20, "mission-lp": 500 });
+  "bloodstained-stars": 20, "mission-lp": 500, ...CAREER_AGENT_CAPS });
 const FIELD = "careerProgramMissionEvidence";
-// Installed mission authority: Sister Alitura (3019356), The Blood-Stained
-// Stars, uses arc 29. Other epic arcs and the AIR tutorial are separate chains.
-const BLOODSTAINED_STARS_ARC_ID = 29;
+// The persisted bloodstained-stars metric now counts every validated epic arc.
+// Retaining its key preserves saved progress and paid claim identities.
 const safe = value => Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : 0;
 const clone = value => structuredClone(value);
 function readLedger(character) {
@@ -29,7 +31,10 @@ function stageCompletion(characterState, characterID, agent, mission, nowMs = Da
   const native = require("../agent/missionAuthority").getMissionByID(mission.contentID);
   if (!native) return { success: true, changed: false };
   const metrics = {};
-  if (Number(native.epicArcID) === BLOODSTAINED_STARS_ARC_ID) metrics["bloodstained-stars"] = 1;
+  // Keep the persisted metric name so earned progress and paid claims retain
+  // their identity. All installed, validated epic arcs qualify for the generic
+  // native "Epic Arc Missions" goals.
+  if (native.isEpicArc === true && Number(native.epicArcID) > 0) metrics["bloodstained-stars"] = 1;
   if (Number(agent.agentTypeID) === 2 && native.isEpicArc !== true && native.isStoryline !== true &&
       native.isGenericStoryline !== true && native.isResearch !== true && mission.importantMission !== true) {
     const kind = String(agent.missionKind || "").toLowerCase();
@@ -39,6 +44,9 @@ function stageCompletion(characterState, characterID, agent, mission, nowMs = Da
     const lp = safe(mission.rewards?.loyaltyPoints);
     if (lp && safe(agent.corporationID) !== 1000419) metrics["mission-lp"] = lp;
   }
+  const careerPart = Number(agent.agentTypeID) === 12
+    ? require("../agent/careerAgentMissions").getChainPart(agent, mission.contentID) : null;
+  if (careerPart) metrics[`career-agent-${careerPart.divisionID}-${careerPart.part}`] = 1;
   if (!Object.keys(metrics).length) return { success: true, changed: false };
   const ledger = readLedger(characterState);
   if (!ledger) return { success: false, errorMsg: "CAREER_MISSION_EVIDENCE_INVALID" };
@@ -63,15 +71,12 @@ function stageCompletion(characterState, characterID, agent, mission, nowMs = Da
 function observe(characterID, record, definition, context = {}) {
   const metric = definition.source?.metric;
   if (!CAPS[metric]) return null;
-  let root = context.missionRuntimeState;
-  if (!root) {
-    const result = database.readPersisted("missionRuntimeState", "/");
-    if (!result?.success) throw new Error(result?.errorMsg || "CAREER_MISSION_SOURCE_UNAVAILABLE");
-    root = context.missionRuntimeState = result.data || {};
-  }
-  const character = root.charactersByID?.[String(characterID)];
+  const character = readDurablePath("missionRuntimeState", `/charactersByID/${characterID}`,
+    context, "CAREER_MISSION_SOURCE_UNAVAILABLE");
   if (character && safe(character.characterID) !== safe(characterID)) return null;
-  const ledger = readLedger(character);
+  const ledgers = context.careerMissionLedgers ||= new Map();
+  if (!ledgers.has(characterID)) ledgers.set(characterID, readLedger(character));
+  const ledger = ledgers.get(characterID);
   if (!ledger) throw new Error("CAREER_MISSION_EVIDENCE_INVALID");
   return { kind: "mission-evidence", id: `mission-evidence:${metric}:v1`,
     progress: ledger.counts[metric] || 0, updatedAtMs: ledger.updatedAtMs[metric] || 0 };

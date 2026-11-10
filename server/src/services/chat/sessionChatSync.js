@@ -14,8 +14,20 @@ const LOCAL_CHAT_SESSION_KEYS = new Set([
   "solarsystemid2",
   "solarsystemid",
 ]);
+// A presence refresh re-publishes what a character's presence actually
+// carries: the `eve_user_data` element (corpid, allianceid, warfactionid,
+// role) and the local-membership row. Only keys that appear in one of those
+// payloads belong here, so `fleetid` does not: fleet membership is expressed
+// by MUC room membership, and syncSessionScopedRoomMembership already
+// announces the join to every occupant. Refreshing on it sent the joining
+// pilot an `unavailable` for the fleet room milliseconds after putting them
+// in it, which the client reads as "you left" and acts on by closing the
+// fleet chat window (CATEGORY_FLEET is absent from its UNCLOSABLE_CHAT_WNDS),
+// and which races the newcomer back out of the other members' rosters.
 const CHAT_PRESENCE_SESSION_KEYS = new Set([
-  ...SCOPED_CHAT_SESSION_KEYS,
+  "corpid",
+  "allianceid",
+  "warfactionid",
   "role",
   "corprole",
 ]);

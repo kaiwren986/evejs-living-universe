@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "source": {
+    "build": 3396210,
+    "generator": "scripts/DataSync/generate-ess-reserve-authority.js",
+    "keyResource": "res:/staticdata/essreservekeys.fsdbinary",
+    "keyResourceMD5": "549e8c81732d6bcac475a498adc5d06b",
+    "keyResourceSHA256": "900c113873cc804e04fba8518c6958a0116fd2dd9d05e95dad144d3673d4b64a",
+    "regionDescriptions": "CCP public SDE build 3396210 types.jsonl, English key descriptions",
+    "sha256": {
+      "essreservekeys.jsonl": "89a3de8c556e43e9143ef2a19505b00161080eebf0d2429357faee88a8da01c0",
+      "clientlocationlists.jsonl": "d10b738c53c70289be81581659d381152865be1c332e2d52169ba1ae075ce296",
+      "types.jsonl": "e0a34c4dd2879891bdf89fe42432431c0559cafda25586f862ba916b1a14ecdb",
+      "_sde.jsonl": "e7cb829e75735153dd7708e1e33abc2e5a5d477dbf9c776d1513618b609c9ad8"
+    },
+    "geography": "Explicit region showinfo IDs in pinned key item descriptions; the client delegates eligible-key selection to dynamicResourceCacheMgr.GetESSReserveBankKeys.",
+    "missingServerLocationListIDs": [
+      4609,
+      4610,
+      4611,
+      4612
+    ],
+    "availableClientLocationListIDs": [
+      4723,
+      4725,
+      4726,
+      5058,
+      5059,
+      5060
+    ],
+    "limitation": "Server locationLists membership/exclusions are not shipped in clientLocationLists. Region descriptions are the geographic authority here; no unavailable list membership is invented."
+  },
+  "keysByTypeID": {
+    "57714": {
+      "locationListID": 4609,
+      "totalPulses": 15,
+      "regionIDs": [
+        10000003,
+        10000010,
+        10000023,
+        10000034,
+        10000035,
+        10000045,
+        10000046,
+        10000051,
+        10000055,
+        10000058
+      ]
+    },
+    "57715": {
+      "locationListID": 4609,
+      "totalPulses": 45,
+      "regionIDs": [
+        10000003,
+        10000010,
+        10000023,
+        10000034,
+        10000035,
+        10000045,
+        10000046,
+        10000051,
+        10000055,
+        10000058
+      ]
+    },
+    "57716": {
+      "locationListID": 4610,
+      "totalPulses": 15,
+      "regionIDs": [
+        10000007,
+        10000013,
+        10000018,
+        10000021,
+        10000027,
+        10000040,
+        10000053,
+        10000066
+      ]
+    },
+    "57717": {
+      "locationListID": 4612,
+      "totalPulses": 15,
+      "regionIDs": [
+        10000005,
+        10000006,
+        10000008,
+        10000009,
+        10000025,
+        10000029,
+        10000061,
+        10000062
+      ]
+    },
+    "57718": {
+      "locationListID": 4612,
+      "totalPulses": 45,
+      "regionIDs": [
+        10000005,
+        10000006,
+        10000008,
+        10000009,
+        10000025,
+        10000029,
+        10000061,
+        10000062
+      ]
+    },
+    "57719": {
+      "locationListID": 4610,
+      "totalPulses": 45,
+      "regionIDs": [
+        10000007,
+        10000013,
+        10000018,
+        10000021,
+        10000027,
+        10000040,
+        10000053,
+        10000066
+      ]
+    },
+    "57720": {
+      "locationListID": 4611,
+      "totalPulses": 15,
+      "regionIDs": [
+        10000014,
+        10000031,
+        10000039,
+        10000047,
+        10000050,
+        10000056,
+        10000059,
+        10000060,
+        10000063
+      ]
+    },
+    "57721": {
+      "locationListID": 4611,
+      "totalPulses": 45,
+      "regionIDs": [
+        10000014,
+        10000031,
+        10000039,
+        10000047,
+        10000050,
+        10000056,
+        10000059,
+        10000060,
+        10000063
+      ]
+    }
+  }
+}

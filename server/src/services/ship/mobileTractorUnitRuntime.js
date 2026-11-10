@@ -1317,6 +1317,7 @@ function launchMobileTractorUnitFromShip(session, itemID, options = {}) {
 
   const transferResult = mobileItemCustody.deployFromShip({
     item,
+    position: spawnState.position,
     ownerID: context.ownerID,
     shipID: context.shipID,
     systemID: context.systemID,

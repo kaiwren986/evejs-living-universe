@@ -495,8 +495,6 @@ The launcher says so and stops. Run `tools\InstallRustForMarket.bat`, then run i
 
 ## Further Reading
 
-- [../../doc/JITA_INDEX_SEED_PLAN.md](../../doc/JITA_INDEX_SEED_PLAN.md) — the design, the
-  measurements behind every number above, and the decision record
 - [../../doc/MARKET_SETUP.md](../../doc/MARKET_SETUP.md) — running the market daemon
 - [../market-seederv2/README.md](../market-seederv2/README.md) — the TQ snapshot seeder,
   which is still the only way to get NPC blueprints and skillbooks

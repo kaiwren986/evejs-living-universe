@@ -3,14 +3,6 @@
 // Read committed domain evidence. Native requests never supply these facts.
 const database = require("../../gameStore");
 const { resolveItemByTypeID } = require("../inventory/itemTypeRegistry");
-function persisted(table, context) {
-  if (context && Object.hasOwn(context, table)) return context[table];
-  const result = database.readPersisted(table, "/");
-  if (!result?.success) throw new Error(result?.errorMsg || "CAREER_SOURCE_UNAVAILABLE");
-  const data = result.data || {};
-  if (context) context[table] = data;
-  return data;
-}
 function filetime(value) {
   try {
     const time = Number((BigInt(value || 0) - 116444736000000000n) / 10000n);
@@ -19,6 +11,28 @@ function filetime(value) {
   catch (_) { return 0; }
 }
 function identity(value) { const id = Number(value); return Number.isSafeInteger(id) && id > 0 ? id : 0; }
+function industryEvidence(characterID, context) {
+  const evidence = context.careerIndustryEvidence ||= new Map();
+  if (evidence.has(characterID)) return evidence.get(characterID);
+  const result = database.readPersistedIndustryJobsForCharacter(characterID);
+  if (!result?.success) throw new Error(result?.errorMsg || "CAREER_SOURCE_UNAVAILABLE");
+  const metrics = new Map();
+  for (const job of Object.values(result.data || {})) {
+    const jobID = identity(job?.jobID);
+    if (!jobID || Number(job.installerID) !== characterID || Number(job.status) !== 101 ||
+        job.installationPending === true) continue;
+    const activity = Number(job.activityID);
+    const group = Number(resolveItemByTypeID(Number(job.productTypeID))?.groupID);
+    for (const key of new Set([`${activity}:0`, `${activity}:${group}`])) {
+      let metric = metrics.get(key);
+      if (!metric) metrics.set(key, (metric = { ids: new Set(), updatedAtMs: 0 }));
+      metric.ids.add(jobID);
+      metric.updatedAtMs = Math.max(metric.updatedAtMs, filetime(job.deliveredAt));
+    }
+  }
+  evidence.set(characterID, metrics);
+  return metrics;
+}
 function observe(characterID, record, definition, context = {}) {
   characterID = identity(characterID);
   if (!characterID) return null;
@@ -36,25 +50,22 @@ function observe(characterID, record, definition, context = {}) {
       progress: Number(totals.quantities[String(source.oreGroupID)]) || 0, updatedAtMs: totals.updatedAtMs || 0 };
   }
   if (source.kind === "industry-delivery") {
-    const jobs = Object.values(persisted("industryJobs", context).jobs || {}).filter(job =>
-      identity(job.jobID) && Number(job.installerID) === characterID && Number(job.status) === 101 &&
-      job.installationPending !== true && Number(job.activityID) === source.activityID &&
-      (!source.productGroupID || Number(resolveItemByTypeID(Number(job.productTypeID))?.groupID) === source.productGroupID));
+    const metric = typeof source.activityID === "number" && (!source.productGroupID || typeof source.productGroupID === "number")
+      ? industryEvidence(characterID, context).get(`${source.activityID}:${source.productGroupID || 0}`)
+      : null;
     return { kind: source.kind, id: `industry-delivery:${source.activityID}:${source.productGroupID || 0}:v1`,
-      progress: new Set(jobs.map(job => identity(job.jobID)).filter(Boolean)).size,
-      updatedAtMs: jobs.reduce((latest, job) => Math.max(latest, filetime(job.deliveredAt)), 0) };
+      progress: metric?.ids.size || 0, updatedAtMs: metric?.updatedAtMs || 0 };
+  }
+  if (source.kind === "project-discovery-samples") {
+    // Qualified normal submissions and accepted correct tutorial classifications,
+    // committed with the project's own progress; old excluded work is not backfilled.
+    const project = record?.projectDiscovery;
+    return { kind: source.kind, id: "project-discovery-samples:v1",
+      progress: Number.isSafeInteger(project?.samplesSubmitted) ? project.samplesSubmitted : 0,
+      updatedAtMs: Number(project?.samplesSubmittedAtMs) || 0 };
   }
   if (source.kind === "npc-kills") {
-    const kills = Object.values(persisted("killmails", context).records || {}).filter(kill =>
-      identity(kill.killID) && kill.careerNpcShip === true &&
-      [undefined, null, 0, "0"].includes(kill.victimCharacterID) && Number(kill.finalCharacterID) === characterID &&
-      Number(resolveItemByTypeID(Number(kill.victimShipTypeID))?.categoryID) === 11);
-    // Private NPCs intentionally have no public killmail. Their immutable run
-    // outcomes feed a separate total, independent of the smaller hull goals.
-    const privateKills = require("./careerEventLedger").observe(characterID, "abyssal:npc-kills", record);
-    return { kind: source.kind, id: "npc-kills:v1",
-      progress: new Set(kills.map(kill => identity(kill.killID)).filter(Boolean)).size + privateKills.progress,
-      updatedAtMs: Math.max(privateKills.updatedAtMs, kills.reduce((latest, kill) => Math.max(latest, filetime(kill.killTime)), 0)) };
+    return require("./careerCombatSources").observeNpcKills(characterID, record, context);
   }
   if (source.kind === "module-hacks") return require("./careerHackingEvidence").observe(characterID, source);
   return null;

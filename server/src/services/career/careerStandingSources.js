@@ -1,17 +1,12 @@
 "use strict";
-const database = require("../../gameStore");
+const { readDurablePath } = require("./careerOwnerReads");
 function observe(characterID, record, definition, context = {}) {
   const minimum = definition.source?.minimum;
   if (![0.1, 0.25, 0.5, 1].includes(minimum)) return null;
-  if (!context.careerStandingCharacter) {
-    const result = database.readPersisted("characters", `/${characterID}`);
-    if (!result?.success) throw new Error(result?.errorMsg || "CAREER_STANDING_SOURCE_UNAVAILABLE");
-    context.careerStandingCharacter = result.data || {};
-  }
-  const character = context.careerStandingCharacter;
+  const character = readDurablePath("characters", `/${characterID}`, context, "CAREER_STANDING_SOURCE_UNAVAILABLE") || {};
   const corps = require("../corporation/corporationState");
   const receipts = Object.entries(character.standingOperationReceipts || {}).filter(([key, receipt]) =>
-    key.startsWith(`mission-reward:${characterID}:`) && key.endsWith(":standing") &&
+    key.startsWith("mission-reward:") && key.endsWith(":standing") &&
     receipt && Array.isArray(receipt.result?.appliedChanges)).map(([, receipt]) => receipt);
   let completed = false, updatedAtMs = 0;
   for (const receipt of receipts) {

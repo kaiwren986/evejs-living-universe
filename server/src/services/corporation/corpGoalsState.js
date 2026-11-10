@@ -163,27 +163,18 @@ function normalizeRewardPools(value) {
   }
   return value
     .map((entry) => {
-      const amountValue =
-        Number(
-          entry &&
-            entry.isk &&
-            entry.isk.amount &&
-            entry.isk.amount.units,
-        ) || 0;
+      const amount = entry?.isk?.amount ?? entry?.isk;
+      const amountValue = Number(amount?.units) || 0;
+      const nanos = Number(amount?.nanos) || 0;
       const period = Number(entry && entry.period) || GOAL_PAYMENT_PERIOD.UNSPECIFIED;
-      if (!amountValue && !period) {
+      if (!amountValue && !nanos && !period) {
         return null;
       }
       return {
         period,
         isk: {
           units: Math.max(0, Math.trunc(amountValue)),
-          nanos: Number(
-            entry &&
-              entry.isk &&
-              entry.isk.amount &&
-              entry.isk.amount.nanos,
-          ) || 0,
+          nanos,
         },
       };
     })
@@ -401,6 +392,14 @@ function createGoal(characterID, payload = {}) {
       errorMsg: "GOAL_CAPACITY_REACHED",
     };
   }
+  // A reward-bearing project requires a wallet reservation before publication.
+  if (payload.reward_pools?.length > 0) {
+    return {
+      success: false,
+      statusCode: 501,
+      errorMsg: "unable to reserve backing asset for the rewards specified",
+    };
+  }
 
   const goalID = createUuidString();
   const createdAtMs = nowMs();
@@ -425,14 +424,15 @@ function createGoal(characterID, payload = {}) {
     dueAtMs: payload.timestamp ? normalizeTimestampMs(payload.timestamp, 0) : 0,
     finishedAtMs: 0,
     state: GOAL_STATE.ACTIVE,
-    rewardPools: normalizeRewardPools(payload.reward_pools),
-    participationLimit: payload.limit !== undefined && payload.limit !== null ? Number(payload.limit) || 0 : null,
+    participationLimit: Object.hasOwn(payload, "limit") && payload.limit != null
+      ? Number(payload.limit) || 0
+      : null,
     contributionLimit:
-      payload.contribution_limit !== undefined && payload.contribution_limit !== null
+      Object.hasOwn(payload, "contribution_limit") && payload.contribution_limit != null
         ? Number(payload.contribution_limit) || 0
         : null,
     scalar:
-      payload.scalar !== undefined && payload.scalar !== null
+      Object.hasOwn(payload, "scalar") && payload.scalar != null
         ? Number(payload.scalar)
         : null,
     contributors: {},
@@ -479,6 +479,10 @@ function deleteGoal(goalID, characterID) {
   }
   if (!canCharacterManageCorporationGoals(characterID, goal.corporationID)) {
     return { success: false, errorMsg: "CANNOT_MANAGE_GOALS" };
+  }
+  if (goal.currentProgress > 0 ||
+      Object.values(goal.contributors).some((entry) => entry.rewardTotal > entry.rewardRedeemed)) {
+    return { success: false, errorMsg: "GOAL_HAS_PROGRESS_OR_REWARDS" };
   }
   removeGoal(goalID);
   return { success: true };

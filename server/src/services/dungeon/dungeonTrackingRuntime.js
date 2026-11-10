@@ -13,7 +13,8 @@ const dungeonVisibilityPolicy = require(path.join(
   __dirname,
   "./dungeonVisibilityPolicy",
 ));
-const { buildDict } = require(path.join(__dirname, "../_shared/serviceHelpers"));
+const { buildDict, buildKeyVal } = require(path.join(__dirname, "../_shared/serviceHelpers"));
+const { resolveSessionCharacterID } = require("../_shared/sessionIdentity");
 const {
   entityIDsEqual,
   normalizePersistentEntityID,
@@ -28,6 +29,10 @@ const SITE_ENTRY_INFERENCE_RANGE_SQUARED =
 const SAME_ROOM_WARP_PRESERVE_RANGE_METERS = 1_000_000;
 const SAME_ROOM_WARP_PRESERVE_RANGE_SQUARED =
   SAME_ROOM_WARP_PRESERVE_RANGE_METERS ** 2;
+// Ephemeral visit identity also distinguishes A -> B -> A before a queued send.
+const roomVisitsByShip = new WeakMap();
+const { WARP_TRANSMISSION_RECEIPT } = require("../../space/destiny/commands/warpTransmissionReceipt");
+const acceptedWarpTransmissions = new WeakMap();
 
 function toInt(value, fallback = 0) {
   const numeric = Number(value);
@@ -163,6 +168,12 @@ function buildDungeonValues(instance, roomKey, options = {}) {
   if (require("../homefront/homefrontHooks").runtime.isSite(instance)) {
     return require("../homefront/homefrontHooks").client.values(instance);
   }
+  const caldariValues = require("./visionsCaldariRuntime").values(instance,
+    options.template || resolveTemplate(instance), options.scene, options.session);
+  if (caldariValues) return buildDict(Object.entries(caldariValues));
+  const fracturedValues = require("./fracturedLegacyRuntime").buildValues(instance,
+    options.template || resolveTemplate(instance));
+  if (fracturedValues) return buildDict(Object.entries(fracturedValues));
   // Sites whose client objective chain reads a wave counter carry current_wave/total_waves.
   const template = options.template || null;
   const waveValues =
@@ -188,7 +199,7 @@ function buildCurrentDungeonInfo(instance, roomKey, options = {}) {
     dungeonID,
     resolveRoomID(normalizedRoomKey, roomState),
     Math.max(0, toInt(instance.instanceID, 0)),
-    buildDungeonValues(instance, normalizedRoomKey, { template }),
+    buildDungeonValues(instance, normalizedRoomKey, { ...options, template }),
   ];
 }
 
@@ -223,6 +234,9 @@ function markShipCurrentDungeonRoom(shipEntity, instance, roomKey, options = {})
   const changed =
     previousInstanceID !== instanceID ||
     previousRoomKey !== normalizedRoomKey;
+  if (changed) {
+    roomVisitsByShip.set(shipEntity, {});
+  }
   if (previousInstanceID !== instanceID) {
     delete shipEntity.dungeonCompletedNotifiedInstanceID;
   }
@@ -386,7 +400,7 @@ function resolveTrackedDungeonForSession(scene, session) {
 function resolveCurrentDungeonInfoForSession(scene, session) {
   const current = resolveCurrentDungeonForSession(scene, session);
   return current
-    ? buildCurrentDungeonInfo(current.instance, current.roomKey)
+    ? buildCurrentDungeonInfo(current.instance, current.roomKey, { scene, session })
     : null;
 }
 
@@ -428,11 +442,224 @@ function sendWithTick(session, send) {
   return true;
 }
 
-function sendEnteringDungeonRoomNotification(session, instance, roomKey, options = {}) {
+// field "message": sent when the warp into the room is accepted (a gate's activation), or on
+// arrival when no such warp sent it. "midWarpMessage": sent at the middle of that warp (half
+// its flight time). "arrivalMessage": sent on arrival only, after "message". The career agents'
+// The Pacifist uses all three for the fleet commander's messages (TQ: the gate's activation,
+// about four seconds into the warp, and when the ship drops out of it).
+function buildRoomTransmission(template, roomKey, field = "message") {
+  const roomLists = [
+    template && template.rooms,
+    template && template.siteSceneProfile && template.siteSceneProfile.roomProfiles,
+    template && template.clientDungeonContent && template.clientDungeonContent.rooms,
+  ];
+  let message = null;
+  for (const rooms of roomLists) {
+    const room = Array.isArray(rooms)
+      ? rooms.find((entry) => entry && entry.roomKey === roomKey)
+      : null;
+    if (room && room[field]) {
+      message = room[field];
+      break;
+    }
+  }
+  return buildTransmission(message);
+}
+
+// A transmission popup from a message: { headerID|header, textID|text, icon }.
+function buildTransmission(message) {
+  if (!message) {
+    return null;
+  }
+  const localizedValue = (id, text) => {
+    const numeric = typeof id === "number" || typeof id === "string" ? Number(id) : 0;
+    return Number.isSafeInteger(numeric) && numeric > 0
+      ? numeric
+      : typeof text === "string" ? text : "";
+  };
+  const header = localizedValue(message.headerID, message.header);
+  const text = localizedValue(message.textID, message.text);
+  if ((typeof header === "string" && !header.trim()) &&
+      (typeof text === "string" && !text.trim())) {
+    return null;
+  }
+  // Build 3396210 TransmissionSvc localizes integer attributes, then calls
+  // header.startswith('[d]') unconditionally. Telecom.ShowMessage parses an icon
+  // string's first space-separated integer; a falsey icon selects its default.
+  return buildKeyVal([
+    ["header", header],
+    ["text", text],
+    ["icon", typeof message.icon === "string" ? message.icon : ""],
+  ]);
+}
+
+// Select authored entry presentation without advancing a room or changing the
+// landing's existing room-key rules. Agent bookmark orders omit the room key.
+function resolveWarpTransmissionRoomKey(template, shipEntity, request) {
+  if (request.destinationDungeonRoomKey) return String(request.destinationDungeonRoomKey);
+  if (entityIDsEqual(shipEntity.dungeonCurrentInstanceID, request.destinationStaticInstanceID) &&
+      shipEntity.dungeonCurrentRoomKey) return String(shipEntity.dungeonCurrentRoomKey);
+  if (template && template.entryRoomKey) return String(template.entryRoomKey);
+  const rooms = [template && template.rooms,
+    template && template.siteSceneProfile && template.siteSceneProfile.roomProfiles,
+    template && template.clientDungeonContent && template.clientDungeonContent.rooms]
+    .filter(Array.isArray).flat();
+  const active = [...new Set(rooms.filter(room => room && room.initialState === "active")
+    .map(room => String(room.roomKey || "")).filter(Boolean))];
+  if (active.length === 1) return active[0];
+  return rooms.some(room => room && room.roomKey === "room:entry") ? "room:entry" : "";
+}
+
+function sendRoomTransmission(session, instance, transmission) {
+  const isAgentMission = Boolean(instance && (
+    (instance.metadata && instance.metadata.missionRuntime === true) ||
+    (instance.runtimeFlags && instance.runtimeFlags.missionRuntime === true)
+  ));
+  // Retail ordinary mission capture: shipid, (KeyVal, True). Other site
+  // messages retain their existing transport/default optional argument.
+  session.sendNotification("OnIncomingTransmission", isAgentMission ? "shipid" : "charid",
+    isAgentMission ? [transmission, true] : [transmission]);
+}
+
+// An accepted warp out of the ship's current site: a career lesson's departure message (the
+// career agents' Glue, the agent's "Stand down, pilot. ..." once the lesson is done; TQ: on
+// the warp's activation). A warp within the site is no departure.
+function sendDepartureTransmission(scene, session, request) {
+  try {
+    const shipEntity = getShipEntityForSession(scene, session);
+    const instanceID = shipEntity && shipEntity.dungeonCurrentInstanceID;
+    if (!instanceID || !request ||
+        entityIDsEqual(request.destinationStaticInstanceID, instanceID)) return false;
+    const instance = dungeonRuntime.getInstance(instanceID);
+    const lessons = require("./careerLessonRuntime");
+    const message = instance && lessons.departureMessage(instance, resolveTemplate(instance),
+      resolveSessionCharacterID(session));
+    const transmission = message && buildTransmission(message);
+    if (!transmission) return false;
+    sendRoomTransmission(session, instance, transmission);
+    const nowMs = typeof scene.getCurrentSimTimeMs === "function" ? scene.getCurrentSimTimeMs() : Date.now();
+    lessons.departureMessageSent(instance, nowMs);
+    return true;
+  } catch (error) {
+    log.debug(`[DungeonTracking] departure transmission failed: ${error && error.message}`);
+    return false;
+  }
+}
+
+function notifyAcceptedDungeonWarp(scene, session, result) {
+  // The result is from the checked command, not an unvalidated network request.
+  // Queued success is an accepted order; later cancellation cannot unsend it.
+  if (!result || result.success !== true || result.redundant || !session ||
+      typeof session.sendNotification !== "function") return false;
+  const request = result.data && (result.data.request || result.data);
+  // A short warp becomes an approach; it must not spend the site farewell.
+  if (!request || request.nativeGoto) return false;
+  sendDepartureTransmission(scene, session, request);
+  const receipt = request && request[WARP_TRANSMISSION_RECEIPT];
+  if (!receipt || typeof receipt !== "object" ||
+      acceptedWarpTransmissions.has(receipt)) return false;
+  try {
+    const characterID = resolveSessionCharacterID(session);
+    const shipEntity = getShipEntityForSession(scene, session);
+    if (characterID <= 0 || !shipEntity || session.stationid || session.stationID ||
+        getObservedScene(session) !== scene ||
+        typeof scene.resolveAuthorizedDestinationDungeonContext !== "function") return false;
+    const instance = dungeonRuntime.getInstance(request.destinationStaticInstanceID);
+    if (!isTrackedDungeonInstance(instance)) return false;
+    const template = resolveTemplate(instance);
+    const roomKey = resolveWarpTransmissionRoomKey(template, shipEntity, request);
+    if (!roomKey) return false;
+    const resolution = scene.resolveAuthorizedDestinationDungeonContext(session, instance.instanceID, {
+      roomKey, siteID: request.destinationDungeonSiteID,
+    });
+    if (!resolution || !entityIDsEqual(resolution.instanceID, instance.instanceID)) return false;
+    const transmission = buildRoomTransmission(template, roomKey);
+    if (!transmission) return false;
+    // Deliberately synchronous: the ordinary mission capture precedes both its
+    // RPC response and Destiny WarpTo. Arrival notices still use the tick.
+    sendRoomTransmission(session, instance, transmission);
+    acceptedWarpTransmissions.set(receipt, { scene, session, shipEntity, characterID,
+      instanceID: instance.instanceID, roomKey });
+    return true;
+  } catch (error) {
+    log.debug(`[DungeonTracking] accepted warp transmission failed: ${error && error.message}`);
+    return false;
+  }
+}
+
+// A pilot's ship entered warp (scene handleWarpActivated) to a room of a tracked site: the
+// room's midWarpMessage is armed for the warp's middle (midWarpAtMs, from the scene's warp
+// profile), once per warp. The room is the accepted warp's (its receipt, as the room's message
+// on the gate's activation), else the warp destination's own.
+const pendingMidWarpTransmissions = new WeakMap();
+function armMidWarpTransmission(scene, entity, destination, midWarpAtMs) {
+  const session = entity && entity.session;
+  const accepted = destination && destination[WARP_TRANSMISSION_RECEIPT] &&
+    acceptedWarpTransmissions.get(destination[WARP_TRANSMISSION_RECEIPT]);
+  const roomKey = accepted ? accepted.roomKey : destination && destination.destinationDungeonRoomKey;
+  const instanceID = accepted ? accepted.instanceID : destination && destination.destinationStaticInstanceID;
+  pendingMidWarpTransmissions.delete(entity);
+  if (!session || typeof session.sendNotification !== "function" || !roomKey || !instanceID) return false;
+  try {
+    const instance = dungeonRuntime.getInstance(instanceID);
+    if (!isTrackedDungeonInstance(instance)) return false;
+    const transmission = buildRoomTransmission(resolveTemplate(instance), String(roomKey), "midWarpMessage");
+    if (!transmission) return false;
+    pendingMidWarpTransmissions.set(entity, { session, instance, transmission, dueAtMs: midWarpAtMs });
+    return true;
+  } catch (error) {
+    log.debug(`[DungeonTracking] mid-warp transmission failed: ${error && error.message}`);
+    return false;
+  }
+}
+// Each scene tick (and at the warp's drop, before the landing's messages): an armed message whose
+// time has come goes to the pilot it was armed for.
+function sendDueMidWarpTransmission(entity, nowMs, options = {}) {
+  const pending = pendingMidWarpTransmissions.get(entity);
+  if (!pending || (options.landing !== true && nowMs < pending.dueAtMs)) return false;
+  pendingMidWarpTransmissions.delete(entity);
+  if (entity.session !== pending.session) return false;
+  try {
+    sendRoomTransmission(pending.session, pending.instance, pending.transmission);
+    return true;
+  } catch (error) {
+    log.debug(`[DungeonTracking] mid-warp transmission failed: ${error && error.message}`);
+    return false;
+  }
+}
+function hasPendingMidWarpTransmission(entity) {
+  return pendingMidWarpTransmissions.has(entity);
+}
+
+function consumeAcceptedWarpTransmission(scene, session, instance, roomKey, receipt) {
+  const sent = receipt && typeof receipt === "object" && acceptedWarpTransmissions.get(receipt);
+  if (!sent || sent.scene !== scene || sent.session !== session ||
+      sent.characterID !== resolveSessionCharacterID(session) ||
+      sent.shipEntity !== getShipEntityForSession(scene, session) ||
+      !entityIDsEqual(sent.instanceID, instance.instanceID) || sent.roomKey !== roomKey) return false;
+  acceptedWarpTransmissions.delete(receipt);
+  return true;
+}
+
+function isCurrentRoomArrival(session, instance, arrival) {
+  return (
+    arrival.characterID > 0 &&
+    resolveSessionCharacterID(session) === arrival.characterID &&
+    !session.stationid && !session.stationID &&
+    roomVisitsByShip.get(arrival.shipEntity) === arrival.visit &&
+    toInt(arrival.shipEntity.dungeonCurrentInstanceID, 0) === toInt(instance.instanceID, 0) &&
+    arrival.shipEntity.dungeonCurrentRoomKey === arrival.roomKey &&
+    getShipEntityForSession(arrival.scene, session) === arrival.shipEntity &&
+    (!arrival.observedScene || getObservedScene(session) === arrival.observedScene) &&
+    isTrackedDungeonInstance(dungeonRuntime.getInstance(instance.instanceID))
+  );
+}
+
+function sendEnteringDungeonRoomNotification(session, instance, roomKey, options = {}, arrival = null) {
   if (!session || typeof session.sendNotification !== "function") {
     return false;
   }
-  const info = buildCurrentDungeonInfo(instance, roomKey, options);
+  const info = buildCurrentDungeonInfo(instance, roomKey, { ...options, session });
   if (!info) {
     return false;
   }
@@ -444,7 +671,19 @@ function sendEnteringDungeonRoomNotification(session, instance, roomKey, options
     info[3],
   ];
   return sendWithTick(session, () => {
+    if (arrival && !isCurrentRoomArrival(session, instance, arrival)) {
+      return;
+    }
     session.sendNotification("OnEnteringDungeonRoom", "shipid", args);
+    if (arrival && isCurrentRoomArrival(session, instance, arrival)) {
+      for (const transmission of arrival.transmissions) {
+        try {
+          sendRoomTransmission(session, instance, transmission);
+        } catch (error) {
+          log.debug(`[DungeonTracking] room transmission for dungeon ${instance.instanceID} failed: ${error && error.message}`);
+        }
+      }
+    }
   });
 }
 
@@ -523,7 +762,21 @@ function notifyDistributionDungeonWarp(session, instanceID) {
       ],
     },
   }]);
+  sendWarpPopup(session, resolveTemplate(instance));
   return true;
+}
+
+// A site may name a message box shown when a warp to it is accepted
+// (populationHints.warpPopup, a titleID and a textID), once per pilot like the row above. A TQ
+// recording of the career agents' Data Training Site shows its room message ("Data Site -
+// Training Area", 126391 / 97520) as an "Information" message box as soon as the pilot clicks
+// Warp To; that room message then does not also go to the chat (sendRoomEntryMessage).
+function sendWarpPopup(session, template) {
+  const popup = template && template.populationHints && template.populationHints.warpPopup;
+  if (!popup || toInt(popup.textID, 0) <= 0 || typeof session.sendClientCallRequest !== "function") {
+    return;
+  }
+  session.sendClientCallRequest("agents", "MessageBox", [toInt(popup.titleID, 0), toInt(popup.textID, 0)]);
 }
 
 function clearShipCurrentDungeonRoom(shipEntity, options = {}) {
@@ -551,6 +804,7 @@ function clearShipCurrentDungeonRoom(shipEntity, options = {}) {
   delete shipEntity.dungeonCurrentSiteID;
   delete shipEntity.dungeonCurrentRoomPosition;
   delete shipEntity.dungeonCompletedNotifiedInstanceID;
+  roomVisitsByShip.delete(shipEntity);
   shipEntity.dungeonCurrentUpdatedAtMs = Math.max(0, toInt(options.nowMs, Date.now()));
   return hadDungeon;
 }
@@ -785,7 +1039,8 @@ function notifyDungeonValuesForScene(scene, instanceOrID, values) {
       resolveDungeonID(instance),
       resolveDungeonID(current.instance),
     );
-    if (sendDungeonValuesNotification(session, dungeonID, values)) {
+    const sessionValues = typeof values === "function" ? values(session) : values;
+    if (sendDungeonValuesNotification(session, dungeonID, sessionValues)) {
       notifiedCount += 1;
     }
   }
@@ -940,13 +1195,219 @@ function enterDungeonRoomForSession(scene, session, instance, roomKey, options =
       log.debug(`[DungeonTracking] achievement event for dungeon ${instance.instanceID} failed: ${error && error.message}`);
     }
   }
-  if (changed || options.forceNotify === true) {
-    return sendEnteringDungeonRoomNotification(session, instance, normalizedRoomKey, options);
+  let arrival = null;
+  if (changed) {
+    try {
+      const template = options.template || resolveTemplate(instance);
+      const transmissions = [
+        consumeAcceptedWarpTransmission(
+          scene, session, instance, normalizedRoomKey, options[WARP_TRANSMISSION_RECEIPT],
+        ) ? null : buildRoomTransmission(template, normalizedRoomKey),
+        buildRoomTransmission(template, normalizedRoomKey, "arrivalMessage"),
+      ].filter(Boolean);
+      if (transmissions.length > 0 && resolveSessionCharacterID(session) > 0) {
+        arrival = {
+          scene,
+          shipEntity,
+          roomKey: normalizedRoomKey,
+          visit: roomVisitsByShip.get(shipEntity),
+          characterID: resolveSessionCharacterID(session),
+          observedScene: getObservedScene(session),
+          transmissions,
+        };
+      }
+    } catch (error) {
+      // Presentation must never prevent authoritative room tracking.
+      log.debug(`[DungeonTracking] room transmission for dungeon ${instance.instanceID} failed: ${error && error.message}`);
+    }
   }
-  return false;
+  if (changed) {
+    sendRoomEntryMessage(session, instance, normalizedRoomKey);
+  }
+  const notified = changed || options.forceNotify === true
+    ? sendEnteringDungeonRoomNotification(session, instance, normalizedRoomKey, options, arrival)
+    : false;
+  if (changed) {
+    // Waves on on_room_active spawn when the gate is activated; on_room_entered ones when the
+    // ship has landed here. Then the mission tracker's new state, while the client is still in
+    // the warp into the room (see enterSiteRoom).
+    require("./dungeonUniverseSiteService").enterSiteRoom(scene, instance, normalizedRoomKey, { session });
+  }
+  return notified;
+}
+
+// The message a room shows its visitors (the client's dungeon data: messageHeaderID /
+// messageTextID; a site template carries it as the room profile's entryMessage). The client
+// shows OnDungeonTriggerMessage texts in its chat as game messages (svc.trigger).
+const DUN_EVENT_MESSAGE_MISSION_INSTRUCTION = 7;
+function roomEntryMessageOf(template, roomKey) {
+  const rooms = (template && template.siteSceneProfile && template.siteSceneProfile.roomProfiles) || [];
+  const room = rooms.find((candidate) => candidate && candidate.roomKey === roomKey);
+  return (room && room.entryMessage) || null;
+}
+
+// A site with a guide (populationHints.guideAgentID: Rulie Isoryn, agent 3015787, in the
+// exploration tour) speaks through an agent transmission, as on Tranquility, and never in the
+// chat: arriving in a room, or opening or approaching a container that has a text of its own
+// (populationHints.containers[].guideTextOnOpen / guideTextOnApproach), sends
+// OnIncomingAgentMessage with that text. Talking to the agent later still answers with the same
+// line (agentMgr DoAction -> guideTextForSession).
+function guideAgentIDOf(template) {
+  return Math.max(0, toInt(template && template.populationHints && template.populationHints.guideAgentID, 0));
+}
+
+// TQ never opens the guide's dialogue window here: it sends
+// OnIncomingAgentMessage(agentID, (messageID, None)), idtype charid, which
+// transmissionMgr shows as the agent's transmission window (43 sends in the
+// tour and training-site captures, e.g. (3015787, (124536, None))). The window
+// fallback stays only for a guide line with no message ID.
+function openGuideWindow(session, guideAgentID, textID = 0) {
+  const messageID = toInt(textID, 0);
+  if (messageID > 0 && typeof session.sendNotification === "function") {
+    session.sendNotification("OnIncomingAgentMessage", "charid", [guideAgentID, [messageID, null]]);
+    return;
+  }
+  if (typeof session.sendClientCallRequest === "function") {
+    session.sendClientCallRequest("agents", "OpenDialogueWindow", [guideAgentID]);
+  }
+}
+
+// A site's arrival popup (populationHints.arrivalPopup: the Anomaly Training Site's "Incoming
+// Transmission"): a message box on landing in its entry room, the client's agents.MessageBox
+// with the title and text by message ID (no agent, so the client fetches nothing for it).
+function sendArrivalPopup(session, template, roomKey) {
+  const popup = template && template.populationHints && template.populationHints.arrivalPopup;
+  const entryRoomKey = normalizeText(template && template.entryRoomKey, "room:entry");
+  if (!popup || roomKey !== entryRoomKey || typeof session.sendClientCallRequest !== "function") {
+    return;
+  }
+  session.sendClientCallRequest("agents", "MessageBox", [toInt(popup.titleID, 0), toInt(popup.textID, 0)]);
+}
+
+function sendRoomEntryMessage(session, instance, roomKey) {
+  const template = instance && instance.templateID ? dungeonAuthority.getTemplateByID(instance.templateID) : null;
+  sendArrivalPopup(session, template, roomKey);
+  const message = roomEntryMessageOf(template, roomKey);
+  if (!message || typeof session.sendNotification !== "function") {
+    return;
+  }
+  const guideAgentID = guideAgentIDOf(template);
+  if (guideAgentID > 0) {
+    openGuideWindow(session, guideAgentID, message.textID);
+    return;
+  }
+  const warpPopup = template && template.populationHints && template.populationHints.warpPopup;
+  if (warpPopup && toInt(warpPopup.textID, 0) === toInt(message.textID, 0)) {
+    return;
+  }
+  for (const messageID of [message.headerID, message.textID]) {
+    if (toInt(messageID, 0) > 0) {
+      session.sendNotification("OnDungeonTriggerMessage", "charid", [
+        DUN_EVENT_MESSAGE_MISSION_INSTRUCTION,
+        toInt(messageID, 0),
+      ]);
+    }
+  }
+}
+
+function guideSiteOfShip(scene, session) {
+  const shipEntity = getShipEntityForSession(scene, session);
+  const instanceID = Math.max(0, toInt(shipEntity && shipEntity.dungeonCurrentInstanceID, 0));
+  const instance = instanceID > 0 ? dungeonRuntime.getInstance(instanceID) : null;
+  const template = instance ? resolveTemplate(instance) : null;
+  return template && guideAgentIDOf(template) > 0
+    ? { shipEntity, instanceID, template, roomKey: normalizeText(shipEntity.dungeonCurrentRoomKey, "room:entry") }
+    : null;
+}
+
+// What a site guide says to this pilot: in the guide's site, the text of the container the pilot
+// last opened in this room, else the room's own text; null elsewhere.
+function guideTextForSession(session, agentID) {
+  const site = guideSiteOfShip(getSpaceRuntime().getSceneForSession(session), session);
+  if (!site || guideAgentIDOf(site.template) !== toInt(agentID, 0)) {
+    return null;
+  }
+  const opened = site.shipEntity.dungeonGuideText;
+  if (opened && opened.instanceID === site.instanceID && opened.roomKey === site.roomKey) {
+    return opened.textID;
+  }
+  const message = roomEntryMessageOf(site.template, site.roomKey);
+  return message && toInt(message.textID, 0) > 0 ? toInt(message.textID, 0) : null;
+}
+
+// The pilot opened a site container (invBroker GetInventoryFromId): an AIR item-retrieval wreck
+// may get the pilot's item; one with a guide text of its own (the tour's Exploration Supplies)
+// has the guide say it.
+function onSiteContainerOpened(session, itemID) {
+  const scene = getSpaceRuntime().getSceneForSession(session);
+  const container = scene && typeof scene.getEntityByID === "function" ? scene.getEntityByID(itemID) : null;
+  if (container && container.dungeonMaterializedContainer === true) {
+    require("../npe/airNpeRuntime").onRetrievalWreckOpened(session, container);
+  }
+  const site = container && container.dungeonMaterializedContainer === true ? guideSiteOfShip(scene, session) : null;
+  if (!site || toInt(container.dungeonSiteInstanceID, 0) !== site.instanceID) {
+    return;
+  }
+  const authored = (site.template.populationHints.containers || []).find((entry) => (
+    entry && entry.role === container.dungeonSiteContentRole && toInt(entry.guideTextOnOpen, 0) > 0
+  ));
+  if (!authored) {
+    return;
+  }
+  site.shipEntity.dungeonGuideText = { instanceID: site.instanceID, roomKey: site.roomKey, textID: toInt(authored.guideTextOnOpen, 0) };
+  openGuideWindow(session, guideAgentIDOf(site.template), authored.guideTextOnOpen);
+}
+
+// A container's approach text (populationHints.containers[].guideTextOnApproach, within
+// guideApproachRangeMeters: the relic Training Container's "This is the Relic container"): the
+// guide says it once per ship and container when the ship first comes that close. There is no
+// player action to hook, so the site behavior tick evaluates it.
+function processGuideApproachTexts(scene, instance) {
+  const template = instance ? resolveTemplate(instance) : null;
+  const guideAgentID = guideAgentIDOf(template);
+  const authored = guideAgentID > 0
+    ? (template.populationHints.containers || []).filter((entry) => entry && toInt(entry.guideTextOnApproach, 0) > 0)
+    : [];
+  if (authored.length <= 0 || !scene || !(scene.dynamicEntities instanceof Map)) {
+    return 0;
+  }
+  const instanceID = toInt(instance.instanceID, 0);
+  const containers = [...(Array.isArray(scene.staticEntities) ? scene.staticEntities : []), ...scene.dynamicEntities.values()]
+    .filter((entity) => entity && entity.dungeonMaterializedContainer === true && entity.position &&
+      toInt(entity.dungeonSiteInstanceID, 0) === instanceID);
+  let said = 0;
+  for (const ship of scene.dynamicEntities.values()) {
+    if (!ship || ship.kind !== "ship" || !ship.session || !ship.position ||
+        toInt(ship.dungeonCurrentInstanceID, 0) !== instanceID) {
+      continue;
+    }
+    for (const container of containers) {
+      const entry = authored.find((candidate) => candidate.role === container.dungeonSiteContentRole);
+      const heardKey = `${instanceID}:${container.itemID}`;
+      if (!entry || (ship.dungeonGuideApproachHeard && ship.dungeonGuideApproachHeard.has(heardKey))) {
+        continue;
+      }
+      const range = Math.max(1, Number(entry.guideApproachRangeMeters) || 5_000);
+      if (distanceSquared(ship.position, container.position) > range * range) {
+        continue;
+      }
+      (ship.dungeonGuideApproachHeard ||= new Set()).add(heardKey);
+      ship.dungeonGuideText = {
+        instanceID,
+        roomKey: normalizeText(ship.dungeonCurrentRoomKey, "room:entry"),
+        textID: toInt(entry.guideTextOnApproach, 0),
+      };
+      openGuideWindow(ship.session, guideAgentID, entry.guideTextOnApproach);
+      said += 1;
+    }
+  }
+  return said;
 }
 
 module.exports = {
+  guideTextForSession,
+  onSiteContainerOpened,
+  processGuideApproachTexts,
   settleSiteCompletionAchievements,
   recordAbyssalRunCompletion,
   buildCareerAbyssalNpcOutcome,
@@ -958,6 +1419,10 @@ module.exports = {
   exitCurrentDungeonForSession,
   markShipCurrentDungeonRoom,
   notifyDistributionDungeonWarp,
+  notifyAcceptedDungeonWarp,
+  armMidWarpTransmission,
+  sendDueMidWarpTransmission,
+  hasPendingMidWarpTransmission,
   notifyDungeonCompletedForScene,
   notifyDungeonValuesForScene,
   resolveTrackedDungeonForSession,
@@ -969,4 +1434,6 @@ module.exports = {
   sendDungeonValuesNotification,
   sendExitingDungeonNotification,
   sendEnteringDungeonRoomNotification,
+  buildTransmission,
+  sendRoomTransmission,
 };

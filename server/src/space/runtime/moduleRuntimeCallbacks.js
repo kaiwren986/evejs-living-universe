@@ -343,7 +343,7 @@ function buildDefenderRuntimeCallbacks(scene) {
   };
 }
 
-function buildBombRuntimeCallbacks(scene) {
+function buildBombRuntimeCallbacks(scene, options = {}) {
   return {
     allocateEntityID: allocateRuntimeEntityID,
     hasCurrentSourceOwner(entity) {
@@ -381,7 +381,12 @@ function buildBombRuntimeCallbacks(scene) {
       if (target.kind !== "missile") {
         recordAreaDamageKillmailOutcome(attacker, target, moduleItem, damage, result, nowMs, chargeItem);
       }
-      notifyWeaponDamageMessages(attacker, target, moduleItem, damage,
+      // Launch attribution remains immutable. A delayed companion hit may
+      // resolve its original pilot's current transport solely for feedback.
+      const notificationSource = typeof options.resolveAttackerNotificationSession === "function"
+        ? { ...attacker, session: options.resolveAttackerNotificationSession(attacker) }
+        : attacker;
+      notifyWeaponDamageMessages(notificationSource, target, moduleItem, damage,
         getAppliedDamageAmount(result?.damageResult), sumDamageVector(damage) > 0 ? 3 : 0);
       return result;
     },
@@ -434,7 +439,7 @@ function buildSmartbombRuntimeCallbacks(scene = null) {
         targetEntity,
         damageVector,
         whenMs,
-        {fabricatorDamageKind:"smartbomb"},
+        {fabricatorDamageKind:"smartbomb", incursionWeaponKind: "smartbomb"},
       );
       recordAreaDamageKillmailOutcome(
         attackerEntity,

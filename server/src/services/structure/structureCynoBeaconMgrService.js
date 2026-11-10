@@ -12,10 +12,12 @@ const { throwWrappedUserError } = require(path.join(__dirname, "../../common/mac
 const spaceRuntime = require(path.join(__dirname, "../../space/runtime"));
 const worldData = require(path.join(__dirname, "../../space/worldData"));
 const {
-  jumpSessionToSolarSystem,
+  jumpSessionToCynosuralBeacon,
 } = require(path.join(__dirname, "../../space/transitions"));
 const {
   consumeFuelFromShipStorage,
+  getFuelQuantityFromStacks,
+  getFuelStacksForShipStorage,
 } = require(path.join(__dirname, "../../space/modules/sharedFuelRuntime"));
 const {
   getActiveShipRecord,
@@ -28,7 +30,7 @@ const {
 } = require(path.join(__dirname, "../fitting/liveFittingState"));
 const {
   buildConduitPassengerPlans,
-  executeConduitPassengerJumps,
+  executeCynosuralConduitPassengerJumps,
   resolveConduitJumpActivation,
 } = require(path.join(__dirname, "../_shared/conduitJumpRuntime"));
 const {
@@ -487,6 +489,18 @@ function consumeJumpFuel(session, activeShip, shipEntity, fuelTypeID, fuelQuanti
   return fuelResult;
 }
 
+// Fuel is spent at the transfer, after the departure animation has gone out,
+// so a short hold is refused here, before the pilot sees the jump start.
+function assertJumpFuelAvailable(session, activeShip, shipEntity, fuelTypeID, fuelQuantity) {
+  const fuelEntity = shipEntity || { kind: "ship", itemID: activeShip.itemID };
+  const stacks = getFuelStacksForShipStorage(fuelEntity, fuelTypeID, {
+    resolveCharacterID: () => normalizePositiveInt(session && session.characterID, 0),
+  });
+  if (getFuelQuantityFromStacks(stacks) < fuelQuantity) {
+    throwNotify("Your ship does not have enough jump fuel.");
+  }
+}
+
 function ensureFleetMembership(session) {
   const fleetID = normalizePositiveInt(session && session.fleetid, 0);
   if (fleetID <= 0) {
@@ -600,7 +614,7 @@ class StructureCynoBeaconMgrService extends BaseService {
       }
     }
 
-    const finishJump = (jumpResult, fuelResult, durable = false) => {
+    const finishJump = (jumpResult, fuelResult, durable = false, conduitPassengerResult = null) => {
       if (!jumpResult.success) {
         log.warn(`[StructureCynoBeaconMgr] jump failed char=${session.characterID} structure=${structureID}: ${jumpResult.errorMsg}`);
         throwNotify("The cynosural beacon session change failed.");
@@ -611,13 +625,7 @@ class StructureCynoBeaconMgrService extends BaseService {
         applyJumpTimersBestEffort(session, { distanceLy,
           jumpFatigueMultiplier: resolveJumpFatigueMultiplier(resourceState) });
       }
-      let conduitPassengerResult = null;
       if (options.groupAnchor === true) {
-        conduitPassengerResult = executeConduitPassengerJumps({
-          plans: conduitPlan && Array.isArray(conduitPlan.plans) ? conduitPlan.plans : [],
-          anchorCharacterID: session && session.characterID, destinationSolarSystemID,
-          distanceLy, logPrefix: "StructureCynoBeaconMgr",
-        });
         notifyGroupJumpAnchor(session, destinationSolarSystemID, conduitPassengerResult.successCount);
         applyStructureCynoTetherDelayToSuccessfulPassengers(conduitPlan, conduitPassengerResult, tetherDelayNowMs);
       }
@@ -646,21 +654,50 @@ class StructureCynoBeaconMgrService extends BaseService {
       return settlements.settlePendingJumpBridge(prepared.data.operationID, { session }).then((result) =>
         finishJump({ ...result, data: { boundResult: result.boundResult } }, { consumedQuantity: consumedFuelQuantity }, true));
     }
-    const fuelResult = consumeJumpFuel(
+    assertJumpFuelAvailable(
       session,
       activeShip,
       shipEntity,
       fuelTypeID,
       consumedFuelQuantity,
     );
-    const jumpResult = jumpSessionToSolarSystem(session, destinationSolarSystemID, {
-      spawnStateOverride: buildCynoBeaconArrivalSpawnState(
-        structure,
-        activeShip,
-        shipEntity,
-      ),
-    });
-    return finishJump(jumpResult, fuelResult);
+    // A Pharolux jump is a jump drive jump: JumpDriveOut at the source and
+    // JumpDriveIn at the beacon, like a jump to a cynosural field. Passengers
+    // depart alongside the anchor but cross only after its transfer succeeds.
+    let fuelResult = { consumedQuantity: 0 };
+    let passengerJumps = null;
+    let resolveAnchorTransfer;
+    const anchorTransferred = new Promise((resolve) => { resolveAnchorTransfer = resolve; });
+    return (async () => {
+      let jumpResult;
+      let conduitPassengerResult = null;
+      try {
+        jumpResult = await jumpSessionToCynosuralBeacon(session, destinationSolarSystemID, {
+          beforeTransfer: () => {
+            fuelResult = consumeJumpFuel(session, activeShip, shipEntity, fuelTypeID, consumedFuelQuantity);
+          },
+          onDepartureAccepted: () => {
+            if (options.groupAnchor === true) {
+              passengerJumps = executeCynosuralConduitPassengerJumps({
+                plans: conduitPlan && Array.isArray(conduitPlan.plans) ? conduitPlan.plans : [],
+                anchorCharacterID: session && session.characterID, destinationSolarSystemID,
+                distanceLy, logPrefix: "StructureCynoBeaconMgr",
+                waitForAnchorTransfer: () => anchorTransferred,
+              });
+            }
+          },
+          spawnStateOverride: buildCynoBeaconArrivalSpawnState(
+            structure,
+            activeShip,
+            shipEntity,
+          ),
+        });
+      } finally {
+        resolveAnchorTransfer(Boolean(jumpResult && jumpResult.success));
+        if (passengerJumps) conduitPassengerResult = await passengerJumps;
+      }
+      return finishJump(jumpResult, fuelResult, false, conduitPassengerResult);
+    })();
   }
 
   Handle_CmdJumpToStructureBeacon(args, session) {

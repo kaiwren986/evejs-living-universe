@@ -302,6 +302,10 @@ function collectEntityActiveShipAttributeModifierEntries(entity, nowMs = Date.no
   }
   modifierEntries.push(...require("../../services/seasons/eventHooks").fabricatorBonuses.shipModifiers(entity));
   modifierEntries.push(...require("../../services/seasons/gallenteEventBonuses").shipModifiers(entity));
+  modifierEntries.push(...require("../../services/incursion/incursionSystemEffects").shipModifiers(entity));
+  if (entity.voidReplayElectrical) {
+    modifierEntries.push(...require("../../services/activity/voidReplayWeather").shipModifiers(entity));
+  }
 
   const shipItem = getEntityRuntimeShipItem(entity);
   const activeModuleContexts = getEntityRuntimeActiveModuleContexts(entity);

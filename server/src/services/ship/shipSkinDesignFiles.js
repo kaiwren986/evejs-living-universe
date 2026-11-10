@@ -88,4 +88,31 @@ function importShipSkinDesign(characterID, filename, requestID) {
   return drafts.saveShipSkinDraft(characterID, validated.request, requestID);
 }
 
-module.exports = { MAX_FILE_BYTES, getShipSkinDesignDirectory, exportShipSkinDesign, importShipSkinDesign };
+function prepareShipSkinStoreFile(filename, terms) {
+  const input = readDocument(filename);
+  if (!input.success) return input;
+  const sellerID = require("./shipSkinStoreAuthority").getShipSkinStoreSellerID();
+  const validated = validateDocument(sellerID, input.document);
+  if (!validated.success) return validated;
+  if (terms === undefined || input.document.store !== undefined) {
+    const stored = require("./shipSkinStoreTerms").termsFromStoreDocument(input.document.store);
+    if (!stored.success) return stored;
+    terms = { ...stored.terms, ...terms };
+  }
+  return { success: true, request: validated.request, terms };
+}
+function importShipSkinStoreDesign(filename, terms) {
+  const prepared = prepareShipSkinStoreFile(filename, terms);
+  return prepared.success ? require("./shipSkinThirdPartyRuntime").importShipSkinStoreDesign(prepared.request, prepared.terms) : prepared;
+}
+function importShipSkinStoreFiles(filenames) {
+  if (!Array.isArray(filenames) || !filenames.length || filenames.length > 10000) return fail("INVALID_SKINR_STORE_BATCH", 400);
+  const entries = [];
+  for (const [index, filename] of filenames.entries()) {
+    const prepared = prepareShipSkinStoreFile(filename);
+    if (!prepared.success) return { ...prepared, index, filename };
+    entries.push(prepared);
+  }
+  return require("./shipSkinThirdPartyRuntime").importShipSkinStoreDesigns(entries);
+}
+module.exports = { MAX_FILE_BYTES, getShipSkinDesignDirectory, exportShipSkinDesign, importShipSkinDesign, importShipSkinStoreDesign, importShipSkinStoreFiles };

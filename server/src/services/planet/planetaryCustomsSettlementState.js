@@ -988,6 +988,58 @@ async function settlePlanetaryCustomsInternal(characterID, options = {}) {
     }
   }
 
+  // The tax is the office owner's income: a player corporation's office or
+  // skyhook pays it into that corporation's master wallet with the same journal
+  // type (EVE University, Customs Office: "taxes go to the owning
+  // corporation"). InterBus and other NPC owners keep it out of the economy.
+  // It runs once the transfer has committed, so a rejected transfer never
+  // credits the owner.
+  const ownerID = resolveCustomsTaxOwnerID(settlement);
+  const { isNpcCorporationID } = require(path.join(__dirname, "../corporation/corporationState"));
+  if (ownerID && !isNpcCorporationID(ownerID)) {
+    const corpWallet = require(path.join(__dirname, "../corporation/corpWalletState"));
+    for (const candidate of settlement.walletLegs) {
+      settlement = getPendingPlanetaryCustomsSettlement(characterID);
+      const leg = settlement && settlement.walletLegs.find(
+        (entry) => entry.legID === candidate.legID,
+      );
+      if (!settlement || !leg || !leg.applied || leg.ownerCredited) {
+        continue;
+      }
+      const creditCommandID = String(leg.debitCommandID).replace(/:debit$/, ":owner-credit");
+      const result = await corpWallet.adjustCorporationWalletDivisionBalanceAsync(
+        ownerID,
+        corpWallet.CORPORATION_WALLET_KEY_START,
+        leg.amount,
+        {
+          idempotencyKey: creditCommandID,
+          entryTypeID: leg.entryTypeID,
+          referenceID: leg.referenceID,
+          ownerID1: settlement.characterID,
+          ownerID2: ownerID,
+          description: leg.description,
+          requireExactCredit: true,
+        },
+        { commandID: creditCommandID, source: "planet-customs-tax-owner-credit" },
+      );
+      if (!result || result.success !== true) {
+        const errorMsg = result && result.errorMsg || "PLANET_CUSTOMS_OWNER_CREDIT_FAILED";
+        if (errorMsg !== "WALLET_LIMIT") {
+          return result || { success: false, errorMsg };
+        }
+        log.warn(`[PlanetaryCustoms] Owner ${ownerID} wallet is full; tax leg ${leg.legID} not credited`);
+      }
+      const checkpoint = updateSettlement(characterID, (current) => ({
+        ...current,
+        walletLegs: current.walletLegs.map((entry) =>
+          entry.legID === leg.legID ? { ...entry, ownerCredited: true } : entry),
+      }));
+      if (!checkpoint.success) {
+        return checkpoint;
+      }
+    }
+  }
+
   settlement = getPendingPlanetaryCustomsSettlement(characterID);
   const completion = buildCompletionResult(settlement);
   const removed = updateSettlement(characterID, () => null);

@@ -305,6 +305,9 @@ function buildGateSentryEntities(system, stargate) {
         applyEligibleAddBalls2BootstrapPresentation(entity);
         entity.suppressSlimCorporationID = true;
         entity.suppressSlimDunRotation = true;
+        entity.empireSentry = true;
+        entity.empireSentryAnchorID = stargate.itemID;
+        entity.empireSentryAnchorKind = "stargate";
         entity.hostileResponseThreshold = -11;
         entity.friendlyResponseThreshold = -11;
       }
@@ -346,6 +349,9 @@ function buildEverMoreGateSentryEntities(system, stargate) {
         applyEligibleAddBalls2BootstrapPresentation(entity);
         entity.suppressSlimCorporationID = true;
         entity.suppressSlimDunRotation = true;
+        entity.empireSentry = true;
+        entity.empireSentryAnchorID = stargate.itemID;
+        entity.empireSentryAnchorKind = "stargate";
         entity.hostileResponseThreshold = -11;
         entity.friendlyResponseThreshold = -11;
       }
@@ -390,6 +396,9 @@ function buildStationSentryEntities(system, station) {
         applyEligibleAddBalls2BootstrapPresentation(entity);
         entity.suppressSlimCorporationID = true;
         entity.suppressSlimDunRotation = true;
+        entity.empireSentry = true;
+        entity.empireSentryAnchorID = station.itemID;
+        entity.empireSentryAnchorKind = "station";
         entity.hostileResponseThreshold = -11;
         entity.friendlyResponseThreshold = -11;
       }

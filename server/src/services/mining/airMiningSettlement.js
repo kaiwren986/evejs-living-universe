@@ -14,6 +14,8 @@ function persist(instanceID, state, remaining) {
   dungeon.mergeSpawnState(instanceID, { airMining: state, ...(remaining ? { miningRockRemainingByID: remaining } : {}) });
   requireSuccess(require("../../gameStore").flushTableSync("dungeonRuntimeState"));
 }
+// Yield comes from ordinary module Dogma, including native AIR DBuff2155.
+// This owner records finite depletion and custody independently of that yield.
 function isAirRock(entity) {
   return entity?.dungeonMaterializedMiningRock === true && dungeon.getInstance(entity.dungeonSiteInstanceID)?.templateID === "evejs.air-tutorial:9245";
 }

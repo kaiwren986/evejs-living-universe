@@ -26,6 +26,7 @@ server/tidi_probe.log
 /tools/DataSync/source_json
 /target
 /content-packs/build/
+/content-packs/evejs-incursion-sites-*.json
 /server/src/gameStore/content-packs/
 
 # TLS certificates and private keys from before 21 September 2026. They are in
@@ -73,3 +74,4 @@ server/tidi_probe.log
 /doc/PARITY_FEATURE_ROADMAP.md
 
 AGENTS.md
+/.clairvoyance

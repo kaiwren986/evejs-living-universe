@@ -81,14 +81,18 @@ class SeasonalLoginCampaignMgrService extends BaseService {
 
   Handle_get_active_campaign(args, session) {
     log.debug("[SeasonalLoginCampaignMgr] get_active_campaign");
-
-    return campaignPayloads.seasonalTuple(campaignRuntime.get("seasonal", session, now().getTime()));
+    const selected = campaignRuntime.get("seasonal", session, now().getTime());
+    if (session) session._seasonalLoginCampaignEnrollment = stamp(selected);
+    return campaignPayloads.seasonalTuple(selected);
   }
 
   Handle_claim_reward(args, session) {
-    if (campaignRuntime.get("seasonal", session, now().getTime())) {
-      const result = Boolean(campaignRuntime.claim("seasonal", session, now().getTime()));
-      recordCampaignAuditEvent(result ? "election_login_claim_reward" : "election_login_claim_rejected", args, session);
+    const nowMs = now().getTime(), selected = campaignRuntime.get("seasonal", session, nowMs);
+    const enrollment = session?._seasonalLoginCampaignEnrollment;
+    if (selected && (enrollment === undefined || enrollment === stamp(selected))) {
+      const result = Boolean(campaignRuntime.claim("seasonal", session, nowMs));
+      const event = selected.row.id === 2356 ? "election_login" : "seasonal_login";
+      recordCampaignAuditEvent(result ? `${event}_claim_reward` : `${event}_claim_rejected`, args, session);
       return result;
     }
     recordCampaignAuditEvent("seasonal_login_claim_reward_no_active_campaign", args, session);

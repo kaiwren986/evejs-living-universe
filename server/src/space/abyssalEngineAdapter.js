@@ -142,7 +142,8 @@ function createAbyssalEnginePort(spaceRuntime) {
     // timers judge time the way the scenes do.
     now: () => spaceRuntime.getWallclockNowMs(),
     isShipSelfDestructing: shipID => require("../services/ship/selfDestructRuntime").isShipSelfDestructing(shipID),
-    isEntityFilamentBlocked: entity => require("../services/spaceComponents/shipLinkRestrictions").blocksShipAction(entity, "blocksFilament"),
+    isEntityFilamentBlocked: entity => require("../services/spaceComponents/shipLinkRestrictions").blocksShipAction(entity, "blocksFilament") ||
+      require("../services/dynamic/essFieldRuntime").isEntityFilamentBlocked(entity),
     nextRandom: () => Math.random(),
     nextEncounterRandom: () => Math.random(),
     nextBoundaryRandom: () => Math.random(),

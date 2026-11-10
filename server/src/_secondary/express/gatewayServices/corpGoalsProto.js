@@ -41,8 +41,8 @@ function buildCorpGoalsProtoRoot() {
 
   root.define("eve_public.isk").add(
     new protobuf.Type("Currency")
-      .add(new protobuf.Field("units", 1, "uint64"))
-      .add(new protobuf.Field("nanos", 2, "int32")),
+      .add(new protobuf.Field("units", 1, "sint64"))
+      .add(new protobuf.Field("nanos", 2, "sint32")),
   );
 
   root.define("eve_public.assetholding.asset").add(
@@ -236,14 +236,13 @@ function buildCorpGoalsProtoRoot() {
         .add(new protobuf.Field("show_only_state", 2, "uint32")),
     )
     .add(
-      new protobuf.Type("GetAllResponse.Goal")
-        .add(new protobuf.Field("id", 1, "eve_public.goal.Identifier"))
-        .add(new protobuf.Field("goal", 2, "eve_public.goal.Attributes")),
-    )
-    .add(
-      new protobuf.Type("GetAllResponse").add(
-        new protobuf.Field("goals", 3, "eve_public.goal.api.GetAllResponse.Goal", "repeated"),
-      ),
+      new protobuf.Type("GetAllResponse")
+        .add(
+          new protobuf.Type("Goal")
+            .add(new protobuf.Field("id", 1, "eve_public.goal.Identifier"))
+            .add(new protobuf.Field("goal", 2, "eve_public.goal.Attributes")),
+        )
+        .add(new protobuf.Field("goals", 3, "Goal", "repeated")),
     )
     .add(
       new protobuf.Type("CloseRequest").add(

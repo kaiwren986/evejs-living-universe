@@ -43,7 +43,8 @@ function collectActorContext(session, nowMs = getWallclockNowMs()) {
   context.cloaked = isEntityCloaked(ship);
   context.tethered = isEntityStructureTethered(ship);
   context.warping = Boolean(ship && (/WARP/i.test(String(ship.mode))));
-  context.scrambled = Boolean(ship && isEntityWarpScrambled(ship));
+  context.scrambled = Boolean(ship && (isEntityWarpScrambled(ship) ||
+    require("../dynamic/essFieldRuntime").isEntityWarpBlocked(scene, ship)));
   context.invulnerable = Boolean(ship && (runtime.isEntityUndockInvulnerable(ship, nowMs) ||
     ship.invulnerable === true || ship.isInvulnerable === true || Number(ship.invulnerableUntilMs) > nowMs ||
     Number(ship.tacticalReclonerInvulnerableUntilMs) > nowMs));

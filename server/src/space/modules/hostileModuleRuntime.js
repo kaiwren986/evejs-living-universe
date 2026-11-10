@@ -121,6 +121,7 @@ const HOSTILE_FAMILY_WEB = "stasisWebifier";
 const HOSTILE_FAMILY_PAINT = "targetPainter";
 const HOSTILE_FAMILY_SCRAM = "warpScrambler";
 const HOSTILE_FAMILY_DISRUPT = "warpDisruptor";
+const HOSTILE_FAMILY_FIGHTER_TACKLE = "fighterTackle";
 const HOSTILE_FAMILY_NEUT = "energyNeutralizer";
 const HOSTILE_FAMILY_NOS = "energyNosferatu";
 const HOSTILE_FAMILY_SENSOR_DAMP = "sensorDampener";
@@ -129,6 +130,15 @@ const HOSTILE_FAMILY_GUIDANCE_DISRUPT = "guidanceDisruptor";
 const HOSTILE_FAMILY_TARGET_JAM = "concordTargetJam";
 
 const BASE_HOSTILE_DEFINITIONS = Object.freeze({
+  fighterTackle: Object.freeze({
+    family: HOSTILE_FAMILY_FIGHTER_TACKLE,
+    jammingType: "fighterTackle",
+    modifierAttributeID: ATTRIBUTE_MAX_VELOCITY,
+    modifierOperation: DOGMA_OP_POST_PERCENT,
+    resistanceAttributeID: ATTRIBUTE_STASIS_WEBIFIER_RESISTANCE,
+    stackingPenalized: true,
+    affectsTargetDerivedState: true,
+  }),
   web: Object.freeze({
     family: HOSTILE_FAMILY_WEB,
     jammingType: "webify",
@@ -372,6 +382,7 @@ const HOSTILE_EFFECT_DEFINITIONS_BY_NAME = Object.freeze({
   fighterabilitywarpdisruption: BASE_HOSTILE_DEFINITIONS.disrupt,
   fighterabilityenergyneutralizer: BASE_HOSTILE_DEFINITIONS.neut,
   fighterabilitystasiswebifier: BASE_HOSTILE_DEFINITIONS.web,
+  fighterabilitytackle: BASE_HOSTILE_DEFINITIONS.fighterTackle,
 
   energyneutralizerfalloff: BASE_HOSTILE_DEFINITIONS.neut,
   npcbehaviorenergyneutralizer: BASE_HOSTILE_DEFINITIONS.neut,
@@ -807,7 +818,8 @@ function recomputeTargetAggregateState(targetEntity) {
 
     if (
       record.family === HOSTILE_FAMILY_WEB ||
-      record.family === HOSTILE_FAMILY_PAINT
+      record.family === HOSTILE_FAMILY_PAINT ||
+      record.family === HOSTILE_FAMILY_FIGHTER_TACKLE
     ) {
       const resistanceMultiplier = resolveTargetResistanceMultiplier(
         targetEntity,
@@ -827,7 +839,7 @@ function recomputeTargetAggregateState(targetEntity) {
           stackingPenalized: record.stackingPenalized === true,
         });
       }
-      continue;
+      if (record.family !== HOSTILE_FAMILY_FIGHTER_TACKLE) continue;
     }
 
     if (record.family === HOSTILE_FAMILY_SENSOR_DAMP) {
@@ -887,7 +899,8 @@ function recomputeTargetAggregateState(targetEntity) {
 
     if (
       record.family === HOSTILE_FAMILY_SCRAM ||
-      record.family === HOSTILE_FAMILY_DISRUPT
+      record.family === HOSTILE_FAMILY_DISRUPT ||
+      record.family === HOSTILE_FAMILY_FIGHTER_TACKLE
     ) {
       const value = roundNumber(
         record.scrambleStrength * Math.max(record.rangeMultiplier, 0),
@@ -1424,7 +1437,7 @@ function refreshHostileModuleState({
     ? Math.abs(record.scrambleStrength) : Math.max(Math.abs(record.modifierValue),
       ...(record.moduleModifierEntries || []).map(entry => Math.abs(entry.value || 0)));
   require("../../services/inventory/careerCombatOutcomes").startEwar(
-    sourceEntity, targetEntity, effectState, record, effectiveMultiplier * effectiveMagnitude > 1e-6,
+    sourceEntity, targetEntity, effectState, record, effectiveMultiplier * effectiveMagnitude > 1e-6, scene,
   );
   return {
     success: true,
@@ -1467,7 +1480,7 @@ function removeHostileModuleState({
     };
   }
   if (scene && Number.isFinite(nowMs)) {
-    require("../../services/inventory/careerCombatOutcomes").measureEwar(
+    require("../../services/inventory/careerCombatOutcomes").finishEwar(
       scene, sourceEntity, targetEntity, effectState, nowMs,
       canEntitiesInteractLocally(sourceEntity, targetEntity),
     );
@@ -1533,7 +1546,9 @@ function executeHostileModuleCycle({
       : scene.getEntityByID(toInt(effectState.targetID, 0));
   if (
     !targetEntity ||
-    (targetEntity.kind !== "ship" && !["array", "dread"].includes(targetEntity.homefrontRole)) ||
+    (effectState.hostileFamily === HOSTILE_FAMILY_FIGHTER_TACKLE
+      ? !["drone", "fighter"].includes(targetEntity.kind)
+      : targetEntity.kind !== "ship" && !["array", "dread"].includes(targetEntity.homefrontRole)) ||
     !canEntitiesInteractLocally(entity, targetEntity)
   ) {
     return {
@@ -1783,10 +1798,16 @@ function getEntityWarpScrambleStatus(entity) {
   )
     return 1000;
   const passiveValue = getEntityPassiveAttributeValue(entity, ATTRIBUTE_WARP_SCRAMBLE_STATUS, NaN);
+  const targetState = ensureTargetHostileState(entity, false);
+  if (["drone", "fighter"].includes(entity && entity.kind)) {
+    // Companion operational maps retain intrinsic points only. Their movement
+    // refresh is deferred, so read projected points from the live aggregate.
+    return roundNumber((Number.isFinite(passiveValue) ? passiveValue : 0) +
+      (targetState ? targetState.warpScrambleStatus : 0), 6);
+  }
   if (Number.isFinite(passiveValue)) {
     return roundNumber(passiveValue, 6);
   }
-  const targetState = ensureTargetHostileState(entity, false);
   return targetState ? roundNumber(targetState.warpScrambleStatus, 6) : 0;
 }
 
@@ -1832,6 +1853,7 @@ module.exports = {
   HOSTILE_FAMILY_PAINT,
   HOSTILE_FAMILY_SCRAM,
   HOSTILE_FAMILY_DISRUPT,
+  HOSTILE_FAMILY_FIGHTER_TACKLE,
   HOSTILE_FAMILY_NEUT,
   HOSTILE_FAMILY_NOS,
   HOSTILE_FAMILY_SENSOR_DAMP,

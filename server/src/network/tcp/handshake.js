@@ -20,6 +20,7 @@
  */
 
 const path = require("path");
+const { assertGamePayloadLength, frameGamePayload } = require("../gameFrame");
 const { resolveDataRootPath } = require(path.join(__dirname, "../../config/dataRoot"));
 const crypto = require("crypto");
 const rotatingLog = require(path.join(__dirname, "../../utils/rotatingLog"));
@@ -732,7 +733,9 @@ class EVEHandshake {
     const serverHandshake = [
       "", // serverChallenge
       // The client runs this signedFunc at login: see buildTidiSignedFunc.
-      [buildTidiSignedFunc(this.clientId), false], // func tuple: [marshaled_code, verification]
+      // Legacy evecrypto.placebo.verify requires signedData[1] == 0.
+      // This is the Placebo signature value; verification remains mandatory.
+      [buildTidiSignedFunc(this.clientId), 0],
       { type: "dict", entries: [] }, // context
       {
         type: "dict",
@@ -830,6 +833,10 @@ class EVEHandshake {
         ],
         ["sessionID", { type: "long", value: this.sessionId }],
         ["client_hash", null],
+        // Legacy connection.LoginSso indexes both keys after ConnectSso returns.
+        // Keep the token seeded by signedFunc for local skill extraction.
+        ["access_token", "evejs-local-skill-extractor"],
+        ["computer_hash", null],
         ["user_clientid", { type: "long", value: BigInt(this.clientId) }],
       ],
     };
@@ -862,6 +869,9 @@ class EVEHandshake {
   }
 
   _encrypt(data) {
+    // AES-CBC adds a full PKCS#7 block for aligned inputs. Reject before
+    // encryption so a refused frame cannot advance this connection's IV.
+    assertGamePayloadLength((Math.floor(data.length / 16) + 1) * 16);
     const cipher = crypto.createCipheriv(
       "aes-256-cbc",
       this.sessionKey,
@@ -884,10 +894,9 @@ class EVEHandshake {
       const payload = packet.slice(4);
       const encrypted = this._encrypt(payload);
       // Re-frame with the new encrypted length
-      const header = Buffer.alloc(4);
-      header.writeUInt32LE(encrypted.length, 0);
-      this.socket.write(Buffer.concat([header, encrypted]));
+      this.socket.write(frameGamePayload(encrypted));
     } else {
+      assertGamePayloadLength(packet.length - 4);
       this.socket.write(packet);
     }
   }

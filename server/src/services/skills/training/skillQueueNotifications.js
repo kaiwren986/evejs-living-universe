@@ -106,85 +106,6 @@ function buildSkillNotificationDict(skillRecords = [], options = {}) {
   });
 }
 
-function getSkillRecordFromPreviousMap(previousSkillMap, typeID) {
-  if (previousSkillMap instanceof Map) {
-    return previousSkillMap.get(typeID) || previousSkillMap.get(String(typeID)) || null;
-  }
-  if (previousSkillMap && typeof previousSkillMap === "object") {
-    return previousSkillMap[typeID] || previousSkillMap[String(typeID)] || null;
-  }
-  return null;
-}
-
-function normalizeTrainedLevelPair(value, skillRecordsByTypeID = new Map()) {
-  if (Array.isArray(value)) {
-    const typeID = toInt(value[0], 0);
-    const level = toInt(value[1], 0);
-    return typeID > 0 && level > 0 ? [typeID, level] : null;
-  }
-
-  if (value && typeof value === "object") {
-    const typeID = toInt(value.typeID ?? value.trainingTypeID ?? value.skillTypeID, 0);
-    const level = toInt(
-      value.trainedSkillLevel ?? value.skillLevel ?? value.level ?? value.toLevel,
-      0,
-    );
-    return typeID > 0 && level > 0 ? [typeID, level] : null;
-  }
-
-  const typeID = toInt(value, 0);
-  const skillRecord = skillRecordsByTypeID.get(typeID);
-  const level = toInt(
-    skillRecord && (skillRecord.trainedSkillLevel ?? skillRecord.skillLevel),
-    0,
-  );
-  return typeID > 0 && level > 0 ? [typeID, level] : null;
-}
-
-function buildTrainedLevelPairs(changedSkills = [], options = {}) {
-  const skillRecordsByTypeID = new Map(
-    changedSkills.map((record) => [toInt(record.typeID, 0), record]),
-  );
-  const pairSource = Array.isArray(options.trainedLevelPairs)
-    ? options.trainedLevelPairs
-    : null;
-  if (pairSource) {
-    return pairSource
-      .map((value) => normalizeTrainedLevelPair(value, skillRecordsByTypeID))
-      .filter(Boolean);
-  }
-
-  if (Array.isArray(options.trainedTypeIDs)) {
-    return options.trainedTypeIDs
-      .map((typeID) => normalizeTrainedLevelPair(typeID, skillRecordsByTypeID))
-      .filter(Boolean);
-  }
-
-  const pairs = [];
-  for (const record of changedSkills) {
-    const typeID = toInt(record && record.typeID, 0);
-    if (typeID <= 0) {
-      continue;
-    }
-    const nextLevel = toInt(record.trainedSkillLevel ?? record.skillLevel, 0);
-    if (nextLevel <= 0) {
-      continue;
-    }
-    const previousRecord = getSkillRecordFromPreviousMap(options.previousSkillMap, typeID);
-    if (previousRecord) {
-      const previousLevel = toInt(
-        previousRecord.trainedSkillLevel ?? previousRecord.skillLevel,
-        0,
-      );
-      if (nextLevel <= previousLevel) {
-        continue;
-      }
-    }
-    pairs.push([typeID, nextLevel]);
-  }
-  return pairs;
-}
-
 function buildRemovedSkillNotificationRecord(skillRecord) {
   if (!skillRecord || typeof skillRecord !== "object") {
     return null;
@@ -322,13 +243,6 @@ function emitSkillSessionState(
     });
   }
 
-  const clientSkillChanges = [
-    ...changedSkills,
-    ...removedSkills
-      .map((skillRecord) => buildRemovedSkillNotificationRecord(skillRecord))
-      .filter(Boolean),
-  ];
-
   if (changedSkills.length > 0) {
     session.sendNotification("OnServerSkillsChanged", "charid", [
       buildSkillNotificationDict(changedSkills, options),
@@ -349,20 +263,10 @@ function emitSkillSessionState(
     ]);
   }
 
-  if (clientSkillChanges.length > 0 && options.emitLocalSkillScatters !== false) {
-    const trainedLevelPairs = buildTrainedLevelPairs(changedSkills, options);
-    if (trainedLevelPairs.length > 0 && options.emitSkillLevelsTrained !== false) {
-      session.sendNotification("OnSkillLevelsTrained", "clientID", [
-        {
-          type: "list",
-          items: trainedLevelPairs,
-        },
-      ]);
-    }
-    session.sendNotification("OnSkillsChanged", "clientID", [
-      buildSkillNotificationDict(clientSkillChanges, options),
-    ]);
-  }
+  // OnSkillLevelsTrained and OnSkillsChanged are client-local: skillsvc
+  // scatters both from OnServerSkillsChanged / OnServerSkillsRemoved
+  // (skillsvc.py:157-178), and retail never sends either from the server.
+  // Sending them here made every listener run twice.
 
   if (options.freeSkillPoints !== undefined) {
     session.sendNotification("OnFreeSkillPointsChanged", "charid", [
@@ -481,6 +385,108 @@ function primeClientSkillCache(session, characterID) {
   return true;
 }
 
+const LOGON_TRAINED_SKILL_EVENT_IDS = new Set([
+  37, // SKILL_EVENT_TRAINING_COMPLETE
+  53, // SKILL_EVENT_QUEUE_TRAINING_COMPLETED
+]);
+
+function toFiletimeBigInt(value) {
+  try {
+    if (value === null || value === undefined || value === "") {
+      return 0n;
+    }
+    return BigInt(String(value));
+  } catch (error) {
+    return 0n;
+  }
+}
+
+/**
+ * Collect the skill levels whose training finished after `sinceFiletime`
+ * (the character's last logoff) from the character's skill history.
+ * Returns Map(typeID -> { fromLevel, toLevel, skillRank }).
+ */
+function collectSkillLevelsTrainedSince(characterID, sinceFiletime) {
+  const {
+    getCharacterRecord,
+  } = require(path.join(__dirname, "../../character/characterState"));
+  const {
+    getSkillLevelForPoints,
+  } = require(path.join(__dirname, "./skillTrainingMath"));
+  const record = getCharacterRecord(characterID) || {};
+  const since = toFiletimeBigInt(sinceFiletime);
+  const history = Array.isArray(record.skillHistory) ? record.skillHistory : [];
+  const skillsByTypeID = new Map(
+    getCharacterSkills(characterID).map((skill) => [normalizeSkillRecordTypeID(skill), skill]),
+  );
+  const trained = new Map();
+  if (since <= 0n) {
+    return trained;
+  }
+  for (const entry of history) {
+    if (!entry || !LOGON_TRAINED_SKILL_EVENT_IDS.has(toInt(entry.eventTypeID, 0))) {
+      continue;
+    }
+    if (toFiletimeBigInt(entry.logDate) <= since) {
+      continue;
+    }
+    const typeID = toInt(entry.skillTypeID, 0);
+    const skill = skillsByTypeID.get(typeID);
+    if (typeID <= 0 || !skill) {
+      continue;
+    }
+    const skillRank = Math.max(1, Number(skill.skillRank) || 1);
+    const level = getSkillLevelForPoints(skillRank, entry.absolutePoints);
+    if (level <= 0) {
+      continue;
+    }
+    const current = trained.get(typeID);
+    trained.set(typeID, {
+      fromLevel: Math.min(current ? current.fromLevel : level - 1, level - 1),
+      toLevel: Math.max(current ? current.toLevel : level, level),
+      skillRank,
+    });
+  }
+  return trained;
+}
+
+/**
+ * OnLogonSkillsTrained(skillInfos, canTrain): sent once after character
+ * selection for skills that finished training while the character was
+ * offline. skillsvc.OnLogonSkillsTrained (skillsvc.py:145-155) plays the
+ * trained sound and shows the "skills trained" notice. Retail: idtype charid,
+ * args ({typeID: KeyVal(currentLevel, skillRank, skillLevel)}, True).
+ */
+function notifyLogonSkillsTrained(session, characterID, sinceFiletime, options = {}) {
+  const numericCharacterID = toInt(characterID, 0);
+  if (
+    numericCharacterID <= 0 ||
+    !session ||
+    typeof session.sendNotification !== "function"
+  ) {
+    return false;
+  }
+  const trained = collectSkillLevelsTrainedSince(numericCharacterID, sinceFiletime);
+  if (trained.size === 0) {
+    return false;
+  }
+  const entries = [...trained.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([typeID, info]) => [
+      typeID,
+      buildKeyVal([
+        ["currentLevel", Math.max(0, info.fromLevel)],
+        ["skillRank", Number(info.skillRank)],
+        ["skillLevel", info.toLevel],
+      ]),
+    ]);
+  session.sendNotification("OnLogonSkillsTrained", "charid", [
+    { type: "dict", entries },
+    options.canTrain !== false,
+  ]);
+  return true;
+}
+
 function notifySkillStateChanged(characterID, changedSkillRecords = [], options = {}) {
   recordRecentSkillPointChangesFromDiff(
     characterID,
@@ -507,6 +513,7 @@ module.exports = {
   notifySkillDogmaAttributesChangedAsMultiEvent,
   notifySkillDogmaBrainChanged,
   notifyFreeSkillPointsChanged,
+  notifyLogonSkillsTrained,
   notifyMultipleCharacterTrainingUpdated,
   primeClientSkillCache,
   notifySkillQueuePaused,

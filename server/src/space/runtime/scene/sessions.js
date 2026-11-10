@@ -135,11 +135,8 @@ attachSession(session, shipItem, options = {}) {
       rawCurrentDungeonInstanceID,
     );
     let currentDungeonContextAuthorized = false;
-    // Set only where the stored tracker named a pocket that no longer exists: "released" when the
-    // tracker was cleared, "deferred-to-parked-teardown" when this scene's parked teardown still owns
-    // the release. The warp recovery below reads it so neither outcome is undone by the quarantine
-    // it writes.
-    let currentDungeonTrackerPurgeDisposition = null;
+    // Warp recovery uses this to preserve an already released or deferred tracker.
+    let currentDungeonTrackerReleaseDisposition = null;
     if (hasPersistedCurrentDungeonInstanceID) {
       const currentDungeonRoomKey = String(
         shipEntity.dungeonCurrentRoomKey || "",
@@ -147,19 +144,16 @@ attachSession(session, shipItem, options = {}) {
       const hasCurrentDungeonSiteID = hasRuntimePersistentIdentityValue(
         shipEntity.dungeonCurrentSiteID,
       );
+      const currentDungeonContext = {
+        ...(currentDungeonRoomKey ? { roomKey: currentDungeonRoomKey } : {}),
+        ...(hasCurrentDungeonSiteID ? { siteID: shipEntity.dungeonCurrentSiteID } : {}),
+      };
       const currentDungeonResolution = currentDungeonInstanceID === null
         ? null
         : this.resolveAuthorizedDestinationDungeonContext(
             session,
             currentDungeonInstanceID,
-            {
-              ...(currentDungeonRoomKey
-                ? { roomKey: currentDungeonRoomKey }
-                : {}),
-              ...(hasCurrentDungeonSiteID
-                ? { siteID: shipEntity.dungeonCurrentSiteID }
-                : {}),
-            },
+            currentDungeonContext,
           );
       if (currentDungeonResolution) {
         dungeonTrackingRuntime.markShipCurrentDungeonRoom(
@@ -181,35 +175,17 @@ attachSession(session, shipItem, options = {}) {
         currentDungeonContextAuthorized = true;
       } else if (
         currentDungeonInstanceID !== null &&
-        this.isPurgedDungeonInstance(currentDungeonInstanceID) &&
-        this.hasParkedDungeonSiteTeardownForInstance(currentDungeonInstanceID)
+        this.isReleasedDungeonInstance(currentDungeonInstanceID, currentDungeonContext)
       ) {
-        // The record is gone but this scene still has the teardown parked, so that teardown is the
-        // thing that releases this pilot and their companions together -- which is why
-        // releaseSurvivorsStrandedByPurgedInstances skips these instances as well. Leave the tracker
-        // exactly as persisted: quarantining would destroy the one thing the teardown matches on,
-        // since releasePlayerShipsFromSitePocket keys on the instance id the marker overwrites.
-        currentDungeonTrackerPurgeDisposition = "deferred-to-parked-teardown";
-      } else if (
-        currentDungeonInstanceID !== null &&
-        this.isPurgedDungeonInstance(currentDungeonInstanceID)
-      ) {
-        // The pocket is gone entirely, so there is nothing left to quarantine the pilot out of -- and
-        // the marker would be permanent, because it carries no site ID and can never resolve again
-        // while the fail-closed persist rewrites it on every save. That costs the pilot every drone
-        // and fighter command: getPlayerCompanionSecurityScope reads a present-but-unnormalizable
-        // tracker as scope.invalid, and securityScopesExactlyMatch refuses before it ever looks at
-        // the companion, so drones left in the site when it despawned become unscoopable for good.
-        // Release the tracker instead, which is what the pilot would have got from
-        // releasePlayerShipsFromSitePocket had they been on grid when the site tore down.
-        //
-        // Purged, not merely terminal. Every other reason a context fails to resolve -- a live pocket
-        // this pilot may not enter, a finished site, a room or site mismatch -- still quarantines,
-        // because those are access decisions rather than a missing pocket.
-        currentDungeonTrackerPurgeDisposition = "released";
-        dungeonTrackingRuntime.clearShipCurrentDungeonRoom(shipEntity, {
-          nowMs: this.getCurrentSimTimeMs(),
-        });
+        if (this.hasParkedDungeonSiteTeardownForInstance(currentDungeonInstanceID)) {
+          // The parked teardown releases the pilot and companions together.
+          currentDungeonTrackerReleaseDisposition = "deferred-to-parked-teardown";
+        } else {
+          currentDungeonTrackerReleaseDisposition = "released";
+          dungeonTrackingRuntime.clearShipCurrentDungeonRoom(shipEntity, {
+            nowMs: this.getCurrentSimTimeMs(),
+          });
+        }
       } else {
         shipEntity.dungeonCurrentInstanceID =
           INVALID_RUNTIME_PERSISTENT_IDENTITY;
@@ -236,7 +212,7 @@ attachSession(session, shipItem, options = {}) {
       );
       let recoveredDungeonVisibilityAtDestination = false;
       let rejectedDungeonDestinationAuthority = false;
-      let destinationReleasedAsPurged = false;
+      let destinationReleased = false;
       let rejectedDungeonContextOutcome = "invalid context quarantined";
       if (requiresDungeonVisibilityRecovery) {
         const recoveryDestination = cloneVector(
@@ -257,18 +233,15 @@ attachSession(session, shipItem, options = {}) {
             persistedWarpState.destinationDungeonSiteID !== null &&
             persistedWarpState.destinationDungeonSiteID !== undefined
           );
+          const destinationContext = {
+            ...(persistedDestinationRoomKey ? { roomKey: persistedDestinationRoomKey } : {}),
+            ...(hasPersistedDestinationSiteID ? { siteID: persistedWarpState.destinationDungeonSiteID } : {}),
+          };
           const destinationResolution =
             this.resolveAuthorizedDestinationDungeonContext(
               session,
               destinationStaticInstanceID,
-              {
-                ...(persistedDestinationRoomKey
-                  ? { roomKey: persistedDestinationRoomKey }
-                  : {}),
-                ...(hasPersistedDestinationSiteID
-                  ? { siteID: persistedWarpState.destinationDungeonSiteID }
-                  : {}),
-              },
+              destinationContext,
             );
           if (destinationResolution) {
             shipEntity.position = recoveryDestination;
@@ -297,14 +270,10 @@ attachSession(session, shipItem, options = {}) {
             recoveredDungeonVisibilityAtDestination = true;
           } else {
             rejectedDungeonDestinationAuthority = true;
-            // Same distinction the current-tracker branch above draws: a destination that was purged
-            // mid-warp is a pocket that no longer exists, not a pocket this pilot was refused. A parked
-            // teardown for it does not change that. The teardown releases ships by their
-            // dungeonCurrentInstanceID, and a ship still in warp never carried its destination's, so a
-            // marker written here would never clear. A tracker that names the same parked instance is
-            // still left for the teardown by the deferred disposition below.
-            destinationReleasedAsPurged = this.isPurgedDungeonInstance(
+            // A ship saved mid-warp never acquired its destination's tracker.
+            destinationReleased = this.isReleasedDungeonInstance(
               destinationStaticInstanceID,
+              destinationContext,
             );
           }
         } else if (
@@ -323,33 +292,29 @@ attachSession(session, shipItem, options = {}) {
           rejectedDungeonDestinationAuthority &&
           !currentDungeonContextAuthorized
         ) {
-          // A pilot who logged off mid-warp into a site that was then purged has nothing to be
-          // quarantined out of either, and quarantining here would silently undo whatever the
-          // current-tracker branch above decided. Suppress the marker only when every rejection in
-          // play is a purge: a destination whose own identity would not normalize, or a live pocket
-          // this pilot may not enter, still quarantines.
-          const quarantineSuppressedByPurge =
+          // Suppress the marker only when every rejected identity names a released pocket.
+          const quarantineSuppressedByRelease =
             (
               !hasPersistedDestinationInstanceID ||
-              destinationReleasedAsPurged
+              destinationReleased
             ) &&
             (
               !hasPersistedCurrentDungeonInstanceID ||
-              currentDungeonTrackerPurgeDisposition !== null
+              currentDungeonTrackerReleaseDisposition !== null
             );
           if (
-            currentDungeonTrackerPurgeDisposition ===
+            currentDungeonTrackerReleaseDisposition ===
               "deferred-to-parked-teardown"
           ) {
             // The parked teardown still owns this tracker; neither clearing nor quarantining it here
             // may take that away.
             rejectedDungeonContextOutcome =
-              "its purged site tracker left for the parked teardown";
-          } else if (quarantineSuppressedByPurge) {
+              "its site tracker left for the parked teardown";
+          } else if (quarantineSuppressedByRelease) {
             dungeonTrackingRuntime.clearShipCurrentDungeonRoom(shipEntity, {
               nowMs: this.getCurrentSimTimeMs(),
             });
-            rejectedDungeonContextOutcome = "its purged site context released";
+            rejectedDungeonContextOutcome = "its closed site context released";
           } else {
             shipEntity.dungeonCurrentInstanceID =
               INVALID_RUNTIME_PERSISTENT_IDENTITY;
@@ -999,6 +964,7 @@ bindControlledStructureSession(session, structureID, options = {}) {
             corporationID: previousDynamicEntity.corporationID,
             allianceID: previousDynamicEntity.allianceID,
             warFactionID: previousDynamicEntity.warFactionID,
+            destinyForceInteractive: previousDynamicEntity.destinyForceInteractive,
           }
         : null;
 
@@ -1040,10 +1006,16 @@ bindControlledStructureSession(session, structureID, options = {}) {
         // persisted character/corporation presentation is restored verbatim on
         // eject and normal detach performs the full unpiloted cleanup.
         previousDynamicEntity.session = null;
+        // Nobody flies it now: off goes its interactive flag, which is what
+        // lets the client offer "Board Previous Ship" back into it.
+        previousDynamicEntity.destinyForceInteractive = false;
       }
       session._space = observerState;
       session._structureViewSpace = observerState;
       this.sessions.set(session.clientID, session);
+      if (previousDynamicIdentity && !hadPreviousDynamicHost) {
+        this.presentShipInteractive(previousDynamicEntity);
+      }
       return {
         success: true,
         data: {
@@ -1265,6 +1237,7 @@ releaseControlledStructureSession(session, options = {}) {
           previousDynamicHost.entity
       ) {
         Object.assign(previousDynamicHost.entity, previousDynamicHost.identity);
+        this.presentShipInteractive(previousDynamicHost.entity);
       }
     } else {
       session._space = null;

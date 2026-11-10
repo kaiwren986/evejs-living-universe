@@ -25,6 +25,7 @@ const {
   listStaticSlotsForSystem,
   listWanderingProfiles,
   listWanderingProfilesForSourceClass,
+  selectCandidateSystemIDForClass,
 } = require("./wormholeAuthority");
 const {
   buildWormholePresentationSnapshot,
@@ -35,6 +36,10 @@ const {
 const {
   getStateView,
   getStateSnapshot,
+  createMaintenanceCursors,
+  getIndexStats,
+  createRandomProfilePopulationCursor,
+  getRandomProfileRevision,
   listPairsForSystem: listIndexedPairsForSystem,
   mutateState,
   mutateStateRows,
@@ -329,12 +334,7 @@ function buildEndpointPose(systemID, seed) {
 }
 
 function resolveDestinationSystemID(sourceSystemID, targetClassID, seed) {
-  const candidates = listCandidateSystemIDsForClass(targetClassID)
-    .filter((systemID) => systemID > 0 && systemID !== toInt(sourceSystemID, 0));
-  if (candidates.length <= 0) {
-    return 0;
-  }
-  return candidates[hashSeed(seed) % candidates.length];
+  return selectCandidateSystemIDForClass(targetClassID, hashSeed(seed), sourceSystemID);
 }
 
 function buildEndpointRecord(systemID, typeRecord, options = {}) {
@@ -777,21 +777,20 @@ function createStaticPair(table, systemID, slot, nowMs) {
   return pair;
 }
 
-function selectSourceSystemIDForRandomProfile(
+function selectSourceSystemForRandomProfile(
   table,
   profile,
   seed,
-  occupiedSystemIDsOverride = null,
+  options = {},
 ) {
   const sourceClassID = toInt(profile && profile.sourceClassID, 0);
-  const candidates = listCandidateSystemIDsForClass(sourceClassID)
-    .filter((systemID) => systemID > 0);
+  const candidates = listCandidateSystemIDsForClass(sourceClassID, { clone: false });
   if (candidates.length <= 0) {
-    return 0;
+    return { systemID: 0, availableIndex: -1 };
   }
   const profileKey = String(profile && profile.profileKey || "").trim();
-  const occupiedSystemIDs = occupiedSystemIDsOverride instanceof Set
-    ? occupiedSystemIDsOverride
+  const occupiedSystemIDs = options.occupiedSystemIDs instanceof Set
+    ? options.occupiedSystemIDs
     : new Set(
       Object.values(table.pairsByID || {})
         .filter((pair) => String(pair && pair.kind || "").toLowerCase() === "random")
@@ -800,9 +799,15 @@ function selectSourceSystemIDForRandomProfile(
         .map((pair) => toInt(pair && pair.source && pair.source.systemID, 0))
         .filter((systemID) => systemID > 0),
     );
-  const availableCandidates = candidates.filter((systemID) => !occupiedSystemIDs.has(systemID));
-  const selectionPool = availableCandidates.length > 0 ? availableCandidates : candidates;
-  return selectionPool[hashSeed(`${profileKey}:${seed}:source-system`) % selectionPool.length];
+  const availableSystemIDs = Array.isArray(options.availableSystemIDs)
+    ? options.availableSystemIDs
+    : candidates.filter((systemID) => !occupiedSystemIDs.has(systemID));
+  const selectionPool = availableSystemIDs.length > 0 ? availableSystemIDs : candidates;
+  const index = hashSeed(`${profileKey}:${seed}:source-system`) % selectionPool.length;
+  return {
+    systemID: selectionPool[index],
+    availableIndex: availableSystemIDs.length > 0 ? index : -1,
+  };
 }
 
 function createRandomPairFromProfile(table, profile, nowMs, options = {}) {
@@ -812,12 +817,13 @@ function createRandomPairFromProfile(table, profile, nowMs, options = {}) {
     return null;
   }
   const profileKey = String(profile && profile.profileKey || "").trim();
-  const sourceSystemID = selectSourceSystemIDForRandomProfile(
+  const source = selectSourceSystemForRandomProfile(
     table,
     profile,
     options.seed || `${profileKey}:${nowMs}:${table.nextPairSequence}`,
-    options.occupiedSystemIDs || null,
+    options,
   );
+  const sourceSystemID = source.systemID;
   if (!sourceSystemID) {
     return null;
   }
@@ -882,6 +888,12 @@ function createRandomPairFromProfile(table, profile, nowMs, options = {}) {
     }),
   };
   table.pairsByID[String(pairID)] = pair;
+  if (Array.isArray(options.availableSystemIDs) && source.availableIndex >= 0) {
+    const last = options.availableSystemIDs.pop();
+    if (source.availableIndex < options.availableSystemIDs.length) {
+      options.availableSystemIDs[source.availableIndex] = last;
+    }
+  }
   if (options.occupiedSystemIDs instanceof Set && sourceSystemID > 0) {
     options.occupiedSystemIDs.add(sourceSystemID);
   }
@@ -1239,7 +1251,12 @@ function ensureRandomPairsInTable(table, nowMs) {
     const profileKey = String(profile && profile.profileKey || "").trim();
     const currentCount = countsByProfileKey.get(profileKey) || 0;
     const deficit = Math.max(0, desiredCount - currentCount);
+    if (deficit <= 0) {
+      continue;
+    }
     const occupiedSystemIDs = occupiedSystemIDsByProfileKey.get(profileKey) || new Set();
+    const availableSystemIDs = listCandidateSystemIDsForClass(profile.sourceClassID, { clone: false })
+      .filter((systemID) => !occupiedSystemIDs.has(systemID));
     for (let index = 0; index < deficit; index += 1) {
       const createdPair = createRandomPairFromProfile(
         table,
@@ -1247,6 +1264,7 @@ function ensureRandomPairsInTable(table, nowMs) {
         nowMs + createdPairs.length + index,
         {
           occupiedSystemIDs,
+          availableSystemIDs,
         },
       );
       if (createdPair) {
@@ -1656,7 +1674,7 @@ function buildStaticMaintenanceItems() {
 }
 
 function createLifecycleMaintenanceCycle(nowMs, options = {}) {
-  const table = getStateView();
+  const cursors = createMaintenanceCursors();
   return {
     epochMs: Math.max(0, toInt(nowMs, Date.now())),
     generationOrdinal: 0,
@@ -1665,17 +1683,18 @@ function createLifecycleMaintenanceCycle(nowMs, options = {}) {
       ? options.staticItems
       : buildStaticMaintenanceItems(),
     staticCursor: 0,
-    pairIDs: Object.keys(table.pairsByID || {}),
+    pairIDs: cursors.pairs,
+    pairCount: cursors.pairCount,
     pairCursor: 0,
-    polarizationCharacterIDs: Object.keys(table.polarizationByCharacter || {}),
+    polarizationCharacterIDs: cursors.polarizations,
+    polarizationCount: cursors.polarizationCount,
     polarizationCursor: 0,
     profiles: Array.isArray(options.profiles)
       ? options.profiles
       : listWanderingProfiles(),
     profileCursor: 0,
     profilePending: null,
-    randomCountsByProfileKey: new Map(),
-    occupiedSourceSystemIDsByProfileKey: new Map(),
+    profilePopulations: new Map(),
   };
 }
 
@@ -1691,43 +1710,23 @@ function removeCollapsedPairByID(pairID) {
   return result.success === true && result.data === true;
 }
 
-function recordRandomPairForCycle(cycle, pair) {
-  if (String(pair && pair.kind || "").toLowerCase() !== "random") {
-    return;
+function getPopulationForCycle(cycle, profile) {
+  const profileKey = String(profile && profile.profileKey || "").trim();
+  const previous = cycle.profilePopulations.get(profileKey);
+  if (previous && previous.revision === getRandomProfileRevision(profileKey)) {
+    return previous;
   }
-  const profileKey = String(pair && pair.randomProfileKey || "").trim();
-  if (!profileKey) {
-    return;
-  }
-  const state = getPairState(pair);
-  if (state === "active") {
-    cycle.randomCountsByProfileKey.set(
-      profileKey,
-      (cycle.randomCountsByProfileKey.get(profileKey) || 0) + 1,
-    );
-    const occupied = cycle.occupiedSourceSystemIDsByProfileKey.get(profileKey) || new Set();
-    const sourceSystemID = toInt(pair && pair.source && pair.source.systemID, 0);
-    if (sourceSystemID > 0) {
-      occupied.add(sourceSystemID);
-    }
-    cycle.occupiedSourceSystemIDsByProfileKey.set(profileKey, occupied);
-    return;
-  }
-  const respawnDelayMs = Math.max(
-    0,
-    toInt(config.wormholeWanderingRespawnDelaySeconds, 60),
-  ) * 1000;
-  const collapseAtMs = Math.max(0, toInt(pair && pair.collapseAtMs, 0));
-  if (
-    respawnDelayMs > 0 &&
-    collapseAtMs > 0 &&
-    (collapseAtMs + respawnDelayMs) > cycle.epochMs
-  ) {
-    cycle.randomCountsByProfileKey.set(
-      profileKey,
-      (cycle.randomCountsByProfileKey.get(profileKey) || 0) + 1,
-    );
-  }
+  const population = {
+    ...createRandomProfilePopulationCursor(profileKey),
+    pairCursor: 0,
+    count: 0,
+    occupiedSystemIDs: new Set(),
+    candidates: null,
+    candidateCursor: 0,
+    availableSystemIDs: [],
+  };
+  cycle.profilePopulations.set(profileKey, population);
+  return population;
 }
 
 function pruneCharacterPolarizationsByID(characterID, nowMs) {
@@ -1753,24 +1752,24 @@ function pruneCharacterPolarizationsByID(characterID, nowMs) {
   return result.success === true && result.data === true;
 }
 
-function createRandomPairForCycle(cycle, profile) {
+function createRandomPairForCycle(cycle, profile, population) {
   const profileKey = String(profile && profile.profileKey || "").trim();
-  const occupiedSystemIDs =
-    cycle.occupiedSourceSystemIDsByProfileKey.get(profileKey) || new Set();
+  if (population.count >= resolveDesiredRandomProfileCount(profile)) {
+    return null;
+  }
+  const occupiedSystemIDs = population.occupiedSystemIDs;
   const createdAtMs = cycle.epochMs + cycle.generationOrdinal;
   cycle.generationOrdinal += 1;
   const result = mutateStateRows((transaction) =>
     createRandomPairInRowTransaction(transaction, profile, createdAtMs, {
       occupiedSystemIDs,
+      availableSystemIDs: population.availableSystemIDs,
       seed: `${profileKey}:${cycle.epochMs}:${cycle.generationOrdinal}`,
     }));
   const pair = result.success === true ? result.data : null;
   if (pair) {
-    cycle.occupiedSourceSystemIDsByProfileKey.set(profileKey, occupiedSystemIDs);
-    cycle.randomCountsByProfileKey.set(
-      profileKey,
-      (cycle.randomCountsByProfileKey.get(profileKey) || 0) + 1,
-    );
+    population.count += 1;
+    population.revision = getRandomProfileRevision(profileKey);
   }
   return pair;
 }
@@ -1833,11 +1832,16 @@ function runLifecycleMaintenanceSlice(options = {}) {
     }
 
     if (cycle.phase === "pairs") {
-      if (cycle.pairCursor >= cycle.pairIDs.length) {
+      if (cycle.pairCursor >= cycle.pairCount) {
         cycle.phase = "polarizations";
         continue;
       }
-      const pairID = toInt(cycle.pairIDs[cycle.pairCursor], 0);
+      const item = cycle.pairIDs.next();
+      if (item.done) {
+        cycle.phase = "polarizations";
+        continue;
+      }
+      const pairID = toInt(item.value, 0);
       cycle.pairCursor += 1;
       processedItems += 1;
       const before = getStateView().pairsByID[String(pairID)];
@@ -1853,7 +1857,6 @@ function runLifecycleMaintenanceSlice(options = {}) {
       if (!pair) {
         continue;
       }
-      recordRandomPairForCycle(cycle, pair);
       if (getPairState(pair) !== "active") {
         const randomCooldownMs = Math.max(
           0,
@@ -1871,12 +1874,17 @@ function runLifecycleMaintenanceSlice(options = {}) {
     }
 
     if (cycle.phase === "polarizations") {
-      if (cycle.polarizationCursor >= cycle.polarizationCharacterIDs.length) {
+      if (cycle.polarizationCursor >= cycle.polarizationCount) {
+        cycle.phase = "profiles";
+        continue;
+      }
+      const item = cycle.polarizationCharacterIDs.next();
+      if (item.done) {
         cycle.phase = "profiles";
         continue;
       }
       const characterID = toInt(
-        cycle.polarizationCharacterIDs[cycle.polarizationCursor],
+        item.value,
         0,
       );
       cycle.polarizationCursor += 1;
@@ -1888,16 +1896,60 @@ function runLifecycleMaintenanceSlice(options = {}) {
     }
 
     if (cycle.phase === "profiles") {
-      if (cycle.profilePending && cycle.profilePending.remaining > 0) {
+      if (cycle.profilePending) {
+        const profile = cycle.profilePending.profile;
+        const desiredCount = resolveDesiredRandomProfileCount(profile);
+        if (desiredCount <= 0) {
+          cycle.profilePending = null;
+          continue;
+        }
+        const population = getPopulationForCycle(cycle, profile);
+        if (population.pairCursor < population.pairCount) {
+          processedItems += 1;
+          const item = population.pairs.next();
+          population.pairCursor += 1;
+          if (item.done) {
+            population.pairCursor = population.pairCount;
+            continue;
+          }
+          const pair = item.value;
+          if (pair.state === "active") {
+            population.count += 1;
+            population.occupiedSystemIDs.add(pair.source.systemID);
+          } else {
+            const respawnDelayMs = Math.max(0,
+              toInt(config.wormholeWanderingRespawnDelaySeconds, 60)) * 1000;
+            if (respawnDelayMs > 0 && pair.collapseAtMs > 0 &&
+              pair.collapseAtMs + respawnDelayMs > cycle.epochMs) {
+              population.count += 1;
+            }
+          }
+          continue;
+        }
+        if (population.count >= desiredCount) {
+          cycle.profilePending = null;
+          continue;
+        }
+        if (!population.candidates) {
+          population.candidates = listCandidateSystemIDsForClass(profile.sourceClassID, { clone: false });
+        }
+        if (population.candidateCursor < population.candidates.length) {
+          processedItems += 1;
+          const candidate = population.candidates[population.candidateCursor];
+          population.candidateCursor += 1;
+          if (!population.occupiedSystemIDs.has(candidate)) {
+            population.availableSystemIDs.push(candidate);
+          }
+          continue;
+        }
         processedItems += 1;
-        const pair = createRandomPairForCycle(cycle, cycle.profilePending.profile);
+        const pair = createRandomPairForCycle(cycle, profile, population);
         if (pair) {
-          cycle.profilePending.remaining -= 1;
           for (const systemID of collectVisibleSignatureSystemIDsForPair(pair)) {
             changedSystemIDs.add(systemID);
           }
         } else {
-          cycle.profilePending.remaining = 0;
+          cycle.profilePending = null;
         }
         continue;
       }
@@ -1908,12 +1960,10 @@ function runLifecycleMaintenanceSlice(options = {}) {
       }
       const profile = cycle.profiles[cycle.profileCursor];
       cycle.profileCursor += 1;
-      const profileKey = String(profile && profile.profileKey || "").trim();
+      processedItems += 1;
       const desiredCount = resolveDesiredRandomProfileCount(profile);
-      const currentCount = cycle.randomCountsByProfileKey.get(profileKey) || 0;
-      const remaining = Math.max(0, desiredCount - currentCount);
-      if (remaining > 0) {
-        cycle.profilePending = { profile, remaining };
+      if (desiredCount > 0) {
+        cycle.profilePending = { profile };
       }
       continue;
     }
@@ -2528,8 +2578,7 @@ function warmRuntimeCache(nowMs = Date.now()) {
   if (worldData && typeof worldData.ensureLoaded === "function") {
     worldData.ensureLoaded();
   }
-  const table = getStateView();
-  const index = getPairIndex(table);
+  const index = getIndexStats();
   const elapsedMs = Date.now() - startedAtMs;
 
   if (elapsedMs >= 250) {

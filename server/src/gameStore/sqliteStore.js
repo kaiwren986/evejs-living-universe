@@ -69,7 +69,8 @@ function assertSafeTableName(table) {
 // are stored one row per entity (key "group\u001fentityID"), so one change is
 // one small row. Everything not listed is unchanged (flat).
 const ROW_GROUPS = {
-  items: ["__evejsInventoryGrantReceipts"],
+  items: ["__evejsInventoryGrantReceipts", "__evejsCareerCombatOutcomes", "__evejsIncursionCombatOutcomes"],
+  achievements: ["characters"],
   notifications: ["boxes"],
   miningRuntimeState: ["systems"],
   wormholeRuntimeState: ["pairsByID", "staticSlotsByKey", "polarizationByCharacter"],
@@ -89,6 +90,8 @@ const ROW_GROUPS = {
   ],
   dungeonRuntimeState: ["instancesByID"],
   homefrontReplay: ["operations", "receipts", "pending"],
+  incursionReplay: ["operations", "receipts", "pending", "releases", "history"],
+  incursionLifecycle: ["tales", "requests"],
   industryBlueprintState: ["records"],
   industryJobs: ["jobs"],
   industryRuntime: ["monitors"],
@@ -103,7 +106,7 @@ const ROW_GROUPS = {
   researchRuntimeState: ["charactersByID"],
   moduleGroupingState: ["ships"],
   moonExtractions: ["resourcesByStructureID", "extractions"],
-  npcEntities: ["entities"],
+  npcEntities: ["entities", "incursionOutcomes"],
   npcModules: ["modules"],
   npcRuntimeControllers: ["controllers"],
   overviewSharedPresets: ["entries"],
@@ -129,7 +132,7 @@ const ROW_GROUPS = {
   bookmarkSubfolders: ["records", "recordsByCharacterID"],
   corporationVotes: ["corporations"],
   evermarkEntitlements: ["characters"],
-  pendingNpcBounties: ["npcTypes"],
+  pendingNpcBounties: ["npcTypes", "__events"],
   dynamicResourceRuntime: ["systems", "funding", "settlements", "unlocks", "losses"],
   probeRuntimeState: ["probesByID"],
   shipLogoFittings: ["ships"],
@@ -143,9 +146,86 @@ const ROW_GROUPS = {
   ],
 };
 const ROW_KEY_SEP = "\u001f";
+const DUNGEON_INSTANCE_PREFIX = `instancesByID${ROW_KEY_SEP}`;
+const ABYSSAL_INSTANCE_PREDICATE =
+  `key >= '${DUNGEON_INSTANCE_PREFIX}' AND key < 'instancesByID ' ` +
+  "AND json_extract(json, '$.siteFamily') = 'abyssal' " +
+  "AND json_extract(json, '$.siteKind') = 'abyssal-pocket'";
 
 function rowGroupsFor(table) {
   return ROW_GROUPS[table] || null;
+}
+
+// Owner-scoped career recovery reads committed evidence without hydrating
+// unrelated players' rows. SQLite maintains these indexes with each checkpoint.
+const CAREER_READS = {
+  killmails: { group: "records", field: "finalCharacterID" },
+  industryJobs: { group: "jobs", field: "installerID" },
+  items: { group: "__evejsCareerCombatOutcomes", field: "characterID", pending: true },
+};
+function careerReadPredicate(definition) {
+  const prefix = `${definition.group}${ROW_KEY_SEP}`;
+  return `key >= '${prefix}' AND key < '${definition.group} '` +
+    (definition.pending ? " AND json_type(json, '$.acknowledged') IS NOT 'true'" : "");
+}
+function careerOwnerExpression(definition) {
+  return `CAST(json_extract(json, '$.${definition.field}') AS REAL)`;
+}
+function careerExceptionalOwnerPredicate(definition) {
+  // Number() also accepts hex/binary/octal strings and JS whitespace that
+  // SQLite's numeric cast treats as zero. Keep those uncommon identities in a
+  // separate small index; the final JS equality remains authoritative.
+  return `${careerReadPredicate(definition)} AND ${careerOwnerExpression(definition)} = 0` +
+    ` AND json_type(json, '$.${definition.field}') IN ('text', 'array', 'object')`;
+}
+function createCareerReadIndex(table) {
+  const definition = CAREER_READS[table];
+  if (!definition) return;
+  requireWritableDb().exec(`CREATE INDEX IF NOT EXISTS career_${table}_owner_v1
+    ON "${table}"(${careerOwnerExpression(definition)}) WHERE ${careerReadPredicate(definition)}`);
+  requireWritableDb().exec(`CREATE INDEX IF NOT EXISTS career_${table}_exceptional_owner_v1
+    ON "${table}"(key) WHERE ${careerExceptionalOwnerPredicate(definition)}`);
+}
+function ensureCareerReadIndex(table, ownerFence) {
+  if (!CAREER_READS[table]) return;
+  const requestedFence = resolveDirectMutationFence(ownerFence);
+  requireWritableDb().transaction(() => {
+    assertDirectMutationOwner(requestedFence);
+    existingTableConnection(table);
+    createCareerReadIndex(table);
+  }).immediate();
+}
+
+// Reshape legacy career groups once during writable preload. Leaving a nonempty
+// blob until the next gameplay write would keep recovery on its full-group
+// compatibility path indefinitely for otherwise idle evidence owners.
+function ensureCareerRowStorage(table, ownerFence) {
+  const groups = {
+    items: ["__evejsCareerCombatOutcomes"],
+    achievements: ["characters"],
+    pendingNpcBounties: ["__events"],
+    killmails: ["records"],
+    industryJobs: ["jobs"],
+  }[table];
+  if (!groups) return;
+  const requestedFence = resolveDirectMutationFence(ownerFence);
+  requireWritableDb().transaction(() => {
+    assertDirectMutationOwner(requestedFence);
+    const connection = existingTableConnection(table);
+    for (const group of groups) {
+      const row = connection.prepare(`SELECT json FROM "${table}" WHERE key = ?`).get(group);
+      const legacy = row ? JSON.parse(row.json) : null;
+      if (!legacy || typeof legacy !== "object" || Array.isArray(legacy) || !Object.keys(legacy).length) continue;
+      const selected = loadExistingTablePath(table, [group]).value;
+      const rows = explodeToRows(table, { [group]: selected });
+      // Keep logical string-key order when old split overrides precede newly
+      // split legacy siblings. Career duplicate-ID timestamps use the first
+      // qualifying record, so retaining old rowids would change precedence.
+      const prefix = `${group}${ROW_KEY_SEP}`;
+      connection.prepare(`DELETE FROM "${table}" WHERE key >= ? AND key < ?`).run(prefix, `${group} `);
+      applyChangeStatements(table, Object.entries(rows).map(([key, value]) => [key, JSON.stringify(value)]), []);
+    }
+  }).immediate();
 }
 
 /**
@@ -853,6 +933,31 @@ function createSqlTable(table) {
   requireWritableDb().exec(
     `CREATE TABLE IF NOT EXISTS "${table}" (key TEXT PRIMARY KEY, json TEXT NOT NULL)`,
   );
+  createCareerReadIndex(table);
+  if (table === "dungeonRuntimeState") {
+    // Career recovery must find durable Abyssal evidence without reading every
+    // unrelated combat/mining dungeon. SQLite maintains this partial index in
+    // the same transaction as row changes. Build it only on a writable owner,
+    // never as a side effect of a passive/readPersisted request.
+    createDungeonReadIndexes();
+  }
+}
+
+function createDungeonReadIndexes() {
+  requireWritableDb().exec(
+    `CREATE INDEX IF NOT EXISTS dungeon_runtime_abyssal_instances_v1
+     ON "dungeonRuntimeState"(key) WHERE ${ABYSSAL_INSTANCE_PREDICATE}`,
+  );
+}
+
+function ensureDungeonReadIndexes(ownerFence) {
+  const requestedFence = resolveDirectMutationFence(ownerFence);
+  const ensure = requireWritableDb().transaction(() => {
+    assertDirectMutationOwner(requestedFence);
+    existingTableConnection("dungeonRuntimeState");
+    createDungeonReadIndexes();
+  });
+  ensure.immediate();
 }
 
 function markMigrated(table, ownerFence) {
@@ -1483,7 +1588,7 @@ function loadRows(table) {
 // Passive readers must not manufacture an empty table or run migration DDL.
 // Missing durable schema fails loudly: treating it as an empty baseline makes
 // an under-covered read indistinguishable from a legitimately empty table.
-function loadExistingRows(table) {
+function existingTableConnection(table) {
   const normalizedTable = normalizePersistenceTable(table);
   const connection = requireDb();
   const exists = connection
@@ -1500,7 +1605,12 @@ function loadExistingRows(table) {
     error.dbPath = dbPath;
     throw error;
   }
-  return connection
+  return connection;
+}
+
+function loadExistingRows(table) {
+  const normalizedTable = normalizePersistenceTable(table);
+  return existingTableConnection(normalizedTable)
     .prepare(`SELECT key, json FROM "${normalizedTable}"`)
     .all();
 }
@@ -1523,6 +1633,139 @@ function loadExistingTableObject(table) {
     parsed[row.key] = JSON.parse(row.json);
   }
   return assembleFromRows(table, parsed);
+}
+
+function selectPath(value, segments) {
+  for (const segment of segments) {
+    if (value === null || typeof value !== "object" || !(segment in value)) {
+      return { exists: false, value: null };
+    }
+    value = value[segment];
+  }
+  return { exists: true, value };
+}
+
+// Match assembleFromRows while selecting only the durable row(s) that can own
+// this path. An entity row overrides the legacy group blob even when it is null.
+function loadExistingTablePath(table, segments = []) {
+  const normalizedTable = normalizePersistenceTable(table);
+  const connection = existingTableConnection(normalizedTable);
+  if (segments.length === 0) return { exists: true, value: loadExistingTableObject(normalizedTable) };
+  const [first, second] = segments;
+  const groups = rowGroupsFor(normalizedTable) || [];
+  const readRow = (key) => connection.prepare(`SELECT json FROM "${normalizedTable}" WHERE key = ?`).get(key);
+  if (groups.includes(first)) {
+    if (segments.length === 1) {
+      const rows = {};
+      const prefix = `${first}${ROW_KEY_SEP}`;
+      for (const row of connection.prepare(
+        `SELECT key, json FROM "${normalizedTable}" WHERE key = ? OR (key >= ? AND key < ?) ORDER BY rowid`,
+      ).all(first, prefix, `${first} `)) rows[row.key] = JSON.parse(row.json);
+      return selectPath(assembleFromRows(normalizedTable, rows), segments);
+    }
+    // Legacy conversion may commit between independent reads. Observe the
+    // override and legacy container in one SQLite statement/snapshot.
+    const entityKey = `${first}${ROW_KEY_SEP}${second}`;
+    const rows = connection.prepare(`SELECT key, json FROM "${normalizedTable}" WHERE key IN (?, ?)`).all(entityKey, first);
+    const row = rows.find((entry) => entry.key === entityKey);
+    if (row) return selectPath(JSON.parse(row.json), segments.slice(2));
+    const legacy = rows.find((entry) => entry.key === first);
+    const value = legacy ? JSON.parse(legacy.json) : null;
+    const group = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+    return selectPath(group, segments.slice(1));
+  }
+  const row = readRow(first);
+  return row ? selectPath(JSON.parse(row.json), segments.slice(1)) : { exists: false, value: null };
+}
+
+function loadExistingAbyssalInstances(characterID = 0) {
+  const connection = existingTableConnection("dungeonRuntimeState");
+  return connection.transaction(() => loadAbyssalInstancesInSnapshot(connection, characterID)).deferred();
+}
+
+function loadExistingIncursionPending(table, instanceID) {
+  const group = table === "npcEntities" ? "incursionOutcomes"
+    : table === "items" ? "__evejsIncursionCombatOutcomes" : null;
+  if (!group) throw new Error("unsupported incursion outcome table");
+  const connection = existingTableConnection(table);
+  const scope = instanceID ?? null;
+  return connection.transaction(() => {
+    const legacy = connection.prepare(`SELECT json FROM "${table}" WHERE key = ?`).get(group);
+    // Merge legacy and split rows before filtering so an acknowledged split
+    // row always supersedes its older, pending legacy copy.
+    if (legacy && Object.keys(JSON.parse(legacy.json) || {}).length) {
+      const rows = loadExistingTablePath(table, [group]).value || {};
+      return Object.values(rows).filter(receipt => receipt?.version === 1 && receipt.acknowledged !== true &&
+        (scope === null || receipt.event?.instanceID === scope));
+    }
+    return connection.prepare(`SELECT json FROM "${table}"
+      WHERE key >= ? AND key < ? AND json_extract(json, '$.version') = 1
+        AND json_type(json, '$.version') IN ('integer', 'real')
+        AND json_type(json, '$.acknowledged') IS NOT 'true'
+        AND (? IS NULL OR (json_type(json, '$.event.instanceID') IN ('integer', 'real')
+          AND json_extract(json, '$.event.instanceID') = ?))`)
+      .all(`${group}${ROW_KEY_SEP}`, `${group} `, scope, scope).map(row => JSON.parse(row.json));
+  }).deferred();
+}
+
+function loadExistingCareerRows(table, characterID) {
+  const definition = CAREER_READS[table];
+  if (!definition) throw new Error("unsupported career evidence table");
+  const connection = existingTableConnection(table);
+  const id = Number(characterID);
+  if (!Number.isSafeInteger(id) || id <= 0) return {};
+  return connection.transaction(() => {
+    const groupRow = connection.prepare(`SELECT json FROM "${table}" WHERE key = ?`).get(definition.group);
+    const legacy = groupRow ? JSON.parse(groupRow.json) : null;
+    let candidates;
+    if (legacy && typeof legacy === "object" && !Array.isArray(legacy) && Object.keys(legacy).length) {
+      // Compatibility until the writable owner converts its legacy group.
+      candidates = loadExistingTablePath(table, [definition.group]).value || {};
+    } else {
+      candidates = {};
+      const exceptionalIndex = `career_${table}_exceptional_owner_v1`;
+      const hasExceptionalIndex = connection.prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?").get(exceptionalIndex);
+      // Do not let a large population of ordinary numeric zero owners turn
+      // the compatibility branch into an index scan of unrelated NPC kills.
+      // Passive old schemas still work until their writable owner upgrades.
+      const exceptionalHint = hasExceptionalIndex ? `INDEXED BY "${exceptionalIndex}"` : "";
+      for (const row of connection.prepare(`SELECT key, json, rowid FROM "${table}"
+        WHERE ${careerReadPredicate(definition)} AND ${careerOwnerExpression(definition)} = ?
+        UNION ALL SELECT key, json, rowid FROM "${table}" ${exceptionalHint} WHERE ${careerExceptionalOwnerPredicate(definition)}
+        ORDER BY rowid`).all(id)) {
+        candidates[row.key.slice(definition.group.length + 1)] = JSON.parse(row.json);
+      }
+    }
+    return Object.fromEntries(Object.entries(candidates).filter(([, value]) =>
+      Number(value?.[definition.field]) === id && (!definition.pending || value?.acknowledged !== true)));
+  }).deferred();
+}
+
+function loadAbyssalInstancesInSnapshot(connection, characterID) {
+  const groupRow = connection.prepare('SELECT json FROM "dungeonRuntimeState" WHERE key = ?').get("instancesByID");
+  const legacy = groupRow ? JSON.parse(groupRow.json) : null;
+  let instances;
+  if (legacy && typeof legacy === "object" && !Array.isArray(legacy) && Object.keys(legacy).length) {
+    // Exceptional pre-split storage: merge overrides before filtering, otherwise
+    // an ordinary split row could resurrect an obsolete Abyssal legacy record.
+    instances = loadExistingTableObject("dungeonRuntimeState").instancesByID || {};
+  } else {
+    instances = {};
+    for (const row of connection.prepare(
+      `SELECT key, json FROM "dungeonRuntimeState" WHERE ${ABYSSAL_INSTANCE_PREDICATE}`,
+    ).all()) instances[row.key.slice(DUNGEON_INSTANCE_PREFIX.length)] = JSON.parse(row.json);
+  }
+  const selected = {};
+  const id = Number(characterID);
+  for (const [key, instance] of Object.entries(instances)) {
+    if (instance?.siteFamily !== "abyssal" || instance?.siteKind !== "abyssal-pocket") continue;
+    if (Number.isSafeInteger(id) && id > 0) {
+      const roster = instance?.environmentState?.abyssalRuntimeState?.pocketState?.participantRoster;
+      if (!Array.isArray(roster) || !roster.some((member) => Number(member?.characterID) === id)) continue;
+    }
+    selected[key] = instance;
+  }
+  return selected;
 }
 
 /**
@@ -1638,6 +1881,13 @@ module.exports = {
   loadExistingRows,
   loadTableObject,
   loadExistingTableObject,
+  loadExistingTablePath,
+  loadExistingAbyssalInstances,
+  loadExistingIncursionPending,
+  loadExistingCareerRows,
+  ensureCareerReadIndex,
+  ensureCareerRowStorage,
+  ensureDungeonReadIndexes,
   explodeToRows,
   assembleFromRows,
   rowValueForKey,

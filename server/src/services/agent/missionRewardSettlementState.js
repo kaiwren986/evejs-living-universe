@@ -18,7 +18,12 @@ const {
 const {
   adjustCharacterWalletLPBalance,
   adjustCorporationWalletLPBalance,
+  getOperationReceipt: getLpOperationReceipt,
 } = require(path.join(__dirname, "../corporation/lpWalletState"));
+const walletAuthorityReceiptState = require(path.join(
+  __dirname,
+  "../account/walletAuthorityReceiptState",
+));
 const {
   CORPORATION_WALLET_KEY_START,
   adjustCorporationWalletDivisionBalanceAsync,
@@ -31,6 +36,10 @@ const {
   isUnpayableCorporationTaxError,
   resolveCorporationTaxProfile,
 } = require(path.join(__dirname, "../corporation/corporationTax"));
+const {
+  buildSecurityTaxDescription,
+  computeAgentMissionSecurityTax,
+} = require(path.join(__dirname, "../security/securityTax"));
 const standingRuntime = require(path.join(__dirname, "../character/standingRuntime"));
 const itemStore = require(path.join(__dirname, "../inventory/itemStore"));
 const {
@@ -54,6 +63,42 @@ const DEFINITIVE_WALLET_ERRORS = new Set([
   "CHARACTER_NOT_FOUND",
   "INVALID_AMOUNT",
 ]);
+// The LP credit's final refusals. Every other LP error, the storage failures
+// (WRITE_FAILED, LP_WALLET_FLUSH_FAILED) included, is temporary: the leg
+// returns it and the durable job retries.
+const DEFINITIVE_LP_ERRORS = new Set([
+  "INVALID_OWNER_OR_ISSUER",
+  "IDEMPOTENCY_KEY_INVALID",
+  "IDEMPOTENCY_KEY_REUSED",
+]);
+// A sharer's standing leg's final refusals. Every other refusal, a storage write
+// failure of the character record included, is temporary.
+const DEFINITIVE_STANDING_ERRORS = new Set([
+  "CHARACTER_NOT_FOUND",
+  "STANDING_CHANGE_REQUIRED",
+  "IDEMPOTENCY_KEY_INVALID",
+  "IDEMPOTENCY_KEY_REUSED",
+]);
+// The completing pilot's part lives in the settlement's own fields; each
+// sharer's in settlement.shares[index].
+const COMPLETING_PILOT = -1;
+// Every recipient's paying legs: the field holding the leg's key, and the leg's
+// name. The completing pilot's key is
+// mission-reward:<characterID>:<missionSequence>:<generation>:<leg>; a sharer's
+// is mission-reward:<characterID>:<missionSequence>:<generation>:share:
+// <sharerID>:<leg>. The generation is the prepare attempt's (buildKeyBase), and
+// both keep the mission-reward:<characterID>:<missionSequence>: prefix the
+// recovery's sequence watermark reads. A settlement stored before generations
+// keeps its mission-reward:<characterID>:<missionSequence>:<leg> keys.
+const LEG_KEY_FIELDS = Object.freeze({
+  walletCommandID: "wallet-credit",
+  corpTaxCommandID: "corp-tax-credit",
+  walletBonusCommandID: "wallet-bonus-credit",
+  corpBonusTaxCommandID: "corp-bonus-tax-credit",
+  lpKey: "lp-credit",
+  corpLpTaxKey: "corp-lp-tax-credit",
+  standingKey: "standing",
+});
 const settlementLanes = new Map();
 let durableScheduler = null;
 // The startup recovery pass (missionRewardSettlementRecovery.js) registers itself here when it
@@ -69,6 +114,13 @@ function toPositiveInt(value, fallback = 0) {
 function toFlag(value, fallback = 0) {
   const numeric = Math.trunc(Number(value));
   return Number.isInteger(numeric) && numeric >= 0 ? numeric : fallback;
+}
+
+function blueprintEfficiencyMetadata(record) {
+  if (!(toPositiveInt(record?.blueprintRuns, 0) > 0) ||
+      (record.blueprintMaterialLevel === undefined && record.blueprintProductivityLevel === undefined)) return {};
+  return { blueprintMaterialLevel: toFlag(record.blueprintMaterialLevel, 0),
+    blueprintProductivityLevel: toFlag(record.blueprintProductivityLevel, 0) };
 }
 
 function roundMoney(value) {
@@ -99,19 +151,39 @@ function resolveCharacterName(characterID) {
 // reserves for tax detail: GetDerivedTransactions yaml-parses it, and a
 // {taxRefType: [corporationID, taxAmount]} mapping is what makes the client
 // draw the corporation tax row and restore the pre-tax amount on the reward
-// row. Untaxed payouts carry a plain scalar (no colons, so it parses as a
-// string and yields no derived rows) that reads the way the client's line does.
-function buildRewardDescription(settlement, leg, reversal = false) {
-  if (leg.tax > 0 && leg.corporationID > 0) {
-    return buildCorporationTaxDescription(
+// row. The security tax keys beside it make it draw CONCORD's row and show the
+// full reward: each recipient's own part, since every recipient's leg is its
+// own journal entry. A reversal carries none: the client draws no row for a
+// negative security tax. Untaxed payouts carry a plain scalar (no colons, so it
+// parses as a string and yields no derived rows) that reads the way the
+// client's line does.
+function buildRewardDescription(
+  settlement,
+  leg,
+  reversal = false,
+  recipientID = settlement && settlement.characterID,
+) {
+  const corporationTax = leg.tax > 0 && leg.corporationID > 0
+    ? buildCorporationTaxDescription(
       leg.taxEntryTypeID,
       leg.corporationID,
       leg.tax,
       { reversal },
+    )
+    : "";
+  if (leg.securityTax > 0 && !reversal) {
+    return buildSecurityTaxDescription(
+      "grossRewardAmount",
+      leg.gross,
+      leg.securityTax,
+      corporationTax ? { into: corporationTax } : {},
     );
   }
+  if (corporationTax) {
+    return corporationTax;
+  }
   const agentName = resolveAgentName(settlement);
-  const characterName = resolveCharacterName(settlement && settlement.characterID);
+  const characterName = resolveCharacterName(recipientID);
   const payout = leg.kind === "bonus" ? "Mission reward bonus" : "Mission reward";
   return reversal
     ? `${payout} reversal from agent ${agentName} to ${characterName}`
@@ -133,12 +205,15 @@ function buildWalletPayoutLegs(settlement) {
     {
       kind: "reward",
       gross: roundMoney(settlement && settlement.walletReward),
+      securityTax: roundMoney(settlement && settlement.walletRewardSecurityTax),
       tax: roundMoney(settlement && settlement.walletRewardTax),
       corporationID,
       corporationTaxable,
       entryTypeID: JOURNAL_ENTRY_TYPE.AGENT_MISSION_REWARD,
       taxEntryTypeID: JOURNAL_ENTRY_TYPE.CORPORATION_TAX_AGENT_REWARDS,
       taxDescription: "Corporation tax on mission rewards",
+      legName: LEG_KEY_FIELDS.walletCommandID,
+      taxLegName: LEG_KEY_FIELDS.corpTaxCommandID,
       commandID: settlement && settlement.walletCommandID,
       reversalCommandID: settlement && settlement.walletReversalCommandID,
       taxCommandID: settlement && settlement.corpTaxCommandID,
@@ -153,12 +228,15 @@ function buildWalletPayoutLegs(settlement) {
     {
       kind: "bonus",
       gross: roundMoney(settlement && settlement.walletBonusReward),
+      securityTax: roundMoney(settlement && settlement.walletBonusSecurityTax),
       tax: roundMoney(settlement && settlement.walletBonusTax),
       corporationID,
       corporationTaxable,
       entryTypeID: JOURNAL_ENTRY_TYPE.AGENT_MISSION_TIME_BONUS_REWARD,
       taxEntryTypeID: JOURNAL_ENTRY_TYPE.CORPORATION_TAX_AGENT_BONUS_REWARDS,
       taxDescription: "Corporation tax on mission bonus rewards",
+      legName: LEG_KEY_FIELDS.walletBonusCommandID,
+      taxLegName: LEG_KEY_FIELDS.corpBonusTaxCommandID,
       commandID: settlement && settlement.walletBonusCommandID,
       reversalCommandID: settlement && settlement.walletBonusReversalCommandID,
       taxCommandID: settlement && settlement.corpBonusTaxCommandID,
@@ -170,7 +248,7 @@ function buildWalletPayoutLegs(settlement) {
       taxReversedField: "corpBonusTaxReversed",
       taxPaidField: "corpBonusTaxPaid",
     },
-  ].map((leg) => ({ ...leg, net: roundMoney(leg.gross - leg.tax) }));
+  ].map((leg) => ({ ...leg, net: roundMoney(leg.gross - leg.securityTax - leg.tax) }));
 }
 
 function readRoot() {
@@ -238,12 +316,19 @@ function normalizeStoredSettlement(settlement) {
       normalized[field] = value;
     }
   };
+  // A key is absent only from a record prepared before that key existed, and
+  // every such record predates key generations, so the backfill builds the
+  // pre-generation shape, mission-reward:<operationID>:<leg>. A record prepared
+  // since stores every key, and keeps the keys it stored.
   const key = (suffix) => `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:${suffix}`;
 
   fill("walletReward", 0);
   fill("walletRewardTax", 0);
   fill("walletBonusReward", 0);
   fill("walletBonusTax", 0);
+  // A record prepared before the Safe Security tax was quoted the full reward.
+  fill("walletRewardSecurityTax", 0);
+  fill("walletBonusSecurityTax", 0);
   fill("taxCorporationID", 0);
   fill("taxCorporationIsNPC", false);
   fill("taxRate", 0);
@@ -260,6 +345,9 @@ function normalizeStoredSettlement(settlement) {
   fill("corpLpTaxKey", key("corp-lp-tax-credit"));
   fill("corpLpTaxReversalKey", key("corp-lp-tax-reversal"));
   fill("standingKey", key("standing"));
+  // Absent means accepted by the old rounded implementation. This must remain
+  // false even if a standing receipt committed before its checkpoint did.
+  fill("standingPreservePrecision", false);
   // A record prepared before LP was taxed paid (or will pay) the member the
   // full loyaltyPoints, with no corporation leg.
   fill("loyaltyPointsTax", 0);
@@ -287,6 +375,8 @@ function normalizeStoredSettlement(settlement) {
   // been evicted and its payment state is unknowable; the forward path refuses a
   // settlement carrying it rather than risk a double payout.
   fill("recoveryHoldError", null);
+  // A record prepared before fleet shares has no sharer to pay.
+  normalized.shares = Array.isArray(normalized.shares) ? normalized.shares : [];
 
   normalized.cargoLegs = Array.isArray(normalized.cargoLegs) ? normalized.cargoLegs : [];
   normalized.rewardLegs = Array.isArray(normalized.rewardLegs) ? normalized.rewardLegs : [];
@@ -386,7 +476,7 @@ function queueSettlement(operationID) {
   });
 }
 
-function normalizeCargoLeg(input, index, operationID) {
+function normalizeCargoLeg(input, index, keyBase) {
   return {
     legID: index + 1,
     itemID: toPositiveInt(input && input.itemID, 0),
@@ -395,9 +485,9 @@ function normalizeCargoLeg(input, index, operationID) {
     ownerID: toPositiveInt(input && input.ownerID, 0),
     sourceLocationID: toPositiveInt(input && input.locationID, 0),
     sourceFlagID: toFlag(input && input.flagID, 0),
-    stageKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:cargo:${index + 1}:stage`,
-    returnKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:cargo:${index + 1}:return`,
-    commitKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:cargo:${index + 1}:commit`,
+    stageKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${keyBase}:cargo:${index + 1}:stage`,
+    returnKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${keyBase}:cargo:${index + 1}:return`,
+    commitKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${keyBase}:cargo:${index + 1}:commit`,
     staged: false,
     returned: false,
     committed: false,
@@ -406,7 +496,7 @@ function normalizeCargoLeg(input, index, operationID) {
   };
 }
 
-function normalizeRewardLeg(output, index, operationID, target) {
+function normalizeRewardLeg(output, index, keyBase, target) {
   return {
     legID: index + 1,
     typeID: toPositiveInt(output && output.typeID, 0),
@@ -414,13 +504,14 @@ function normalizeRewardLeg(output, index, operationID, target) {
     ...(toPositiveInt(output && output.blueprintRuns, 0) > 0
       ? { blueprintRuns: toPositiveInt(output.blueprintRuns, 0) }
       : {}),
+    ...blueprintEfficiencyMetadata(output),
     ...(output && output.original === true ? { original: true } : {}),
     ownerID: target.ownerID,
     destinationLocationID: target.locationID,
     destinationFlagID: target.flagID,
-    grantKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:reward:${index + 1}:grant`,
-    deliverKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:reward:${index + 1}:deliver`,
-    revokeKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:reward:${index + 1}:revoke`,
+    grantKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${keyBase}:reward:${index + 1}:grant`,
+    deliverKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${keyBase}:reward:${index + 1}:deliver`,
+    revokeKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${keyBase}:reward:${index + 1}:revoke`,
     granted: false,
     delivered: false,
     revoked: false,
@@ -446,6 +537,7 @@ function splitRewardLegs(outputs) {
         typeID,
         quantity,
         ...(blueprintRuns > 0 ? { blueprintRuns } : {}),
+        ...blueprintEfficiencyMetadata(output),
         ...(output.original === true ? { original: true } : {}),
       });
       remaining -= quantity;
@@ -454,11 +546,255 @@ function splitRewardLegs(outputs) {
   return result;
 }
 
+// An absent amount is 0; anything else must be a number. NaN marks a value the
+// check refuses.
+function readAmount(value) {
+  if (value === undefined || value === null) {
+    return 0;
+  }
+  return typeof value === "number" || typeof value === "string"
+    ? Number(value)
+    : Number.NaN;
+}
+
+function isIskAmount(value) {
+  return Number.isFinite(value) &&
+    value >= 0 &&
+    Math.abs(value * 100 - Math.round(value * 100)) < 1e-6;
+}
+
+function isLoyaltyPointAmount(value) {
+  return Number.isFinite(value) && value >= 0 && Number.isInteger(value);
+}
+
+// A recipient's standing changes, kept as given. [] when there are none; null
+// when they are malformed.
+function readStandingChanges(value) {
+  if (value === undefined || value === null) {
+    return [];
+  }
+  return Array.isArray(value) &&
+    value.every((change) => Number.isFinite(readAmount(change && change.rawChange)))
+    ? value
+    : null;
+}
+
+// One recipient's part as prepare was given it, with whether its amounts pass
+// the check: ISK and time bonus in whole cents, LP in whole points, each ≥ 0,
+// and every standing amount finite.
+function readRecipientPart(input) {
+  const walletReward = readAmount(input.walletReward);
+  const walletBonusReward = readAmount(input.walletBonusReward);
+  const loyaltyPoints = readAmount(input.loyaltyPoints);
+  const standingsChanges = readStandingChanges(input.standingsChanges);
+  return {
+    characterID: toPositiveInt(input.characterID, 0),
+    walletReward: isIskAmount(walletReward) ? roundMoney(walletReward) : walletReward,
+    walletBonusReward: isIskAmount(walletBonusReward)
+      ? roundMoney(walletBonusReward)
+      : walletBonusReward,
+    loyaltyPoints,
+    standingsChanges: standingsChanges || [],
+    amountsValid: isIskAmount(walletReward) &&
+      isIskAmount(walletBonusReward) &&
+      isLoyaltyPointAmount(loyaltyPoints) &&
+      standingsChanges !== null,
+  };
+}
+
+// The sharers' entries, or null when `shares` is malformed: not an array, an
+// entry without a positive characterID, the completing pilot named again, or a
+// recipient named twice.
+function readShares(value, completingCharacterID) {
+  if (value === undefined || value === null) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const seen = new Set([completingCharacterID]);
+  const shares = [];
+  for (const entry of value) {
+    const characterID = entry && typeof entry === "object"
+      ? Number(entry.characterID)
+      : 0;
+    if (!Number.isSafeInteger(characterID) || characterID <= 0 || seen.has(characterID)) {
+      return null;
+    }
+    seen.add(characterID);
+    shares.push(readRecipientPart(entry));
+  }
+  return shares;
+}
+
+// Every key a settlement stores is built on its key base,
+// <operationID>:<generation>, so mission-reward:<characterID>:<missionSequence>:
+// <generation>:... . The generation is the settlement's operation sequence,
+// which never repeats, so a turn-in prepared again after a rejected settlement
+// was reversed and removed meets none of the old attempt's receipts.
+function buildKeyBase(operationID, generation) {
+  return `${operationID}:${generation}`;
+}
+
+function buildLegKeys(keyBase, characterID = 0) {
+  const recipient = characterID ? `share:${characterID}:` : "";
+  return Object.fromEntries(Object.entries(LEG_KEY_FIELDS).map(([field, leg]) => [
+    field,
+    `${DURABLE_SETTLEMENT_JOB_PREFIX}${keyBase}:${recipient}${leg}`,
+  ]));
+}
+
+function isWellFormedLegKey(key, keyBase) {
+  return typeof key === "string" &&
+    key.startsWith(`${DURABLE_SETTLEMENT_JOB_PREFIX}${keyBase}:`) &&
+    !/\s/.test(key);
+}
+
+// "Unused": no receipt yet under the key, judged only through its own ledger's
+// reader. A reader that throws (a failed store read) is never taken as unused:
+// the error reaches prepare's caller, with nothing stored and no one named.
+function isLegKeyUsed(field, key, characterID, corporationID) {
+  switch (field) {
+    case "walletCommandID":
+    case "walletBonusCommandID":
+      return Boolean(walletAuthorityReceiptState.findOwnerReceipt(
+        { kind: "character", ownerID: characterID },
+        key,
+      ));
+    case "corpTaxCommandID":
+    case "corpBonusTaxCommandID":
+      return Boolean(walletAuthorityReceiptState.findOwnerReceipt(
+        { kind: "corporation", ownerID: corporationID },
+        key,
+      ));
+    case "lpKey":
+    case "corpLpTaxKey":
+      return Boolean(getLpOperationReceipt(key));
+    case "standingKey":
+      return standingRuntime.hasStandingOperationReceipt(characterID, key) === true;
+    default:
+      return true;
+  }
+}
+
+function isTaxRate(value) {
+  return Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+// The check before storage, for one recipient: the character exists, the
+// amounts are valid, an LP part has a valid LP corporation, the corporation
+// and its rates resolve, and every leg's key is well formed and unused.
+// Answers the corporation tax profile to lock in, or null when a check fails.
+function checkRecipient(part, keys, keyBase, loyaltyPointCorporationID) {
+  if (!part.amountsValid || !peekCharacterRecord(part.characterID)) {
+    return null;
+  }
+  if (part.loyaltyPoints > 0 && !loyaltyPointCorporationID) {
+    return null;
+  }
+  const profile = resolveCorporationTaxProfile(part.characterID);
+  if (
+    !profile ||
+    toPositiveInt(profile.corporationID, 0) <= 0 ||
+    !isTaxRate(profile.taxRate) ||
+    !isTaxRate(profile.loyaltyPointTaxRate)
+  ) {
+    return null;
+  }
+  const keysUsable = Object.keys(LEG_KEY_FIELDS).every((field) =>
+    isWellFormedLegKey(keys[field], keyBase) &&
+    !isLegKeyUsed(field, keys[field], part.characterID, profile.corporationID));
+  return keysUsable ? profile : null;
+}
+
+// One recipient's taxes, locked in at prepare: each deposit taxed on its own
+// amount, LP net of the corporation's LP tax. CONCORD's Safe Security share of
+// each ISK deposit comes off first and the corporation taxes what is left: the
+// client's corporation tax row reads its rate as the tax over the payout plus
+// the tax (transactionsUtil._GetDerivedCorporationTaxTransaction), which is the
+// corporation's rate only on that remainder. The security tax is the agent's,
+// so it falls on every recipient's part alike, each part rounded on its own:
+// the client reads each journal entry's own gross and tax
+// (_GetDerivedSecurityTaxTransaction) and never sees the whole reward.
+function lockRecipientTax(part, profile, agentRecord) {
+  const rewardSecurityTax = computeAgentMissionSecurityTax(agentRecord, part.walletReward);
+  const bonusSecurityTax = computeAgentMissionSecurityTax(agentRecord, part.walletBonusReward);
+  const rewardTax = computeCorporationTax(
+    profile,
+    CORPORATION_TAX_CURRENCY.ISK,
+    rewardSecurityTax.net,
+  );
+  const bonusTax = computeCorporationTax(
+    profile,
+    CORPORATION_TAX_CURRENCY.ISK,
+    bonusSecurityTax.net,
+  );
+  const loyaltyPointTax = computeCorporationTax(
+    profile,
+    CORPORATION_TAX_CURRENCY.LP,
+    part.loyaltyPoints,
+  );
+  return { rewardSecurityTax, bonusSecurityTax, rewardTax, bonusTax, loyaltyPointTax };
+}
+
+// A sharer's part as stored: the completing pilot's field names, so the same
+// leg descriptors pay it, with no reversal keys, since a sharer is never
+// reversed.
+function buildSharePart(part, profile, keys, agentRecord) {
+  const {
+    rewardSecurityTax,
+    bonusSecurityTax,
+    rewardTax,
+    bonusTax,
+    loyaltyPointTax,
+  } = lockRecipientTax(part, profile, agentRecord);
+  return {
+    characterID: part.characterID,
+    walletReward: part.walletReward,
+    walletRewardSecurityTax: rewardSecurityTax.tax,
+    walletRewardTax: rewardTax.tax,
+    walletBonusReward: part.walletBonusReward,
+    walletBonusSecurityTax: bonusSecurityTax.tax,
+    walletBonusTax: bonusTax.tax,
+    taxCorporationID: profile.corporationID,
+    taxCorporationIsNPC: profile.isNPC,
+    taxRate: profile.taxRate,
+    loyaltyPoints: part.loyaltyPoints,
+    loyaltyPointsTax: loyaltyPointTax.tax,
+    loyaltyPointsNet: loyaltyPointTax.net,
+    loyaltyPointTaxRate: profile.loyaltyPointTaxRate,
+    loyaltyPointTaxCorporationID: loyaltyPointTax.credit ? profile.corporationID : 0,
+    standingsChanges: cloneValue(part.standingsChanges),
+    ...keys,
+    walletApplied: part.walletReward <= 0,
+    walletResult: null,
+    walletBonusApplied: part.walletBonusReward <= 0,
+    walletBonusResult: null,
+    corpTaxApplied: !rewardTax.credit,
+    corpTaxPaid: 0,
+    corpBonusTaxApplied: !bonusTax.credit,
+    corpBonusTaxPaid: 0,
+    lpApplied: part.loyaltyPoints <= 0,
+    lpResult: null,
+    corpLpTaxApplied: !loyaltyPointTax.credit,
+    corpLpTaxPaid: 0,
+    standingApplied: part.standingsChanges.length <= 0,
+    standingResult: part.standingsChanges.length <= 0
+      ? { modifications: [], appliedChanges: [] }
+      : null,
+    // Legs that failed for good, by leg name, with the error: logged, never
+    // attempted again, never reversed.
+    skippedLegs: {},
+  };
+}
+
 function prepareMissionRewardSettlement(options = {}) {
   const characterID = toPositiveInt(options.characterID, 0);
   const agentID = toPositiveInt(options.agentID, 0);
   const missionSequence = toPositiveInt(options.missionSequence, 0);
   const operationID = `${characterID}:${missionSequence}`;
+  const pilotPart = readRecipientPart({ ...options, characterID });
+  const shares = readShares(options.shares, characterID);
   const target = {
     ownerID: toPositiveInt(options.rewardTarget && options.rewardTarget.ownerID, characterID),
     locationID: toPositiveInt(options.rewardTarget && options.rewardTarget.locationID, 0),
@@ -469,13 +805,11 @@ function prepareMissionRewardSettlement(options = {}) {
   const standingsChanges = Array.isArray(options.standingsChanges)
     ? options.standingsChanges
     : [];
-  const walletReward = roundMoney(options.walletReward);
-  const walletBonusReward = roundMoney(options.walletBonusReward);
+  const { walletReward, walletBonusReward, loyaltyPoints } = pilotPart;
   const continuationMissionID = options.continuationMissionID === null ||
     options.continuationMissionID === undefined
     ? null
     : cloneValue(options.continuationMissionID);
-  const loyaltyPoints = Math.max(0, Math.trunc(Number(options.loyaltyPoints) || 0));
   const loyaltyPointCorporationID = toPositiveInt(
     options.loyaltyPointCorporationID,
     0,
@@ -484,12 +818,26 @@ function prepareMissionRewardSettlement(options = {}) {
     !characterID ||
     !agentID ||
     !missionSequence ||
+    !shares ||
+    !pilotPart.amountsValid ||
     (rewardItems.length > 0 && (!target.ownerID || !target.locationID)) ||
     (loyaltyPoints > 0 && !loyaltyPointCorporationID)
   ) {
     return { success: false, errorMsg: "INVALID_MISSION_REWARD_SETTLEMENT" };
   }
 
+  // Shares join the fingerprint only when present, so a pending settlement
+  // prepared before shares existed still matches its own turn-in.
+  const sharedParts = {};
+  if (shares.length > 0) {
+    sharedParts.shares = shares.map((entry) => ({
+      characterID: entry.characterID,
+      walletReward: entry.walletReward,
+      walletBonusReward: entry.walletBonusReward,
+      loyaltyPoints: entry.loyaltyPoints,
+      standingsChanges: entry.standingsChanges,
+    }));
+  }
   const requestFingerprint = JSON.stringify({
     characterID,
     agentID,
@@ -509,6 +857,7 @@ function prepareMissionRewardSettlement(options = {}) {
       ...(toPositiveInt(entry && entry.blueprintRuns, 0) > 0
         ? { blueprintRuns: toPositiveInt(entry.blueprintRuns, 0) }
         : {}),
+      ...blueprintEfficiencyMetadata(entry),
       ...(entry && entry.original === true ? { original: true } : {}),
     })),
     walletReward,
@@ -517,6 +866,7 @@ function prepareMissionRewardSettlement(options = {}) {
     loyaltyPointCorporationID,
     standingsChanges,
     continuationMissionID,
+    ...sharedParts,
   });
   const root = readRoot();
   const existing = root.byOperationID[operationID];
@@ -535,10 +885,12 @@ function prepareMissionRewardSettlement(options = {}) {
 
   const operationSequence = root.nextOperationID;
   const escrowLocationID = ESCROW_LOCATION_BASE + operationSequence;
+  // This prepare attempt's key generation is its operation sequence.
+  const keyBase = buildKeyBase(operationID, operationSequence);
   const cargoLegs = cargoInputs.map((entry, index) =>
-    normalizeCargoLeg(entry, index, operationID));
+    normalizeCargoLeg(entry, index, keyBase));
   const rewardLegs = splitRewardLegs(rewardItems).map((entry, index) =>
-    normalizeRewardLeg(entry, index, operationID, target));
+    normalizeRewardLeg(entry, index, keyBase, target));
   if (
     cargoLegs.some((leg) =>
       !leg.itemID ||
@@ -551,27 +903,50 @@ function prepareMissionRewardSettlement(options = {}) {
     return { success: false, errorMsg: "INVALID_MISSION_REWARD_LEG" };
   }
 
-  // The member's corporation and rate are locked in here, so a replayed
-  // settlement pays exactly what it was quoted, even if the member changes
+  // Every leg of every recipient is checked before anything is stored, so
+  // before the first deposit. The completing pilot failing answers the turn-in's
+  // own error; every failing sharer is named, for Agent missions to drop.
+  const pilotKeys = buildLegKeys(keyBase);
+  const corporationTax = checkRecipient(
+    pilotPart,
+    pilotKeys,
+    keyBase,
+    loyaltyPointCorporationID,
+  );
+  if (!corporationTax) {
+    return { success: false, errorMsg: "INVALID_MISSION_REWARD_SETTLEMENT" };
+  }
+  const failedCharacterIDs = [];
+  const shareParts = [];
+  for (const entry of shares) {
+    const keys = buildLegKeys(keyBase, entry.characterID);
+    const profile = checkRecipient(entry, keys, keyBase, loyaltyPointCorporationID);
+    if (!profile) {
+      failedCharacterIDs.push(entry.characterID);
+      continue;
+    }
+    shareParts.push(buildSharePart(entry, profile, keys, options.agentRecord));
+  }
+  if (failedCharacterIDs.length > 0) {
+    return {
+      success: false,
+      errorMsg: "MISSION_REWARD_SHARER_INVALID",
+      failedCharacterIDs,
+    };
+  }
+
+  // Each recipient's corporation and rates are locked in here, so a replayed
+  // settlement pays exactly what it was quoted, even if a recipient changes
   // corporation mid-flight.
-  const corporationTax = resolveCorporationTaxProfile(characterID);
-  const rewardTax = computeCorporationTax(
-    corporationTax,
-    CORPORATION_TAX_CURRENCY.ISK,
-    walletReward,
-  );
-  const bonusTax = computeCorporationTax(
-    corporationTax,
-    CORPORATION_TAX_CURRENCY.ISK,
-    walletBonusReward,
-  );
+  const {
+    rewardSecurityTax,
+    bonusSecurityTax,
+    rewardTax,
+    bonusTax,
+    loyaltyPointTax,
+  } = lockRecipientTax(pilotPart, corporationTax, options.agentRecord);
   const walletRewardTax = rewardTax.tax;
   const walletBonusTax = bonusTax.tax;
-  const loyaltyPointTax = computeCorporationTax(
-    corporationTax,
-    CORPORATION_TAX_CURRENCY.LP,
-    loyaltyPoints,
-  );
   const settlement = {
     operationID,
     operationSequence,
@@ -584,8 +959,10 @@ function prepareMissionRewardSettlement(options = {}) {
     rewardLegs,
     rewardTarget: target,
     walletReward,
+    walletRewardSecurityTax: rewardSecurityTax.tax,
     walletRewardTax,
     walletBonusReward,
+    walletBonusSecurityTax: bonusSecurityTax.tax,
     walletBonusTax,
     taxCorporationID: corporationTax.corporationID,
     taxCorporationIsNPC: corporationTax.isNPC,
@@ -601,30 +978,27 @@ function prepareMissionRewardSettlement(options = {}) {
     loyaltyPointTaxRate: corporationTax.loyaltyPointTaxRate,
     loyaltyPointTaxCorporationID: loyaltyPointTax.credit ? corporationTax.corporationID : 0,
     standingsChanges: cloneValue(standingsChanges),
+    // Server-assigned policy, frozen with this intent. Keep requestFingerprint
+    // stable so retries of an old prepared request still find that old intent.
+    standingPreservePrecision: true,
+    shares: shareParts,
     continuationMissionID,
     missionRecord: cloneValue(options.missionRecord || null),
     agentRecord: cloneValue(options.agentRecord || null),
     bonusAvailable: options.bonusAvailable === true,
-    walletCommandID: `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:wallet-credit`,
+    // The paying keys are the ones the check above found unused.
+    ...pilotKeys,
     walletReversalCommandID:
-      `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:wallet-reversal`,
-    walletBonusCommandID:
-      `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:wallet-bonus-credit`,
+      `${DURABLE_SETTLEMENT_JOB_PREFIX}${keyBase}:wallet-reversal`,
     walletBonusReversalCommandID:
-      `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:wallet-bonus-reversal`,
-    corpTaxCommandID: `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:corp-tax-credit`,
+      `${DURABLE_SETTLEMENT_JOB_PREFIX}${keyBase}:wallet-bonus-reversal`,
     corpTaxReversalCommandID:
-      `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:corp-tax-reversal`,
-    corpBonusTaxCommandID:
-      `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:corp-bonus-tax-credit`,
+      `${DURABLE_SETTLEMENT_JOB_PREFIX}${keyBase}:corp-tax-reversal`,
     corpBonusTaxReversalCommandID:
-      `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:corp-bonus-tax-reversal`,
-    lpKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:lp-credit`,
-    lpReversalKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:lp-reversal`,
-    corpLpTaxKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:corp-lp-tax-credit`,
+      `${DURABLE_SETTLEMENT_JOB_PREFIX}${keyBase}:corp-bonus-tax-reversal`,
+    lpReversalKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${keyBase}:lp-reversal`,
     corpLpTaxReversalKey:
-      `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:corp-lp-tax-reversal`,
-    standingKey: `${DURABLE_SETTLEMENT_JOB_PREFIX}${operationID}:standing`,
+      `${DURABLE_SETTLEMENT_JOB_PREFIX}${keyBase}:corp-lp-tax-reversal`,
     walletApplied: walletReward <= 0,
     walletReversed: false,
     walletResult: null,
@@ -746,6 +1120,9 @@ async function compensateRejectedSettlement(operationID) {
   if (!settlement) {
     return { success: true, alreadySettled: true };
   }
+  // A standing change can't be taken back, so a settlement whose completing
+  // pilot's standing part has been applied is past reversal. Their standing leg
+  // comes after their money legs, and no sharer is paid before it.
   if (
     (
       Array.isArray(settlement.standingsChanges) &&
@@ -1009,6 +1386,285 @@ function buildCompletionResult(settlement) {
   };
 }
 
+function readRecipientPartOf(settlement, index) {
+  if (!settlement) {
+    return null;
+  }
+  return index === COMPLETING_PILOT ? settlement : settlement.shares[index] || null;
+}
+
+function checkpointRecipient(operationID, index, patch) {
+  return updateSettlement(operationID, (current) => (index === COMPLETING_PILOT
+    ? { ...current, ...patch }
+    : {
+        ...current,
+        shares: current.shares.map((part, partIndex) =>
+          partIndex === index ? { ...part, ...patch } : part),
+      }));
+}
+
+// Whether a recipient's leg is checkpointed as skipped (failed for good). The
+// live path and the startup recovery pass share this one reading.
+function isLegSkipped(part, legName) {
+  return Boolean(part && part.skippedLegs && part.skippedLegs[legName]);
+}
+
+// A sharer's leg that failed for good, money or standing: logged and
+// checkpointed as skipped with its tax leg (a money leg's), so no retry or
+// restart attempts it again. Nothing is reversed and nothing redistributed.
+function skipShareLegs(operationID, index, legNames, errorMsg) {
+  const part = readRecipientPartOf(getPendingMissionRewardSettlement(operationID), index);
+  log.warn(
+    `[MissionRewardSettlement] operation=${operationID} sharer=${part.characterID} ` +
+      `leg=${legNames[0]} failed for good: ${errorMsg}; skipped with its tax, ` +
+      `nothing reversed`,
+  );
+  const skippedLegs = { ...(part.skippedLegs || {}) };
+  for (const legName of legNames) {
+    skippedLegs[legName] = errorMsg;
+  }
+  return checkpointRecipient(operationID, index, { skippedLegs });
+}
+
+// A recipient's standing part, with the recipient's own key, under the policy
+// the settlement froze at prepare. Their own Social applies.
+function applyRecipientStanding(settlement, part) {
+  return standingRuntime.applyStandingChanges(
+    part.characterID,
+    part.standingsChanges,
+    {
+      idempotencyKey: part.standingKey,
+      preservePrecision: settlement.standingPreservePrecision === true,
+    },
+  );
+}
+
+// Pays one recipient's legs in the entry's order: ISK and its tax, time bonus
+// and its tax, LP and its LP tax, then standing; each checkpointed. Answers
+// null once every leg is paid or skipped, or the result the settle returns: a
+// temporary failure (the durable job retries), a failed checkpoint, or the
+// completing pilot's rejection.
+async function payRecipientLegs(operationID, index) {
+  const isCompletingPilot = index === COMPLETING_PILOT;
+  let settlement = getPendingMissionRewardSettlement(operationID);
+  let part = readRecipientPartOf(settlement, index);
+  for (const leg of buildWalletPayoutLegs(part)) {
+    settlement = getPendingMissionRewardSettlement(operationID);
+    part = readRecipientPartOf(settlement, index);
+    if (leg.gross > 0 && !part[leg.appliedField] && !isLegSkipped(part, leg.legName)) {
+      const result = await adjustCharacterBalanceAsync(
+        part.characterID,
+        leg.net,
+        {
+          idempotencyKey: leg.commandID,
+          description: buildRewardDescription(settlement, leg, false, part.characterID),
+          ownerID1: toPositiveInt(settlement.agentID, 0),
+          ownerID2: part.characterID,
+          referenceID: settlement.agentID,
+          entryTypeID: leg.entryTypeID,
+        },
+        {
+          commandID: leg.commandID,
+          source: `agent-mission-${leg.kind}-credit`,
+        },
+      );
+      if (!result || result.success !== true) {
+        const errorMsg = result && result.errorMsg || "MISSION_REWARD_WALLET_FAILED";
+        if (!DEFINITIVE_WALLET_ERRORS.has(errorMsg)) {
+          return result || { success: false, errorMsg };
+        }
+        if (isCompletingPilot) {
+          return rejectSettlement(operationID, errorMsg);
+        }
+        const skipped = skipShareLegs(operationID, index, [leg.legName, leg.taxLegName], errorMsg);
+        if (!skipped.success) {
+          return skipped;
+        }
+        continue;
+      }
+      const checkpoint = checkpointRecipient(operationID, index, {
+        [leg.appliedField]: true,
+        [leg.resultField]: cloneValue(result),
+      });
+      if (!checkpoint.success) {
+        return checkpoint;
+      }
+    }
+
+    settlement = getPendingMissionRewardSettlement(operationID);
+    part = readRecipientPartOf(settlement, index);
+    if (
+      leg.tax > 0 &&
+      leg.corporationTaxable &&
+      !part[leg.taxAppliedField] &&
+      !isLegSkipped(part, leg.taxLegName)
+    ) {
+      const result = await adjustCorporationWalletDivisionBalanceAsync(
+        leg.corporationID,
+        CORPORATION_WALLET_KEY_START,
+        leg.tax,
+        {
+          idempotencyKey: leg.taxCommandID,
+          description: leg.taxDescription,
+          ownerID1: part.characterID,
+          ownerID2: leg.corporationID,
+          referenceID: settlement.agentID,
+          entryTypeID: leg.taxEntryTypeID,
+        },
+        {
+          commandID: leg.taxCommandID,
+          source: `agent-mission-${leg.kind}-corporation-tax`,
+        },
+      );
+      const errorMsg = result && result.errorMsg || "MISSION_REWARD_CORP_TAX_FAILED";
+      if (
+        (!result || result.success !== true) &&
+        !isUnpayableCorporationTaxError(errorMsg)
+      ) {
+        return result || { success: false, errorMsg };
+      }
+      const paid = result && result.success === true;
+      if (!paid) {
+        log.warn(
+          `[MissionRewardSettlement] corporation ${leg.corporationID} could not ` +
+            `receive the ${leg.kind} tax for operation=${operationID}: ${errorMsg}`,
+        );
+      }
+      const checkpoint = checkpointRecipient(operationID, index, {
+        [leg.taxAppliedField]: true,
+        [leg.taxPaidField]: paid ? leg.tax : 0,
+      });
+      if (!checkpoint.success) {
+        return checkpoint;
+      }
+    }
+  }
+
+  settlement = getPendingMissionRewardSettlement(operationID);
+  part = readRecipientPartOf(settlement, index);
+  if (!part.lpApplied && !isLegSkipped(part, LEG_KEY_FIELDS.lpKey)) {
+    // One write of the net: the client pops up every LP change it is told
+    // about, so crediting the gross and then debiting the tax shows two.
+    const result = adjustCharacterWalletLPBalance(
+      part.characterID,
+      settlement.loyaltyPointCorporationID,
+      part.loyaltyPointsNet,
+      {
+        changeType: "mission_reward",
+        idempotencyKey: part.lpKey,
+        // The "Earn LP" daily goal counts LP before corporation tax.
+        grossEarned: part.loyaltyPoints,
+      },
+    );
+    if (!result || result.success !== true) {
+      const errorMsg = result && result.errorMsg || "MISSION_REWARD_LP_FAILED";
+      if (!DEFINITIVE_LP_ERRORS.has(errorMsg)) {
+        return result || { success: false, errorMsg };
+      }
+      if (isCompletingPilot) {
+        return rejectSettlement(operationID, errorMsg);
+      }
+      const skipped = skipShareLegs(
+        operationID,
+        index,
+        [LEG_KEY_FIELDS.lpKey, LEG_KEY_FIELDS.corpLpTaxKey],
+        errorMsg,
+      );
+      if (!skipped.success) {
+        return skipped;
+      }
+    } else {
+      const checkpoint = checkpointRecipient(operationID, index, {
+        lpApplied: true,
+        lpResult: cloneValue(result.data || null),
+      });
+      if (!checkpoint.success) {
+        return checkpoint;
+      }
+    }
+  }
+
+  settlement = getPendingMissionRewardSettlement(operationID);
+  part = readRecipientPartOf(settlement, index);
+  if (!part.corpLpTaxApplied && !isLegSkipped(part, LEG_KEY_FIELDS.corpLpTaxKey)) {
+    const corporationID = part.loyaltyPointTaxCorporationID;
+    const result = adjustCorporationWalletLPBalance(
+      corporationID,
+      settlement.loyaltyPointCorporationID,
+      part.loyaltyPointsTax,
+      {
+        reason: "mission_reward_corporation_tax",
+        idempotencyKey: part.corpLpTaxKey,
+      },
+    );
+    const errorMsg = result && result.errorMsg || "MISSION_REWARD_CORP_LP_TAX_FAILED";
+    if (
+      (!result || result.success !== true) &&
+      !isUnpayableCorporationTaxError(errorMsg)
+    ) {
+      return result || { success: false, errorMsg };
+    }
+    const paid = result && result.success === true;
+    if (!paid) {
+      log.warn(
+        `[MissionRewardSettlement] corporation ${corporationID} could not ` +
+          `receive the LP tax for operation=${operationID}: ${errorMsg}`,
+      );
+    }
+    const checkpoint = checkpointRecipient(operationID, index, {
+      corpLpTaxApplied: true,
+      corpLpTaxPaid: paid ? part.loyaltyPointsTax : 0,
+    });
+    if (!checkpoint.success) {
+      return checkpoint;
+    }
+  }
+
+  settlement = getPendingMissionRewardSettlement(operationID);
+  part = readRecipientPartOf(settlement, index);
+  if (!part.standingApplied && !isLegSkipped(part, LEG_KEY_FIELDS.standingKey)) {
+    // A duplicate: true answer is success: the gain was applied before.
+    const result = applyRecipientStanding(settlement, part);
+    if (!result || result.success !== true) {
+      const errorMsg = result && result.errorMsg || "MISSION_REWARD_STANDING_FAILED";
+      // The completing pilot's standing retries every refusal; only a sharer's
+      // final refusal is skipped.
+      if (isCompletingPilot || !DEFINITIVE_STANDING_ERRORS.has(errorMsg)) {
+        return result || { success: false, errorMsg };
+      }
+      const skipped = skipShareLegs(
+        operationID,
+        index,
+        [LEG_KEY_FIELDS.standingKey],
+        errorMsg,
+      );
+      if (!skipped.success) {
+        return skipped;
+      }
+      return null;
+    }
+    // Character gains and their idempotency receipt must reach stable storage
+    // before the separate settlement checkpoint can outlive this process.
+    let standingFlush;
+    try {
+      standingFlush = database.flushTableSync("characters");
+    } catch (_error) {
+      return { success: false, errorMsg: "MISSION_REWARD_STANDING_FLUSH_FAILED" };
+    }
+    if (!standingFlush || standingFlush.success !== true) {
+      return standingFlush || { success: false, errorMsg: "MISSION_REWARD_STANDING_FLUSH_FAILED" };
+    }
+    const checkpoint = checkpointRecipient(operationID, index, {
+      standingApplied: true,
+      standingResult: cloneValue(result.data || null),
+    });
+    if (!checkpoint.success) {
+      return checkpoint;
+    }
+  }
+  return null;
+}
+
 async function settleMissionRewardInternal(operationID, options = {}) {
   let settlement = getPendingMissionRewardSettlement(operationID);
   if (!settlement) {
@@ -1149,6 +1805,8 @@ async function settleMissionRewardInternal(operationID, options = {}) {
     if (toPositiveInt(leg.blueprintRuns, 0) > 0) {
       const blueprintResult = ensureGrantedBlueprintCopyState([grantedItem], {
         runsRemaining: leg.blueprintRuns,
+        materialEfficiency: leg.blueprintMaterialLevel,
+        timeEfficiency: leg.blueprintProductivityLevel,
       });
       if (!blueprintResult.success) {
         // The custody receipt owns this item. Leave the settlement pending so
@@ -1168,170 +1826,19 @@ async function settleMissionRewardInternal(operationID, options = {}) {
     }
   }
 
-  settlement = getPendingMissionRewardSettlement(operationID);
-  for (const leg of buildWalletPayoutLegs(settlement)) {
-    settlement = getPendingMissionRewardSettlement(operationID);
-    if (leg.gross > 0 && !settlement[leg.appliedField]) {
-      const result = await adjustCharacterBalanceAsync(
-        settlement.characterID,
-        leg.net,
-        {
-          idempotencyKey: leg.commandID,
-          description: buildRewardDescription(settlement, leg),
-          ownerID1: toPositiveInt(settlement.agentID, 0),
-          ownerID2: settlement.characterID,
-          referenceID: settlement.agentID,
-          entryTypeID: leg.entryTypeID,
-        },
-        {
-          commandID: leg.commandID,
-          source: `agent-mission-${leg.kind}-credit`,
-        },
-      );
-      if (!result || result.success !== true) {
-        const errorMsg = result && result.errorMsg || "MISSION_REWARD_WALLET_FAILED";
-        return DEFINITIVE_WALLET_ERRORS.has(errorMsg)
-          ? rejectSettlement(operationID, errorMsg)
-          : result || { success: false, errorMsg };
-      }
-      const checkpoint = updateSettlement(operationID, (current) => ({
-        ...current,
-        [leg.appliedField]: true,
-        [leg.resultField]: cloneValue(result),
-      }));
-      if (!checkpoint.success) {
-        return checkpoint;
-      }
-    }
-
-    settlement = getPendingMissionRewardSettlement(operationID);
-    if (leg.tax > 0 && leg.corporationTaxable && !settlement[leg.taxAppliedField]) {
-      const result = await adjustCorporationWalletDivisionBalanceAsync(
-        leg.corporationID,
-        CORPORATION_WALLET_KEY_START,
-        leg.tax,
-        {
-          idempotencyKey: leg.taxCommandID,
-          description: leg.taxDescription,
-          ownerID1: settlement.characterID,
-          ownerID2: leg.corporationID,
-          referenceID: settlement.agentID,
-          entryTypeID: leg.taxEntryTypeID,
-        },
-        {
-          commandID: leg.taxCommandID,
-          source: `agent-mission-${leg.kind}-corporation-tax`,
-        },
-      );
-      const errorMsg = result && result.errorMsg || "MISSION_REWARD_CORP_TAX_FAILED";
-      if (
-        (!result || result.success !== true) &&
-        !isUnpayableCorporationTaxError(errorMsg)
-      ) {
-        return result || { success: false, errorMsg };
-      }
-      const paid = result && result.success === true;
-      if (!paid) {
-        log.warn(
-          `[MissionRewardSettlement] corporation ${leg.corporationID} could not ` +
-            `receive the ${leg.kind} tax for operation=${operationID}: ${errorMsg}`,
-        );
-      }
-      const checkpoint = updateSettlement(operationID, (current) => ({
-        ...current,
-        [leg.taxAppliedField]: true,
-        [leg.taxPaidField]: paid ? leg.tax : 0,
-      }));
-      if (!checkpoint.success) {
-        return checkpoint;
-      }
-    }
+  // The completing pilot's legs first, money before standing, since their
+  // reversal can't take a standing change back; then each sharer's, in the
+  // order `shares` gave. A sharer is never reversed, so nothing after the
+  // completing pilot's legs can reject the settlement.
+  const pilotOutcome = await payRecipientLegs(operationID, COMPLETING_PILOT);
+  if (pilotOutcome) {
+    return pilotOutcome;
   }
-
   settlement = getPendingMissionRewardSettlement(operationID);
-  if (!settlement.lpApplied) {
-    // One write of the net: the client pops up every LP change it is told
-    // about, so crediting the gross and then debiting the tax shows two.
-    const result = adjustCharacterWalletLPBalance(
-      settlement.characterID,
-      settlement.loyaltyPointCorporationID,
-      settlement.loyaltyPointsNet,
-      {
-        changeType: "mission_reward",
-        idempotencyKey: settlement.lpKey,
-        // The "Earn LP" daily goal counts LP before corporation tax.
-        grossEarned: settlement.loyaltyPoints,
-      },
-    );
-    if (!result || result.success !== true) {
-      return rejectSettlement(
-        operationID,
-        result && result.errorMsg || "MISSION_REWARD_LP_FAILED",
-      );
-    }
-    const checkpoint = updateSettlement(operationID, (current) => ({
-      ...current,
-      lpApplied: true,
-      lpResult: cloneValue(result.data || null),
-    }));
-    if (!checkpoint.success) {
-      return checkpoint;
-    }
-  }
-
-  settlement = getPendingMissionRewardSettlement(operationID);
-  if (!settlement.corpLpTaxApplied) {
-    const corporationID = settlement.loyaltyPointTaxCorporationID;
-    const result = adjustCorporationWalletLPBalance(
-      corporationID,
-      settlement.loyaltyPointCorporationID,
-      settlement.loyaltyPointsTax,
-      {
-        reason: "mission_reward_corporation_tax",
-        idempotencyKey: settlement.corpLpTaxKey,
-      },
-    );
-    const errorMsg = result && result.errorMsg || "MISSION_REWARD_CORP_LP_TAX_FAILED";
-    if (
-      (!result || result.success !== true) &&
-      !isUnpayableCorporationTaxError(errorMsg)
-    ) {
-      return result || { success: false, errorMsg };
-    }
-    const paid = result && result.success === true;
-    if (!paid) {
-      log.warn(
-        `[MissionRewardSettlement] corporation ${corporationID} could not ` +
-          `receive the LP tax for operation=${operationID}: ${errorMsg}`,
-      );
-    }
-    const checkpoint = updateSettlement(operationID, (current) => ({
-      ...current,
-      corpLpTaxApplied: true,
-      corpLpTaxPaid: paid ? settlement.loyaltyPointsTax : 0,
-    }));
-    if (!checkpoint.success) {
-      return checkpoint;
-    }
-  }
-
-  settlement = getPendingMissionRewardSettlement(operationID);
-  if (!settlement.standingApplied) {
-    const result = standingRuntime.applyStandingChanges(
-      settlement.characterID,
-      settlement.standingsChanges,
-      { idempotencyKey: settlement.standingKey },
-    );
-    if (!result || result.success !== true) {
-      return result || { success: false, errorMsg: "MISSION_REWARD_STANDING_FAILED" };
-    }
-    const checkpoint = updateSettlement(operationID, (current) => ({
-      ...current,
-      standingApplied: true,
-      standingResult: cloneValue(result.data || null),
-    }));
-    if (!checkpoint.success) {
-      return checkpoint;
+  for (let index = 0; index < settlement.shares.length; index += 1) {
+    const shareOutcome = await payRecipientLegs(operationID, index);
+    if (shareOutcome) {
+      return shareOutcome;
     }
   }
 
@@ -1615,6 +2122,7 @@ async function reconcileDurableMissionRewardSettlements(options = {}) {
 module.exports = {
   DURABLE_SETTLEMENT_JOB_TYPE,
   ESCROW_LOCATION_BASE,
+  LEG_KEY_FIELDS,
   TABLE_NAME,
   applyRecoveredCheckpoints,
   bindDurableScheduler,
@@ -1624,6 +2132,7 @@ module.exports = {
   findPendingMissionRewardSettlement,
   getPendingMissionRewardSettlement,
   handleDurableMissionRewardSettlement,
+  isLegSkipped,
   listDeadLetteredSettlementJobIDs,
   listPendingMissionRewardSettlements,
   normalizeStoredSettlement,

@@ -15,6 +15,8 @@ const {
  * authority RPC.
  */
 
+const { normalizeOwnerTransferLootInfo } = require("./lootOwnerTransferMetadata");
+
 const crypto = require("crypto");
 const path = require("path");
 
@@ -84,6 +86,7 @@ const CUSTODY_REASON = Object.freeze({
   MOBILE_DEPOT_CONTENT_EJECT_ROLLBACK: "mobile-depot-content-eject-rollback",
   MOBILE_TRACTOR_UNIT_EJECT_ROLLBACK: "mobile-tractor-unit-eject-rollback",
   SPACE_ENTITY_DESTROY: "space-entity-destroy",
+  NATIVE_SPAWN_ROLLBACK: "native-spawn-rollback",
   MOBILE_EXPIRE: "mobile-expire",
   INV_BROKER_MOVE: "inv-broker-move",
   INV_BROKER_MERGE: "inv-broker-merge",
@@ -225,6 +228,7 @@ const LOCAL_OWNER_CHANGE_REASONS = new Set([
 ]);
 
 const DURABLE_LOCAL_MOVE_REASONS = new Set([
+  CUSTODY_REASON.NATIVE_SPAWN_ROLLBACK,
   CUSTODY_REASON.CAMPAIGN_REWARD_GRANT,
   CUSTODY_REASON.CHARACTER_RESCULPT_CONSUME,
   CUSTODY_REASON.FREELANCE_ITEM_DELIVERY,
@@ -991,6 +995,7 @@ function createItemCustody(options = {}) {
     }
     if (
       reason === CUSTODY_REASON.SPACE_ENTITY_DESTROY ||
+      reason === CUSTODY_REASON.NATIVE_SPAWN_ROLLBACK ||
       reason === CUSTODY_REASON.MOBILE_EXPIRE
     ) {
       return Boolean(
@@ -1115,7 +1120,7 @@ function createItemCustody(options = {}) {
   function normalizeLocalInventoryTransferCommand(rawCommand, sequence, route) {
     // The request owns this opaque capability. Never clone or serialize it into
     // receipt metadata; only ordinary broker moves may enlist in its commit.
-    const { inventoryMoveBatch, ...serializableCommand } = rawCommand || {};
+    const { inventoryMoveBatch, finalizeMovedItem, ...serializableCommand } = rawCommand || {};
     const command = cloneValue(serializableCommand);
     if (![
       "local-space-mint",
@@ -1139,6 +1144,13 @@ function createItemCustody(options = {}) {
     );
     const idempotencyKey = normalizeIdempotencyKey(command.idempotencyKey);
     const reason = String(command.reason || "local-inventory-transfer");
+    // This authority-local callback can reference the final stack-split ID.
+    // It is never cloned into a receipt or accepted for arbitrary transfers.
+    if (finalizeMovedItem !== undefined && (typeof finalizeMovedItem !== "function" ||
+        reason !== CUSTODY_REASON.MOBILE_DEPLOY || route !== "local-move" ||
+        destination?.kind !== CUSTODY_REF_KIND.IN_SPACE)) {
+      return { success: false, result: buildResultError("ITEM_CUSTODY_FINALIZER_NOT_SUPPORTED", { sequence }) };
+    }
     if (inventoryMoveBatch && (
       route !== "local-move" ||
       ![CUSTODY_REASON.INV_BROKER_MOVE, CUSTODY_REASON.INV_BROKER_OWNER_TRANSFER].includes(reason) ||
@@ -1149,6 +1161,15 @@ function createItemCustody(options = {}) {
     const destinationPatchResult = normalizeLocalDestinationPatch(
       command.options && command.options.destinationItemPatch,
     );
+    const ownerTransferLootResult = normalizeOwnerTransferLootInfo(
+      command.options && command.options.ownerTransferLootInfo,
+    );
+    if (!ownerTransferLootResult.success) {
+      return { success: false, result: buildResultError(ownerTransferLootResult.errorMsg, { sequence, idempotencyKey }) };
+    }
+    if (ownerTransferLootResult.info && (route !== "local-move" || reason !== CUSTODY_REASON.INV_BROKER_OWNER_TRANSFER)) {
+      return { success: false, result: buildResultError("ITEM_CUSTODY_ROUTE_NOT_SUPPORTED", { sequence, idempotencyKey }) };
+    }
     if (
       itemSpecs.length !== 1 ||
       !itemSpec ||
@@ -1236,6 +1257,10 @@ function createItemCustody(options = {}) {
       itemSpec && typeof itemSpec === "object" ? itemSpec.itemID : itemSpec,
       0,
     );
+    if (route === "local-move" && [CUSTODY_REF_KIND.MARKET_ESCROW, CUSTODY_REF_KIND.CONTRACT_ESCROW].includes(destination?.kind) &&
+        itemStore.hasCharacterBoundContents?.(itemID)) {
+      return { success: false, result: buildResultError("CAREER_REWARD_CHARACTER_BOUND", { sequence, idempotencyKey }) };
+    }
     if (!source || !source.ownerID || !source.locationID || !itemID) {
       return {
         success: false,
@@ -1286,6 +1311,14 @@ function createItemCustody(options = {}) {
         }),
       };
     }
+    if (ownerTransferLootResult.info && (
+      route !== "local-move" || reason !== CUSTODY_REASON.INV_BROKER_OWNER_TRANSFER ||
+      suppliedQuantity !== null || source.ownerID === destination.ownerID ||
+      source.flagID !== 0 || destination.flagID !== 0 || source.locationID !== destination.locationID ||
+      destinationPatchResult.patch
+    )) {
+      return { success: false, result: buildResultError("ITEM_CUSTODY_ROUTE_NOT_SUPPORTED", { sequence, idempotencyKey }) };
+    }
     if (
       destinationPatchResult.patch &&
       (
@@ -1319,6 +1352,7 @@ function createItemCustody(options = {}) {
         options: {
           ...cloneValue(command.options || {}),
           destinationItemPatch: destinationPatchResult.patch,
+          ownerTransferLootInfo: ownerTransferLootResult.info,
           mergeIntoItemID: mergeIntoItemID || null,
         },
         actor: toPositiveInt(command.actor, 0) || null,
@@ -1329,6 +1363,7 @@ function createItemCustody(options = {}) {
           ? buildLocalReceiptKey(idempotencyKey)
           : null,
         inventoryMoveBatch,
+        finalizeMovedItem,
       },
     };
   }
@@ -1381,6 +1416,10 @@ function createItemCustody(options = {}) {
       destinationItemPatch: cloneValue(
         command.options && command.options.destinationItemPatch,
       ),
+      // Absent inputs keep the exact legacy fingerprint shape so old durable
+      // owner-transfer receipts still replay after this addition.
+      ...(command.options && command.options.ownerTransferLootInfo
+        ? { ownerTransferLootInfo: cloneValue(command.options.ownerTransferLootInfo) } : {}),
     };
   }
 
@@ -1490,6 +1529,7 @@ function createItemCustody(options = {}) {
         const idempotentOptions = {
           receiptKey: command.receiptKey,
           inventoryMoveBatch: command.inventoryMoveBatch,
+          ownerTransferLootInfo: command.options.ownerTransferLootInfo,
           fingerprint: buildLocalMutationFingerprint(command),
           receiptMetadata: {
             itemCustody: {
@@ -1564,6 +1604,7 @@ function createItemCustody(options = {}) {
 
     if (command.route === "local-remove" && command.durable === true) {
       if (command.reason === CUSTODY_REASON.ESS_KEY_CONSUME ||
+          command.reason === CUSTODY_REASON.NATIVE_SPAWN_ROLLBACK ||
           command.reason === CUSTODY_REASON.CHARACTER_RESCULPT_CONSUME ||
           command.reason === CUSTODY_REASON.INDUSTRY_BLUEPRINT_CONSUME ||
           command.reason === CUSTODY_REASON.SKIN_COMPONENT_CONSUME ||
@@ -1604,6 +1645,24 @@ function createItemCustody(options = {}) {
               idempotencyKey: command.idempotencyKey,
               receiptKey: command.receiptKey,
             });
+          }
+          if (command.reason === CUSTODY_REASON.NATIVE_SPAWN_ROLLBACK) {
+            let marker;
+            try { marker = JSON.parse(currentItem.customInfo || "{}").evejsNativeSpawnPending; }
+            catch (_error) { /* a changed marker cannot authorize compensation */ }
+            if (marker?.version !== 1 || marker.actorID !== command.actor ||
+                marker.actorID !== command.source.ownerID || marker.solarSystemID !== command.source.locationID ||
+                command.idempotencyKey !== `gm-spawn-rollback:${marker.batchID}:${command.itemSpec.itemID}` ||
+                !require("../../space/destiny/identity/interactionScope").canEntitiesInteractLocally(currentItem, marker.scope)) {
+              return buildResultError("NATIVE_SPAWN_CUSTODY_CHANGED", {
+                sequence: command.sequence, idempotencyKey: command.idempotencyKey,
+              });
+            }
+            if (itemStore.listContainerItems(null, command.itemSpec.itemID, null).length) {
+              return buildResultError("NATIVE_SPAWN_CONTENTS_PRESENT", {
+                sequence: command.sequence, idempotencyKey: command.idempotencyKey,
+              });
+            }
           }
         }
       }
@@ -1836,6 +1895,7 @@ function createItemCustody(options = {}) {
       ? {
           receiptKey: command.receiptKey,
           inventoryMoveBatch: command.inventoryMoveBatch,
+          ownerTransferLootInfo: command.options.ownerTransferLootInfo,
           fingerprint: buildLocalMutationFingerprint(command),
           receiptMetadata: {
             itemCustody: {
@@ -1864,7 +1924,11 @@ function createItemCustody(options = {}) {
             command.destination.locationID,
             command.destination.flagID,
             command.itemSpec.quantity,
-            { reownContents },
+            {
+              reownContents,
+              ownerTransferLootInfo: command.options.ownerTransferLootInfo,
+              finalizeMovedItem: command.finalizeMovedItem,
+            },
           )
       : command.durable === true
         ? itemStore.moveItemToLocationIdempotent(
@@ -1879,7 +1943,7 @@ function createItemCustody(options = {}) {
             command.destination.locationID,
             command.destination.flagID,
             command.itemSpec.quantity,
-            { inventoryMoveBatch: command.inventoryMoveBatch },
+            { inventoryMoveBatch: command.inventoryMoveBatch, finalizeMovedItem: command.finalizeMovedItem },
           );
     if (!moveResult || moveResult.success !== true) {
       return buildResultError(
@@ -2775,6 +2839,7 @@ function getCommittedReceipt(idempotencyKey, options = {}) {
   }
   const result = store.getIdempotentGrantReceipt(receiptKey, {
     requireDurable: true,
+    reconcileWriteRefusal: options.reconcileWriteRefusal === true,
   });
   if (!result || result.success !== true || !result.found || !result.data) {
     return {
@@ -2798,12 +2863,50 @@ function getCommittedReceipt(idempotencyKey, options = {}) {
   };
 }
 
+/**
+ * Drops the receipts behind these idempotency keys once a saga has finished.
+ *
+ * Only the saga can prove that none of its keys will be replayed, so it calls
+ * this after its own record is gone. A failed retire costs only ledger size.
+ */
+function retireCommittedReceipts(idempotencyKeys, options = {}) {
+  const store = options.itemStore || defaultItemStore;
+  const receiptKeys = (Array.isArray(idempotencyKeys) ? idempotencyKeys : [])
+    .map(buildLocalReceiptKey)
+    .filter(Boolean);
+  return store.retireIdempotentGrantReceipts(receiptKeys);
+}
+
+/**
+ * The scanning form of retireCommittedReceipts, for receipts a saga left behind
+ * before it retired its own (an older build, or a crash between the two). The
+ * predicate sees each custody receipt's idempotency key. It reads the whole
+ * ledger, so run it once, at boot.
+ */
+function pruneCommittedReceipts(isDeadIdempotencyKey, options = {}) {
+  const store = options.itemStore || defaultItemStore;
+  if (typeof isDeadIdempotencyKey !== "function") {
+    return { success: false, removed: 0, errorMsg: "INVALID_RECEIPT_PRUNE_PREDICATE" };
+  }
+  return store.pruneIdempotentGrantReceipts((receipt) => {
+    const custody = receipt && receipt.metadata && receipt.metadata.itemCustody;
+    const idempotencyKey = custody && typeof custody === "object"
+      ? String(custody.idempotencyKey || "")
+      : "";
+    return Boolean(idempotencyKey) &&
+      isDeadIdempotencyKey(idempotencyKey) === true &&
+      String(receipt.receiptKey || "") === buildLocalReceiptKey(idempotencyKey);
+  });
+}
+
 module.exports = {
   CUSTODY_COMMAND_TYPE,
   CUSTODY_REF_KIND,
   CUSTODY_REASON,
   custodyRef,
   getCommittedReceipt,
+  pruneCommittedReceipts,
+  retireCommittedReceipts,
   transfer: authority.transfer,
   getItemCustodyStats: authority.getStats,
   _createItemCustodyForTests: createItemCustody,

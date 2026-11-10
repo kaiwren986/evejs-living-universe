@@ -194,17 +194,24 @@ function notifyCorporationApplicationRejected(
 }
 
 // CorpAppInvitedMsg (typeID 139): the corporation invited the character to join.
-function notifyCorporationApplicationInvited(corporationID, characterID) {
+function notifyCorporationApplicationInvited(
+  corporationID,
+  characterID,
+  invokingCharacterID,
+) {
   const numericCorporationID = normalizePositiveInteger(corporationID, null);
   const numericCharacterID = normalizePositiveInteger(characterID, null);
-  if (!numericCorporationID || !numericCharacterID) {
+  const numericInvokingCharacterID = normalizePositiveInteger(invokingCharacterID, null);
+  if (!numericCorporationID || !numericCharacterID || !numericInvokingCharacterID) {
     return null;
   }
   return deliverCorpAppNotification(
     numericCharacterID,
     NOTIFICATION_TYPE.CORP_APP_INVITED,
     numericCorporationID,
-    buildApplicationNotificationData(numericCorporationID, numericCharacterID),
+    buildApplicationNotificationData(numericCorporationID, numericCharacterID, {
+      invokingCharID: numericInvokingCharacterID,
+    }),
   );
 }
 

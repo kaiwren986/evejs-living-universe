@@ -63,6 +63,9 @@ function notifyEntityAdded(scene, entity, context = {}) {
     require("../../combat/breacherPods").registerSceneEntity(scene, entity);
   });
   if (via === "attach") {
+    runFeature(scene, point, "mobileAnalysisBeacon", () => {
+      require("../../../services/ship/mobileAnalysisBeaconRuntime").restoreShipLinkRestrictions(scene, entity);
+    });
     runFeature(scene, point, "customsInspection", () => {
       const session = context.session || (entity && entity.session) || null;
       if (session) {
@@ -86,6 +89,12 @@ function notifyEntityAdded(scene, entity, context = {}) {
 // before the Ball leaves the scene's maps.
 function notifyEntityRemoved(scene, entity, options = {}, { path: removalPath = "unregister" } = {}) {
   const point = "entityRemoved";
+  runFeature(scene, point, "empireSentries", () => {
+    require("../../npc/empireSecurity/empireSentryRuntime").handleEntityRemoved(scene, entity);
+  });
+  runFeature(scene, point, "appliedProximityEffects", () => {
+    require("../../../services/spaceComponents/appliedProximityEffectsRuntime").handleEntityRemoved(scene, entity);
+  });
   const unregister = removalPath === "unregister";
   const purge = removalPath === "purge";
   const removalOptions = options || {};
@@ -232,6 +241,15 @@ function notifyDisembarking(scene, session, entity) {
 // time.
 function notifySceneDisposing(scene, _options = {}) {
   const point = "sceneDisposing";
+  runFeature(scene, point, "crimewatchCombatActivities", () => {
+    require("../../../services/security/crimewatchState").disposeSceneCombatActivities(scene);
+  });
+  runFeature(scene, point, "empireSentries", () => {
+    require("../../npc/empireSecurity/empireSentryRuntime").disposeScene(scene);
+  });
+  runFeature(scene, point, "appliedProximityEffects", () => {
+    require("../../../services/spaceComponents/appliedProximityEffectsRuntime").disposeScene(scene);
+  });
   runFeature(scene, point, "linkWithShip", () => {
     require("../../../services/spaceComponents/linkWithShipRuntime").disposeScene(scene);
   });
@@ -276,6 +294,12 @@ function notifySceneDisposing(scene, _options = {}) {
 // Docking-approach completion docks a ship its approach flew into range.
 function tickSceneFeatures(scene, _wallclockNowMs) {
   const point = "tick";
+  runFeature(scene, point, "empireSentries", () => {
+    require("../../npc/empireSecurity/empireSentryRuntime").tickScene(scene);
+  });
+  runFeature(scene, point, "appliedProximityEffects", () => {
+    require("../../../services/spaceComponents/appliedProximityEffectsRuntime").tickScene(scene);
+  });
   runFeature(scene, point, "dockingApproach", () => {
     require("../../runtime").completeArrivedDockingApproaches(scene);
   });

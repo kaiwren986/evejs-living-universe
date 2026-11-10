@@ -11,22 +11,38 @@ const { canEntitiesInteractLocally, buildChildEntityScopeMetadata } = require(".
 const { isEntityCloaked, isCloakingModuleEffectState } = require("../../space/runtime/shipCloak");
 const DURATION_MS = 30000;
 const START_INTENT = Symbol("safe-logoff-response-intent");
-const label = suffix => `UI/Inflight/SafeLogoff/${suffix}Body`;
+// Localization labels the client shows (gameui.py: OnSafeLogoffFailed lists each failed
+// condition under UI/Inflight/SafeLogoff/ConditionsFailedHeader, OnSafeLogoffAborted shows one
+// reason). Paths as in the client's localization; a path it does not have shows "[no label]".
+const condition = suffix => `UI/Inflight/SafeLogoff/Condition${suffix}`;
 const LABELS = Object.freeze({
-  ALREADY_IN_PROGRESS: label("SafeLogoffAlreadyInProgress"),
-  PVP_TIMER: label("SafeLogoffCantHavePvpTimer"),
-  PVE_TIMER: label("SafeLogoffCantHavePveTimer"),
-  IN_FLEET: label("SafeLogoffCantBeInAFleet"),
-  CLOAKED: label("SafeLogoffCantBeCloaked"),
-  ACTIVE_MODULES: label("SafeLogoffCantHaveActiveModules"),
-  ACTIVE_PROBES: label("SafeLogoffCantHaveActiveProbes"),
-  DRONES_CONNECTED: label("SafeLogoffCantHaveDronesConnected"),
-  TARGETED: label("SafeLogoffCantBeTargetLocked"),
-  TARGET_LOCKING: label("SafeLogoffCantTargetLock"),
-  MOVEMENT_ACTIVE: label("SafeLogoffCantOrbitOrKeepAtRange"),
-  WARPING: label("SafeLogoffShipCantBeInWarp"),
-  ESS_LINKED: "UI/Inflight/SafeLogoff/ConditionLinkedToESS",
-  ESS_UNLOCKED: "UI/Inflight/SafeLogoff/ConditionUnlockedReserveBank",
+  ALREADY_IN_PROGRESS: "UI/Messages/3876/SafeLogoffAlreadyInProgressBody",
+  PVP_TIMER: condition("PvpTimer"),
+  PVE_TIMER: condition("PveTimer"),
+  IN_FLEET: condition("InFleet"),
+  CLOAKED: condition("Cloaked"),
+  ACTIVE_MODULES: condition("ActiveModules"),
+  ACTIVE_PROBES: condition("ActiveProbes"),
+  DRONES_CONNECTED: condition("DronesConnected"),
+  TARGETED: condition("TargetLocked"),
+  TARGET_LOCKING: condition("TargetLock"),
+  MOVEMENT_ACTIVE: condition("ShipOrbitingOrKeepingAtRange"),
+  WARPING: condition("ShipInWarp"),
+  ESS_LINKED: condition("LinkedToESS"),
+  ESS_UNLOCKED: condition("UnlockedReserveBank"),
+});
+// What a running safe logoff was aborted by (OnSafeLogoffAborted), per condition.
+const ABORT_LABELS = Object.freeze({
+  [LABELS.ACTIVE_MODULES]: "UI/Inflight/SafeLogoff/AbortModuleActivated",
+  [LABELS.MOVEMENT_ACTIVE]: "UI/Inflight/SafeLogoff/AbortShipMovement",
+  [LABELS.TARGET_LOCKING]: "UI/Inflight/SafeLogoff/AbortShipTargeting",
+  [LABELS.TARGETED]: "UI/Inflight/SafeLogoff/AbortShipTargeted",
+  [LABELS.IN_FLEET]: "UI/Inflight/SafeLogoff/AbortInFleet",
+  [LABELS.PVP_TIMER]: "UI/Inflight/SafeLogoff/AbortPvpTimer",
+  [LABELS.PVE_TIMER]: "UI/Inflight/SafeLogoff/AbortNpcTimer",
+  [LABELS.WARPING]: "UI/Inflight/SafeLogoff/AbortShipWarping",
+  [LABELS.CLOAKED]: "UI/Inflight/SafeLogoff/AbortLostCloak",
+  [LABELS.DRONES_CONNECTED]: "UI/Inflight/SafeLogoff/AbortDronesConnected",
 });
 const LABEL_ORDER = Object.values(LABELS);
 function space() { return require("../../space/runtime"); }
@@ -110,7 +126,7 @@ function abort(session, { notify = true, labels = null, reason = LABELS.MOVEMENT
   // the discarded intent, so it cannot resurrect the lease.
   if (notify && record.startedAtMs !== undefined && !session.socket?.destroyed) {
     try {
-      session.sendNotification(labels ? "OnSafeLogoffFailed" : "OnSafeLogoffAborted", "clientID", labels ? [labels] : [reason]);
+      session.sendNotification(labels ? "OnSafeLogoffFailed" : "OnSafeLogoffAborted", "clientID", labels ? [labels] : [ABORT_LABELS[reason] || reason]);
     } catch (error) {
       require("../../utils/logger").warn(`[SafeLogoff] abort notification failed: ${error.message}`);
     }

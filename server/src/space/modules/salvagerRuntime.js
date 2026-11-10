@@ -1448,6 +1448,14 @@ function executeSalvagerCycle({
     return { success: false, stopReason: "range" };
   }
 
+  const missionSalvage = require("../../services/dungeon/missionSalvage");
+  const missionContext = targetEntity.dungeonSiteContentRole === "salvage_objective" ? { scene, sourceEntity: entity, targetEntity, effectState, nowMs,
+    characterID: resolveCharacterID(entity, callbacks),
+    shipItem: callbacks.getEntityRuntimeShipItem?.(entity),
+    locked: callbacks.isEntityLockedTarget?.(entity, targetID) === true } : null;
+  const missionValidation = missionContext ? missionSalvage.validateCycle(missionContext) : { matched: false };
+  if (missionValidation.matched && !missionValidation.success) return { success: false, stopReason: "target" };
+
   const chancePercent = Math.max(0, toFiniteNumber(effectState.salvageChancePercent, 0));
   const messageSession = callbacks.suppressSalvageMessages === true
     ? null
@@ -1474,6 +1482,17 @@ function executeSalvagerCycle({
     : null;
   if (characterID <= 0 || !shipItem) {
     return { success: false, stopReason: "cargo" };
+  }
+
+  if (missionValidation.matched) {
+    const capacity = resolveCargoSnapshot(characterID, shipItem,
+      callbacks.getEntityRuntimeFittedItems?.(entity) || [], callbacks.getEntityRuntimeSkillMap?.(entity));
+    const objectiveVolume = Number(resolveItemByTypeID(27276)?.volume) || 1;
+    if (!capacity || capacity.availableVolume + 1e-6 < objectiveVolume) return { success: false, stopReason: "cargo" };
+    const completed = missionSalvage.completeCycle(missionContext);
+    if (!completed.success) return { success: false, stopReason: "cargo", errorMsg: completed.errorMsg };
+    notifySalvageResult(messageSession, targetEntity, "SalvagingSuccess");
+    return { success: false, stopReason: "target", data: { targetID, salvaged: true, missionObjective: true } };
   }
 
   const fittedItems = callbacks.getEntityRuntimeFittedItems

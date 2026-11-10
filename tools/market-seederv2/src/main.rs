@@ -145,6 +145,8 @@ struct ImportConfig {
 enum OrderFilter {
     AllStation,
     NpcOnly,
+    /// Fourth seed type: authentic NPC stock, with no custom-station liquidity.
+    IronMan,
     PlayerOnly,
     MarketScope,
     MarketScopeWithNpc,
@@ -222,6 +224,7 @@ impl OrderFilter {
         match self {
             Self::AllStation => "all_station",
             Self::NpcOnly => "npc_only",
+            Self::IronMan => "iron_man",
             Self::PlayerOnly => "player_only",
             Self::MarketScope => "market_scope",
             Self::MarketScopeWithNpc => "market_scope_with_npc",
@@ -232,6 +235,7 @@ impl OrderFilter {
         match self {
             Self::AllStation => "all valid station orders",
             Self::NpcOnly => "NPC station orders only",
+            Self::IronMan => "Iron Man: authentic NPC station orders only",
             Self::PlayerOnly => "player station orders only",
             Self::MarketScope => "market-scope station orders only",
             Self::MarketScopeWithNpc => "market-scope station orders plus NPC station stock",
@@ -556,9 +560,12 @@ fn build_database(config: &SeederConfig, args: BuildArgs) -> Result<()> {
     if order_filter.uses_market_scope() && market_solar_system_ids.is_empty() {
         bail!("market-scope import modes require at least one market_solar_system_ids value");
     }
-    let npc_order_duration_threshold_days = args
-        .npc_order_duration_threshold_days
-        .unwrap_or(config.import.npc_order_duration_threshold_days);
+    let npc_order_duration_threshold_days = if order_filter == OrderFilter::IronMan {
+        default_npc_order_duration_threshold_days()
+    } else {
+        args.npc_order_duration_threshold_days
+            .unwrap_or(config.import.npc_order_duration_threshold_days)
+    };
     print_import_filter(
         order_filter,
         &market_solar_system_ids,
@@ -1141,6 +1148,14 @@ fn import_station_orders(
     custom_station: Option<&CustomStationConfig>,
     reference_solar_system_id: u32,
 ) -> Result<ImportStats> {
+    // Iron Man is a strict preset, even with an existing v2 config or CLI overrides.
+    // Never relocate stock or let a lowered threshold admit normal player orders.
+    let (npc_order_duration_threshold_days, custom_station) =
+        if order_filter == OrderFilter::IronMan {
+            (default_npc_order_duration_threshold_days(), None)
+        } else {
+            (npc_order_duration_threshold_days, custom_station)
+        };
     println!(
         "{} streaming station-only orders from {}",
         style("[import]").cyan().bold(),
@@ -1209,7 +1224,7 @@ fn import_station_orders(
 
         if !accept_order(order_filter, is_npc_order, is_market_scope_order) {
             match order_filter {
-                OrderFilter::NpcOnly => {
+                OrderFilter::NpcOnly | OrderFilter::IronMan => {
                     stats.player_orders_filtered += 1;
                 }
                 OrderFilter::PlayerOnly => {
@@ -1531,7 +1546,7 @@ fn accept_order(
 ) -> bool {
     match order_filter {
         OrderFilter::AllStation => true,
-        OrderFilter::NpcOnly => is_npc_order,
+        OrderFilter::NpcOnly | OrderFilter::IronMan => is_npc_order,
         OrderFilter::PlayerOnly => !is_npc_order,
         OrderFilter::MarketScope => is_market_scope_order,
         OrderFilter::MarketScopeWithNpc => is_market_scope_order || is_npc_order,
@@ -2007,6 +2022,160 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn iron_man_cli_and_config_are_selectable() {
+        let cli = Cli::try_parse_from([
+            "market-seederv2",
+            "build",
+            "--order-filter",
+            "iron-man",
+            "--yes",
+        ])
+        .unwrap();
+        let Command::Build(args) = cli.command else {
+            panic!("expected build")
+        };
+        assert_eq!(args.order_filter, Some(OrderFilter::IronMan));
+        let config: SeederConfig = toml::from_str("[import]\norder_filter = 'iron_man'").unwrap();
+        assert_eq!(config.import.order_filter, OrderFilter::IronMan);
+        // Docker appends the strict filter: a conflicting caller filter must fail closed.
+        assert!(
+            Cli::try_parse_from([
+                "market-seederv2",
+                "build",
+                "--order-filter",
+                "all-station",
+                "--order-filter",
+                "iron-man",
+            ])
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn iron_man_import_preserves_npc_book_and_blocks_player_and_custom_stock() -> Result<()> {
+        use bzip2::{Compression, write::BzEncoder};
+        let snapshot_path = env::temp_dir().join(format!(
+            "evejs-iron-man-{}-{}.csv.bz2",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_nanos()
+        ));
+        struct SnapshotGuard(PathBuf);
+        impl Drop for SnapshotGuard {
+            fn drop(&mut self) {
+                let _ = fs::remove_file(&self.0);
+            }
+        }
+        let _guard = SnapshotGuard(snapshot_path.clone());
+        let mut snapshot = BzEncoder::new(File::create(&snapshot_path)?, Compression::fast());
+        writeln!(
+            snapshot,
+            "is_buy_order,duration,location_id,price,system_id,type_id,volume_remain,http_last_modified,station_id,region_id,constellation_id"
+        )?;
+        // NPC skillbook, BPO, command center and trade-good buyback. The player
+        // offers deliberately beat the NPC prices so filtering must precede collapse.
+        for (buy, duration, station, price, type_id, quantity) in [
+            (false, 365, 60003760, 100.0, 3300, 50),
+            (false, 365, 60000100, 200.0, 683, 60),
+            (false, 365, 60000100, 300.0, 14854, 70),
+            (true, 365, 60000100, 10.0, 42, 80),
+            (false, 90, 60003760, 1.0, 3300, 900),
+            (true, 90, 60000100, 999.0, 42, 900),
+            (false, 1, 60003760, 1.0, 34, 900),
+            (false, 90, 60003760, 1.0, 587, 900),
+            // Unknown station / player structure must stay out even at NPC duration.
+            (false, 365, 99999999, 1.0, 3300, 900),
+        ] {
+            writeln!(
+                snapshot,
+                "{buy},{duration},{station},{price},30000142,{type_id},{quantity},2026-11-02T00:00:00Z,{station},10000002,20000020"
+            )?;
+        }
+        snapshot.finish()?;
+        let data = StaticData {
+            regions: vec![],
+            solar_systems: vec![],
+            item_types: vec![],
+            stations: vec![StationRecord {
+                station_id: 60014951,
+                solar_system_id: 30000142,
+                constellation_id: 20000020,
+                region_id: 10000002,
+                region_name: "test".into(),
+                station_name: "custom".into(),
+                security: 1.0,
+            }],
+            station_ids: BTreeSet::from([60003760, 60000100, 60014951]),
+            market_type_ids: BTreeSet::from([3300, 683, 14854, 42, 34, 587]),
+        };
+        let custom = CustomStationConfig {
+            station_id: 60014951,
+            reference_solar_system_id: JITA_SYSTEM_ID,
+            quantity: 1000000,
+        };
+        let mut db = Connection::open_in_memory()?;
+        db.execute_batch(SCHEMA_SQL)?;
+        // A lowered threshold and active custom station must not weaken Iron Man.
+        let stats = import_station_orders(
+            &mut db,
+            &data,
+            &snapshot_path,
+            100,
+            None,
+            OrderFilter::IronMan,
+            &BTreeSet::from([JITA_SYSTEM_ID]),
+            0,
+            Some(&custom),
+            JITA_SYSTEM_ID,
+        )?;
+        assert_eq!(stats.npc_station_orders, 4);
+        assert_eq!(stats.player_station_orders, 0);
+        assert_eq!(stats.player_orders_filtered, 4);
+        assert_eq!(stats.structure_orders_dropped, 1);
+        assert_eq!(
+            stats.custom_station_sell_rows + stats.custom_station_buy_rows,
+            0
+        );
+        let mut stmt = db.prepare(
+            "SELECT station_id, type_id, price, quantity FROM seed_stock ORDER BY type_id",
+        )?;
+        let sells = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, u64>(0)?,
+                    row.get::<_, u32>(1)?,
+                    row.get::<_, f64>(2)?,
+                    row.get::<_, u64>(3)?,
+                ))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        assert_eq!(
+            sells,
+            vec![
+                (60000100, 683, 200.0, 60),
+                (60003760, 3300, 100.0, 50),
+                (60000100, 14854, 300.0, 70)
+            ]
+        );
+        let buy = db.query_row(
+            "SELECT station_id, type_id, price, quantity FROM seed_buy_orders",
+            [],
+            |row| {
+                Ok((
+                    row.get::<_, u64>(0)?,
+                    row.get::<_, u32>(1)?,
+                    row.get::<_, f64>(2)?,
+                    row.get::<_, u64>(3)?,
+                ))
+            },
+        )?;
+        assert_eq!(buy, (60000100, 42, 10.0, 80));
+        assert_eq!(count_rows(&db, "market_orders")?, 0);
+        Ok(())
+    }
 
     #[test]
     fn market_scope_with_npc_accepts_scope_rows_and_npc_overlay() {

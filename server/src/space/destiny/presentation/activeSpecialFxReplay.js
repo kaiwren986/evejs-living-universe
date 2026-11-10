@@ -92,6 +92,15 @@ function buildReplayPolicyOptions(options, nowMs) {
   };
 }
 
+// A decorative effect can build its own replay (the moon drill's effect,
+// moonMiningSpaceRuntime.js): its options, sent from `sourceEntityID` when
+// that is another Ball than the one carrying the effect.
+function buildCustomReplayFxOptions(effectState, nowMs, scene) {
+  return effectState && typeof effectState.buildReplayFxOptions === "function"
+    ? effectState.buildReplayFxOptions(nowMs, scene) || null
+    : null;
+}
+
 // Decorative scene effects share acquisition/reconnect presentation with
 // module effects, without entering the economic module-cycle scheduler.
 function effectStates(entity) {
@@ -183,10 +192,17 @@ function buildFreshAcquireActiveSpecialFxReplayUpdates(options = {}) {
       ) {
         continue;
       }
+      const customReplayOptions = buildCustomReplayFxOptions(
+        effectState,
+        nowMs,
+        options.scene || null,
+      );
       const payloadResult = buildSpecialFxPayloadsForEntity(
-        entity.itemID,
+        customReplayOptions
+          ? effectState.sourceEntityID || entity.itemID
+          : entity.itemID,
         effectState.guid,
-        superweaponReplayOptions || {
+        customReplayOptions || superweaponReplayOptions || {
           moduleID: effectState.moduleID,
           moduleTypeID: effectState.typeID,
           targetID: effectState.targetID || null,
@@ -281,10 +297,17 @@ function buildActiveSpecialFxEffectStateEntriesForSetState(options = {}) {
       ) {
         continue;
       }
+      const customReplayOptions = buildCustomReplayFxOptions(
+        effectState,
+        nowMs,
+        options.scene || null,
+      );
       const payloadResult = buildSpecialFxPayloadsForEntity(
-        entity.itemID,
+        customReplayOptions
+          ? effectState.sourceEntityID || entity.itemID
+          : entity.itemID,
         effectState.guid,
-        superweaponOptions || {
+        customReplayOptions || superweaponOptions || {
           moduleID: effectState.moduleID,
           moduleTypeID: effectState.typeID,
           targetID: effectState.targetID || null,

@@ -28,6 +28,7 @@ const {
   STRUCTURE_SETTING_ID,
 } = require(path.join(__dirname, "./structureServiceAuthority"));
 const structureState = require(path.join(__dirname, "./structureState"));
+const { notifyDockingAccessChangedForStructures } = require("./structureAccessNotifications");
 
 const TABLE_NAME = "structureProfiles";
 const ROOT_VERSION = 1;
@@ -600,6 +601,9 @@ function updateProfileForCorporation(corporationID, profileID, updates = {}) {
     return null;
   }
 
+  const accessSnapshot = snapshotDockingAccessForStructures(
+    structureState.listOwnedStructures(numericCorporationID, { refresh: false }),
+  );
   profile.name = buildUniqueProfileName(
     root,
     numericCorporationID,
@@ -612,6 +616,7 @@ function updateProfileForCorporation(corporationID, profileID, updates = {}) {
   );
   profile.updatedAt = new Date().toISOString();
   writeRoot(root);
+  notifyStructureAccessChanged(accessSnapshot);
   return cloneValue(profile);
 }
 
@@ -648,10 +653,14 @@ function setDefaultProfileForCorporation(corporationID, profileID) {
     return null;
   }
 
+  const accessSnapshot = snapshotDockingAccessForStructures(
+    structureState.listOwnedStructures(numericCorporationID, { refresh: false }),
+  );
   clearDefaultFlagForCorporation(root, numericCorporationID);
   targetProfile.isDefault = true;
   targetProfile.updatedAt = new Date().toISOString();
   writeRoot(root);
+  notifyStructureAccessChanged(accessSnapshot);
   return cloneValue(targetProfile);
 }
 
@@ -668,6 +677,9 @@ function deleteProfileForCorporation(corporationID, profileID) {
     return false;
   }
 
+  const accessSnapshot = snapshotDockingAccessForStructures(
+    structureState.listOwnedStructures(numericCorporationID, { refresh: false }),
+  );
   delete root.profilesByID[String(numericProfileID)];
   const remainingProfiles = listProfileRecordsForCorporation(root, numericCorporationID)
     .sort(compareProfiles);
@@ -682,7 +694,11 @@ function deleteProfileForCorporation(corporationID, profileID) {
     remainingProfiles[0].isDefault = true;
     remainingProfiles[0].updatedAt = new Date().toISOString();
   }
-  return writeRoot(root);
+  const saved = writeRoot(root);
+  if (saved) {
+    notifyStructureAccessChanged(accessSnapshot);
+  }
+  return saved;
 }
 
 function normalizeSavedProfileSettings(value) {
@@ -737,7 +753,7 @@ function saveProfileSettingsForCorporation(corporationID, profileID, settings = 
   profile.settingsBySettingID = normalizeSavedProfileSettings(settings);
   profile.updatedAt = new Date().toISOString();
   writeRoot(root);
-  notifyLostDockingAccessFromSnapshot(dockingAccessSnapshot, affectedStructures);
+  notifyStructureAccessChanged(dockingAccessSnapshot, affectedStructures);
   return cloneValue(profile);
 }
 
@@ -783,7 +799,7 @@ function assignProfileToStructuresForCorporation(corporationID, profileID, struc
       updatedStructures.push(updateResult.data);
     }
   }
-  notifyLostDockingAccessFromSnapshot(dockingAccessSnapshot, updatedStructures);
+  notifyStructureAccessChanged(dockingAccessSnapshot, updatedStructures);
 
   return {
     profileID: resolvedProfileID,
@@ -930,6 +946,33 @@ function snapshotDockingAccessForStructures(structures) {
   return snapshot;
 }
 
+function snapshotDockingAccessForGroup(groupID) {
+  const numericGroupID = toPositiveInt(groupID, 0);
+  if (!numericGroupID) {
+    return new Map();
+  }
+  const affectedStructures = structureState.peekStructures().filter((structure) => {
+    const profile = getProfileForStructure(structure);
+    return Object.values(profile && profile.settingsBySettingID || {}).some((groups) => (
+      groups.some((entry) => toInt(entry.groupID, 0) === numericGroupID)
+    ));
+  });
+  return snapshotDockingAccessForStructures(affectedStructures);
+}
+
+// ACL RPCs call this only after both accessGroups and bookmarkGroups are
+// updated, including deletion (which otherwise exposes the old mirrored list).
+function notifyStructureAccessChanged(accessSnapshot, nextStructures = null) {
+  if (!(accessSnapshot instanceof Map) || accessSnapshot.size === 0) {
+    return;
+  }
+  const structures = nextStructures || [...accessSnapshot.values()]
+    .map(({ structure }) => structureState.getStructureByID(structure.structureID, { refresh: false }))
+    .filter(Boolean);
+  notifyLostDockingAccessFromSnapshot(accessSnapshot, structures);
+  notifyDockingAccessChangedForStructures(structures);
+}
+
 function createStructureLostDockingAccessNotification(characterID, structure) {
   const notificationTypeID = NOTIFICATION_TYPE.STRUCTURE_LOST_DOCKING_ACCESS;
   if (!notificationTypeID || !characterID || !structure) {
@@ -971,7 +1014,7 @@ function isDefaultOwnerCorporationFallback(context) {
     ? context.corporationProfiles
     : [];
   if (!profile) {
-    return corporationProfiles.length === 0 && toPositiveInt(context && context.requestedProfileID, 0) > 0;
+    return corporationProfiles.length === 0 && toPositiveInt(context && context.requestedProfileID, 0) === 1;
   }
   return (
     profile.isDefault === true &&
@@ -1023,7 +1066,10 @@ function getProfileSettingResolutionForStructure(structure, settingID, options =
         defaultOwnerCorporationFallback: true,
       };
     }
-    return emptyResolution;
+    return {
+      ...emptyResolution,
+      configured: toPositiveInt(context.requestedProfileID, 0) > 0,
+    };
   }
 
   const settingGroups = profile.settingsBySettingID[String(normalizedSettingID)];
@@ -1094,5 +1140,7 @@ module.exports = {
   getProfileSettingResolutionForStructure,
   structureProfileSettingAllowsSession,
   getProfileSettingValueForStructure,
+  snapshotDockingAccessForGroup,
+  notifyStructureAccessChanged,
   resetStructureProfilesStateForTests,
 };

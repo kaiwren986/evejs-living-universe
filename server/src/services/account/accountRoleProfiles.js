@@ -242,6 +242,7 @@ module.exports = {
   ROLE_GML,
   ROLE_PROGRAMMER,
   ROLE_QA,
+  ROLE_WORLDMOD,
   ROLEMASK_VIEW,
   SESSION_BASE_ROLE_MASK,
   buildPersistedAccountRoleRecord,

@@ -69,6 +69,7 @@ const probeScanWarpAuthority = require(path.join(
 ));
 const probeRuntimeState = require(path.join(__dirname, "./probes/probeRuntimeState"));
 const probeSceneRuntime = require(path.join(__dirname, "./probes/probeSceneRuntime"));
+const { isEntityCloaked } = require(path.join(__dirname, "../../space/runtime/shipCloak"));
 const commandBurstRuntime = require(path.join(
   __dirname,
   "../../space/modules/commandBurstRuntime",
@@ -514,6 +515,9 @@ function isEntityDirectionalScanCandidate(entity, egoEntity) {
   if (itemID <= 0 || itemID === normalizeNumber(egoEntity && egoEntity.itemID, 0)) {
     return false;
   }
+  if (isEntityCloaked(entity)) {
+    return false;
+  }
 
   const typeID = normalizeNumber(entity && entity.typeID, 0);
   const groupID = normalizeNumber(entity && entity.groupID, 0);
@@ -702,16 +706,43 @@ function ensureSignalTrackerRefresh(systemID, characterID) {
   }
 }
 
-function buildCachedSignalTrackerFullState(systemID) {
+// The session's private mission sites (privateMissionAnomalies.js), anomalies and signatures,
+// remembered as sent so later changes go out as deltas (notifyPrivateMissionAnomaliesForCharacter).
+const PRIVATE_SITE_KINDS = {
+  anomaly: { fullStateIndex: 0, build: (systemID, characterID) => signatureRuntime.buildPrivateAnomalyEntries(systemID, characterID) },
+  signature: { fullStateIndex: 1, build: (systemID, characterID) => signatureRuntime.buildPrivateSignatureEntries(systemID, characterID) },
+};
+function takePrivateSiteEntries(session, systemID, kind) {
+  const characterID = normalizeNumber(session && (session.characterID || session.charid), 0);
+  const entries = characterID > 0
+    ? new Map(PRIVATE_SITE_KINDS[kind].build(systemID, characterID))
+    : new Map();
+  if (session) {
+    const numericSystemID = normalizeNumber(systemID, 0);
+    if (!session._privateMissionSites || session._privateMissionSites.systemID !== numericSystemID) {
+      session._privateMissionSites = { systemID: numericSystemID, anomaly: new Map(), signature: new Map() };
+    }
+    session._privateMissionSites[kind] = entries;
+  }
+  return entries;
+}
+const privateEntriesForFullState = (session, systemID, index) => Object.entries(PRIVATE_SITE_KINDS)
+  .filter(([, kind]) => session && kind.fullStateIndex === index)
+  .flatMap(([name]) => [...takePrivateSiteEntries(session, systemID, name).entries()]);
+
+function buildCachedSignalTrackerFullState(systemID, session = null) {
   return [
     anomalySnapshotBySystemID,
     signatureSnapshotBySystemID,
     staticSiteSnapshotBySystemID,
     structureSnapshotBySystemID,
-  ].map((snapshots) => buildDict([...(snapshots.get(systemID) || new Map()).entries()]));
+  ].map((snapshots, index) => buildDict([
+    ...(snapshots.get(systemID) || new Map()).entries(),
+    ...privateEntriesForFullState(session, systemID, index),
+  ]));
 }
 
-function buildLiveSignalTrackerFullState(systemID, options = {}) {
+function buildLiveSignalTrackerFullState(systemID, options = {}, session = null) {
   // GetFullState is a direct read, so it answers from the live sites as the
   // retail tracker does. It uses the refresh builders, so the reply matches
   // what the next published generation holds.
@@ -720,7 +751,77 @@ function buildLiveSignalTrackerFullState(systemID, options = {}) {
     buildSignatureEntryMap,
     buildStaticSiteEntryMap,
     buildStructureEntryMap,
-  ].map((buildEntries) => buildDict([...buildEntries(systemID, options).entries()]));
+  ].map((buildEntries, index) => buildDict([
+    ...buildEntries(systemID, options).entries(),
+    ...privateEntriesForFullState(session, systemID, index),
+  ]));
+}
+
+// A character's private mission sites changed (a mission site created or ended): send the
+// difference to that character's registered signal tracker, as the shared deltas do.
+function notifyPrivateMissionAnomaliesForCharacter(characterID) {
+  const numericCharacterID = normalizeNumber(characterID, 0);
+  if (numericCharacterID <= 0) {
+    return;
+  }
+  const session = require(path.join(__dirname, "../chat/sessionRegistry")).findSessionByCharacterID(numericCharacterID);
+  const systemID = normalizeNumber(session && (session.solarsystemid2 || session.solarsystemid), 0);
+  if (
+    systemID > 0 &&
+    getRegisteredSessionsForSystem(systemID).includes(session) &&
+    canSignalTrackerSessionReceiveSystem(session, systemID)
+  ) {
+    for (const kind of Object.keys(PRIVATE_SITE_KINDS)) {
+      const previous = session._privateMissionSites && session._privateMissionSites.systemID === systemID
+        ? session._privateMissionSites[kind]
+        : new Map();
+      const current = takePrivateSiteEntries(session, systemID, kind);
+      const added = [...current.entries()].filter(([siteID]) => !previous.has(siteID));
+      const removed = [...previous.keys()].filter((siteID) => !current.has(siteID));
+      if (added.length <= 0 && removed.length <= 0) {
+        continue;
+      }
+      session.sendNotification(
+        kind === "anomaly" ? "OnSignalTrackerAnomalyUpdate" : "OnSignalTrackerSignatureUpdate",
+        "charid",
+        [systemID, buildDict(added), buildPythonSet(removed)],
+      );
+      if (kind === "anomaly") {
+        for (const [, siteInfo] of added) {
+          sendLegacyCosmicAnomalyAdded(session, siteInfo);
+        }
+        for (const siteID of removed) {
+          sendLegacyCosmicAnomalyRemoved(session, siteID, previous.get(siteID), systemID);
+        }
+        if (added.length > 0) {
+          sendPrivateAnomalyScanRefresh(session);
+        }
+      } else {
+        for (const [, siteInfo] of added) {
+          sendLegacyCosmicSignatureAdded(session, siteInfo);
+        }
+      }
+    }
+  }
+}
+
+// The client's Probe Scan objective task (ScanSignatureTask) reads the scan results only when
+// it starts and on OnSystemScanDone. A private anomaly that arrives after the task started is
+// in the results (the sensor suite injects it synchronously) but the task never looks again,
+// so it stays at 0.0%. A bare OnSystemScanDone, sent after the site, makes it re-read; no
+// scan runs and nothing plays.
+function sendPrivateAnomalyScanRefresh(session) {
+  if (session && typeof session.sendNotification === "function") {
+    session.sendNotification("OnSystemScanDone", "charid", []);
+  }
+}
+
+function hasPrivateAnomalyEntries(session) {
+  return Boolean(
+    session &&
+    session._privateMissionSites &&
+    session._privateMissionSites.anomaly.size > 0,
+  );
 }
 
 function mergeSignalTrackerRefreshOptions(previous, next) {
@@ -803,7 +904,6 @@ async function runSignalTrackerRefresh(systemID, refresh) {
       signatureSnapshotBySystemID.set(systemID, snapshots[1]);
       staticSiteSnapshotBySystemID.set(systemID, snapshots[2]);
       structureSnapshotBySystemID.set(systemID, snapshots[3]);
-      const fullState = buildCachedSignalTrackerFullState(systemID);
       // Only characters waiting for their first full state receive this
       // generation, unless an explicit overlay refresh asked for everyone.
       const broadcast = refresh.broadcast === true;
@@ -822,12 +922,15 @@ async function runSignalTrackerRefresh(systemID, refresh) {
         if (!canSignalTrackerSessionReceiveSystem(session, systemID)) {
           continue;
         }
-        const payload = [systemID, fullState];
+        const payload = [systemID, buildCachedSignalTrackerFullState(systemID, session)];
         if (options.shouldRemoveOldSites === true) {
           payload.push(true);
         }
         try {
           session.sendNotification("OnSignalTrackerFullState", "charid", payload);
+          if (hasPrivateAnomalyEntries(session)) {
+            sendPrivateAnomalyScanRefresh(session);
+          }
         } catch (error) {
           log.error(`[ScanMgr] Signal tracker notification failed for ${systemID}: ${error.stack || error}`);
         }
@@ -1616,7 +1719,7 @@ function buildSignalTrackerFullStateForSession(session, systemID, options = {}) 
   if (restriction && restriction.blocked === true) {
     return buildEmptySignalTrackerFullState();
   }
-  return buildLiveSignalTrackerFullState(systemID, options);
+  return buildLiveSignalTrackerFullState(systemID, options, session);
 }
 
 function clearPendingProbeScanStop(session) {
@@ -2352,8 +2455,11 @@ class ScanMgrService extends BaseService {
             "OnSignalTrackerFullState",
             "charid",
             // The receive check above already applied the Abyssal restriction.
-            [systemID, buildCachedSignalTrackerFullState(systemID)],
+            [systemID, buildCachedSignalTrackerFullState(systemID, notificationSession)],
           );
+          if (hasPrivateAnomalyEntries(notificationSession)) {
+            sendPrivateAnomalyScanRefresh(notificationSession);
+          }
         }
       });
     }
@@ -3051,6 +3157,34 @@ ScanMgrService._testing = {
 };
 
 ScanMgrService.notifyAnomalyDeltaForSystem = notifyAnomalyDeltaForSystem;
+ScanMgrService.notifyPrivateMissionAnomaliesForCharacter = notifyPrivateMissionAnomaliesForCharacter;
+
+// A private mission anomaly appears with its site and goes with it (mission accepted, completed,
+// declined, expired): tell its owner's signal tracker.
+require(path.join(__dirname, "../dungeon/dungeonRuntime")).registerInstanceChangeListener((change) => {
+  const changeType = String(change && change.changeType || "");
+  const before = change && change.before;
+  const after = change && change.after;
+  if (
+    changeType !== "created" &&
+    changeType !== "removed" &&
+    (before && before.lifecycleState) === (after && after.lifecycleState)
+  ) {
+    return;
+  }
+  const instance = after || before;
+  const ownership = instance && instance.ownership;
+  if (!ownership || ownership.visibilityScope !== "private") {
+    return;
+  }
+  const template = require(path.join(__dirname, "../dungeon/dungeonAuthority")).getTemplateByID(instance.templateID);
+  if (!template || !template.populationHints || !PRIVATE_SITE_KINDS[template.populationHints.privateScannerSite]) {
+    return;
+  }
+  setImmediate(() => notifyPrivateMissionAnomaliesForCharacter(
+    normalizeNumber(ownership.missionOwnerCharacterID, normalizeNumber(ownership.characterID, 0)),
+  ));
+});
 ScanMgrService.notifySignatureDeltaForSystem = notifySignatureDeltaForSystem;
 ScanMgrService.notifyStructureDeltaForSystem = notifyStructureDeltaForSystem;
 

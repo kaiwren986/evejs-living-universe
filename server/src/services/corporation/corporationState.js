@@ -267,6 +267,9 @@ function normalizeCorporationTable(payload = {}) {
 
 function normalizeAllianceTable(payload = {}) {
   return {
+    ...(payload.affiliationChangesByCorporation ? {
+      affiliationChangesByCorporation: cloneValue(payload.affiliationChangesByCorporation),
+    } : {}),
     _meta: {
       nextCustomAllianceID: normalizePositiveInteger(
         payload && payload._meta && payload._meta.nextCustomAllianceID,
@@ -551,6 +554,45 @@ function readStations() {
   return Array.isArray(result.data.stations) ? result.data.stations : [];
 }
 
+// A corporation row's stationID is a headquarters *NPC station*: the client
+// resolves it through stationSvc and reads station.stationTypeID from the
+// result, so any other location (a structure, in particular) makes the client's
+// corporation home page throw and spin forever. A character's home station may
+// legitimately be a structure, so this value has to be filtered every time it is
+// copied from a character into a corporation.
+let npcStationCache = null;
+
+function getNpcStationCache() {
+  if (!npcStationCache || npcStationCache.size === 0) {
+    const cache = new Map();
+    for (const stationRecord of readStations()) {
+      const stationID = normalizePositiveInteger(
+        stationRecord && stationRecord.stationID,
+        0,
+      );
+      if (!stationID) {
+        continue;
+      }
+      cache.set(
+        stationID,
+        normalizePositiveInteger(stationRecord.solarSystemID, 0) || null,
+      );
+    }
+    npcStationCache = cache;
+  }
+  return npcStationCache;
+}
+
+function resolveCorporationStationID(value) {
+  const stationID = normalizePositiveInteger(value, 0);
+  return stationID && getNpcStationCache().has(stationID) ? stationID : null;
+}
+
+function getNpcStationSolarSystemID(value) {
+  const stationID = resolveCorporationStationID(value);
+  return stationID ? getNpcStationCache().get(stationID) || null : null;
+}
+
 function buildTickerFromName(name, fallback = "CORP") {
   const text = String(name || "")
     .replace(/[^A-Za-z0-9 ]+/g, " ")
@@ -714,6 +756,19 @@ function ensureCorporationsInitialized() {
   return table;
 }
 
+function recoverAllianceAffiliations(table, corporationID = null) {
+  const recovered = require("./allianceAffiliationSettlement").reconcile(corporationID);
+  if (!recovered.success) throw new Error(recovered.errorMsg || "ALLIANCE_AFFILIATION_PENDING");
+  if (!table) return null;
+  const current = database.read(ALLIANCES_TABLE, "/").data;
+  if (!current || current === table) return table;
+  // Cold initialization may have supplied defaults absent from an empty store.
+  // Recovery can replace the cache root, but must not discard those defaults.
+  return { ...table, ...current, records: current.records || table.records,
+    _meta: { ...table._meta, ...current._meta,
+      nextCustomAllianceID: normalizePositiveInteger(current._meta?.nextCustomAllianceID, table._meta.nextCustomAllianceID) } };
+}
+
 function ensureAlliancesInitialized() {
   if (alliancesBootstrapComplete) {
     const table = readTableView(ALLIANCES_TABLE, {
@@ -724,9 +779,12 @@ function ensureAlliancesInitialized() {
     });
     table._meta =
       table._meta && typeof table._meta === "object" ? table._meta : {};
+    table._meta.nextCustomAllianceID = normalizePositiveInteger(
+      table._meta.nextCustomAllianceID, CUSTOM_ALLIANCE_ID_START,
+    );
     table.records =
       table.records && typeof table.records === "object" ? table.records : {};
-    return table;
+    return recoverAllianceAffiliations(table);
   }
 
   const table = normalizeAllianceTable(
@@ -750,7 +808,7 @@ function ensureAlliancesInitialized() {
   }
 
   alliancesBootstrapComplete = true;
-  return table;
+  return recoverAllianceAffiliations(table);
 }
 
 function getCharacterIDsInCorporation(corporationID) {
@@ -764,7 +822,7 @@ function getCharacterIDsInCorporation(corporationID) {
   );
 }
 
-function resetCorporationMembersIndexForTests() {
+function invalidateAffiliationIndexes() {
   markCorporationMembersIndexDirty();
   allianceCorporationsIndexDirty = true;
   allianceCorporationsIndexCache = null;
@@ -790,6 +848,7 @@ function getCorporationRecord(corporationID) {
   }
 
   ensureCorporationsInitialized();
+  recoverAllianceAffiliations(null, numericCorporationID);
   const result = database.read(
     CORPORATIONS_TABLE,
     `/records/${String(numericCorporationID)}`,
@@ -1148,7 +1207,7 @@ function getCorporationPublicInfo(corporationID) {
     ),
     allianceID: normalizePositiveInteger(record.allianceID, null),
     description: record.description || "",
-    stationID: normalizePositiveInteger(record.stationID, null),
+    stationID: resolveCorporationStationID(record.stationID),
     solarSystemID: toPublicSolarSystemID(record.solarSystemID, null),
     shares: normalizeInteger(record.shares, 0),
     deleted: record.deleted ? 1 : 0,
@@ -1360,6 +1419,17 @@ function setCharacterAffiliation(characterID, corporationID, allianceID = null) 
     };
   }
 
+  // Shared bookmark folders granted through the corporation or alliance go away
+  // with the membership; the pilot's client keeps them until told
+  // (OnSharedBookmarksFoldersAccessLost / AccessChanged).
+  let bookmarkAccessBefore = null;
+  try {
+    bookmarkAccessBefore = require("../bookmark/bookmarkNotifications")
+      .captureFolderAccess({ characterIDs: [numericCharacterID] });
+  } catch (error) {
+    require(path.join(__dirname, "../../utils/logger")).debug(`[CorporationState] bookmark access snapshot failed char=${numericCharacterID}: ${error.message}`);
+  }
+
   let stagedCareer = false;
   const updateResult = updateCharacterStateRecord(numericCharacterID, (record) => {
     // Replayed membership transitions must flush evidence left in the cache by
@@ -1425,107 +1495,19 @@ function setCharacterAffiliation(characterID, corporationID, allianceID = null) 
       require("../career/careerEventLedger").publishCommitted(numericCharacterID);
     }
     markCorporationMembersIndexDirty();
+    if (bookmarkAccessBefore && bookmarkAccessBefore.size > 0) {
+      try {
+        require("../bookmark/bookmarkNotifications").notifyFolderAccessChanges(bookmarkAccessBefore);
+      } catch (error) {
+        require(path.join(__dirname, "../../utils/logger")).debug(`[CorporationState] bookmark access notice failed char=${numericCharacterID}: ${error.message}`);
+      }
+    }
   }
   return updateResult;
 }
 
 function setCorporationAlliance(corporationID, allianceID = null) {
-  const corporationRecord = getCorporationRecord(corporationID);
-  if (!corporationRecord) {
-    return {
-      success: false,
-      errorMsg: "CORPORATION_NOT_FOUND",
-    };
-  }
-
-  const normalizedAllianceID = normalizePositiveInteger(allianceID, null);
-  const previousAllianceID = normalizePositiveInteger(
-    corporationRecord.allianceID,
-    null,
-  );
-  const alliances = ensureAlliancesInitialized();
-
-  if (previousAllianceID && alliances.records[String(previousAllianceID)]) {
-    const previousAllianceRecord = cloneValue(
-      alliances.records[String(previousAllianceID)],
-    );
-    previousAllianceRecord.memberCorporationIDs = (
-      Array.isArray(previousAllianceRecord.memberCorporationIDs)
-        ? previousAllianceRecord.memberCorporationIDs
-        : []
-    ).filter(
-      (memberCorporationID) =>
-        normalizePositiveInteger(memberCorporationID, 0) !==
-        corporationRecord.corporationID,
-    );
-    alliances.records[String(previousAllianceID)] = previousAllianceRecord;
-  }
-
-  if (normalizedAllianceID) {
-    const targetAllianceRecord = alliances.records[String(normalizedAllianceID)];
-    if (!targetAllianceRecord) {
-      return {
-        success: false,
-        errorMsg: "ALLIANCE_NOT_FOUND",
-      };
-    }
-
-    const memberCorporationIDs = new Set(
-      (
-        Array.isArray(targetAllianceRecord.memberCorporationIDs)
-          ? targetAllianceRecord.memberCorporationIDs
-          : []
-      )
-        .map((memberCorporationID) => normalizePositiveInteger(memberCorporationID, 0))
-        .filter(Boolean),
-    );
-    memberCorporationIDs.add(corporationRecord.corporationID);
-    targetAllianceRecord.memberCorporationIDs = Array.from(
-      memberCorporationIDs,
-    ).sort((left, right) => left - right);
-    alliances.records[String(normalizedAllianceID)] = targetAllianceRecord;
-  }
-
-  const writeAllianceResult = writeTable(ALLIANCES_TABLE, alliances);
-  if (!writeAllianceResult.success) {
-    return writeAllianceResult;
-  }
-
-  const writeCorporationResult = setCorporationRecord({
-    ...corporationRecord,
-    allianceID: normalizedAllianceID,
-  });
-  if (!writeCorporationResult.success) {
-    return writeCorporationResult;
-  }
-
-  const affectedCharacterIDs = getCharacterIDsInCorporation(
-    corporationRecord.corporationID,
-  );
-  for (const characterID of affectedCharacterIDs) {
-    const updateResult = setCharacterAffiliation(
-      characterID,
-      corporationRecord.corporationID,
-      normalizedAllianceID,
-    );
-    if (!updateResult.success) {
-      return updateResult;
-    }
-  }
-
-  synchronizeCorporationSessionAffiliationBestEffort(
-    affectedCharacterIDs,
-    normalizedAllianceID,
-  );
-
-  return {
-    success: true,
-    data: {
-      corporationID: corporationRecord.corporationID,
-      allianceID: normalizedAllianceID,
-      affectedCharacterIDs,
-    },
-  };
+  return require("./allianceAffiliationSettlement").change(corporationID, allianceID);
 }
 
 function findCorporationByFoundingOperationID(foundingOperationID) {
@@ -1562,6 +1544,17 @@ function createCustomCorporation(characterID, name, options = {}) {
       errorMsg: "CORPORATION_NAME_REQUIRED",
     };
   }
+
+  // An explicit headquarters choice wins (the GM command defaults it to a
+  // station); otherwise the founder's home station is used when it is an NPC
+  // station. A structure home station is legal for a character but not a
+  // corporation headquarters, so it is dropped rather than copied.
+  const requestedStationID = resolveCorporationStationID(
+    options && options.stationID,
+  );
+  const requestedSolarSystemID = requestedStationID
+    ? getNpcStationSolarSystemID(requestedStationID)
+    : null;
 
   const foundingOperationID = String(
     options && options.foundingOperationID || "",
@@ -1622,13 +1615,15 @@ function createCustomCorporation(characterID, name, options = {}) {
     ceoID: normalizePositiveInteger(characterID, null),
     creatorID: normalizePositiveInteger(characterID, null),
     allianceID: null,
-    stationID: normalizePositiveInteger(
+    stationID: requestedStationID || resolveCorporationStationID(
       characterRecord.homeStationID ||
         characterRecord.cloneStationID ||
         characterRecord.stationID,
-      null,
     ),
-    solarSystemID: toPublicSolarSystemID(characterRecord.solarSystemID, null),
+    solarSystemID: requestedStationID
+      ? requestedSolarSystemID ||
+        toPublicSolarSystemID(characterRecord.solarSystemID, null)
+      : toPublicSolarSystemID(characterRecord.solarSystemID, null),
     factionID: null,
     raceID: null,
     deleted: 0,
@@ -1823,6 +1818,8 @@ function createCustomAllianceForCorporation(
 }
 
 function joinCorporationToAllianceByName(corporationID, allianceName) {
+  const recovered = require("./allianceAffiliationSettlement").reconcile(corporationID);
+  if (!recovered.success) return recovered;
   const corporationRecord = getCorporationRecord(corporationID);
   if (!corporationRecord) {
     return {
@@ -1843,16 +1840,6 @@ function joinCorporationToAllianceByName(corporationID, allianceName) {
     return {
       success: false,
       errorMsg: "ALLIANCE_NOT_FOUND",
-    };
-  }
-
-  if (
-    normalizePositiveInteger(corporationRecord.allianceID, 0) ===
-    allianceRecord.allianceID
-  ) {
-    return {
-      success: false,
-      errorMsg: "ALREADY_IN_ALLIANCE",
     };
   }
 
@@ -1898,7 +1885,9 @@ module.exports = {
   getAllianceRecord,
   getAllianceShortNameRecord,
   getCharacterIDsInCorporation,
-  resetCorporationMembersIndexForTests,
+  invalidateAffiliationIndexes,
+  resetCorporationMembersIndexForTests: invalidateAffiliationIndexes,
+  synchronizeCorporationSessionAffiliationBestEffort,
   getCorporationInfoRecord,
   getCorporationOwnerRecord,
   getCorporationPublicInfo,

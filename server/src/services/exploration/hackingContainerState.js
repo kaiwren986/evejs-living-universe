@@ -128,6 +128,10 @@ function commitOutcome(entity, options = {}) {
       !require("../career/careerHackingEvidence").isPreparedWin(options.careerWin))) {
     return { success: false, errorMsg: "HACKING_CONTAINER_CAREER_WIN_INVALID" };
   }
+  if ((options.incursionWin || entity.incursionControlKey && outcome === "won") &&
+      (outcome !== "won" || !require("../incursion/incursionLogistics").isPreparedWin(options.incursionWin))) {
+    return { success: false, errorMsg: "HACKING_CONTAINER_INCURSION_WIN_INVALID" };
+  }
   const previous = getRecord(entity) || {};
   const receipts = object(previous.outcomes);
   const existing = Object.hasOwn(receipts, outcomeID) ? receipts[outcomeID] : null;
@@ -150,6 +154,7 @@ function commitOutcome(entity, options = {}) {
     successEffectsDelivered: false,
     failureEffectsDelivered: false,
     ...(options.careerWin ? { careerWin: structuredClone(options.careerWin) } : {}),
+    ...(options.incursionWin ? { incursionWin: structuredClone(options.incursionWin) } : {}),
   };
   const record = {
     ...previous, version: 1, contentKey: id.contentKey || null,

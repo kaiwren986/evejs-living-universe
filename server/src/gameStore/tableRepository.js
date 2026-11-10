@@ -131,6 +131,10 @@ function createTableRepository(domain, options = {}) {
       guard(table, "ensureTable");
       return store.ensureTable(table);
     },
+    holdTableFlush: (table) => {
+      guard(table, "hold flush");
+      return store.holdTableFlush(table);
+    },
     // Persistence/lifecycle passthroughs — NOT ownership-gated. Flushing
     // persists already-written cache to disk; it is not a data mutation, so a
     // domain may flush without owning the table. Lets the repo be a complete

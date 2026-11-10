@@ -1,5 +1,7 @@
 "use strict";
 
+const pinnedAttributeBounds = require("../../common/dogmaAttributeBounds");
+
 const {
   toFiniteNumber,
   toInt,
@@ -159,6 +161,10 @@ function normalizeDogmaAttributeType(row) {
     name: row.name || "",
     dataType: toInt(row.dataType, 0),
     displayWhenZero: row.displayWhenZero === true,
+    maxAttributeID: row.maxAttributeID == null
+      ? (pinnedAttributeBounds.maximum[attributeID] ?? null) : toInt(row.maxAttributeID, 0),
+    minAttributeID: row.minAttributeID == null ? (pinnedAttributeBounds.minimum[attributeID] ?? null) : toInt(row.minAttributeID, 0),
+    chargeRechargeTimeID: row.chargeRechargeTimeID == null ? null : toInt(row.chargeRechargeTimeID, 0),
   };
 }
 

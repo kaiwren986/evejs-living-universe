@@ -7,9 +7,13 @@ const log = require(path.join(__dirname, "../../utils/logger"));
 const {
   buildDict,
   buildList,
+  buildKeyVal,
+  buildFiletimeLong,
   extractList,
   normalizeNumber,
 } = require(path.join(__dirname, "../_shared/serviceHelpers"));
+const { resolveSessionCharacterID } = require("../_shared/sessionIdentity");
+const incursionRewards = require("../incursion/incursionRewards");
 
 const MAX_AUDIT_EVENTS = 100;
 const auditEvents = [];
@@ -17,13 +21,13 @@ const auditEvents = [];
 function normalizeGroupIDs(args) {
   return extractList(args && args[0])
     .map((value) => normalizeNumber(value, 0))
-    .filter((value) => Number.isInteger(value) && value > 0);
+    .filter((value) => Number.isSafeInteger(value) && value > 0);
 }
 
 function recordAuditEvent(kind, session, extra = {}) {
   auditEvents.push({
     kind,
-    characterID: Number(session && (session.characterID || session.charid)) || 0,
+    characterID: resolveSessionCharacterID(session),
     accountID: Number(session && (session.userid || session.userID)) || 0,
     recordedAt: new Date().toISOString(),
     ...extra,
@@ -40,19 +44,27 @@ class RewardMgrService extends BaseService {
 
   Handle_GetDelayedRewardsByGroupIDs(args, session) {
     const rewardGroupIDs = normalizeGroupIDs(args);
-    recordAuditEvent("get_delayed_rewards_empty", session, {
+    const rewards = incursionRewards.getDelayedRewards(resolveSessionCharacterID(session), rewardGroupIDs);
+    const entries = Object.entries(rewards);
+    recordAuditEvent(entries.length ? "get_delayed_rewards" : "get_delayed_rewards_empty", session, {
       rewardGroupIDs,
     });
     log.debug(
-      `[RewardMgr] GetDelayedRewardsByGroupIDs groups=${rewardGroupIDs.length} -> empty dict`,
+      `[RewardMgr] GetDelayedRewardsByGroupIDs groups=${rewardGroupIDs.length} -> ${entries.length} pools`,
     );
-    return buildDict([]);
+    return buildDict(entries.map(([id, rows]) => [Number(id), buildList(rows.map(row => buildKeyVal(Object.entries(row))))]));
   }
 
-  Handle_GetRewardLPLogs(args, session) {
-    recordAuditEvent("get_reward_lp_logs_empty", session);
-    log.debug("[RewardMgr] GetRewardLPLogs -> empty list");
-    return buildList([]);
+  Handle_GetRewardLPLogs(_args, session) {
+    const rows = incursionRewards.getRewardLPLogs(resolveSessionCharacterID(session));
+    recordAuditEvent(rows.length ? "get_reward_lp_logs" : "get_reward_lp_logs_empty", session);
+    log.debug(`[RewardMgr] GetRewardLPLogs -> ${rows.length} rows`);
+    return buildList(rows.map(row => {
+      const { dateMs, characterID: _characterID, ...fields } = row;
+      return buildKeyVal([...Object.entries(fields).map(([key, value]) => [key,
+        key === "dungeonName" ? { type: "wstring", value } : value]),
+      ["date", buildFiletimeLong(116444736000000000n + BigInt(dateMs) * 10000n)]]);
+    }));
   }
 }
 

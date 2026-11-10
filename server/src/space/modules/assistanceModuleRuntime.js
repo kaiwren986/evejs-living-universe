@@ -45,6 +45,7 @@ const {
   filterProjectedWeaponModifierEntries,
 } = require(path.join(__dirname, "./projectedWeaponModifiers"));
 const starbaseRepair = require("../../services/starbase/starbaseRepairRuntime");
+const nativeNpcAbilities = require("../npc/nativeNpcAbilities");
 
 const ATTRIBUTE_CAPACITOR_NEED = getAttributeIDByNames("capacitorNeed") || 6;
 const ATTRIBUTE_DURATION = getAttributeIDByNames("duration") || 73;
@@ -123,6 +124,11 @@ const ASSISTANCE_FAMILY_REMOTE_SENSOR_BOOST = "remoteSensorBoost";
 const ASSISTANCE_FAMILY_REMOTE_TRACKING = "remoteTracking";
 
 const ASSISTANCE_EFFECTS = Object.freeze({
+  npcremoteshieldboost: Object.freeze({
+    family: "remoteShield",
+    jammingType: "shieldTransfer",
+    nativeNpcShield: true,
+  }),
   shipmoduleremotecapacitortransmitter: Object.freeze({
     family: ASSISTANCE_FAMILY_REMOTE_CAPACITOR,
     jammingType: "energyTransfer",
@@ -172,6 +178,15 @@ const ASSISTANCE_EFFECTS = Object.freeze({
   npcbehaviorremotearmorrepairer: Object.freeze({
     family: "remoteArmor",
     jammingType: "remoteArmorRepair",
+  }),
+  // Effect 6742 (guid effects.ShieldTransfer). It boosts by the hull's
+  // shieldBonus, as the armour one repairs by armorDamageAmount; 2495-2498 are
+  // only its duration, range, falloff and discharge. Without this entry an NPC
+  // such as Balin Ferrus (57788) in the AIR tutorial repairs armour but never
+  // shields.
+  npcbehaviorremoteshieldbooster: Object.freeze({
+    family: "remoteShield",
+    jammingType: "shieldTransfer",
   }),
   remotesensorboostfalloff: Object.freeze({
     family: ASSISTANCE_FAMILY_REMOTE_SENSOR_BOOST,
@@ -1353,6 +1368,12 @@ function resolveAssistanceModuleActivation({
     };
   }
 
+  const nativeShield = definition.nativeNpcShield ? nativeNpcAbilities.shieldInputs(entity, moduleAttributes) : null;
+  if (definition.nativeNpcShield && (!nativeShield ||
+      !nativeNpcAbilities.shieldEligible(entity, targetEntity, nativeShield, callbacks))) {
+    return { matched: true, success: false, errorMsg: "NPC_SHIELD_TARGET_INVALID", stopReason: "target" };
+  }
+
   const preferredDurationAttributeID = (
     getPreferredAttributeValue(moduleAttributes, [
       effectRecord && effectRecord.durationAttributeID,
@@ -1403,6 +1424,7 @@ function resolveAssistanceModuleActivation({
       roundNumber(getPreferredAttributeValue(
         moduleAttributes,
         [
+          ...(nativeShield ? [1464] : []),
           effectRecord && effectRecord.rangeAttributeID,
           ATTRIBUTE_MAX_RANGE,
         ],
@@ -1422,7 +1444,7 @@ function resolveAssistanceModuleActivation({
     ),
     assistanceShieldBonusAmount: Math.max(
       0,
-      roundNumber(toFiniteNumber(moduleAttributes[ATTRIBUTE_SHIELD_BONUS], 0), 6),
+      roundNumber(toFiniteNumber(moduleAttributes[nativeShield ? 1460 : ATTRIBUTE_SHIELD_BONUS], 0), 6),
     ),
     assistanceArmorRepairAmount: Math.max(
       0,
@@ -1465,6 +1487,8 @@ function resolveAssistanceModuleActivation({
     ),
     forceFreshAcquireSpecialFxReplay: true,
     repeat: resolvePersistentRepeat(rawDurationMs),
+    ...(nativeShield ? { nativeNpcShieldVersion: nativeNpcAbilities.SHIELD_VERSION,
+      nativeNpcShieldInputs: nativeShield } : {}),
   };
 
   const rangeResult = resolveAssistanceMultiplier(
@@ -1533,8 +1557,43 @@ function commitHealthRepair({
   careerEffect = null,
   careerAmount = 0,
   careerSource = null,
+  careerModuleState = null,
 } = {}) {
-  const careerResult = careerContext
+  if (careerModuleState?.nativeNpcShieldChildCycle && careerSource?.nativeNpc && targetEntity?.nativeNpc) {
+    const owned = require("../npc/nativeNpcService").commitNativeNpcShieldRepair({ scene, source: careerSource,
+      target: targetEntity, cycleAtMs: careerModuleState.nativeNpcShieldCycleAtMs, previousConditionState });
+    if (!owned.success || owned.pending) return owned;
+    if (owned.handled) {
+      // A previous flush may have accepted HP but withheld its notification.
+      // Replaying the current health snapshot is safe; replaying the heal is not.
+      callbacks.broadcastDamageStateChange?.(scene, targetEntity, nowMs);
+      return owned;
+    }
+  }
+  if (careerAmount > 0 && careerSource && careerModuleState && targetEntity?.dungeonSiteInstanceID) {
+    const receipt = require("../../services/dungeon/dungeonUniverseSiteService").notifyVisionsModuleCycle(
+      scene, careerSource, targetEntity, { family: careerEffect, moduleID: careerModuleState.moduleID,
+        cycleAtMs: nowMs, appliedAmount: careerAmount,
+        cycleID: `${careerSource.itemID}:${careerModuleState.moduleID}:${targetEntity.itemID}:${nowMs}` });
+    if (!receipt?.success) {
+      targetEntity.conditionState = previousConditionState;
+      return receipt;
+    }
+  }
+  const incursion = require("../../services/incursion/incursionHooks").commitRepair(
+    scene, careerSource, targetEntity, careerAmount, nowMs, careerModuleState, previousConditionState,
+    careerContext && !careerContext.duplicate ? { characterID: careerContext.characterID,
+      event: { kind: "combat-effect", id: careerContext.eventID, effect: careerEffect,
+        atMs: Math.max(1, Math.trunc(nowMs)), amount: careerAmount } } : null);
+  if (!incursion.success) return incursion;
+  if (incursion.handled && incursion.pending) return { success: true, pending: true };
+  // Incursion HP and the optional career observer share one inventory commit.
+  // An observer retry must never roll back an already accepted health change.
+  if (incursion.handled && careerContext && !incursion.careerDeferred) {
+    try { require("../../services/inventory/careerCombatOutcomes").reconcile(careerContext.characterID); }
+    catch (error) { require("../../utils/logger").warn(`[Incursion] Career repair observer deferred: ${error.message}`); }
+  }
+  const careerResult = incursion.handled ? { success: true, handled: true } : careerContext
     ? require("../../services/inventory/careerCombatOutcomes").commit(
       careerContext, careerEffect, careerAmount, nowMs, [careerSource, targetEntity].filter(Boolean),
     ) : { success: true, handled: false };
@@ -1601,6 +1660,9 @@ function executeAssistanceModuleCycle({
       stopReason: "module",
     };
   }
+  if (effectState.nativeNpcShieldVersion === nativeNpcAbilities.SHIELD_VERSION &&
+      !effectState.nativeNpcShieldChildCycle) return executeNativeNpcShieldCycle({
+    scene, session, entity, effectState, nowMs, isActivationPass, callbacks });
 
   const targetEntity = scene.getEntityByID(toInt(effectState.targetID, 0));
   if (starbaseRepair.isStarbaseEntity(targetEntity)) {
@@ -1750,6 +1812,7 @@ function executeAssistanceModuleCycle({
       careerContext,
       careerEffect,
       careerSource: entity,
+      careerModuleState: effectState,
       careerAmount: Math.max(0, (Number(targetEntity.conditionState.shieldCharge) -
         Number(previousConditionState.shieldCharge)) * shieldCapacity),
     });
@@ -1769,7 +1832,11 @@ function executeAssistanceModuleCycle({
       data: {
         targetEntity,
         multiplier: assistanceMultiplier,
-        appliedAmount: roundNumber(shieldBonusAmount, 6),
+        appliedAmount: effectState.nativeNpcShieldChildCycle ? committed.duplicate ? 0 : roundNumber(Math.max(0,
+          Number(targetEntity.conditionState.shieldCharge) - Number(previousConditionState.shieldCharge)) * shieldCapacity, 6)
+          : roundNumber(shieldBonusAmount, 6),
+        ...(effectState.nativeNpcShieldChildCycle ? { duplicate: committed.duplicate === true,
+          pending: committed.pending === true } : {}),
         aggregateChanged,
       },
     };
@@ -1878,6 +1945,7 @@ function executeAssistanceModuleCycle({
       careerContext,
       careerEffect,
       careerSource: entity,
+      careerModuleState: effectState,
       careerAmount: Math.max(0, (Number(previousConditionState.armorDamage) -
         Number(targetEntity.conditionState.armorDamage)) * armorHP),
     });
@@ -1941,6 +2009,9 @@ function executeAssistanceModuleCycle({
       previousConditionState,
       callbacks,
       nowMs,
+      careerSource: entity,
+      careerModuleState: effectState,
+      careerAmount: Math.max(0, (Number(previousConditionState.damage) - Number(targetEntity.conditionState.damage)) * structureHP),
     });
     if (!committed.success) return { ...committed, stopReason: "target" };
 
@@ -1973,7 +2044,115 @@ function executeAssistanceModuleCycle({
   };
 }
 
+function executeNativeNpcShieldCycle({ scene, session, entity, effectState, nowMs, isActivationPass, callbacks }) {
+  const inputs = effectState.nativeNpcShieldInputs;
+  if (!nativeNpcAbilities.live(entity) || inputs?.version !== nativeNpcAbilities.SHIELD_VERSION) {
+    return { success: false, stopReason: "npc-support", errorMsg: "NPC_SHIELD_SOURCE_INVALID" };
+  }
+  const targets = nativeNpcAbilities.shieldTargets(scene, entity, inputs, callbacks);
+  const owner = require("../npc/nativeNpcService");
+  let reserved = owner.reserveNativeNpcAbilityCycle({ scene, source: entity, effectID: 3855,
+    nowMs: Math.trunc(nowMs), targetIDs: targets.map(target => Number(target.itemID)), random: callbacks.random });
+  if (!reserved.success) return { ...reserved, stopReason: "npc-support" };
+  if (!reserved.handled) {
+    // Transient non-dungeon NPCs have no durable identity; keep the same bounded
+    // cadence in the effect state, without writing transient rows into a world.
+    const prior = effectState.nativeNpcShieldTransientCycle;
+    if (prior && (nowMs < prior.nextAtMs || nowMs <= prior.atMs)) reserved = { cycle: null };
+    else {
+      const fired = inputs.chance >= 1 || inputs.chance > 0 && (callbacks.random || Math.random)() < inputs.chance;
+      const cycle = { atMs: Math.trunc(nowMs), nextAtMs: nowMs + inputs.durationMs,
+        fired, targetIDs: fired ? targets.map(target => Number(target.itemID)) : [] };
+      effectState.nativeNpcShieldTransientCycle = cycle;
+      reserved = { cycle };
+    }
+  }
+  if (reserved.pending || !reserved.cycle?.fired) return { success: true,
+    data: { targetEntity: null, appliedAmount: 0, pending: reserved.pending === true, duplicate: !reserved.cycle } };
+  const results = [];
+  for (const targetID of reserved.cycle.targetIDs) {
+    const target = scene.getEntityByID(targetID);
+    if (!nativeNpcAbilities.shieldEligible(entity, target, inputs, callbacks)) continue;
+    if (!callbacks.isEntityLockedTarget?.(entity, targetID)) {
+      scene.finalizeTargetLock?.(entity, target, { nowMs });
+    }
+    const result = executeAssistanceModuleCycle({ scene, session, entity, nowMs, isActivationPass, callbacks,
+      effectState: { ...effectState, targetID, nativeNpcShieldChildCycle: true,
+        nativeNpcShieldCycleAtMs: reserved.cycle.atMs } });
+    if (!result.success) return { ...result, stopReason: "npc-support" };
+    results.push(result.data);
+  }
+  // The normal module activation presents the primary link. Native 3855 has
+  // one effect and several recipients; additional beams use that same native
+  // effect/module identity, rather than inventing cloned modules.
+  for (const result of results.slice(1)) if (result?.appliedAmount > 0 && !result.pending) {
+    scene.broadcastSpecialFx?.(entity.itemID, "effects.ShieldTransfer", { moduleID: effectState.moduleID,
+      moduleTypeID: 3586, targetID: result.targetEntity.itemID, isOffensive: false,
+      start: true, active: true, duration: inputs.durationMs, repeat: 0 }, entity);
+  }
+  return { success: true, data: { targetEntity: results[0]?.targetEntity || null,
+    targets: results, pending: results.some(result => result?.pending === true),
+    appliedAmount: results.reduce((sum, result) => sum + Number(result?.appliedAmount || 0), 0) } };
+}
+
+// Reviewed environmental support uses the same assistance resistance and health
+// presentation as modules, without a fictitious fitted module or player credit.
+function applyIncursionShieldPulse({ request, scene, source, target } = {}) {
+  const support = require("../../services/incursion/incursionLogisticsSupport"), scope = support.validateRequest(request);
+  const owner = scope.pulse.domain === "npc" ? require("../npc/nativeNpcService") : require("../../services/inventory/itemStore");
+  const nowMs = scene?.getCurrentSimTimeMs?.() || require("../../services/incursion/incursionClock").now();
+  const result = owner.commitIncursionLogisticsRepair(request, () => {
+    if (!support.freshAllowed(request, scene, source, target) || isEntityAssistanceDisallowed(target, nowMs)) return { skipped: true };
+    const before = buildNormalizedConditionState(target), capacity = Number(target.shieldCapacity);
+    const multiplier = resolveAssistanceResistanceMultiplier({ assistanceFamily: "remoteShield" }, target, nowMs);
+    const after = { ...before, shieldCharge: Math.min(1, before.shieldCharge + scope.target.maximumAmount * multiplier / capacity) };
+    const amount = (after.shieldCharge - before.shieldCharge) * capacity;
+    return amount > 0 ? { before, after, amount } : { skipped: true };
+  });
+  if (result.accepted && target && scene?.getEntityByID?.(target.itemID) === target) {
+    if (!result.duplicate) target.conditionState = { ...result.receipt.after };
+    if (result.pending) {
+      target.incursionLogisticsRepairPending = request.pulseID; target.incursionHealthPending = true;
+    } else {
+      if (target.incursionLogisticsRepairPending === request.pulseID) {
+        delete target.incursionLogisticsRepairPending; delete target.incursionHealthPending;
+      }
+      const health = require("../runtime/shipHealthState");
+      if (target.session && !target.session.socket?.destroyed) health.notifyShipHealthAttributesToSession(
+        target.session, target, health.buildShipHealthTransitionResult(target, result.receipt.before), nowMs);
+      health.broadcastDamageStateChange(scene, target, nowMs);
+      if (!result.duplicate && source) scene.broadcastSpecialFx?.(source.itemID, "effects.ShieldTransfer", {
+        moduleID: source.itemID, moduleTypeID: source.typeID, targetID: target.itemID,
+        isOffensive: false, start: true, active: true, duration: scope.spec.periodMs, repeat: 0 }, source);
+    }
+  }
+  return result;
+}
+
+function applyIncursionStructureShieldPulse({ request, scene, target } = {}) {
+  const owner = require("../../services/incursion/incursionStructures");
+  const result = owner.commitShieldRepair(request, scene, target, () => {
+    const before = buildNormalizedConditionState(target), capacity = Number(target.shieldCapacity);
+    if (!(capacity > 0) || before.damage >= 1) return { skipped: true };
+    const after = { ...before, shieldCharge: Math.min(1, before.shieldCharge + request.maximumAmount / capacity) };
+    return { before, after, amount: (after.shieldCharge - before.shieldCharge) * capacity };
+  });
+  if (result.accepted && result.durable && target && scene?.getEntityByID?.(target.itemID) === target) {
+    target.conditionState = { ...result.conditionState }; delete target.incursionHealthPending;
+    require("../runtime/shipHealthState").broadcastDamageStateChange(scene, target, request.atMs);
+    if (!result.duplicate) {
+      const instance = require("../../services/dungeon/dungeonRuntime").getInstance(request.instanceID);
+      for (const source of require("../../services/incursion/incursionStructureRepair").bindings(instance))
+        scene.broadcastSpecialFx?.(source.entityID, "effects.ShieldTransfer", { moduleID: source.entityID, moduleTypeID: source.typeID,
+          targetID: target.itemID, isOffensive: false, start: true, active: true, duration: 1000, repeat: 0 }, scene.getEntityByID(source.entityID));
+    }
+  }
+  return result;
+}
+
 module.exports = {
+  applyIncursionStructureShieldPulse,
+  applyIncursionShieldPulse,
   DISALLOWED_ASSISTANCE_ERROR,
   resolveAssistanceDefinition,
   resolveAssistanceModuleActivation,

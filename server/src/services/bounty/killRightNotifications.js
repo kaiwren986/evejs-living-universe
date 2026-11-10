@@ -128,8 +128,37 @@ function notifyKillRightUnavailable({ targetID, ownerID, toEntityID } = {}) {
   });
 }
 
+// OnKillRightForYouSold(killRightID): live push to the kill right's target when
+// it is listed for sale, alongside the persistent KillRightAvailable row. The
+// client (bountySvc.OnKillRightForYouSold) invalidates GetMyKillRights and
+// scatters OnKillRightSold, which refreshes the character sheet's kill-rights
+// panel. Retail: idtype clientID, args (killRightID,), received by the target
+// (CONCORD "0.6 and 0.7 Sec Space.lsw", right after notification 116).
+function notifyKillRightForYouSold({ targetID, killRightID } = {}) {
+  const numericTargetID = toPositiveInteger(targetID);
+  const numericKillRightID = toPositiveInteger(killRightID);
+  if (!numericTargetID || !numericKillRightID) {
+    return 0;
+  }
+  const sessionRegistry = require(path.join(__dirname, "../chat/sessionRegistry"));
+  let sent = 0;
+  for (const session of sessionRegistry.getSessions()) {
+    if (
+      !session ||
+      typeof session.sendNotification !== "function" ||
+      toPositiveInteger(session.characterID || session.charid) !== numericTargetID
+    ) {
+      continue;
+    }
+    session.sendNotification("OnKillRightForYouSold", "clientID", [numericKillRightID]);
+    sent += 1;
+  }
+  return sent;
+}
+
 module.exports = {
   notifyKillRightAvailable,
+  notifyKillRightForYouSold,
   notifyKillRightEarned,
   notifyKillRightUnavailable,
   notifyKillRightUsed,

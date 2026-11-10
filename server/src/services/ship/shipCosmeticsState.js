@@ -235,15 +235,26 @@ function isLicenseExpired(record, nowMs = Date.now()) {
   return filetimeValue <= nowFiletime;
 }
 
-function setCharacterSkinOverride(charId, skinID, override) {
+function setCharacterSkinOverride(charId, skinID, override, receiptID = null) {
   const numericCharID = Number(charId || 0) || 0;
   const numericSkinID = Number(skinID || 0) || 0;
   if (!numericCharID || !numericSkinID) {
     return false;
   }
 
-  const runtimeRoot = ensureRuntimeRoot();
+  const runtimeRoot = receiptID ? structuredClone(ensureRuntimeRoot()) : ensureRuntimeRoot();
   const characterEntry = getCharacterRuntimeEntry(runtimeRoot, numericCharID);
+  if (receiptID) {
+    const receipt = characterEntry.licenseGrantReceipts?.[receiptID];
+    if (receipt !== undefined) {
+      return receipt === numericSkinID && database.flushTableSync(RUNTIME_TABLE).success;
+    }
+    characterEntry.licenseGrantReceipts = { ...characterEntry.licenseGrantReceipts, [receiptID]: numericSkinID };
+    const existing = getCharacterSkinOverride(numericCharID, numericSkinID, runtimeRoot);
+    if (existing && !existing.revoked && !existing.expiresAtFileTime && !existing.isSingleUse) {
+      return writeRuntimeRoot(runtimeRoot) && database.flushTableSync(RUNTIME_TABLE).success;
+    }
+  }
   characterEntry.skinOverridesBySkinID[String(numericSkinID)] = {
     skinID: numericSkinID,
     licenseTypeID: Number(override.licenseTypeID || 0) || null,
@@ -254,7 +265,7 @@ function setCharacterSkinOverride(charId, skinID, override) {
     updatedAt: new Date().toISOString(),
     source: override.source || "manual",
   };
-  return writeRuntimeRoot(runtimeRoot);
+  return writeRuntimeRoot(runtimeRoot) && (!receiptID || database.flushTableSync(RUNTIME_TABLE).success);
 }
 
 function getEffectiveLicenseRecord(
@@ -375,7 +386,7 @@ function giveSkin(charId, skinID, options = {}) {
         : Boolean(licenseEntry && licenseEntry.isSingleUse),
     revoked: false,
     source: options.source || "GiveSkin",
-  });
+  }, options.receiptID);
 
   return {
     success,

@@ -81,11 +81,12 @@ function ensureTable() {
   return table;
 }
 
-function updateBillTable(updater) {
+function updateBillTable(updater, requireSuccess = false) {
   const table = ensureTable();
   const nextTable =
     typeof updater === "function" ? updater(table) || table : table;
-  writeTable(nextTable);
+  const result = writeTable(nextTable);
+  if (requireSuccess && result?.success !== true) throw Error("BILL_WRITE_PENDING");
   return nextTable;
 }
 
@@ -338,6 +339,7 @@ function createBill({
   externalID2 = -1,
   emitBillReceived = true,
   creationKey = null,
+  requireDurable = false,
   onCreated = null,
 } = {}) {
   const normalizedDebtorID = normalizeOwnerID(debtorID);
@@ -392,13 +394,17 @@ function createBill({
     });
     wasCreated = true;
     return table;
-  });
-  if (wasCreated) {
+  }, requireDurable);
+  if (requireDurable) {
+    // A previous call may have created the cached row but failed to flush it.
+    // Replaying a creation key must acknowledge durable storage too.
+    if (database.flushTableSync(BILLS_TABLE)?.success !== true) throw Error("BILL_FLUSH_PENDING");
+  } else if (wasCreated) {
     commitBillTable();
   }
 
   const createdBill = getBillRecord(createdBillID);
-  if (createdBill && wasCreated) {
+  if (createdBill && (wasCreated || requireDurable)) {
     queueDurableBillReconciliation(createdBill);
     if (emitBillReceived !== false) {
       notifyBillReceived(createdBill.debtorID, createdBill.billID);
@@ -406,8 +412,8 @@ function createBill({
     // CharBillMsg (9): persistent center row for a character debtor (corp/alliance
     // debtors are notified by their own issuing producers). Lazy-required to avoid
     // a load-time cycle through the notification/corporation services.
-    require(path.join(__dirname, "./billNotifications")).notifyBillIssued(createdBill);
-    if (typeof onCreated === "function") {
+    if (wasCreated) require(path.join(__dirname, "./billNotifications")).notifyBillIssued(createdBill);
+    if (wasCreated && typeof onCreated === "function") {
       onCreated(createdBill);
     }
   }
@@ -487,6 +493,9 @@ function getBillPaymentEntryTypeID(bill) {
   if (Number(bill && bill.billTypeID) === BILL_TYPE_ALLIANCE_MAINTENANCE) {
     return JOURNAL_ENTRY_TYPE.ALLIANCE_MAINTENANCE_FEE;
   }
+  if (Number(bill && bill.billTypeID) === BILL_TYPE_WAR) {
+    return JOURNAL_ENTRY_TYPE.WAR_FEE;
+  }
   return JOURNAL_ENTRY_TYPE.PLAYER_DONATION;
 }
 
@@ -495,6 +504,10 @@ function getBillPaymentReferenceID(bill) {
   // Type-5 bills carry that alliance owner in externalID; externalID2 is -1.
   if (Number(bill && bill.billTypeID) === BILL_TYPE_ALLIANCE_MAINTENANCE) {
     return Number(bill && bill.externalID) || Number(bill && bill.debtorID) || 0;
+  }
+  // refWarFee names the war's defender, which a war bill carries in externalID.
+  if (Number(bill && bill.billTypeID) === BILL_TYPE_WAR) {
+    return Number(bill && bill.externalID) || 0;
   }
   return Number(bill && (bill.externalID2 || bill.billID)) ||
     Number(bill && bill.billID) || 0;

@@ -285,8 +285,16 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
+// The career agents' chains (services/agent/careerAgentChains.json) are golden mission chains
+// too: completing part N at a career agent offers part N+1.
 const productionMissionPolicy = deepFreeze(
-  validateProductionMissionPolicy(rawPolicy),
+  validateProductionMissionPolicy({
+    ...rawPolicy,
+    goldenMissionChains: [
+      ...(rawPolicy.goldenMissionChains || []),
+      ...require("../services/agent/careerAgentMissions").listGoldenMissionChains(),
+    ],
+  }),
 );
 
 const disabledMissionTemplateIdentifiers = new Set(

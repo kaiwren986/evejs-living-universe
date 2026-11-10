@@ -32,10 +32,12 @@ const {
   getCharacterCreationQAStarterSystemIDs,
   getCharacterCreationRace,
   getCharacterCreationRaces,
+  getCharacterCreationSchools,
   resolveCharacterCreationBloodlineProfile,
   resolveCharacterCreationSchoolIDForRace,
   resolveCharacterCreationSchoolProfile,
 } = require("./characterCreationData");
+const worldData = require("../../space/worldData");
 const { restoreSpaceSession } = require("../../space/transitions");
 const {
   isAbyssalHostLocationID,
@@ -47,6 +49,7 @@ const {
   buildTrainingSelectionInfo,
 } = require("../skills/training/skillQueueRuntime");
 const {
+  notifyLogonSkillsTrained,
   primeClientSkillCache,
 } = require("../skills/training/skillQueueNotifications");
 const {
@@ -412,7 +415,46 @@ function resolveStarterCorporationRecord(bloodlineProfile, schoolProfile = {}) {
   return null;
 }
 
-function resolveStarterLocationContext(bloodlineProfile, schoolID) {
+function resolveQAStarterStation(args, createSignature, session) {
+  // Pinned ccSvc.py sends (..., schoolID, None, qa_starter_system_id),
+  // and only displays the picker when the session carries ROLE_QA.
+  if (
+    createSignature !== "ccsvc-wrapper" ||
+    (normalizeRoleValue(session && session.role, 0n) & ROLE_QA) === 0n
+  ) {
+    return null;
+  }
+  const selection = unwrapCreationArg(args[9]);
+  if (selection === null || selection === undefined) {
+    return null;
+  }
+  const solarSystemID = Number(selection);
+  if (
+    !Number.isSafeInteger(solarSystemID) ||
+    !getCharacterCreationQAStarterSystemIDs().includes(solarSystemID)
+  ) {
+    throwWrappedUserError("CustomInfo", {
+      info: "Please select a valid QA starter system or cancel the starter-system override.",
+    });
+  }
+
+  // Some school startingStations still refer to older systems. Only use a
+  // school station that actually belongs to the system shown in the picker.
+  const schoolStation = getCharacterCreationSchools()
+    .filter((school) => school.solarSystemID === solarSystemID)
+    .flatMap((school) => school.startingStations)
+    .map((stationID) => worldData.getStationByID(stationID))
+    .find((station) => station && station.solarSystemID === solarSystemID);
+  const station = schoolStation || worldData.getStationsForSystem(solarSystemID)[0];
+  if (!station) {
+    throwWrappedUserError("CustomInfo", {
+      info: "The selected QA starter system has no available starting station.",
+    });
+  }
+  return station;
+}
+
+function resolveStarterLocationContext(bloodlineProfile, schoolID, qaStarterStation = null) {
   const schoolProfile = resolveCharacterCreationSchoolProfile(schoolID, {
     raceID: bloodlineProfile && bloodlineProfile.raceID,
     corporationID: bloodlineProfile && bloodlineProfile.corporationID,
@@ -425,7 +467,7 @@ function resolveStarterLocationContext(bloodlineProfile, schoolID) {
     schoolProfile.startingStations && schoolProfile.startingStations.length > 0
       ? Number(schoolProfile.startingStations[0]) || null
       : null;
-  const starterStation = getStationRecord(
+  const starterStation = qaStarterStation || getStationRecord(
     null,
     NEW_CHARACTER_START_OVERRIDE.stationID ||
       schoolStationID ||
@@ -1175,6 +1217,7 @@ class CharService extends BaseService {
       throwWrappedUserError("CharNameInvalid");
     }
 
+    const qaStarterStation = resolveQAStarterStation(args, createSignature, session);
     const characterResult = repo.read("characters", "/");
     const characters = characterResult.success ? characterResult.data : {};
     const newCharId = reserveCharacterID();
@@ -1199,6 +1242,7 @@ class CharService extends BaseService {
     const starterLocation = resolveStarterLocationContext(
       bloodlineProfile,
       resolvedSchoolID,
+      qaStarterStation,
     );
     const tutorialState = buildNewCharacterTutorialState();
     const now = BigInt(Date.now()) * 10000n + 116444736000000000n;
@@ -1631,6 +1675,13 @@ class CharService extends BaseService {
       consumeCompletedAirNpeRevealOnFirstLogin(charId);
     }
 
+    try {
+      require("../activity/voidReplayRuntime").reconcileBeforeSelection(charId);
+    } catch (error) {
+      log.warn(`[CharService] Void replay recovery pending char=${charId}: ${error.message}`);
+      throwWrappedUserError("CustomInfo", { info: "Void replay recovery is settling your ship. Please try again shortly." });
+    }
+
     let abyssalPreselectRecoveryResult = null;
     try {
       const AbyssalMgrService = require("../../abyssal").lifecycleHooks;
@@ -1826,6 +1877,14 @@ class CharService extends BaseService {
         );
       }
       primeClientSkillCache(session, charId);
+      try {
+        // Skills that finished while the character was offline (since its
+        // last logoff) get the retail logon "skills trained" notice.
+        const logonRecord = getCharacterRecord(charId) || {};
+        notifyLogonSkillsTrained(session, charId, logonRecord.logoffDate);
+      } catch (error) {
+        log.warn(`[CharService] OnLogonSkillsTrained failed for ${charId}: ${error.message}`);
+      }
       const stationID = Number(session.stationid || session.stationID || 0);
       const structureID = Number(session.structureid || session.structureID || 0);
       const guestBroadcastStartedAtMs = Date.now();
@@ -1885,7 +1944,11 @@ class CharService extends BaseService {
   }
 
   Handle_GetQAStarterSystemIDs() {
-    const systemIDs = getCharacterCreationQAStarterSystemIDs();
+    // ccSvc shows its picker to ROLE_QA sessions, and an empty list skips it with
+    // the same result as Cancel: the character gets the normal start.
+    const systemIDs = config.qaStarterSystemPicker === true
+      ? getCharacterCreationQAStarterSystemIDs()
+      : [];
     log.debug(`[CharService] GetQAStarterSystemIDs count=${systemIDs.length}`);
     return systemIDs;
   }

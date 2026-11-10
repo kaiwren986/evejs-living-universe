@@ -1,5 +1,14 @@
 "use strict";
 
+const { buildSetMaxSpeedPayload } = require("../stream/actions");
+
+function captureDroneMaxVelocityPresentation(scene, droneEntity) {
+  return [{
+    stamp: typeof scene.nextDestinyStamp === "number" ? scene.nextDestinyStamp : 0,
+    payload: buildSetMaxSpeedPayload(droneEntity.itemID, droneEntity.maxVelocity),
+  }];
+}
+
 function createDroneOperationalMotionCommand({
   droneEntity,
   mass,
@@ -35,5 +44,6 @@ function createDroneOperationalMotionCommand({
 }
 
 module.exports = {
+  captureDroneMaxVelocityPresentation,
   createDroneOperationalMotionCommand,
 };

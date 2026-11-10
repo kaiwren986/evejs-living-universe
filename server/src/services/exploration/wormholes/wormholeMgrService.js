@@ -22,10 +22,6 @@ const {
   buildFiletimeLong,
 } = require(path.join(__dirname, "../../_shared/serviceHelpers"));
 const {
-  buildSystemWideEffectsPayloadForSystem,
-  buildEmptySystemWideEffectsPayload,
-} = require(path.join(__dirname, "./wormholeEnvironmentRuntime"));
-const {
   buildBoundResult,
   jumpSessionToSolarSystem,
 } = require(path.join(__dirname, "../../../space/transitions"));
@@ -68,19 +64,6 @@ function scheduleWormholeJumpHandoff(callback, setTimeoutFn = setTimeout) {
     timer.unref();
   }
   return timer;
-}
-
-function syncSessionSystemWideEffectsForSystem(session, systemID) {
-  if (!session || typeof session.sendNotification !== "function") {
-    return false;
-  }
-  const payload =
-    buildSystemWideEffectsPayloadForSystem(systemID) ||
-    buildEmptySystemWideEffectsPayload();
-  session.sendNotification("OnUpdateSystemWideEffectsInfo", "clientID", [
-    payload,
-  ]);
-  return true;
 }
 
 function completeWormholeJump({
@@ -136,7 +119,9 @@ function completeWormholeJump({
       return;
     }
 
-    syncSessionSystemWideEffectsForSystem(session, destinationSystemID);
+    // System-wide effects (Stop for the source system, Start for this one)
+    // went out from the space attach inside jumpSessionToSolarSystem, the
+    // same path every other route into space uses.
 
     const commitNowMs = Date.now();
     wormholeRuntime.commitJump(
@@ -322,5 +307,4 @@ module.exports = WormholeMgrService;
 module.exports._testing = {
   WORMHOLE_JUMP_HANDOFF_DELAY_MS,
   scheduleWormholeJumpHandoff,
-  syncSessionSystemWideEffectsForSystem,
 };

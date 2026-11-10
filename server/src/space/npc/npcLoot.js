@@ -301,7 +301,12 @@ function resolveExplicitLootItemType(typeID) {
 
 function isSpecialGradeItem(itemType) {
   const text = `${itemType && itemType.name || ""} ${itemType && itemType.groupName || ""}`;
-  return SPECIAL_GRADE_NAME_PATTERNS.some((pattern) => pattern.test(text));
+  if (SPECIAL_GRADE_NAME_PATTERNS.some((pattern) => pattern.test(text))) {
+    return true;
+  }
+  // Names miss some grades, e.g. storyline modules ("Small 'Settler' Shield Booster"); the
+  // type's meta group names them all (2 Tech II, 3 storyline, 4 faction, 5 officer, 6 deadspace).
+  return Number(getTypeAttributeValue(toPositiveInt(itemType && itemType.typeID, 0), "metaGroupID")) > 1;
 }
 
 function isTechTwoItem(itemType) {

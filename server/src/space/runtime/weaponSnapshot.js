@@ -241,7 +241,14 @@ function isValidWeaponSnapshotTarget(attackerEntity, targetEntity, weaponSnapsho
   if (isDefenderMissileWeaponSnapshot(weaponSnapshot)) {
     return isDefenderMissileTarget(attackerEntity, targetEntity);
   }
-  return hasDamageableHealth(targetEntity);
+  const ordinaryWeapon =
+    (isTurretCycleWeaponFamily(weaponSnapshot.family) && !isVortonWeaponFamily(weaponSnapshot.family)) ||
+    weaponSnapshot.family === "missileLauncher";
+  // NPC stations/gates can be shot and trigger authority consequences, while
+  // their absent damageable health still prevents damage and destruction.
+  const authorityTarget = ordinaryWeapon &&
+    require("../../services/security/crimewatchState").isNpcAuthorityStructure(targetEntity);
+  return authorityTarget || hasDamageableHealth(targetEntity);
 }
 
 function isOffensiveWeaponFamily(family) {

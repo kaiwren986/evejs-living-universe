@@ -35,6 +35,9 @@ const {
 const {
   validateServiceModuleOnlineRequirements,
 } = require(path.join(__dirname, "./structureServiceOnlineRequirements"));
+// The scene tick settles fuel on the space runtime's clock; onlining starts the
+// hourly cycle on the same clock, as the Metenox drill does.
+const { getWallclockNowMs } = require(path.join(__dirname, "../../space/runtime/runtimeClock"));
 
 const HOUR_MS = 60 * 60 * 1000;
 const CYNO_JAMMER_ACTIVATION_DELAY_MS = 5 * 60 * 1000;
@@ -339,7 +342,7 @@ function isFlexCynoBeaconBlockedBySystemJam(structure, profile, options = {}) {
     "../sovereignty/sovSuppressionState",
   ));
   return isSolarSystemCynoJammed(solarSystemID, {
-    nowMs: toInt(options.nowMs, Date.now()),
+    nowMs: toInt(options.nowMs, getWallclockNowMs()),
   });
 }
 
@@ -397,7 +400,7 @@ function findLowerOnlineTenebrexCynoJammerConflict(structure, profile, options =
 }
 
 function buildOnlineFlexFuelPatch(structure, profile, nowMs) {
-  const normalizedNowMs = toInt(nowMs, Date.now());
+  const normalizedNowMs = toInt(nowMs, getWallclockNowMs());
   const nextCycleAt = normalizedNowMs + HOUR_MS;
   const onlineState = {
     lastOnlineAt: normalizedNowMs,
@@ -442,7 +445,7 @@ function buildOfflineFlexFuelPatch(structure, profile, nowMs) {
       ...(structure.devFlags || {}),
       flexFuelState: buildFlexFuelState(profile, null, {
         ...getPreservedOfflineState(previousState),
-        lastOfflineAt: toInt(nowMs, Date.now()),
+        lastOfflineAt: toInt(nowMs, getWallclockNowMs()),
       }),
     },
   };
@@ -461,7 +464,7 @@ function prepareFlexServiceStateTransition(structure, serviceID, serviceState, o
   const nextOnline =
     toInt(serviceState, STRUCTURE_SERVICE_STATE.OFFLINE) === STRUCTURE_SERVICE_STATE.ONLINE;
   const previousOnline = isFlexServiceOnline(structure, profile);
-  const nowMs = toInt(options.nowMs, Date.now());
+  const nowMs = toInt(options.nowMs, getWallclockNowMs());
   if (!nextOnline) {
     return {
       success: true,
@@ -570,7 +573,7 @@ function offlineFlexServiceForCynoJam(structure, profile, nowMs) {
         ...(structure.devFlags || {}),
         flexFuelState: buildFlexFuelState(profile, null, {
           ...getPreservedOfflineState(previousState),
-          lastFailedAt: toInt(nowMs, Date.now()),
+          lastFailedAt: toInt(nowMs, getWallclockNowMs()),
           cynoJammed: true,
         }),
       },
@@ -602,7 +605,7 @@ function offlineFlexServiceForOnlineJammerConflict(structure, profile, nowMs, co
         ...(structure.devFlags || {}),
         flexFuelState: buildFlexFuelState(profile, null, {
           ...getPreservedOfflineState(previousState),
-          lastFailedAt: toInt(nowMs, Date.now()),
+          lastFailedAt: toInt(nowMs, getWallclockNowMs()),
           duplicateOnlineJammer: true,
           conflictingStructureID: toPositiveInt(conflict && conflict.structureID, 0) || null,
         }),
@@ -679,7 +682,7 @@ function clearOfflineFlexFuelState(structure, profile, nowMs) {
         ...(structure.devFlags || {}),
         flexFuelState: buildFlexFuelState(profile, null, {
           ...getPreservedOfflineState(previousState),
-          lastOfflineAt: toInt(nowMs, Date.now()),
+          lastOfflineAt: toInt(nowMs, getWallclockNowMs()),
         }),
       },
     },
@@ -702,7 +705,7 @@ function offlineFlexServiceForFuel(structure, profile, nowMs, fuelResult) {
       devFlags: {
         ...(structure.devFlags || {}),
         flexFuelState: buildFlexFuelState(profile, null, {
-          lastFailedAt: toInt(nowMs, Date.now()),
+          lastFailedAt: toInt(nowMs, getWallclockNowMs()),
           starved: true,
         }),
       },
@@ -735,7 +738,7 @@ function offlineFlexServiceForMissingRequirement(structure, profile, nowMs, requ
         ...(structure.devFlags || {}),
         flexFuelState: buildFlexFuelState(profile, null, {
           ...getPreservedOfflineState(previousState),
-          lastFailedAt: toInt(nowMs, Date.now()),
+          lastFailedAt: toInt(nowMs, getWallclockNowMs()),
           missingRequirement: true,
           requiredUpgradeTypeID: requirementResult.requiredUpgradeTypeID || null,
         }),
@@ -769,7 +772,7 @@ function offlineFlexServiceForProximity(structure, profile, nowMs, proximityConf
         ...(structure.devFlags || {}),
         flexFuelState: buildFlexFuelState(profile, null, {
           ...getPreservedOfflineState(previousState),
-          lastFailedAt: toInt(nowMs, Date.now()),
+          lastFailedAt: toInt(nowMs, getWallclockNowMs()),
           tooClose: true,
           proximityConflict,
         }),
@@ -841,7 +844,7 @@ function applyFlexServiceFuelCycleInternal(structure, nowMs, options) {
       : {};
   let nextCycleAt = toInt(currentState.nextCycleAt, 0);
   if (nextCycleAt <= 0) {
-    nextCycleAt = toInt(nowMs, Date.now()) + HOUR_MS;
+    nextCycleAt = toInt(nowMs, getWallclockNowMs()) + HOUR_MS;
     return {
       structure: {
         ...structure,
@@ -853,7 +856,7 @@ function applyFlexServiceFuelCycleInternal(structure, nowMs, options) {
         devFlags: {
           ...(structure.devFlags || {}),
           flexFuelState: buildFlexFuelState(profile, nextCycleAt, {
-            lastOnlineAt: toInt(nowMs, Date.now()),
+            lastOnlineAt: toInt(nowMs, getWallclockNowMs()),
           }),
         },
       },
@@ -862,7 +865,7 @@ function applyFlexServiceFuelCycleInternal(structure, nowMs, options) {
     };
   }
 
-  if (toInt(nowMs, Date.now()) < nextCycleAt) {
+  if (toInt(nowMs, getWallclockNowMs()) < nextCycleAt) {
     const fuelExpiresAt = estimateFuelExpiresAt(
       structure.structureID,
       profile.hourlyAmount,
@@ -885,7 +888,7 @@ function applyFlexServiceFuelCycleInternal(structure, nowMs, options) {
     };
   }
 
-  const cycleCount = Math.max(1, Math.floor((toInt(nowMs, Date.now()) - nextCycleAt) / HOUR_MS) + 1);
+  const cycleCount = Math.max(1, Math.floor((toInt(nowMs, getWallclockNowMs()) - nextCycleAt) / HOUR_MS) + 1);
   const requiredQuantity = profile.hourlyAmount * cycleCount;
   const fuelResult = consumeFlexFuelBlocks(structure.structureID, requiredQuantity);
   if (!fuelResult || fuelResult.success !== true) {
@@ -904,7 +907,7 @@ function applyFlexServiceFuelCycleInternal(structure, nowMs, options) {
       devFlags: {
         ...(structure.devFlags || {}),
         flexFuelState: buildFlexFuelState(profile, nextCycle, {
-          lastCycleAt: toInt(nowMs, Date.now()),
+          lastCycleAt: toInt(nowMs, getWallclockNowMs()),
           starved: false,
         }),
       },
@@ -915,7 +918,7 @@ function applyFlexServiceFuelCycleInternal(structure, nowMs, options) {
   };
 }
 
-function applyFlexServiceFuelCycle(structure, nowMs = Date.now(), options = {}) {
+function applyFlexServiceFuelCycle(structure, nowMs = getWallclockNowMs(), options = {}) {
   const result = applyFlexServiceFuelCycleInternal(structure, nowMs, options);
   const current = result.structure;
   const profile = getFlexFuelProfile(current && current.typeID);

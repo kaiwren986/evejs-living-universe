@@ -1,6 +1,7 @@
 "use strict";
 
 const path = require("path");
+const { isDeepStrictEqual } = require("node:util");
 
 const {
   currentFileTime,
@@ -8,6 +9,7 @@ const {
 const {
   cloneValue,
   ensureRuntimeInitialized,
+  getCorporationDivisionNames,
   normalizeBoolean,
   normalizePositiveInteger,
   updateRuntimeState,
@@ -157,7 +159,7 @@ function normalizeFiletimeBigInt(value, fallback = 0n) {
   }
   try {
     return BigInt(String(value));
-  } catch (error) {
+  } catch (_error) {
     return fallback;
   }
 }
@@ -407,7 +409,6 @@ function createWarHQRemovedNotifications(war, structure, now) {
       groupID: NOTIFICATION_GROUP.WAR,
       processed: false,
       data,
-      emitLive: false,
     });
   }
 }
@@ -426,11 +427,11 @@ function notifyWarDefenderMembers(
   const againstID = normalizePositiveInteger(war && war.againstID, null);
   const declaredByID = normalizePositiveInteger(war && war.declaredByID, null);
   if (!againstID || !declaredByID) {
-    return;
+    return [];
   }
   const recipients = collectWarOwnerCharacterIDs(againstID);
   if (!recipients.length) {
-    return;
+    return [];
   }
   const typeID = getAllianceRecord(againstID) ? allianceTypeID : corpTypeID;
   const data = {
@@ -438,30 +439,34 @@ function notifyWarDefenderMembers(
     againstID,
     ...extraData,
   };
+  const results = [];
   for (const characterID of recipients) {
-    createNotification(characterID, {
+    results.push(createNotification(characterID, {
       typeID,
       senderID: declaredByID,
       groupID: NOTIFICATION_GROUP.WAR,
       processed: false,
       data,
+      requireDurable: options.requireDurable === true,
       idempotencyKey: options.idempotencyKeyPrefix
         ? `${options.idempotencyKeyPrefix}:${typeID}:${characterID}`
         : undefined,
-    });
+    }));
   }
+  return results;
 }
 
 // CorpWarDeclaredMsg (27) / AllWarDeclaredMsg (5): war was declared, so every
 // member of the defending owner is told who declared it. The ParamWarOwnersWithCost
 // formatter renders a cost clause only when `cost` is truthy; the defender is
 // informed at no cost, so cost is 0.
-function createWarDeclaredNotifications(war) {
-  notifyWarDefenderMembers(
+function createWarDeclaredNotifications(war, options = {}) {
+  return notifyWarDefenderMembers(
     war,
     NOTIFICATION_TYPE.CORP_WAR_DECLARED,
     NOTIFICATION_TYPE.ALL_WAR_DECLARED,
     { cost: 0 },
+    options,
   );
 }
 
@@ -471,30 +476,57 @@ function createWarDeclaredNotifications(war) {
 // do not overlap. The client renders charName/entityName/defenderName from charID/
 // entityID/defenderID. Only emitted when a declaring character is known (genuine
 // corp/alliance declarations, not system- or vote-created wars).
-function createWarDeclarationActorNotifications(war, declaredByCharacterID) {
+function createWarDeclarationActorNotifications(war, declaredByCharacterID, options = {}) {
   const declaredByID = normalizePositiveInteger(war && war.declaredByID, null);
   const againstID = normalizePositiveInteger(war && war.againstID, null);
   const charID = normalizePositiveInteger(declaredByCharacterID, null);
   if (!declaredByID || !againstID || !charID) {
-    return;
+    return [];
   }
   const recipients = collectWarOwnerCharacterIDs(declaredByID);
   if (!recipients.length) {
-    return;
+    return [];
   }
   const data = {
     defenderID: againstID,
     entityID: declaredByID,
     charID,
   };
+  const results = [];
   for (const characterID of recipients) {
-    createNotification(characterID, {
+    results.push(createNotification(characterID, {
       typeID: NOTIFICATION_TYPE.DECLARE_WAR,
       senderID: charID,
       groupID: NOTIFICATION_GROUP.WAR,
       processed: false,
       data,
-    });
+      requireDurable: options.requireDurable === true,
+      idempotencyKey: options.idempotencyKeyPrefix
+        ? `${options.idempotencyKeyPrefix}:${NOTIFICATION_TYPE.DECLARE_WAR}:${characterID}`
+        : undefined,
+    }));
+  }
+  return results;
+}
+
+function emitWarDeclarationNotifications(war, declaredByCharacterID, requireDurable = false) {
+  const options = {
+    idempotencyKeyPrefix: war.creationKey ? `war-declaration-notice:${war.creationKey}` : "",
+    requireDurable,
+  };
+  notifyWarChanged(null, cloneValue(war));
+  const results = [
+    ...createWarDeclaredNotifications(war, options),
+    ...createWarDeclarationActorNotifications(war, declaredByCharacterID, options),
+  ];
+  if (!normalizeBoolean(war.mutual, false)) {
+    const structure = resolveWarHQStructure(war);
+    results.push(...warNotificationCenter.notifyModernWarDeclared(war, { ...options, structure }));
+    results.push(...warNotificationCenter.notifyWarDeclaredV2(war, { ...options, structure }));
+  }
+  if (requireDurable && (results.some(result => result?.success !== true) ||
+      require("../../gameStore").flushTableSync("notifications")?.success !== true)) {
+    throw Error("WAR_DECLARATION_NOTIFICATIONS_PENDING");
   }
 }
 
@@ -511,6 +543,55 @@ function createWarSurrenderNotifications(war, options = {}) {
   );
 }
 
+const MASTER_WALLET_ACCOUNT_KEY = 1000;
+
+// An aggressive war's first week is paid when it is declared, from the
+// declaring corporation's master wallet (for an alliance, its executor's): the
+// declare window's cost page (UI/Corporations/Wars/WarDeclareCost) and the war
+// bills tooltip call it the first week's pre-payment, and the weekly bill
+// covers week two on. The journal entry is refWarFee, naming the defender. A
+// wallet that cannot pay refuses the declaration: the result carries the
+// NotEnoughMoneyCorp values and no war is made.
+async function chargeWarDeclarationFee({ payerCorporationID, againstID, commandID = null } = {}) {
+  const payerID = normalizePositiveInteger(payerCorporationID, null);
+  const defenderID = normalizePositiveInteger(againstID, null);
+  if (!payerID || !defenderID) {
+    return { success: false, errorMsg: "INVALID_WAR_FEE_PAYER" };
+  }
+  const { JOURNAL_ENTRY_TYPE } = require(path.join(__dirname, "../account/walletState"));
+  const corporationWallet = require(path.join(__dirname, "./corpWalletState"));
+  const result = await corporationWallet.adjustCorporationWalletDivisionBalanceAsync(
+    payerID,
+    MASTER_WALLET_ACCOUNT_KEY,
+    -COST_OF_WAR,
+    {
+      entryTypeID: JOURNAL_ENTRY_TYPE.WAR_FEE,
+      ownerID1: payerID,
+      ownerID2: CONCORD_CORPORATION_ID,
+      referenceID: defenderID,
+      description: `War declaration fee against ${defenderID}`,
+      ...(commandID ? { idempotencyKey: commandID } : {}),
+    },
+    { source: "war-declaration-fee", ...(commandID ? { commandID, idempotencyKey: commandID } : {}) },
+  );
+  if (result && result.success) {
+    return result;
+  }
+  if (result && result.errorMsg === "INSUFFICIENT_FUNDS") {
+    const corporation = getCorporationRecord(payerID);
+    return {
+      ...result,
+      userError: {
+        owner: String(corporation && corporation.corporationName || payerID),
+        amount: COST_OF_WAR,
+        division: String(getCorporationDivisionNames(payerID)[8] || "Master Wallet"),
+        balance: Number(result.data && result.data.balance || 0),
+      },
+    };
+  }
+  return result || { success: false, errorMsg: "WAR_FEE_FAILED" };
+}
+
 function createWarRecord({
   declaredByID,
   againstID,
@@ -524,6 +605,8 @@ function createWarRecord({
   timeStarted = null,
   timeFinished = null,
   declaredByCharacterID = null,
+  creationKey = null,
+  requireDurable = false,
 } = {}) {
   const attackerID = normalizePositiveInteger(declaredByID, null);
   const defenderID = normalizePositiveInteger(againstID, null);
@@ -531,8 +614,28 @@ function createWarRecord({
     return null;
   }
 
+  const key = String(creationKey || "").trim();
+  const creationRequest = key ? {
+    declaredByID: attackerID, againstID: defenderID,
+    warHQID: normalizePositiveInteger(warHQ, null), billID: normalizePositiveInteger(billID, null),
+    timeDeclared: String(timeDeclared), mutual: normalizeBoolean(mutual, false) ? 1 : 0,
+    declaredByCharacterID: normalizePositiveInteger(declaredByCharacterID, null),
+  } : null;
+  if (key) {
+    const previous = Object.values(ensureRuntimeInitialized().wars || {}).find(war => war.creationKey === key);
+    if (previous) {
+      if (!isDeepStrictEqual(previous.creationRequest, creationRequest)) throw Error("WAR_CREATION_KEY_CONFLICT");
+      if (requireDurable && require("../../gameStore").flushTableSync("corporationRuntime")?.success !== true) {
+        throw Error("WAR_DECLARATION_FLUSH_PENDING");
+      }
+      emitWarDeclarationNotifications(previous, declaredByCharacterID, requireDurable);
+      return cloneValue(previous);
+    }
+  }
+
   let nextWarID = null;
   const writeResult = updateRuntimeState((runtimeTable) => {
+    if (key) runtimeTable = cloneValue(runtimeTable);
     nextWarID = normalizePositiveInteger(runtimeTable._meta.nextWarID, 1) || 1;
     runtimeTable._meta.nextWarID = nextWarID + 1;
     const declaredAt = timeDeclared ? BigInt(String(timeDeclared)) : currentFileTime();
@@ -544,6 +647,7 @@ function createWarRecord({
           : declaredAt + WAR_SPOOLUP;
     runtimeTable.wars[String(nextWarID)] = {
       warID: nextWarID,
+      ...(key ? { creationKey: key, creationRequest } : {}),
       declaredByID: attackerID,
       againstID: defenderID,
       warHQID: normalizePositiveInteger(warHQ, null),
@@ -568,16 +672,13 @@ function createWarRecord({
   if (writeResult && writeResult.success) {
     markWarIndexesDirty();
   }
+  if (requireDurable && (writeResult?.success !== true ||
+      require("../../gameStore").flushTableSync("corporationRuntime")?.success !== true)) {
+    throw Error("WAR_DECLARATION_FLUSH_PENDING");
+  }
   const nextRecord = getWarRecord(nextWarID);
   if (nextRecord) {
-    notifyWarChanged(null, cloneValue(nextRecord));
-    createWarDeclaredNotifications(nextRecord);
-    createWarDeclarationActorNotifications(nextRecord, declaredByCharacterID);
-    if (!normalizeBoolean(nextRecord.mutual, false)) {
-      const structure = resolveWarHQStructure(nextRecord);
-      warNotificationCenter.notifyModernWarDeclared(nextRecord, { structure });
-      warNotificationCenter.notifyWarDeclaredV2(nextRecord, { structure });
-    }
+    emitWarDeclarationNotifications(nextRecord, declaredByCharacterID, requireDurable);
   }
   return nextRecord;
 }
@@ -1021,6 +1122,10 @@ async function processDueWarBills(options = {}) {
   for (const dueBill of dueBills) {
     const war = findWarForBill(dueBill);
     if (!war) {
+      const pendingDeclaration = Object.values(ensureRuntimeInitialized().warDeclarations || {})
+        .some(operation => operation?.status === "pending" && operation.operationID &&
+          dueBill.creationKey === `war-declaration:${operation.operationID}:bill`);
+      if (pendingDeclaration) throw Error("WAR_DECLARATION_PENDING");
       markBillProcessed(dueBill.billID, "orphaned");
       processed.push({
         billID: dueBill.billID,
@@ -1657,6 +1762,17 @@ function isAllyActiveAt(ally, now) {
   return timeStarted <= now && (timeFinished === 0n || timeFinished > now);
 }
 
+// Coffee Edition's owner-index lookup avoids cloning every unrelated war for
+// each offensive cycle, while retaining the historical first matching war.
+function warsForEntities(entityIDs) {
+  const index = ensureWarIndexes();
+  const selected = new Map();
+  for (const ownerID of entityIDs) {
+    for (const war of index.byOwner.get(ownerID) || []) selected.set(war.warID, war);
+  }
+  return [...selected.values()].sort((left, right) => Number(left.warID) - Number(right.warID));
+}
+
 function findActiveWarBetweenWarEntities(leftEntityIDs, rightEntityIDs, options = {}) {
   const now = normalizeNowFiletime(options);
   const left = leftEntityIDs instanceof Set ? leftEntityIDs : new Set(leftEntityIDs || []);
@@ -1665,7 +1781,7 @@ function findActiveWarBetweenWarEntities(leftEntityIDs, rightEntityIDs, options 
     return null;
   }
 
-  for (const war of listAllWars()) {
+  for (const war of warsForEntities(left)) {
     if (!isWarActiveAt(war, now)) {
       continue;
     }
@@ -1773,6 +1889,7 @@ function areCharactersLegalWarOpponents(attackerCharacterID, targetCharacterID, 
 module.exports = {
   areCharactersLegalWarOpponents,
   createInheritedWarRecord,
+  chargeWarDeclarationFee,
   createWarRecord,
   createWarSurrenderNotifications,
   endWarWithReason,

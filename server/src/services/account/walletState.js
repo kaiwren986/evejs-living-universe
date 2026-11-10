@@ -45,6 +45,7 @@ const JOURNAL_ENTRY_TYPE = {
   PLAYER_TRADING: 1,
   MARKET_TRANSACTION: 2,
   GM_CASH_TRANSFER: 3,
+  CAREER_PROGRAM_PAYOUT: 185,
   PLAYER_DONATION: 10,
   OFFICE_RENTAL_FEE: 13,
   BOUNTY: 16,
@@ -57,10 +58,14 @@ const JOURNAL_ENTRY_TYPE = {
   MARKET_ESCROW: 42,
   BROKERS_FEE: 46,
   ALLIANCE_REGISTRATION_FEE: 48,
+  // appConst.refWarFee: "Fee for war against {name}", the defender in arg1 (walletEntryFormat.py).
+  WAR_FEE: 49,
   ALLIANCE_MAINTENANCE_FEE: 50,
   // appConst.refContrabandFine: a fine for contraband smuggling, as the client's journal names and words it.
   CONTRABAND_FINE: 51,
   TRANSACTION_TAX: 54,
+  CONTRACT_BROKERS_FEE: 72,
+  CONTRACT_BROKERS_FEE_CORP: 80,
   NPC_BOUNTY_PRIZES: 85,
   ESS_MAIN_BANK_AUTOPAYMENT: 155, // appConst.refESSMainBankAutopayment, build 3396210.
   // refCorporationTaxNpcBounties: the corporation's cut of an NPC bounty prize
@@ -164,6 +169,8 @@ function findWalletOperationReceipt(record, idempotencyKey) {
   if (/^crew-equipment:(mining|hauling|manufacturing):[1-3]$/.test(idempotencyKey)) return record.crewEquipmentWalletReceipts?.[idempotencyKey] || null;
   const crew = /^crew-buy-wallet:(\d+):[a-f0-9]{64}:(debit|refund)$/.exec(idempotencyKey);
   if (crew) { const prior = record.crewPurchaseWalletReceipts?.[crew[2]]; return prior?.serial >= Number(crew[1]) ? prior : null; }
+  if (idempotencyKey.startsWith("incursion:")) return record.incursionWalletReceipts?.[idempotencyKey] || null;
+  if (idempotencyKey.startsWith("discovery:")) return record.discoveryWalletReceipts?.[idempotencyKey] || null;
   if (idempotencyKey.startsWith("campaign:")) return record.campaignWalletReceipts?.[idempotencyKey] || null;
   if (idempotencyKey.startsWith("contract:") && record.contractWalletReceipts?.[idempotencyKey]) return record.contractWalletReceipts[idempotencyKey];
   if (idempotencyKey.startsWith("freelance:")) return record.freelanceWalletReceipts?.[idempotencyKey] || null;
@@ -183,6 +190,14 @@ function appendWalletOperationReceipt(record, receipt) {
   }
   const crew = /^crew-buy-wallet:(\d+):[a-f0-9]{64}:(debit|refund)$/.exec(receipt.idempotencyKey);
   if (crew) { record.crewPurchaseWalletReceipts = { ...(record.crewPurchaseWalletReceipts || {}), [crew[2]]: { ...cloneValue(receipt), serial: Number(crew[1]) } }; return; }
+  if (receipt.idempotencyKey.startsWith("incursion:")) {
+    record.incursionWalletReceipts = { ...(record.incursionWalletReceipts || {}), [receipt.idempotencyKey]: cloneValue(receipt) };
+    return;
+  }
+  if (receipt.idempotencyKey.startsWith("discovery:")) {
+    record.discoveryWalletReceipts = { ...(record.discoveryWalletReceipts || {}), [receipt.idempotencyKey]: cloneValue(receipt) };
+    return;
+  }
   if (receipt.idempotencyKey.startsWith("campaign:")) {
     record.campaignWalletReceipts = { ...(record.campaignWalletReceipts || {}), [receipt.idempotencyKey]: cloneValue(receipt) };
     return;
@@ -757,7 +772,16 @@ function applyAdjustCharacterBalance({ charId, amount, options = {} }) {
   if (idempotencyKey) {
     const receipt = findWalletOperationReceipt(currentRecord, idempotencyKey);
     if (receipt) {
-      if (receipt.fingerprint !== fingerprint) {
+      // Older accepted ACP claims used reference 3. Keep their permanent
+      // economic receipt payable without rewriting the historical journal or
+      // authorizing a different amount, owner, account or description.
+      const compatibleCareerReceipt = options.allowLegacyCareerJournalReceipt === true &&
+        idempotencyKey.startsWith("campaign:") && delta > 0 &&
+        normalizedOptions.entryTypeID === JOURNAL_ENTRY_TYPE.CAREER_PROGRAM_PAYOUT &&
+        normalizedOptions.description === "AIR Career Program reward" &&
+        receipt.fingerprint === buildWalletAdjustmentFingerprint(charId, delta,
+          { ...normalizedOptions, entryTypeID: JOURNAL_ENTRY_TYPE.GM_CASH_TRANSFER });
+      if (receipt.fingerprint !== fingerprint && !compatibleCareerReceipt) {
         return {
           success: false,
           errorMsg: "IDEMPOTENCY_KEY_REUSED",
@@ -772,11 +796,17 @@ function applyAdjustCharacterBalance({ charId, amount, options = {} }) {
     if (idempotencyKey.startsWith("nodegraph:") && Object.keys(currentRecord.nodeGraphWalletReceipts || {}).length >= 8192) {
       return { success: false, errorMsg: "NODEGRAPH_WALLET_RECEIPT_LIMIT" };
     }
+    if (idempotencyKey.startsWith("incursion:") && Object.keys(currentRecord.incursionWalletReceipts || {}).length >= 8192) {
+      return { success: false, errorMsg: "INCURSION_WALLET_RECEIPT_LIMIT" };
+    }
     if (idempotencyKey.startsWith("contract:") && Object.keys(currentRecord.contractWalletReceipts || {}).length >= 8192) {
       return { success: false, errorMsg: "CONTRACT_WALLET_RECEIPT_LIMIT" };
     }
     if (idempotencyKey.startsWith("freelance:") && Object.keys(currentRecord.freelanceWalletReceipts || {}).length >= 8192) {
       return { success: false, errorMsg: "FREELANCE_WALLET_RECEIPT_LIMIT" };
+    }
+    if (idempotencyKey.startsWith("discovery:") && Object.keys(currentRecord.discoveryWalletReceipts || {}).length >= 8192) {
+      return { success: false, errorMsg: "DISCOVERY_WALLET_RECEIPT_LIMIT" };
     }
     if (idempotencyKey.startsWith("campaign:") && Object.keys(currentRecord.campaignWalletReceipts || {}).length >= 8192) {
       return { success: false, errorMsg: "CAMPAIGN_WALLET_RECEIPT_LIMIT" };
@@ -823,7 +853,7 @@ async function adjustCharacterBalanceAsync(charId, amount, options = {}, metadat
   // Contract journals may acknowledge this leg immediately. In local execution
   // the owner record and its permanent receipt must reach SQLite first; process
   // execution already provides this barrier inside the wallet owner.
-  if (result?.success && ["contract-settlement", "campaign-redemption"].includes(metadata.source) && !isWalletAuthorityProcessEnabled()) {
+  if (result?.success && ["contract-settlement", "campaign-redemption", "career-reward", "incursion-settlement"].includes(metadata.source) && !isWalletAuthorityProcessEnabled()) {
     const database = require("../../gameStore");
     const committed = database.flushTableSync("characters");
     if (!committed?.success) return committed || { success: false, errorMsg: "CONTRACT_WALLET_FLUSH_FAILED" };

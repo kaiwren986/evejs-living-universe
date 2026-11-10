@@ -1321,6 +1321,81 @@ function storeActiveShipInMaintenanceContainer(session, sourceLocationID) {
   };
 }
 
+// "Recover to ship maintenance bay" on a ship in space is
+// ship.ScoopToSMA(objectID) (menusvc.RealScoopSMA), offered for any ship
+// that is not the pilot's own or a capsule while the active ship has a bay
+// (celestialCheckers.OfferScoopToShipMaintenanceBay). The client flies to
+// its 2,500 m interaction range first. The refusals owned here are the
+// scoop's: own unpiloted hull, in this system, in range. The bay's contents
+// and capacity rules are the shared ones storeShipRecordInMaintenanceSource
+// applies.
+function scoopShipIntoActiveShipMaintenanceBay(session, targetShipID) {
+  const characterID = toInt(session && session.characterID, 0);
+  const spaceState = session && session._space ? session._space : null;
+  const systemID = toInt(spaceState && spaceState.systemID, 0);
+  const activeShipID = toInt(spaceState && spaceState.shipID, 0);
+  if (!characterID || !systemID || !activeShipID) {
+    return { success: false, errorMsg: "NOT_IN_SPACE" };
+  }
+
+  const hostShip = findItemById(activeShipID);
+  if (!hostShip || !isShipMaintenanceBaySource(hostShip)) {
+    return { success: false, errorMsg: "SHIP_MAINTENANCE_BAY_NOT_AVAILABLE" };
+  }
+
+  const targetItemID = toInt(targetShipID, 0);
+  const targetShip = targetItemID > 0 ? findItemById(targetItemID) : null;
+  if (!targetShip || toInt(targetShip.categoryID, 0) !== CATEGORY_SHIP) {
+    return { success: false, errorMsg: "SHIP_NOT_FOUND" };
+  }
+  if (targetItemID === activeShipID) {
+    return { success: false, errorMsg: "SHIP_IS_PILOTED" };
+  }
+  if (toInt(targetShip.ownerID, 0) !== characterID) {
+    return { success: false, errorMsg: "SHIP_NOT_OWNER" };
+  }
+  if (
+    toInt(targetShip.locationID, 0) !== systemID ||
+    toInt(targetShip.flagID, -1) !== 0
+  ) {
+    return { success: false, errorMsg: "SHIP_NOT_IN_SPACE" };
+  }
+
+  const scene = spaceRuntime.getSceneForSession(session);
+  const hostEntity = scene ? scene.getEntityByID(activeShipID) : null;
+  const targetEntity = scene ? scene.getEntityByID(targetItemID) : null;
+  if (!hostEntity || !targetEntity) {
+    return { success: false, errorMsg: "SHIP_NOT_IN_SPACE" };
+  }
+  if (targetEntity.session || toInt(targetEntity.pilotCharacterID, 0) > 0) {
+    return { success: false, errorMsg: "SHIP_IS_PILOTED" };
+  }
+  if (
+    surfaceDistanceBetweenEntities(hostEntity, targetEntity) >
+    MAX_CARGO_CONTAINER_TRANSFER_DISTANCE_METERS
+  ) {
+    return { success: false, errorMsg: "TARGET_TOO_FAR" };
+  }
+
+  return storeShipRecordInMaintenanceSource(
+    session,
+    targetShip,
+    {
+      characterID,
+      systemID,
+      sourceID: activeShipID,
+      sourceItem: hostShip,
+      sourceEntity: hostEntity,
+      sourceIsShipBay: true,
+      sourceIsPosMaintenanceArray: false,
+      scene,
+      currentShip: hostShip,
+      activeEntity: hostEntity,
+    },
+    { removeEntity: true },
+  );
+}
+
 module.exports = {
   SHIP_FITTING_SERVICE_RANGE_METERS,
   isShipMaintenanceArraySource,
@@ -1329,6 +1404,7 @@ module.exports = {
   launchShipOrContainerFromWreckOrContainer,
   launchShipFromMaintenanceContainer,
   boardStoredShipFromMaintenanceContainer,
+  scoopShipIntoActiveShipMaintenanceBay,
   storeActiveShipInMaintenanceContainer,
   _testing: {
     buildLaunchStateNearSource,

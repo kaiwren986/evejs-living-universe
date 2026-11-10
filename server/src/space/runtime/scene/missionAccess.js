@@ -1,5 +1,7 @@
 "use strict";
 
+const { WARP_TRANSMISSION_RECEIPT } = require("../../destiny/commands/warpTransmissionReceipt");
+
 // Mission and site access: the gameplay gates on private mission (dungeon)
 // instances, and the dungeon room tracking of a pilot landing in one. With
 // visibility as Grid bubble membership, none
@@ -52,6 +54,10 @@ function isOwnerScopedAirTutorialShip(entity) {
     toInt(entity.typeID, 0) === AIR_CIVILIAN_ASTERO_TYPE_ID
   );
 }
+
+// The room key a landing records for a site's entry pocket when no room was
+// asked for (dungeonTrackingRuntime uses the same alias).
+const ENTRY_ROOM_ALIAS = "room:entry";
 
 const DUNGEON_SCOPE_PUBLIC = Object.freeze({ kind: "public" });
 const DUNGEON_SCOPE_REJECTED = Object.freeze({ kind: "rejected" });
@@ -162,6 +168,9 @@ commitAcceptedPilotWarpDungeonContext(entity, options = {}) {
       entity.dungeonCurrentInstanceID,
     );
     const currentRoomKey = String(entity.dungeonCurrentRoomKey || "").trim();
+    const incursionPolicy = destinationResolution && require("../../../services/incursion/incursionAdmission").admittedPolicy(destinationResolution.instance);
+    const trackedRoomKey = incursionPolicy && currentRoomKey === "room:entry" && currentRoomKey !== incursionPolicy.lobbyRoomKey
+      ? "" : currentRoomKey;
     const currentSiteID = normalizePersistentEntityID(
       entity.dungeonCurrentSiteID,
     );
@@ -172,11 +181,11 @@ commitAcceptedPilotWarpDungeonContext(entity, options = {}) {
           (
             currentInstanceID !== null &&
             entityIDsEqual(currentInstanceID, destinationStaticInstanceID)
-              ? currentRoomKey
+              ? trackedRoomKey
               : ""
           ) ||
-          "room:entry",
-        ).trim() || "room:entry"
+          incursionPolicy?.lobbyRoomKey || ENTRY_ROOM_ALIAS,
+        ).trim() || ENTRY_ROOM_ALIAS
       : "";
     const resolvedSiteID = destinationResolution
       ? normalizePersistentEntityID(destinationResolution.siteID)
@@ -199,6 +208,10 @@ commitAcceptedPilotWarpDungeonContext(entity, options = {}) {
           )
         );
     if (alreadyCurrent) {
+      if (destinationResolution) {
+        lazyRequire("../services/dungeon/dungeonUniverseSiteService")
+          .maybeCompleteSecurityRoomArrivalObjective(this, session, options);
+      }
       return {
         changed: false,
         destinationStaticInstanceID,
@@ -247,9 +260,12 @@ commitAcceptedPilotWarpDungeonContext(entity, options = {}) {
           nowMs,
           roomPosition,
           siteID: resolvedSiteID,
+          [WARP_TRANSMISSION_RECEIPT]: options[WARP_TRANSMISSION_RECEIPT],
         },
       );
       persistAcceptedContext();
+      lazyRequire("../services/dungeon/dungeonUniverseSiteService")
+        .maybeCompleteSecurityRoomArrivalObjective(this, session, { nowMs });
       dungeonTrackingRuntime.sendEnteringDungeonRoomNotification(
         session,
         destinationResolution.instance,
@@ -332,15 +348,10 @@ hasParkedDungeonSiteTeardownForInstance(instanceID) {
     );
   },
 
-// "Purged" means the instance record is gone entirely, which is what a universe
-  // reconcile does when it replaces a site: it deletes the row and mints a new
-  // instanceID under the same siteKey. Deliberately not "terminal" -- a terminal
-  // instance inside its occupancy grace still resolves for the pilot landing in it,
-  // and must keep authorizing. This is the same test releaseSurvivorsStrandedByPurgedInstances
-  // calls purged, so there is one definition of the word; getInstanceRef is the
-  // read-only variant, because this runs per tick and the snapshot's deep clone
-  // would be thrown away unread.
-  isPurgedDungeonInstance(instanceID) {
+  // Closed incursion pockets retain their rows for lifecycle and reward audit.
+  // Recognize a matching tracker as releasable, as with a missing instance.
+  // The attachment path handles occupancy grace before releasing the tracker.
+  isReleasedDungeonInstance(instanceID, context = {}) {
     const numericInstanceID = Math.max(0, toInt(instanceID, 0));
     if (numericInstanceID <= 0) {
       return false;
@@ -349,7 +360,21 @@ hasParkedDungeonSiteTeardownForInstance(instanceID) {
     if (!dungeonRuntime || typeof dungeonRuntime.getInstanceRef !== "function") {
       return false;
     }
-    return !dungeonRuntime.getInstanceRef(numericInstanceID);
+    const instance = dungeonRuntime.getInstanceRef(numericInstanceID);
+    if (!instance) return true;
+    if (instance.instanceScope !== "shared" || instance.siteOrigin !== "sansha_incursion" ||
+        instance.runtimeFlags?.incursionRuntime !== true ||
+        !entityIDsEqual(instance.solarSystemID, this.systemID)) return false;
+
+    const { lifecycleState, lifecycleReason } = instance;
+    const placement = instance.metadata?.incursionAdmission?.placement;
+    const closedSlot = placement === "tale-slot" && lifecycleState === "despawned" &&
+      lifecycleReason === "incursion-site-admission-closed";
+    const closedFinal = placement === "tale-final" && ["completed", "despawned"].includes(lifecycleState) &&
+      lifecycleReason === "incursion-final-admission-closed";
+    return (closedSlot || closedFinal) &&
+      (!Object.hasOwn(context, "siteID") || entityIDsEqual(context.siteID, instance.metadata.siteID)) &&
+      (!context.roomKey || Object.hasOwn(instance.roomStatesByKey || {}, context.roomKey));
   },
 
 resolveAuthorizedDestinationStaticInstanceID(session, instanceID) {
@@ -396,7 +421,12 @@ resolveAuthorizedDestinationDungeonContext(
     }
 
     const requestedRoomKey = String(options.roomKey || "").trim();
-    if (requestedRoomKey) {
+    // A landing that asks for no room records the entry alias
+    // (commitAcceptedPilotWarpDungeonContext), also where the instance keys its
+    // entry pocket by pocket ID, so a warp to a pilot standing there carries
+    // the alias. It names the site's entry, which an authorized pilot may
+    // always reach. Any other room key must be one of the instance's rooms.
+    if (requestedRoomKey && requestedRoomKey !== ENTRY_ROOM_ALIAS) {
       const roomStatesByKey = instance && instance.roomStatesByKey;
       if (
         !roomStatesByKey ||

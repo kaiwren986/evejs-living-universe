@@ -70,6 +70,9 @@ actually sells it.
 
 Other import modes:
 
+- `iron_man`: the v4 Iron Man seed type. Only NPC-duration orders, with the
+  threshold fixed at `> 90` days and custom-station stock disabled regardless of
+  configuration. See [the Iron Man launcher and guide](../market-seederv4/README.md).
 - `all_station`: every valid station order in the snapshot.
 - `market_scope`: only station orders in `market_solar_system_ids`.
 - `npc_only`: only station orders whose duration is above the normal player

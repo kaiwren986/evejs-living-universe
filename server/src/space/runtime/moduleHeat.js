@@ -981,7 +981,9 @@ function repairEntityFittedModules(entity, options = {}) {
     ? options.whenMs
     : null;
   const repairedModuleIDs = [];
+  const selectedIDs = Array.isArray(options.moduleIDs) ? new Set(options.moduleIDs.map(Number)) : null;
   for (const moduleItem of getEntityRuntimeFittedItems(entity)) {
+    if (selectedIDs && !selectedIDs.has(Number(moduleItem.itemID))) continue;
     const moduleState =
       moduleItem && moduleItem.moduleState && typeof moduleItem.moduleState === "object"
         ? moduleItem.moduleState

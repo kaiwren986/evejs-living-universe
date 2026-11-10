@@ -556,32 +556,38 @@ function applyYieldPresentationToEntity(entity, state, summary = null) {
   }
 
   if (state.remainingQuantity > 0) {
-    const minimumRadiusRatio = Math.max(
-      0.01,
-      toFiniteNumber(config.miningDepletedAsteroidRadiusRatio, 0.25),
-    );
-    const minimumRuntimeRadius = Math.max(1, state.originalRadius * minimumRadiusRatio);
-    const computedRadius = computeAsteroidRadiusFromQuantity(
-      state.yieldTypeID,
-      state.remainingQuantity,
-      {
-        unitVolume: state.unitVolume,
-        fallbackScale: Math.max(
-          0.000001,
-          toFiniteNumber(config.miningBeltQuantityScale, 0.08),
-        ),
-        fallbackMinRadius: Math.max(250, state.originalRadius * 0.2),
-        fallbackMaxRadius: Math.max(state.originalRadius, entity.radius),
-      },
-    );
-    applyMiningYieldRadiusCommand(
-      entity,
-      clamp(
+    let runtimeRadius;
+    if (state.yieldKind === "gas" && toInt(yieldTypeRecord && yieldTypeRecord.groupID, 0) === 711) {
+      // Native ballparkCommon.ballRadius.ComputeRadiusFromQuantity uses a
+      // linear cloud scale, rather than the asteroid quantity/radius curve.
+      entity.dunRadius = state.remainingQuantity;
+      runtimeRadius = Math.max(1, state.remainingQuantity * toFiniteNumber(yieldTypeRecord.radius, 1) / 10);
+    } else {
+      const minimumRadiusRatio = Math.max(
+        0.01,
+        toFiniteNumber(config.miningDepletedAsteroidRadiusRatio, 0.25),
+      );
+      const minimumRuntimeRadius = Math.max(1, state.originalRadius * minimumRadiusRatio);
+      const computedRadius = computeAsteroidRadiusFromQuantity(
+        state.yieldTypeID,
+        state.remainingQuantity,
+        {
+          unitVolume: state.unitVolume,
+          fallbackScale: Math.max(
+            0.000001,
+            toFiniteNumber(config.miningBeltQuantityScale, 0.08),
+          ),
+          fallbackMinRadius: Math.max(250, state.originalRadius * 0.2),
+          fallbackMaxRadius: Math.max(state.originalRadius, entity.radius),
+        },
+      );
+      runtimeRadius = clamp(
         computedRadius,
         minimumRuntimeRadius,
         Math.max(minimumRuntimeRadius, state.originalRadius),
-      ),
-    );
+      );
+    }
+    applyMiningYieldRadiusCommand(entity, runtimeRadius);
   }
   recordMiningPresentationSummary(summary, entity, state);
 }
@@ -652,6 +658,56 @@ function readPersistedSystemState(systemID) {
   return result.data;
 }
 
+// A belt's accepted generation freezes composition and generated geometry.
+// Catalog changes only affect belts which have not yet been generated (or an
+// explicit admin/downtime reset); ordinary scene reload never rewrites it.
+function readPersistedBeltGeneration(systemID, beltID) {
+  const result = repo.read(MINING_RUNTIME_TABLE,
+    `/systems/${String(toInt(systemID, 0))}/belts/${String(toInt(beltID, 0))}`);
+  return result.success && result.data ? cloneValue(result.data) : null;
+}
+
+function persistBeltGeneration(systemID, beltID, generation) {
+  if (toInt(systemID, 0) <= 0 || toInt(beltID, 0) <= 0 || !generation) {
+    throw new Error("BELT_GENERATION_INVALID");
+  }
+  const key = `/systems/${toInt(systemID, 0)}/belts/${toInt(beltID, 0)}`;
+  const existing = readPersistedBeltGeneration(systemID, beltID);
+  if (existing) return existing;
+  const written = repo.write(MINING_RUNTIME_TABLE, key, cloneValue(generation));
+  if (!written.success) throw new Error(written.errorMsg || "BELT_GENERATION_WRITE_FAILED");
+  try {
+    const flushed = repo.flushTableSync(MINING_RUNTIME_TABLE);
+    if (!flushed?.success) throw new Error(flushed?.errorMsg || "BELT_GENERATION_FLUSH_FAILED");
+  } catch (error) {
+    repo.remove(MINING_RUNTIME_TABLE, key);
+    throw error;
+  }
+  return cloneValue(generation);
+}
+
+// Upgrade only the derived RNG checkpoint and origin. Composition, profile and
+// all resource rows remain the already accepted generation's property.
+function upgradeBeltGenerationGeometry(systemID, beltID, { geometryRngSkip, fieldOrigin }) {
+  const previous = readPersistedBeltGeneration(systemID, beltID);
+  if (!previous || previous.version !== 1 || !Number.isSafeInteger(geometryRngSkip) ||
+      geometryRngSkip < 0 || geometryRngSkip > 1000000 ||
+      !["x", "y", "z"].every(axis => Number.isFinite(fieldOrigin?.[axis]))) throw new Error("BELT_GEOMETRY_MIGRATION_INVALID");
+  const next = { ...previous, version: 2, geometryRngSkip, fieldOrigin: cloneValue(fieldOrigin) };
+  const key = `/systems/${toInt(systemID, 0)}/belts/${toInt(beltID, 0)}`;
+  const written = repo.write(MINING_RUNTIME_TABLE, key, cloneValue(next));
+  if (!written.success) throw new Error(written.errorMsg || "BELT_GEOMETRY_MIGRATION_WRITE_FAILED");
+  try {
+    const flushed = repo.flushTableSync(MINING_RUNTIME_TABLE);
+    if (!flushed?.success) throw new Error(flushed?.errorMsg || "BELT_GEOMETRY_MIGRATION_FLUSH_FAILED");
+  } catch (error) {
+    const restored = repo.write(MINING_RUNTIME_TABLE, key, previous);
+    if (!restored.success) throw new Error(`BELT_GEOMETRY_MIGRATION_ROLLBACK_FAILED: ${restored.errorMsg}`);
+    throw error;
+  }
+  return cloneValue(next);
+}
+
 function areMiningStatesEquivalent(left, right) {
   if (!left || !right) {
     return false;
@@ -687,11 +743,12 @@ function writePersistedState(scene, state, options = {}) {
     return false;
   }
 
-  repo.write(
+  const written = repo.write(
     MINING_RUNTIME_TABLE,
     `/systems/${String(toInt(scene && scene.systemID, 0))}/entities/${String(toInt(state && state.entityID, 0))}`,
     cloneValue(state),
   );
+  if (!written.success) throw new Error(written.errorMsg || "MINING_STATE_WRITE_FAILED");
   const persistedByEntityID =
     (options && options.persistedByEntityID && typeof options.persistedByEntityID === "object")
       ? options.persistedByEntityID
@@ -971,6 +1028,93 @@ function getMineableState(scene, entityID) {
   return state;
 }
 
+// The former training cloud was scenery. A live cache or an NPC extraction
+// receipt can still prove how much was already removed from its estimated
+// stock. Preserve that removal when replacing the estimate with captured stock;
+// an absent receipt establishes no earlier extraction history.
+function prepareCareerGasStock(scene, entity) {
+  if (entity?.careerGasStockVersion !== 1 || entity.dungeonSourceObjectID !== 962121 ||
+      entity.miningOriginalQuantity !== 100) throw new Error("CAREER_GAS_STOCK_INVALID");
+  const recovered = require("./miningCargoCommits").reconcileResource(scene.systemID, entity.itemID);
+  if (!recovered.success) throw new Error(recovered.errorMsg || "CAREER_GAS_RECOVERY_PENDING");
+  const cache = ensureSceneMiningState(scene);
+  const existing = cache.byEntityID.get(Number(entity.itemID));
+  const persisted = readPersistedSystemState(scene.systemID)[String(entity.itemID)];
+  const dungeon = getDungeonRuntimeModule();
+  const instance = dungeon.getInstance(entity.dungeonSiteInstanceID);
+  if (instance?.templateID !== "client-dungeon:4093") throw new Error("CAREER_GAS_SITE_INVALID");
+  const remainingByID = instance.spawnState?.miningRockRemainingByID || {};
+  let remaining = Math.min(100, Math.max(0, toInt(entity.miningRemainingQuantity, 100)));
+  if (Object.hasOwn(remainingByID, String(entity.itemID))) remaining = Math.min(remaining,
+    Math.max(0, toInt(remainingByID[String(entity.itemID)], 0)));
+  if (toInt(instance.spawnState?.careerGasStockVersion, 0) < 1) {
+    for (const old of [existing, persisted].filter(Boolean)) {
+      if (old.yieldKind !== "gas" || ![28629, 28695].includes(toInt(old.yieldTypeID, 0)) ||
+          !Number.isSafeInteger(old.originalQuantity) || !Number.isSafeInteger(old.remainingQuantity) ||
+          old.remainingQuantity < 0 || old.originalQuantity < old.remainingQuantity) {
+        throw new Error("CAREER_GAS_LEGACY_STATE_INVALID");
+      }
+      remaining = Math.min(remaining, Math.max(0, 100 - (old.originalQuantity - old.remainingQuantity)));
+    }
+    dungeon.mergeSpawnState(instance.instanceID, { careerGasStockVersion: 1,
+      miningRockRemainingByID: { ...remainingByID, [entity.itemID]: remaining } }, { durable: true });
+  }
+  const state = normalizeStateRecord({
+    ...(persisted?.lastCargoCommit ? { lastCargoCommit: persisted.lastCargoCommit } : {}),
+    entityID: entity.itemID, visualTypeID: entity.visualTypeID || entity.typeID,
+    yieldTypeID: entity.miningYieldTypeID, yieldKind: "gas", unitVolume: entity.miningUnitVolume,
+    originalQuantity: 100, remainingQuantity: remaining, originalRadius: entity.radius,
+  });
+  // A prior NPC receipt owns a resource row even for dungeon content. Rebase it
+  // before publishing the new cache state, retaining its receipt identity.
+  if (persisted && !areMiningStatesEquivalent(persisted, state)) {
+    const key = `/systems/${scene.systemID}/entities/${entity.itemID}`;
+    const written = repo.write(MINING_RUNTIME_TABLE, key, cloneValue(state));
+    if (!written.success) throw new Error(written.errorMsg || "CAREER_GAS_REBASE_FAILED");
+    let flushed;
+    try { flushed = repo.flushTableSync(MINING_RUNTIME_TABLE); }
+    catch (error) { repo.write(MINING_RUNTIME_TABLE, key, persisted); throw error; }
+    if (!flushed?.success) {
+      repo.write(MINING_RUNTIME_TABLE, key, persisted);
+      throw new Error(flushed?.errorMsg || "CAREER_GAS_REBASE_FLUSH_FAILED");
+    }
+    cache.persistedByEntityID[String(entity.itemID)] = cloneValue(state);
+  }
+  entity.miningRemainingQuantity = remaining;
+  return state;
+}
+
+function prepareRetailMiningStock(scene, entity) {
+  const recovered = require("./miningCargoCommits").reconcileResource(scene.systemID, entity.itemID);
+  if (!recovered.success) throw new Error(recovered.errorMsg || "RETAIL_MINING_RECOVERY_PENDING");
+  const cache = ensureSceneMiningState(scene);
+  const persisted = readPersistedSystemState(scene.systemID)[String(entity.itemID)];
+  const state = normalizeStateRecord({
+    ...(persisted?.lastCargoCommit ? { lastCargoCommit: persisted.lastCargoCommit } : {}),
+    entityID: entity.itemID, visualTypeID: entity.visualTypeID || entity.typeID,
+    yieldTypeID: entity.miningYieldTypeID, yieldKind: entity.miningYieldKind,
+    unitVolume: entity.miningUnitVolume, originalQuantity: entity.miningOriginalQuantity,
+    remainingQuantity: entity.miningRemainingQuantity, originalRadius: entity.radius,
+  });
+  if (persisted && !areMiningStatesEquivalent(persisted, state)) {
+    if (persisted.yieldTypeID !== state.yieldTypeID || persisted.yieldKind !== state.yieldKind) {
+      throw new Error("RETAIL_MINING_LEGACY_TYPE_MISMATCH");
+    }
+    const key = `/systems/${scene.systemID}/entities/${entity.itemID}`;
+    const written = repo.write(MINING_RUNTIME_TABLE, key, cloneValue(state));
+    if (!written.success) throw new Error(written.errorMsg || "RETAIL_MINING_REBASE_FAILED");
+    let flushed;
+    try { flushed = repo.flushTableSync(MINING_RUNTIME_TABLE); }
+    catch (error) { repo.write(MINING_RUNTIME_TABLE, key, persisted); throw error; }
+    if (!flushed?.success) {
+      repo.write(MINING_RUNTIME_TABLE, key, persisted);
+      throw new Error(flushed?.errorMsg || "RETAIL_MINING_REBASE_FLUSH_FAILED");
+    }
+    cache.persistedByEntityID[String(entity.itemID)] = cloneValue(state);
+  }
+  return state;
+}
+
 function commitCargoDepletion(operation, options = {}) {
   const key = `/systems/${operation.systemID}/entities/${operation.resourceID}`;
   const read = repo.read(MINING_RUNTIME_TABLE, key);
@@ -1007,11 +1151,15 @@ function updateMineableState(scene, entity, nextState, options = {}) {
 
   const normalizedState = normalizeStateRecord(nextState);
   if (shouldPersistMineableState(entity)) {
-    writePersistedState(scene, normalizedState, {
-      existingPersistedState:
-        cache.persistedByEntityID[String(normalizedState.entityID)] || null,
-      persistBaseline: true,
-    });
+    try {
+      writePersistedState(scene, normalizedState, {
+        existingPersistedState:
+          cache.persistedByEntityID[String(normalizedState.entityID)] || null,
+        persistBaseline: true,
+      });
+    } catch (error) {
+      return { success: false, errorMsg: error.message };
+    }
   } else if (readDungeonRockQuantities(entity)) {
     entity.miningRemainingQuantity = normalizedState.remainingQuantity;
   }
@@ -1255,7 +1403,7 @@ function notifyOreMinedByOther(scene, entity, deltaData, options = {}) {
     if (typeof session.sendNotification !== "function") {
       continue;
     }
-    session.sendNotification("OnOreMinedByOther", "charid", [
+    session.sendNotification("OnOreMinedByOther", "shipid", [
       asteroidID,
       quantity,
     ]);
@@ -1574,8 +1722,9 @@ function recordDungeonRockRemainder(entity, nextState, options = {}) {
         ...recorded,
         [String(entityID)]: remainingQuantity,
       },
-    }, { nowMs: options.nowMs });
+    }, { nowMs: options.nowMs, ...(entity.careerGasStockVersion === 1 ? { durable: true } : {}) });
   } catch (error) {
+    if (entity.careerGasStockVersion === 1) throw error;
     // Recording is best-effort; a failed write must not stop the mining cycle that caused it.
     log.debug(`[Mining] saving the ore left in rock ${entityID} of site ${instanceID} failed: ${error && error.message}`);
     return false;
@@ -1601,6 +1750,8 @@ function applyMiningDelta(scene, entity, minedQuantity, wastedQuantity, options 
     remainingQuantity: Math.max(0, currentState.remainingQuantity - depletedQuantity),
     updatedAtMs: options.nowMs ?? Date.now(),
   });
+
+  if (entity.careerGasStockVersion === 1) recordDungeonRockRemainder(entity, nextState, options);
 
   const updateResult = updateMineableState(scene, entity, nextState, options);
   if (!updateResult.success) {
@@ -1684,8 +1835,8 @@ function clearPersistedSystemState(systemID) {
 // fieldSeed every time a scene is created, so the ONLY thing keeping a mined
 // belt empty is its persisted depletion state: ensureSceneMiningState removes
 // any freshly spawned rock whose stored remainingQuantity is 0. Dropping those
-// rows at startup restores every belt to pristine, which matches Tranquility —
-// belts repopulate on downtime, not on a timer.
+// rows in a deliberate downtime reset restores every belt to pristine.
+// Ordinary restarts retain both accepted generations and depletion.
 //
 // Scoped to belt rocks (beltID > 0) on purpose. The same table also holds
 // generated ice-site mineables, which already respawn through the dungeon
@@ -1709,6 +1860,12 @@ function resetPersistedBeltAsteroidState() {
   let entitiesCleared = 0;
 
   for (const [systemKey, systemNode] of Object.entries(result.data)) {
+    if (systemNode && systemNode.belts) {
+      const removed = repo.remove(MINING_RUNTIME_TABLE, `/systems/${systemKey}/belts`);
+      if (!removed.success && removed.errorMsg !== "ENTRY_NOT_FOUND") {
+        throw new Error(removed.errorMsg || "BELT_GENERATION_RESET_FAILED");
+      }
+    }
     const entities = systemNode && systemNode.entities;
     if (!entities || typeof entities !== "object") {
       continue;
@@ -1875,6 +2032,8 @@ module.exports = {
   MINING_RUNTIME_TABLE,
   ensureSceneMiningState,
   getMineableState,
+  prepareCareerGasStock,
+  prepareRetailMiningStock,
   updateMineableState,
   applyMiningDelta,
   commitCargoDepletion,
@@ -1885,6 +2044,9 @@ module.exports = {
   summarizeSceneMiningState,
   resetSceneMiningState,
   readPersistedSystemEntities,
+  readPersistedBeltGeneration,
+  persistBeltGeneration,
+  upgradeBeltGenerationGeometry,
   writePersistedSystemEntity,
   removePersistedSystemEntity,
   _testing: {

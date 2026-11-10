@@ -91,6 +91,9 @@ const snapshotCache = new Map();
 const schedulerHandles = new Map();
 const durableJobIDs = new Map();
 const durableScheduleLanes = new Map();
+const slotChecks = new Map();
+const slotTimers = new Map();
+let enforcingTrainingSlots = false;
 let durableScheduler = null;
 let durableSchedulerGeneration = 0;
 const DURABLE_SKILL_TABLES = Object.freeze([
@@ -324,6 +327,109 @@ function clearSnapshotCache(characterID) {
     return;
   }
   snapshotCache.clear();
+  slotChecks.clear();
+  for (const watch of slotTimers.values()) clearTimeout(watch.timer);
+  slotTimers.clear();
+}
+
+function getTotalSkillPoints(characterID) {
+  return getCharacterBaseSkills(characterID)
+    .reduce((total, record) => total + Math.max(0, toInt(record.trainedSkillPoints, 0)), 0);
+}
+
+// When an extra training queue (Multiple Character Training) runs out, the character with the
+// fewest skill points has its queue paused (CCP, "Multiple character training",
+// eveonline.com/news/view/multiple-character-training). saveQueue never lets more characters
+// start than the account has queues, so an excess can only come from expiries since the last
+// check: the most recent expired queues are the ones that ran out, and the lowest-SP characters
+// pause at those times, the earliest expiry for the fewest points. This runs at the top of
+// settlement, where skill points are finalized, so a pause takes effect at the expiry even
+// when nothing read the queue then (the server was off). A timer at the next expiry tells the
+// client then.
+function enforceAccountTrainingSlots(accountID) {
+  const numericAccountID = toInt(accountID, 0);
+  if (numericAccountID <= 0 || enforcingTrainingSlots) {
+    return;
+  }
+  const now = getNowFileTime();
+  const slots = getTrainingSlotsForAccount(numericAccountID) || {};
+  const fingerprint = JSON.stringify(slots);
+  const checked = slotChecks.get(numericAccountID);
+  if (
+    checked &&
+    checked.fingerprint === fingerprint &&
+    checked.checkedAt <= now &&
+    (checked.nextExpiry === null || checked.nextExpiry > now)
+  ) {
+    return;
+  }
+
+  enforcingTrainingSlots = true;
+  try {
+    const expiries = Object.values(slots).map((value) => normalizeBigInt(value, 0n));
+    const running = expiries.filter((expiry) => expiry > now);
+    const activeCharacterIDs = getActiveTrainingCharacterIDsForAccount(numericAccountID);
+    const excess = activeCharacterIDs.length - (1 + running.length);
+    if (excess > 0) {
+      const pauseTimes = expiries
+        .filter((expiry) => expiry <= now)
+        .sort((left, right) => (left < right ? 1 : left > right ? -1 : 0))
+        .slice(0, excess)
+        .reverse();
+      const paused = activeCharacterIDs
+        .map((characterID) => ({ characterID, points: getTotalSkillPoints(characterID) }))
+        .sort((left, right) => left.points - right.points || left.characterID - right.characterID)
+        .slice(0, excess);
+      paused.forEach(({ characterID }, index) => {
+        const startTime = normalizeBigInt(
+          getCharacterQueueState(characterID).activeStartTime,
+          0n,
+        );
+        let atTime = pauseTimes[index] === undefined ? now : pauseTimes[index];
+        if (atTime < startTime) atTime = startTime;
+        abortTraining(characterID, { atTime });
+        log.info(
+          `[SkillQueue] character ${characterID}: training paused at ${atTime} when an ` +
+            `extra training queue of account ${numericAccountID} ran out`,
+        );
+      });
+    }
+    const nextExpiry = running.length > 0
+      ? running.reduce((least, expiry) => (expiry < least ? expiry : least))
+      : null;
+    slotChecks.set(numericAccountID, { fingerprint, checkedAt: now, nextExpiry });
+    watchTrainingSlotExpiry(numericAccountID, nextExpiry);
+  } finally {
+    enforcingTrainingSlots = false;
+  }
+}
+
+function watchTrainingSlotExpiry(accountID, nextExpiry) {
+  const existing = slotTimers.get(accountID);
+  if (existing && existing.at === nextExpiry) {
+    return;
+  }
+  if (existing) {
+    clearTimeout(existing.timer);
+    slotTimers.delete(accountID);
+  }
+  if (nextExpiry === null) {
+    return;
+  }
+  const diffMs = Number((nextExpiry - getNowFileTime()) / 10000n);
+  const timer = setTimeout(() => {
+    slotTimers.delete(accountID);
+    slotChecks.delete(accountID);
+    try {
+      enforceAccountTrainingSlots(accountID);
+    } catch (error) {
+      log.warn(`[SkillQueue] training slot check failed account=${accountID}: ${error.message}`);
+    }
+  }, Math.max(1000, Math.min(diffMs + 100, 2147483647)));
+  if (typeof timer.unref === "function") {
+    timer.unref();
+  }
+  slotTimers.set(accountID, { at: nextExpiry, timer });
 }
 
 function getSkillRecordForProjection(characterID, skillMap, typeID, options = {}) {
@@ -628,8 +734,13 @@ function validateQueueEntries(characterID, characterRecord, queueEntries) {
   }
 }
 
-function settleCharacterTraining(characterID) {
+// options.untilTime settles only up to that moment (a pause at an MCT expiry); by default up
+// to now, after the account's training-slot check.
+function settleCharacterTraining(characterID, options = {}) {
   const numericCharacterID = toInt(characterID, 0);
+  const untilTime = options.untilTime === undefined
+    ? null
+    : normalizeBigInt(options.untilTime, getNowFileTime());
   if (numericCharacterID <= 0) {
     return {
       settled: false,
@@ -648,6 +759,9 @@ function settleCharacterTraining(characterID) {
   }
 
   const accountID = getCharacterAccountID(numericCharacterID);
+  if (untilTime === null) {
+    enforceAccountTrainingSlots(accountID);
+  }
   const queueState = getCharacterQueueState(numericCharacterID);
   const skillMap = getCharacterBaseSkillMap(numericCharacterID);
   const finishedSkills = [];
@@ -655,7 +769,7 @@ function settleCharacterTraining(characterID) {
   const recentSkillPointChanges = [];
   let queueDirty = false;
   let skillsDirty = false;
-  const now = getNowFileTime();
+  const now = untilTime === null ? getNowFileTime() : untilTime;
 
   while (queueState.queue.length > 0) {
     const projectedQueue = buildProjectedQueueEntries(
@@ -839,12 +953,18 @@ function getQueueSnapshot(characterID, options = {}) {
     };
   }
 
-  settleCharacterTraining(numericCharacterID);
+  // options.settleUntil: the snapshot of a queue paused at that moment (abortTraining atTime).
+  const settleUntil = options.settleUntil;
+  settleCharacterTraining(
+    numericCharacterID,
+    settleUntil === undefined ? {} : { untilTime: settleUntil },
+  );
   const characterRecord = getCharacterRecord(numericCharacterID) || {};
   const cacheKey = buildQueueCacheKey(characterRecord, numericCharacterID);
   const cached = snapshotCache.get(String(numericCharacterID));
   const now = getNowFileTime();
   if (
+    settleUntil === undefined &&
     cached &&
     cached.cacheKey === cacheKey &&
     (!cached.nextBoundary || cached.nextBoundary > now)
@@ -951,20 +1071,22 @@ function getQueueSnapshot(characterID, options = {}) {
     projectedSkillMap,
   };
 
-  snapshotCache.set(String(numericCharacterID), {
-    cacheKey,
-    nextBoundary: currentEntry && currentEntry.trainingEndTime ? currentEntry.trainingEndTime : null,
-    snapshot: cloneValue({
-      ...snapshot,
-      projectedSkillMap: undefined,
-    }),
-    projectedSkills: cloneValue(projectedSkills),
-  });
+  if (settleUntil === undefined) {
+    snapshotCache.set(String(numericCharacterID), {
+      cacheKey,
+      nextBoundary: currentEntry && currentEntry.trainingEndTime ? currentEntry.trainingEndTime : null,
+      snapshot: cloneValue({
+        ...snapshot,
+        projectedSkillMap: undefined,
+      }),
+      projectedSkills: cloneValue(projectedSkills),
+    });
+  }
 
   return snapshot;
 }
 
-function buildRebasedTrainingRecord(characterID, currentEntry, skillRecord) {
+function buildRebasedTrainingRecord(characterID, currentEntry, skillRecord, atTime = getNowFileTime()) {
   const trainingStartTime = normalizeBigInt(currentEntry.trainingStartTime, 0n);
   const trainingEndTime = normalizeBigInt(currentEntry.trainingEndTime, 0n);
   const trainingStartSP = toInt(currentEntry.trainingStartSP, 0);
@@ -974,7 +1096,7 @@ function buildRebasedTrainingRecord(characterID, currentEntry, skillRecord) {
         trainingStartSP,
         trainingDestinationSP,
         trainingStartTime,
-        getNowFileTime(),
+        atTime,
         currentEntry.skillPointsPerMinute,
         currentEntry.rateChanges,
       )
@@ -1075,6 +1197,7 @@ function rebaseActiveTrainingProgress(characterID, options = {}) {
     numericCharacterID,
     currentEntry,
     skillRecord,
+    options.atTime === undefined ? getNowFileTime() : options.atTime,
   );
   const changed = skillProgressChanged(
     previousSkillMap.get(currentEntry.trainingTypeID),
@@ -1331,15 +1454,7 @@ function saveQueue(characterID, queueEntries, options = {}) {
   validateQueueEntries(numericCharacterID, characterRecord, queueEntries);
   const cloneGrade = resolveCharacterCloneGrade(numericCharacterID, accountID);
 
-  let nextActive = requestedActive;
-  const availableSlotCount = getAvailableTrainingSlotCount(accountID);
-  const activeCharacters = getActiveTrainingCharacterIDsForAccount(accountID);
-  const alreadyActive = activeCharacters.includes(numericCharacterID);
-  if (nextActive && !alreadyActive && activeCharacters.length >= availableSlotCount) {
-    throwWrappedUserError("UserAlreadyHasSkillInTraining", {
-      charactersTrainingCount: activeCharacters.length,
-    });
-  }
+  const nextActive = requestedActive;
   if (nextActive && cloneGrade !== undefined) {
     for (const entry of nextQueue) {
       if (
@@ -1374,6 +1489,36 @@ function saveQueue(characterID, queueEntries, options = {}) {
     if (capBreakdown.firstBlocked && capBreakdown.firstBlocked.overAlphaTrainingCap) {
       throwWrappedUserError("SkillInQueueOverAlphaSpTrainingSize", {
         limit: ALPHA_MAX_TRAINING_SP,
+      });
+    }
+  }
+
+  // Validate skills, clone restrictions and the training cap before changing
+  // another pilot's queue. A paused save never requests a slot. Tutorial
+  // priority displaces only the busy slots this activation actually needs;
+  // idle licensed MCT capacity and an already-active pilot need no preemption.
+  const availableSlotCount = getAvailableTrainingSlotCount(accountID);
+  let activeCharacters = getActiveTrainingCharacterIDsForAccount(accountID);
+  const alreadyActive = activeCharacters.includes(numericCharacterID);
+  if (nextActive && !alreadyActive && activeCharacters.length >= availableSlotCount) {
+    if (require("../../npe/airNpeRuntime").isTutorialActive(numericCharacterID)) {
+      const requiredSlots = activeCharacters.length - availableSlotCount + 1;
+      const displaced = activeCharacters
+        .filter(otherCharacterID => otherCharacterID !== numericCharacterID)
+        .sort((left, right) => left - right)
+        .slice(0, requiredSlots);
+      for (const otherCharacterID of displaced) {
+        abortTraining(otherCharacterID);
+        log.info(
+          `[SkillQueue] character ${otherCharacterID}: training paused for character ` +
+            `${numericCharacterID} in the AIR tutorial (account ${accountID})`,
+        );
+      }
+      activeCharacters = getActiveTrainingCharacterIDsForAccount(accountID);
+    }
+    if (activeCharacters.length >= availableSlotCount) {
+      throwWrappedUserError("UserAlreadyHasSkillInTraining", {
+        charactersTrainingCount: activeCharacters.length,
       });
     }
   }
@@ -1424,21 +1569,35 @@ function saveQueue(characterID, queueEntries, options = {}) {
       notifySkillQueuePaused(numericCharacterID);
     }
   }
-  notifyMultipleCharacterTrainingUpdated(accountID);
+  // No OnMultipleCharactersTrainingUpdated: Tranquility sends none after SaveNewQueue, even
+  // one that starts a paused queue (doc/Apply Skill Points Flow.md, Save Queue). The client
+  // counts only the account's other characters in its training-slot check, which this save
+  // doesn't change; a stray one costs every move of a multi-skill drag an extra
+  // GetMultiCharactersTrainingSlots call.
   return snapshot;
 }
 
+// options.atTime pauses as of that past moment (an MCT expiry): skills due by then complete,
+// and the skill in training keeps only the points it had then.
 function abortTraining(characterID, options = {}) {
   const numericCharacterID = toInt(characterID, 0);
+  const atTime = options.atTime;
+  if (atTime !== undefined) {
+    clearSnapshotCache(numericCharacterID);
+    settleCharacterTraining(numericCharacterID, { untilTime: atTime });
+  }
   const queueState = getCharacterQueueState(numericCharacterID);
   if (!queueState.active || queueState.queue.length === 0) {
     return getQueueSnapshot(numericCharacterID);
   }
 
-  const snapshot = getQueueSnapshot(numericCharacterID);
+  const snapshot = getQueueSnapshot(
+    numericCharacterID,
+    atTime === undefined ? {} : { settleUntil: atTime },
+  );
   const currentEntry = snapshot.currentEntry;
   const rebaseResult = currentEntry
-    ? rebaseActiveTrainingProgress(numericCharacterID, { snapshot })
+    ? rebaseActiveTrainingProgress(numericCharacterID, { snapshot, atTime })
     : null;
   queueState.active = false;
   queueState.activeStartTime = null;
@@ -1457,6 +1616,7 @@ function abortTraining(characterID, options = {}) {
       currentEntry.trainingTypeID,
       toInt(cancelPoints, 0) - toInt(currentEntry.trainingStartSP, 0),
       cancelPoints,
+      atTime,
     );
   }
   if (options.emitNotifications !== false) {
@@ -1477,8 +1637,17 @@ function abortTraining(characterID, options = {}) {
   return getQueueSnapshot(numericCharacterID);
 }
 
-function previewFreeSkillPointsApplication(characterID, entries = []) {
+// options.fromClientSkillEntries: the preview the Apply Skill Points window shows. The client adds these points
+// to its own skill entry (skillQueueSvc.GetSkillLevelAndProgressWithFreePoints: MySkillPoints, the stored
+// trainedSkillPoints), and for the skill in training that entry holds the points its queue entry started from
+// (GetSkills), not the points trained since. Counted from the projected points, the window showed the skill short
+// by what had trained (Mining Upgrades I at 99.2 %). Applying counts from the trained points (it writes them into
+// the skill first), so it spends only what is still missing.
+function previewFreeSkillPointsApplication(characterID, entries = [], options = {}) {
   const snapshot = getQueueSnapshot(characterID);
+  const clientEntry = options.fromClientSkillEntries === true && snapshot.currentEntry
+    ? snapshot.currentEntry
+    : null;
   let remainingPoints = snapshot.freeSkillPoints;
   const pointsBySkillTypeID = new Map();
   const projectedPoints = new Map();
@@ -1509,7 +1678,9 @@ function previewFreeSkillPointsApplication(characterID, entries = []) {
     }
     const currentPoints = projectedPoints.has(typeID)
       ? projectedPoints.get(typeID)
-      : Math.max(0, toInt(skillRecord.trainedSkillPoints, 0));
+      : clientEntry && toInt(clientEntry.trainingTypeID, 0) === typeID
+        ? Math.max(0, toInt(clientEntry.trainingStartSP, 0))
+        : Math.max(0, toInt(skillRecord.trainedSkillPoints, 0));
     const targetPoints = getSkillPointsForLevel(
       skillRecord.skillRank,
       Math.min(toInt(entry.toLevel, 0), maxLevel),
@@ -1550,6 +1721,11 @@ function applyFreeSkillPointsInternal(characterID, entries = []) {
   }
 
   const numericCharacterID = toInt(characterID, 0);
+  // The points the active queue has trained since it started are only projected until the skill finishes.
+  // The client asks for what is missing from the projected progress (skillQueueSvc applies exactly that), so
+  // write the progress into the skill first; added to the stored points alone, the skill fell short by what had
+  // been trained (Mining Upgrades I at 98.4 % after applying the 984 points the client asked for).
+  rebaseActiveTrainingProgress(numericCharacterID);
   const snapshot = getQueueSnapshot(numericCharacterID);
   const pointsBySkillTypeID =
     requestedPointsBySkillTypeID ||

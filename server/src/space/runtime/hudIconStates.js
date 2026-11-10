@@ -3,6 +3,7 @@
 const { queueDogmaEvent } = require("./dogmaEvents");
 
 module.exports = {
+  applyHostileHudCycle,
   applyJammerCyclePresentation,
   buildAssistanceHudState,
   buildHostileHudState,
@@ -20,6 +21,7 @@ module.exports = {
   notifyHudJamStateToSession,
   notifyRefreshBuffBarToSession,
   removeJammerCyclePresentation,
+  removeHostileHudState,
   resolveAssistanceJamDurationMs,
   resolveHostileJamDurationMs,
   resolveHostileJamRefreshDurationMs,
@@ -55,6 +57,53 @@ const {
 const HOSTILE_JAM_REFRESH_GRACE_MS = RUNTIME_TICK_INTERVAL_MS;
 
 const ASSISTANCE_JAM_REFRESH_GRACE_MS = RUNTIME_TICK_INTERVAL_MS;
+
+// Only explicitly routed sessionless fighter HUD state uses this delivery ledger.
+// It is transient: never persisted, and an expired/replaced state releases its
+// recipient with the state itself. Ship HUD delivery keeps its existing path.
+const deliveredFighterHudRecipients = new WeakMap();
+
+function usesControlledFighterHudRecipient(targetEntity, options) {
+  return targetEntity?.kind === "fighter" && !targetEntity.session &&
+    options && Object.prototype.hasOwnProperty.call(options, "recipientSession");
+}
+
+function fighterHudDeliveryIdentity(session) {
+  if (!session || !isReadyForDestiny(session)) return null;
+  return { session, space: session._space,
+    shipID: toInt(session._space.shipID || session.shipID || session.shipid, 0) };
+}
+
+function sameFighterHudRecipient(left, right) {
+  return Boolean(left && right && left.session === right.session &&
+    left.space === right.space && left.shipID === right.shipID);
+}
+
+function refreshControlledFighterHudRecipient(state, previousState, recipientSession, nowMs, effectState) {
+  const previous = previousState ? deliveredFighterHudRecipients.get(previousState) : null;
+  const current = fighterHudDeliveryIdentity(recipientSession);
+  const sameRecipient = sameFighterHudRecipient(previous, current);
+  if (previousState) deliveredFighterHudRecipients.delete(previousState);
+  if (previous && !sameRecipient && isReadyForDestiny(previous.session)) {
+    notifyHostileHudStateToSession(previous.session, previousState, false, { startTimeMs: nowMs });
+  }
+  if (!current) return;
+  const delivered = notifyHostileHudStateToSession(current.session, state, true, {
+    startTimeMs: nowMs,
+    durationMs: resolveHostileJamRefreshDurationMs(effectState),
+    refreshTimerOnly: sameRecipient,
+  });
+  if (sameRecipient || delivered) deliveredFighterHudRecipients.set(state, current);
+}
+
+function endControlledFighterHudRecipient(removedState, nowMs) {
+  if (!removedState) return;
+  const previous = deliveredFighterHudRecipients.get(removedState);
+  deliveredFighterHudRecipients.delete(removedState);
+  if (previous && isReadyForDestiny(previous.session)) {
+    notifyHostileHudStateToSession(previous.session, removedState, false, { startTimeMs: nowMs });
+  }
+}
 
 function hasAssistanceJamState(effectState) {
   return Boolean(
@@ -129,6 +178,52 @@ function buildHostileHudState(targetEntity, sourceEntity, effectState, nowMs) {
     effectState,
     nowMs,
   );
+}
+
+function applyHostileHudCycle(targetEntity, sourceEntity, effectState, nowMs, options = {}) {
+  const hudState = buildHostileHudState(targetEntity, sourceEntity, effectState, nowMs);
+  if (!targetEntity || !hudState) {
+    return null;
+  }
+  const { state, previousState } = hudIconRuntime.upsertHudIconState(targetEntity, hudState);
+  if (usesControlledFighterHudRecipient(targetEntity, options)) {
+    refreshControlledFighterHudRecipient(state, previousState, options.recipientSession, nowMs, effectState);
+    return state;
+  }
+  const targetSession = targetEntity.session || options.recipientSession || null;
+  if (targetSession && isReadyForDestiny(targetSession)) {
+    notifyHostileHudStateToSession(targetSession, state, true, {
+      startTimeMs: nowMs,
+      // This entry point starts a new cycle; fighters do not carry a fitted
+      // module's nextCycleAtMs. Every timer covers the full cycle plus grace.
+      durationMs: resolveHostileJamRefreshDurationMs(effectState),
+      // An unpruned record still represents the client's tactical icon, even
+      // at its cycle boundary. Leave other sources' expiry to the expiry pass.
+      refreshTimerOnly: Boolean(previousState),
+    });
+  }
+  return state;
+}
+
+function removeHostileHudState(targetEntity, sourceEntity, effectState, nowMs, options = {}) {
+  if (!targetEntity) {
+    return null;
+  }
+  const removedState = hudIconRuntime.removeHudIconState(
+    targetEntity,
+    buildHostileHudState(targetEntity, sourceEntity, effectState, nowMs),
+  );
+  if (usesControlledFighterHudRecipient(targetEntity, options)) {
+    endControlledFighterHudRecipient(removedState, nowMs);
+    return removedState;
+  }
+  const targetSession = targetEntity.session || options.recipientSession || null;
+  if (removedState && targetSession && isReadyForDestiny(targetSession)) {
+    notifyHostileHudStateToSession(targetSession, removedState, false, {
+      startTimeMs: nowMs,
+    });
+  }
+  return removedState;
 }
 
 function hasJammerHudState(effectState) {
@@ -262,10 +357,12 @@ function removeJammerCyclePresentation(
     effectState,
     nowMs,
   });
+  // A jammer stopped mid-cycle leaves the icon up until the cycle ends.
   const removedHudState = targetEntity
-    ? hudIconRuntime.removeHudIconState(
+    ? hudIconRuntime.releaseHudIconStateAtCycleEnd(
       targetEntity,
       buildJammerHudState(targetEntity, sourceEntity, effectState, nowMs),
+      scene.getCurrentSimTimeMs(),
     )
     : null;
   if (targetSession && isReadyForDestiny(targetSession) && removedHudState) {
@@ -515,9 +612,16 @@ function notifyActiveHostileJamStatesToSession(
   nowMs = null,
   options = {},
 ) {
-  return notifyHudIconStatesToSession(scene, session, egoEntity, {
+  const hostile = notifyHudIconStatesToSession(scene, session, egoEntity, {
     nowMs,
     kind: hudIconRuntime.HUD_ICON_KIND_HOSTILE,
+    send: options.send,
+  });
+  // Persistent environmental EWAR has no module-cycle jam timer, but must
+  // also be restored after SetState or a ship swap resets the client's HUD.
+  return hostile + notifyHudIconStatesToSession(scene, session, egoEntity, {
+    nowMs,
+    kind: hudIconRuntime.HUD_ICON_KIND_FIELD,
     send: options.send,
   });
 }

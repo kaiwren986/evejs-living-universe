@@ -5,6 +5,15 @@ title PublicEveJS - TQ Market Snapshot Seeder
 for %%I in ("%~dp0..\..") do set "PUBLIC_EVEJS_REPO_ROOT=%%~fI"
 set "MARKET_SEEDER_V2_DIR=%PUBLIC_EVEJS_REPO_ROOT%\tools\market-seederv2"
 set "MARKET_SEEDER_V2_CONFIG=%MARKET_SEEDER_V2_DIR%\config\market-seederv2.local.toml"
+set "MARKET_SEEDER_LABEL=TQ Market Snapshot Seeder v2"
+set "MARKET_SEEDER_FILTER_ARGS="
+if /i "%~1"=="iron-man" (
+  set "MARKET_SEEDER_V2_CONFIG=%PUBLIC_EVEJS_REPO_ROOT%\tools\market-seederv4\config\market-seederv4.local.toml"
+  set "MARKET_SEEDER_LABEL=Iron Man NPC-only Seeder v4"
+  set "MARKET_SEEDER_FILTER_ARGS=--order-filter iron-man"
+  title PublicEveJS - Iron Man Market Seeder
+  shift
+)
 set "PUBLIC_EVEJS_LOCAL_DATABASE_ROOT=%PUBLIC_EVEJS_REPO_ROOT%\_local\gameStore"
 set "EVEJS_GAMESTORE_DATA_DIR=%PUBLIC_EVEJS_LOCAL_DATABASE_ROOT%\data"
 set "POWERSHELL_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
@@ -35,14 +44,22 @@ if /i "%~1"=="yes" goto BuildYes
 
 echo.
 echo   ============================================================
-echo     PublicEveJS - TQ Market Snapshot Seeder v2
+echo     PublicEveJS - %MARKET_SEEDER_LABEL%
 echo   ============================================================
 echo.
-echo     [1] Build latest TQ station-market snapshot
+if defined MARKET_SEEDER_FILTER_ARGS (
+  echo     NPC stock and buybacks only, at original TQ stations and prices.
+  echo     BPOs, skillbooks, command centers and trade goods; players produce the rest.
+) else (
+  echo     Real Tranquility station prices and quantities from a downloaded snapshot.
+  echo     Default: Jita plus authentic NPC stock, with any configured custom station.
+)
+echo.
+echo     [1] Build %MARKET_SEEDER_LABEL%
 echo     [2] Snapshot info only
 echo     [3] Doctor - inspect current output database
 echo     [4] Build release binary only
-echo     [5] Edit v2 config
+echo     [5] Edit seeder config
 echo.
 choice /c 12345 /n /m "  Choose [1-5]: "
 echo.
@@ -57,7 +74,7 @@ if errorlevel 1 goto Build
 call :EnsureLocalDatabase
 if errorlevel 1 exit /b 1
 pushd "%MARKET_SEEDER_V2_DIR%"
-"%CARGO_EXE%" run --release -- --config config/market-seederv2.local.toml build
+"%CARGO_EXE%" run --release -- --config "%MARKET_SEEDER_V2_CONFIG%" build %MARKET_SEEDER_FILTER_ARGS%
 set "PUBLIC_EVEJS_EXIT=%errorlevel%"
 popd
 goto Finish
@@ -66,21 +83,21 @@ goto Finish
 call :EnsureLocalDatabase
 if errorlevel 1 exit /b 1
 pushd "%MARKET_SEEDER_V2_DIR%"
-"%CARGO_EXE%" run --release -- --config config/market-seederv2.local.toml build --yes
+"%CARGO_EXE%" run --release -- --config "%MARKET_SEEDER_V2_CONFIG%" build --yes %MARKET_SEEDER_FILTER_ARGS%
 set "PUBLIC_EVEJS_EXIT=%errorlevel%"
 popd
 goto Finish
 
 :SnapshotInfo
 pushd "%MARKET_SEEDER_V2_DIR%"
-"%CARGO_EXE%" run --release -- --config config/market-seederv2.local.toml snapshot-info
+"%CARGO_EXE%" run --release -- --config "%MARKET_SEEDER_V2_CONFIG%" snapshot-info
 set "PUBLIC_EVEJS_EXIT=%errorlevel%"
 popd
 goto Finish
 
 :Doctor
 pushd "%MARKET_SEEDER_V2_DIR%"
-"%CARGO_EXE%" run --release -- --config config/market-seederv2.local.toml doctor
+"%CARGO_EXE%" run --release -- --config "%MARKET_SEEDER_V2_CONFIG%" doctor
 set "PUBLIC_EVEJS_EXIT=%errorlevel%"
 popd
 goto Finish

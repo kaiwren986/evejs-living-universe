@@ -20,7 +20,14 @@ const {
  * changes it sent ({attribute: [old, new]}).
  */
 function sendTaleDataAfterSessionChange(session, changes) {
+  const projection = require("../incursion/incursionProjectionRuntime");
+  if (changes.charid || (changes.solarsystemid2 && !Number(changes.solarsystemid2[1]))) projection.forgetSession(session);
   const solarSystemID = Number(changes.solarsystemid2 && changes.solarsystemid2[1]) || 0;
+  if (!solarSystemID && Number(changes.charid?.[1]) > 0) {
+    projection.sendSession(session, projection.systemOf(session), { direct: true });
+  }
+  if (!solarSystemID) return;
+  if (projection.sendSession(session, solarSystemID, { direct: true })) return;
   if (getObservedTaleIDsForSolarSystem(solarSystemID).length === 0) {
     return;
   }

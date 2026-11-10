@@ -3,6 +3,7 @@
 // Carbon's literal and connection forms, adapted from the John compiler.
 // Literal strings are data: never evaluate them as JavaScript or Python.
 const { isDeepStrictEqual } = require("node:util");
+const { atomsByID: nativeAtomSignatures } = require("./nativeAtomSignatures.json");
 
 const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 const LIMITS = Object.freeze({ nodes: 1024, edges: 8192, depth: 32, bytes: 1048576, steps: 4096, graphs: 64 });
@@ -13,13 +14,41 @@ const NODE_PORTS = Object.freeze({
   18: [], 19: ["output"], 20: ["output"], 21: ["output", "validation"],
   22: ["on_success", "on_failure"], 24: ["nodes", "output"], 30: [],
   31: ["output", "validation"], 32: ["output"], 39: ["output"],
-  40: ["output"], 42: ["output"], 44: [], 49: ["output"],
+  40: ["output"], 42: ["output"], 44: [], 49: ["output"], 65: ["output"],
 });
 
 function graphError(code, detail = "") {
   const error = new Error(`${code}${detail ? `: ${detail}` : ""}`);
   error.code = code;
   return error;
+}
+
+// Native nodegraph.common.util.get_object_value_by_path, restricted to the
+// serialized data values admitted by safeValue. Never traverse JS prototypes.
+function getObjectValueByPath(object, path, defaultValue = null) {
+  const keys = typeof path === "string" ? (path.length ? path.split(".") : []) : Array.isArray(path) ? path : [path];
+  let result = object;
+  for (const key of keys) {
+    // Serialized dictionaries have string keys. Python does not coerce0 or
+    // False into those strings, and list/dict keys are unhashable. Preserve
+    // that distinction instead of invoking JavaScript property coercion.
+    if (key !== null && typeof key === "object") return defaultValue;
+    if (UNSAFE_KEYS.has(String(key))) throw graphError("NODEGRAPH_UNSAFE_KEY", String(key));
+    if (Array.isArray(result)) {
+      if (typeof key !== "boolean" && !(typeof key === "number" && Number.isFinite(key)) &&
+          !(typeof key === "string" && /^[+-]?\d+$/.test(key.trim()))) return defaultValue;
+      let index = Math.trunc(Number(key));
+      if (index < 0) index += result.length;
+      if (!Object.hasOwn(result, index)) return defaultValue;
+      result = result[index];
+    } else if (result && typeof result === "object") {
+      result = typeof key === "string" && Object.hasOwn(result, key) ? result[key] : defaultValue;
+    } else {
+      if (typeof key !== "string") return defaultValue;
+      result = defaultValue;
+    }
+  }
+  return result;
 }
 
 function safeValue(value, depth = 0) {
@@ -147,6 +176,17 @@ function compileGraphDefinition(rawGraph) {
       connections: {}, incomingSourceNodeIDs: [],
     };
     node.atomID = Number(node.nodeParameters.atom_id || 0);
+    const signature = node.nodeTypeID === 30 && nativeAtomSignatures[node.atomID];
+    if (signature) {
+      for (const key of Object.keys(node.atomParameters)) {
+        if (!Object.hasOwn(signature.inputs, key)) throw graphError("NODEGRAPH_ATOM_PARAMETER_UNSUPPORTED", `${node.atomID}/${key}`);
+      }
+      for (const [key, parameter] of Object.entries(signature.inputs)) {
+        if (!Object.hasOwn(node.atomParameters, key) && Object.hasOwn(parameter, "defaultValue")) {
+          node.atomParameters[key] = safeValue(parameter.defaultValue);
+        }
+      }
+    }
     for (const [port, targets] of Object.entries(definition.connections || {})) {
       if (NODE_PORTS[node.nodeTypeID] && !NODE_PORTS[node.nodeTypeID].includes(port)) throw graphError("NODEGRAPH_PORT_UNSUPPORTED", `${nodeID}/${port}`);
       if (!Array.isArray(targets)) throw graphError("NODEGRAPH_CONNECTION_INVALID", nodeID);
@@ -188,4 +228,4 @@ function compileGraphDefinition(rawGraph) {
   return { graphID, name: String(raw.name || ""), tags: raw.tags || [], nodesByID, rootNodeIDs };
 }
 
-module.exports = { LIMITS, NODE_PORTS, UNSAFE_KEYS, safeValue, parseLiteralValue, compareValues, compileGraphDefinition, graphError };
+module.exports = { LIMITS, NODE_PORTS, UNSAFE_KEYS, safeValue, parseLiteralValue, compareValues, compileGraphDefinition, graphError, getObjectValueByPath };

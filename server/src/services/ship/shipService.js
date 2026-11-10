@@ -75,6 +75,7 @@ const {
   refreshShipFittingSnapshot,
 } = require(path.join(__dirname, "../../_secondary/fitting/fittingRuntime"));
 const {
+  buildDict,
   buildList,
   buildMarshalReal,
   unwrapMarshalValue,
@@ -94,6 +95,7 @@ const {
 const {
   boardStoredShipFromMaintenanceContainer,
   launchShipFromMaintenanceContainer,
+  scoopShipIntoActiveShipMaintenanceBay,
   storeActiveShipInMaintenanceContainer,
 } = require(path.join(__dirname, "./ejectRuntime"));
 const {
@@ -575,6 +577,10 @@ class ShipService extends BaseService {
     let updatedCount = 0;
     for (const moduleItem of fittedModules) {
       if (moduleItem.moduleState && moduleItem.moduleState.online) {
+        continue;
+      }
+      // A module fitted without its skills stays offline (dogmaService SetModuleOnline refuses it too).
+      if (getMissingRequiredSkills(charID, moduleItem.typeID).length > 0) {
         continue;
       }
 
@@ -1408,6 +1414,36 @@ class ShipService extends BaseService {
     );
   }
 
+  // "Recover to ship maintenance bay" on an unpiloted ship in space. The
+  // scoop's own refusals are named here; the bay's rules share StoreVessel's
+  // user errors.
+  Handle_ScoopToSMA(args, session, kwargs) {
+    void kwargs;
+    const objectID = this._extractShipId(args && args.length > 0 ? args[0] : null);
+    log.info(`[Ship] ScoopToSMA(objectID=${String(objectID)})`);
+    const result = scoopShipIntoActiveShipMaintenanceBay(session, objectID);
+    if (!result || !result.success) {
+      const errorMsg = (result && result.errorMsg) || "UNKNOWN_ERROR";
+      log.warn(`[Ship] ScoopToSMA failed objectID=${String(objectID)}: ${errorMsg}`);
+      if (errorMsg === "TARGET_TOO_FAR") {
+        this._throwScoopTooFar(session, objectID);
+      }
+      const scoopNotify = {
+        NOT_IN_SPACE: "You must be in space to recover a ship.",
+        SHIP_MAINTENANCE_BAY_NOT_AVAILABLE: "Your ship does not have a ship maintenance bay.",
+        SHIP_NOT_FOUND: "That ship could not be found.",
+        SHIP_IS_PILOTED: "You cannot recover a ship that is being piloted.",
+        SHIP_NOT_OWNER: "You can only recover your own ships.",
+        SHIP_NOT_IN_SPACE: "That ship is not in space near you.",
+      }[errorMsg];
+      if (scoopNotify) {
+        throwWrappedUserError("CustomNotify", { notify: scoopNotify });
+      }
+      this._throwMaintenanceBayUserError(errorMsg);
+    }
+    return null;
+  }
+
   // TargetTooFar is the module-activation message, and sent without a module
   // and a distance the client printed its raw template. Every scoop gate
   // compares the ship's hull to the object's against the client's 2,500 m
@@ -1537,13 +1573,22 @@ class ShipService extends BaseService {
     void kwargs;
     const rawItemIDs = args && args.length > 0 ? args[0] : [];
     const result = launchOrbitalsFromShip(session, rawItemIDs);
+    // This legacy endpoint returns error records; Drop separately returns the
+    // native per-source sequence of UserError tuples consumed by eveMisc.
+    const launchErrors = ((result && result.errors) || []).map((error) => buildDict([
+      ["itemID", error.itemID],
+      ["errorMsg", error.errorMsg],
+    ]));
     if (!result || !result.success) {
+      if (result?.errors?.some(error => error.errorMsg === "ESS_DEPLOYABLE_RESTRICTED")) {
+        throwWrappedUserError("CustomNotify", { notify: "Deployables must be placed at least 1,000 km from the ESS bank." });
+      }
       log.warn(
         `[Ship] LaunchFromShip failed for char=${session ? session.characterID : "?"}: ${result ? result.errorMsg : "UNKNOWN_ERROR"}`,
       );
-      return [[], (result && result.errors) || []];
+      return [[], launchErrors];
     }
-    return [result.launchedItemIDs || [], result.errors || []];
+    return [result.launchedItemIDs || [], launchErrors];
   }
 
   Handle_LaunchFromContainer(args, session, kwargs) {
@@ -2134,6 +2179,21 @@ class ShipService extends BaseService {
         `[Ship] Undock failed for char=${session && session.characterID}: ${result.errorMsg}`,
       );
       return null;
+    }
+
+    // The AIR tutorial creates a scene's private site (1.4 item retrieval, 2.1 mining) only
+    // while the pilot is in space, and its check otherwise runs only at login or when the client
+    // asks for its tutorial state. A scene that started while docked would have no site after
+    // undocking, and its "Warp to Site" button would silently do nothing. The ship is in space
+    // now (undockSession attached it): run the check.
+    const tutorialState = require("../character/characterState")
+      .getCharacterRecord(session && session.characterID)?.authoredAirTutorial;
+    if (tutorialState && tutorialState.status === "active") {
+      require("../npe/airNpeRuntime").ensureForSession(session).catch((error) => {
+        log.warn(
+          `[Ship] AIR tutorial check after undock failed for char=${session && session.characterID}: ${error.message}`,
+        );
+      });
     }
 
     // None, the bind's object beside it, as Tranquility answers every undock (twenty-six of them in the recordings:

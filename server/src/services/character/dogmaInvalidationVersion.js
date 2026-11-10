@@ -3,7 +3,7 @@
 /**
  * DOGMA INVALIDATION VERSION (zero-dependency leaf):
  *
- * A single global monotonic counter, moved by exactly three things:
+ * A single global monotonic counter, moved by Dogma input changes:
  *   - itemStore, when a committed item write adds, removes or changes an item
  *     in a fitting slot or among a ship's hidden modifiers (a tactical
  *     destroyer's mode): its type, place or online state. This covers fitting
@@ -12,6 +12,8 @@
  *   - characterState, when a character write changes the implants or the
  *     boosters (plug, destroy, clone swap, pod death, a booster taken);
  *   - boosterRuntime, when a booster runs out (nothing is written then).
+ *   - gmDogmaOverrides, when temporary staff base-resource inputs change or
+ *     clear on reset, character deselection or disconnect.
  * Skills keep their own counters (skillState, expertSystemState). A charge's
  * quantity, drone or NPC state and every other item write leave it alone.
  *

@@ -47,6 +47,12 @@ const {
   "../../exploration/wormholes/wormholeEnvironmentRuntime",
 ));
 const {
+  recordSessionSystemWideEffectsFromAllInfo,
+} = require(path.join(
+  __dirname,
+  "../../exploration/wormholes/systemWideEffectsSync",
+));
+const {
   getFittedModuleItems,
   getLoadedChargeByFlag,
   buildModuleStatusSnapshot,
@@ -1382,7 +1388,7 @@ module.exports = {
   },
 
   _buildShipState(charID, shipID, shipRecord = null, options = {}) {
-    const shipCondition = getShipConditionState(shipRecord);
+    const shipCondition = require("../../incursion/incursionRepairPresentation").condition(shipRecord, getShipConditionState(shipRecord));
     // The ship's own row has amounts, and the same ones the ship's attributes have
     // in the answer beside it (shipConditionAmounts.js). A controlled structure's
     // attributes are built another way, and its row reads them from there:
@@ -1727,6 +1733,11 @@ module.exports = {
           : null,
       ],
     ];
+    const allInfoSystemID =
+      Number(session && (session.solarsystemid2 || session.solarsystemid)) || 0;
+    // A non-empty dict replaces the client's effects (godma.py); remember it so
+    // the next space attach stops exactly what the client holds.
+    recordSessionSystemWideEffectsFromAllInfo(session, allInfoSystemID);
     const result = {
       type: "object",
       name: "util.KeyVal",
@@ -1735,9 +1746,8 @@ module.exports = {
         entries: [
           [
             "systemWideEffectsOnShip",
-            buildSystemWideEffectsPayloadForSystem(
-              Number(session && (session.solarsystemid2 || session.solarsystemid)) || 0,
-            ) || buildEmptySystemWideEffectsPayload(),
+            buildSystemWideEffectsPayloadForSystem(allInfoSystemID) ||
+              buildEmptySystemWideEffectsPayload(),
           ],
           [
             "shipModifiedCharAttribs",

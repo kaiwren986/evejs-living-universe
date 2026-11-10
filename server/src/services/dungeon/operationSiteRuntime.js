@@ -114,11 +114,34 @@ function removeOperationSpawnpointRecord(characterID, siteID) {
   return operationSpawnpointRecords.delete(buildOperationSpawnpointKey(characterID, siteID));
 }
 
+// A pilot's own authored operation site (the AIR tutorial's rescue, combat and mining sites):
+// offsetX metres from the pilot's ship in x, on the first free lane in z, lanes this far apart
+// (a grid bubble is about 7,900 km across). Every pilot starts these from the same undock point,
+// and sites in one spot showed each pilot the other's ships, rocks and NPCs. A lane is free when
+// no active site of the system and nothing else in space stands within half a lane of its point;
+// a removed site frees its lane. The warps between these sites run in x, across the lanes.
+const PILOT_SITE_LANE_METERS = 20000000;
+function pilotLanePosition(session, offsetX) {
+  const scene = require("../../space/runtime").getSceneForSession(session);
+  const ship = scene && typeof scene.getShipEntityForSession === "function" ? scene.getShipEntityForSession(session) : null;
+  if (!ship || !getCharacterID(session)) return undefined;
+  // Taken: an active site, or anything else in space there (a wreck an earlier pilot left).
+  const taken = [
+    ...require("./dungeonRuntime").listActiveInstancesBySystem(scene.systemID, { full: true }).map((instance) => instance && instance.position),
+    ...(typeof scene.getDynamicEntities === "function" ? scene.getDynamicEntities() : []).filter((entity) => entity !== ship).map((entity) => entity && entity.position),
+  ].filter(Boolean);
+  for (let lane = 0; ; lane += 1) {
+    const point = { x: ship.position.x + offsetX, y: ship.position.y, z: ship.position.z + lane * PILOT_SITE_LANE_METERS };
+    if (!taken.some((position) => Math.hypot(position.x - point.x, position.y - point.y, position.z - point.z) < PILOT_SITE_LANE_METERS / 2)) return point;
+  }
+}
+
 module.exports = {
   buildOperationSpawnpointKey,
   clearOperationSpawnpointRecords,
   getCharacterID,
   normalizeOperationSpawnpointRecord,
+  pilotLanePosition,
   registerOperationSpawnpointRecord,
   removeOperationSpawnpointRecord,
   resolveOperationSiteArgs,

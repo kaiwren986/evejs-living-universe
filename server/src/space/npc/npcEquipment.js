@@ -53,6 +53,7 @@ const jammerModuleRuntime = require(path.join(
   "../modules/jammerModuleRuntime",
 ));
 const nativeNpcStore = require(path.join(__dirname, "./nativeNpcStore"));
+const nativeNpcAbilities = require("./nativeNpcAbilities");
 const { resolveEntityEwarSpecs } = require(path.join(__dirname, "./npcEntityEwarCatalog"));
 const {
   buildNpcEffectiveModuleItem,
@@ -433,7 +434,13 @@ function buildNpcSyntheticHullEffectModuleItem(entity, effectRecord, slotIndex =
   );
 
   return {
-    itemID: buildNpcSyntheticHullModuleID(entityID, slotToken),
+    // Retail empire sentries expose their one targetAttack as the hull itself.
+    // Their generated scenery IDs also exceed the multiplied module namespace's
+    // exact integer range, so never manufacture a larger ID for this effect.
+    itemID: entity.empireSentry === true &&
+        String(effectRecord.name || "").toLowerCase() === "targetattack"
+      ? entityID
+      : buildNpcSyntheticHullModuleID(entityID, slotToken),
     typeID,
     groupID: toPositiveInt(entity && entity.groupID, 0),
     categoryID: toPositiveInt(entity && entity.categoryID, 0),
@@ -492,6 +499,11 @@ function buildNpcSyntheticHullEffectModuleItem(entity, effectRecord, slotIndex =
 }
 
 function getNpcWeaponModules(entity) {
+  // The admitted Caldari point-actor policy disables guns while preserving
+  // the existing hostile EWAR resolver and shared combat-loop switch.
+  if (entity?.nativeNpc === true && entity.visionsCaldariWeaponBanksDisabled === true && Number(entity.typeID) === 93958 &&
+      Number(entity.dungeonSiteInstanceID) > 0 &&
+      entity.dungeonEncounterKey === `instance:${entity.dungeonSiteInstanceID}:maulus-disruptors`) return [];
   const weaponBankCache = buildNpcWeaponBankCache(entity);
   const fittedWeaponModules = getNpcFittedModuleItems(entity)
     .filter((moduleItem) => {
@@ -842,6 +854,7 @@ function buildNpcAssistanceModuleAttributeMap(entity, moduleItem) {
 }
 
 function estimateNpcAssistanceEffectiveRange(entity, moduleItem) {
+  if (Number(moduleItem?.npcEffectID) === 3855) return nativeNpcAbilities.shieldInputs(entity)?.rangeMeters || 0;
   if (
     moduleItem &&
     Number(moduleItem._npcAssistanceEffectiveRangeMeters) > 0
@@ -963,12 +976,14 @@ function getNpcHostileModules(entity) {
   const hullHostileModules = isNativeNpcEntity(entity)
     ? getTypeEffectRecords(toPositiveInt(entity && entity.typeID, 0))
       .map((effectRecord, index) => {
-        const definition =
+        let definition =
           hostileModuleRuntime.resolveHostileDefinition(effectRecord) ||
           jammerModuleRuntime.resolveJammerDefinition(effectRecord);
         if (!definition) {
           return null;
         }
+        if (Number(effectRecord.effectID) === 4656 && nativeNpcAbilities.bossEnabled(entity)) definition = {
+          ...definition, nativeNpcBossBurst: true, burst: true, breakLocksOnly: true };
         return {
           moduleItem: buildNpcSyntheticHullEffectModuleItem(entity, effectRecord, index, {
             slotBase: 500,
@@ -1176,7 +1191,7 @@ function getNpcAssistanceModules(entity) {
         return {
           moduleItem: buildNpcSyntheticHullEffectModuleItem(entity, effectRecord, index, {
             specialFxModuleTypeID:
-              effectName.toLowerCase() === "npcbehaviorremoteshieldbooster"
+              ["npcbehaviorremoteshieldbooster", "npcremoteshieldboost"].includes(effectName.toLowerCase())
                 ? NPC_REMOTE_SHIELD_PRESENTATION_MODULE_TYPE_ID
                 : null,
             slotBase: 700,

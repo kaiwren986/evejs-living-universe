@@ -133,6 +133,7 @@ const NATIVE_SCOPE_BOOLEAN_FIELDS = Object.freeze([
 const NATIVE_SCOPE_TEXT_FIELDS = Object.freeze([
   "airNpeHostileWave",
   "dungeonEncounterKey",
+  "dungeonObjectiveTargetKey",
   "dungeonSiteContentKey",
   "dungeonSiteContentRole",
   "dungeonSiteContentAnalyzer",
@@ -481,6 +482,8 @@ function listNativeEntitiesForSystem(systemID) {
 }
 
 function removeNativeEntity(entityID) {
+  const death = require("./incursionDeathWrecks").publish(getNativeEntity(entityID));
+  if (!death.success) return death;
   return removeCollectionRow(TABLE.ENTITIES, "entities", entityID);
 }
 
@@ -788,6 +791,10 @@ function removeNativeController(entityID) {
 }
 
 function removeNativeEntityCascade(entityID, options = {}) {
+  const nativeDeath = require("./nativeNpcDeathWrecks").publish(getNativeEntity(entityID));
+  if (!nativeDeath.success) return nativeDeath;
+  const death = require("./incursionDeathWrecks").publish(getNativeEntity(entityID));
+  if (!death.success) return death;
   const normalizedEntityID = toPositiveInt(entityID, 0);
   if (!normalizedEntityID) {
     return {
@@ -859,9 +866,12 @@ function getNativeWreck(wreckID) {
 }
 
 // Durable destination rows can exist before source cargo is removed. Until the
-// handoff acknowledges both legs, ordinary inventory/scene readers must not
+// handoff acknowledges both legs, or a death plan acknowledges publication,
+// ordinary inventory/scene readers must not
 // expose those rows, including to a client that guesses their positive IDs.
 function isPendingMiningWreck(record) {
+  if (require("./nativeNpcDeathWrecks").isPendingWreck(record)) return true;
+  if (require("./incursionDeathWrecks").isPending(record)) return true;
   if (!record?.miningCargoTransferKey) return false;
   const transfer = database.read(TABLE.CARGO, `/miningTransfers/${record.miningCargoTransferKey}`);
   return !transfer.success || transfer.data?.status !== "completed";
@@ -1011,28 +1021,107 @@ function setNativeWreckLootAbandoned(wreckID, abandoned = true) {
   };
 }
 
+// A native wreck is not an inventory-owned item. Administrative hard moves
+// must commit its primary pose before publishing live movement. Birth/cargo
+// journals are historical manifests and are deliberately not rewritten here.
+function setNativeWreckPosition(wreckID, position, options = {}) {
+  const previous = getNativeWreck(wreckID);
+  const vector = value => value && [value.x, value.y, value.z].every(
+    component => Number.isFinite(Number(component)));
+  if (!previous || !vector(position) || !vector(options.direction) ||
+      Number(options.systemID) !== Number(previous.systemID)) {
+    return { success: false, errorMsg: "NPC_NATIVE_WRECK_POSITION_INVALID" };
+  }
+  if (previous.transient === true) {
+    return { success: true, skipped: true, reason: "TRANSIENT_NATIVE_WRECK" };
+  }
+  const point = Object.fromEntries(["x", "y", "z"].map(key => [key, Number(position[key])]));
+  const direction = Object.fromEntries(["x", "y", "z"].map(key => [key, Number(options.direction[key])]));
+  const next = { ...previous, position: point, direction, targetPoint: { ...point },
+    velocity: { x: 0, y: 0, z: 0 }, mode: "STOP", speedFraction: 0 };
+  let result;
+  let written = false;
+  try {
+    result = upsertNativeWreck(next);
+    written = result.success === true;
+    if (written) result = database.flushTableSync(TABLE.WRECKS);
+    if (result.success) return { success: true, durable: true, data: getNativeWreck(wreckID) };
+  } catch (error) { result = { success: false, errorMsg: error.message }; }
+  let rollbackSuccess = !written;
+  if (written) {
+    try {
+      const restored = upsertNativeWreck(previous);
+      rollbackSuccess = restored.success && database.flushTableSync(TABLE.WRECKS).success;
+    } catch (_error) { rollbackSuccess = false; }
+  }
+  return { success: false,
+    errorMsg: result?.errorMsg || "NPC_NATIVE_WRECK_POSITION_WRITE_FAILED", rollbackSuccess };
+}
+
 function removeNativeWreck(wreckID) {
   return removeCollectionRow(TABLE.WRECKS, "wrecks", wreckID);
 }
 
+function setNativeWreckOwner(wreckID, owner, options = {}) {
+  const previous = getNativeWreck(wreckID);
+  const ownerID = toPositiveInt(owner && owner.ownerID, 0);
+  const actorID = toPositiveInt(options.actorID, 0);
+  const operationID = String(options.operationID || "").trim();
+  if (!previous || !ownerID || !actorID || !operationID) return { success: false, errorMsg: "WRECK_OWNER_TRANSFER_INVALID" };
+  if (Number(previous.ownerID) === ownerID) return { success: true, changed: false, data: previous };
+  const ownerSecurityStatus = Number(owner.securityStatus ?? owner.securityRating ?? 0);
+  const next = { ...previous, ownerID,
+    securityStatus: Number.isFinite(ownerSecurityStatus) ? ownerSecurityStatus : 0,
+    corporationID: toPositiveInt(owner.corporationID, 0), allianceID: toPositiveInt(owner.allianceID, 0),
+    warFactionID: toPositiveInt(owner.warFactionID, 0), lootRightCorpID: toPositiveInt(owner.corporationID, 0),
+    lootRightFleetID: null, lootRightsSnapshotVersion: Math.max(1, toPositiveInt(previous.lootRightsSnapshotVersion, 0) + 1),
+    ownerTransfer: { version: 1, ownerID, previousOwnerID: previous.ownerID, actorID, operationID, changedAtMs: Date.now() },
+  };
+  const transient = previous.transient === true;
+  let result;
+  try {
+    result = upsertNativeWreck(next, { transient });
+    if (result.success && !transient) result = database.flushTableSync(TABLE.WRECKS);
+    if (result.success) return { success: true, changed: true, durable: !transient, data: getNativeWreck(wreckID) };
+  } catch (error) { result = { success: false, errorMsg: error.message }; }
+  // The wreck is the single ownership authority for its contents. A failed
+  // durability boundary cannot publish a new header or leave child rows split
+  // between owners; projected reads below follow this same primary record.
+  let rollbackSuccess = false;
+  try {
+    const restored = upsertNativeWreck(previous, { transient });
+    rollbackSuccess = restored.success && (transient || database.flushTableSync(TABLE.WRECKS).success);
+  } catch (_error) { /* report the original refusal below */ }
+  return { success: false, errorMsg: result.errorMsg || "WRECK_OWNER_TRANSFER_FAILED", rollbackSuccess };
+}
+
+function projectNativeWreckItemOwner(record) {
+  const wreck = readCollectionRaw(TABLE.WRECKS, "wrecks")[String(record.wreckID)];
+  // Updating one authoritative wreck row atomically changes its header and all
+  // contents, including after a crash. Legacy wrecks keep their existing rows.
+  return wreck?.ownerTransfer?.version === 1 && wreck.ownerTransfer.ownerID === wreck.ownerID
+    ? { ...record, ownerID: wreck.ownerID } : record;
+}
+
 function listNativeWreckItems() {
   return Object.values(readCollection(TABLE.WRECK_ITEMS, "items"))
-    .filter(record => !isPendingMiningWreckID(record.wreckID))
+    .filter(record => !require("./nativeNpcDeathWrecks").isPendingWreck(record) && !require("./incursionDeathWrecks").isPending(record) && !isPendingMiningWreckID(record.wreckID))
+    .map(projectNativeWreckItemOwner)
     .sort((left, right) => Number(left.wreckItemID || 0) - Number(right.wreckItemID || 0));
 }
 
 function getNativeWreckItem(wreckItemID) {
   const collection = readCollectionRaw(TABLE.WRECK_ITEMS, "items");
   const record = collection[String(wreckItemID)] || null;
-  return record && !isPendingMiningWreckID(record.wreckID) ? cloneValue(record) : null;
+  return record && !require("./nativeNpcDeathWrecks").isPendingWreck(record) && !require("./incursionDeathWrecks").isPending(record) && !isPendingMiningWreckID(record.wreckID) ? cloneValue(projectNativeWreckItemOwner(record)) : null;
 }
 
 function listNativeWreckItemsForWreck(wreckID) {
   const normalizedWreckID = toPositiveInt(wreckID, 0);
   if (isPendingMiningWreckID(normalizedWreckID)) return [];
   return readCollectionRows(TABLE.WRECK_ITEMS, "items",
-    (itemRecord) => toPositiveInt(itemRecord && itemRecord.wreckID, 0) === normalizedWreckID,
-  ).sort((left, right) => Number(left.wreckItemID || 0) - Number(right.wreckItemID || 0));
+    (itemRecord) => toPositiveInt(itemRecord && itemRecord.wreckID, 0) === normalizedWreckID && !require("./nativeNpcDeathWrecks").isPendingWreck(itemRecord) && !require("./incursionDeathWrecks").isPending(itemRecord),
+  ).map(projectNativeWreckItemOwner).sort((left, right) => Number(left.wreckItemID || 0) - Number(right.wreckItemID || 0));
 }
 
 function upsertNativeWreckItem(wreckItemRecord, options = {}) {
@@ -1289,6 +1378,8 @@ module.exports = {
   getNativeWreck,
   upsertNativeWreck,
   setNativeWreckLootAbandoned,
+  setNativeWreckOwner,
+  setNativeWreckPosition,
   removeNativeWreck,
   listNativeWreckItems,
   getNativeWreckItem,

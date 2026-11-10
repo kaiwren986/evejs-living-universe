@@ -8,6 +8,39 @@ const characters = require("../character/characterState");
 const database = require("../../gameStore");
 const EWAR = Object.freeze({ stasisWebifier: "web", targetPainter: "paint",
   warpDisruptor: "warp-disrupt", warpScrambler: "warp-scramble", trackingDisruptor: "weapon-disrupt" });
+const frozenEwar = new Map();
+
+function saveFinalEwar(characterID, event) {
+  const saved = characters.updateCharacterRecord(characterID, current => ({ ...current,
+    careerPendingEwarEvents: { ...current.careerPendingEwarEvents, [event.id]: event },
+  }));
+  if (!saved?.success) return saved;
+  return database.flushTableSync("characters");
+}
+
+function finishEwar(scene, source, target, state, nowMs, valid = true) {
+  const span = state?.careerEwarSpan;
+  const endMs = Math.min(Math.trunc(nowMs), span?.expiresAtMs);
+  if (!span || !valid || !source?.session || source.session.socket?.destroyed ||
+      !eligible(source, target, state, true) || scene?.getEntityByID(target.itemID) !== target ||
+      source.destroyed || target.destroyed || endMs <= span.atMs) {
+    delete state.careerEwarSpan;
+    return { success: true };
+  }
+  const characterID = actor(source);
+  const event = { kind: "combat-effect", effect: span.effect, atMs: endMs,
+    durationMs: endMs - span.atMs, id: identity(source, target, state, span.effect, endMs, `:${span.atMs}`) };
+  // Freeze the observed interval before the gameplay effect disappears. This
+  // durable character outbox survives removal of the module, target or scene.
+  frozenEwar.set(event.id, { characterID, event });
+  const saved = saveFinalEwar(characterID, event);
+  delete state.careerEwarSpan;
+  if (!saved?.success) return saved;
+  frozenEwar.delete(event.id);
+  const result = reconcile(characterID);
+  if (result?.success) ledger.publishCommitted(characterID);
+  return result;
+}
 function actor(entity) {
   return Number(entity?.characterID || entity?.pilotCharacterID || entity?.session?.characterID || entity?.session?.charid) || 0;
 }
@@ -43,6 +76,24 @@ function settle(characterID, event, options = {}) {
 }
 function reconcile(characterID) {
   if (database.isTransientPath("characters", `/${Number(characterID)}`)) return { success: true, skipped: true };
+  for (const [key, frozen] of frozenEwar) if (frozen.characterID === characterID) {
+    const saved = saveFinalEwar(characterID, frozen.event);
+    if (!saved?.success) return saved;
+    frozenEwar.delete(key);
+  }
+  for (const event of Object.values(characters.getCharacterRecord(characterID)?.careerPendingEwarEvents || {})) {
+    const committed = items.commitCareerCombatOutcome({ characterID, event });
+    if (!committed?.success || !committed.durable) return { success: false, errorMsg: committed?.errorMsg || "CAREER_FINAL_EWAR_PENDING" };
+    const settled = settle(characterID, event, { publish: false });
+    if (!settled?.success) return settled;
+    const saved = characters.updateCharacterRecord(characterID, current => {
+      const pending = { ...current.careerPendingEwarEvents }; delete pending[event.id];
+      return { ...current, careerPendingEwarEvents: pending };
+    });
+    if (!saved?.success) return saved;
+    const durable = database.flushTableSync("characters");
+    if (!durable?.success) return durable;
+  }
   // A prior accepted cycle may still be awaiting its first durable fence.
   // Fence the owner before reading outbox rows or publishing any progress.
   const fence = items.flushCareerCombatOutcomes();
@@ -86,7 +137,8 @@ function commit(context, effect, amount, atMs, changedEntities = [], durationMs 
   return { success: true, handled: true, sealedItemIDs: conditionUpdates.map(change => change.itemID),
     pending: result.durable !== true };
 }
-function startEwar(source, target, state, record, effective) {
+function startEwar(source, target, state, record, effective, scene = null) {
+  if (scene && state.careerEwarSpan) finishEwar(scene, source, target, state, record.startedAtMs, effective);
   const effect = EWAR[state?.hostileFamily];
   if (!effect || !effective || !eligible(source, target, state, true) ||
       ledger.isSaturated(actor(source), `effect:${effect}`)) {
@@ -118,4 +170,4 @@ function measureEwar(scene, source, target, state, nowMs, valid = true) {
   if (result?.success) span.atMs = endMs;
   return result;
 }
-module.exports = { begin, commit, reconcile, startEwar, measureEwar };
+module.exports = { begin, commit, reconcile, startEwar, measureEwar, finishEwar };

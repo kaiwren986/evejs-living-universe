@@ -292,8 +292,8 @@ function cloneMemberOptOuts(optOuts = {}) {
 }
 
 function allocateFleetID() {
-  const fleetSerial = runtimeState.nextFleetSerial;
-  runtimeState.nextFleetSerial += 1;
+  const fleetSerial = require("./fleetIdentityAllocator").reserveFleetSerial(runtimeState.nextFleetSerial);
+  runtimeState.nextFleetSerial = fleetSerial + 1;
   return PROXY_NODE_ID * FLEET.NODEID_MOD + fleetSerial * FLEET.FLEETID_MOD;
 }
 
@@ -527,6 +527,23 @@ function getMemberFleetForCharacter(characterID) {
   const normalizedCharacterID = toInteger(characterID, 0);
   const fleet = getFleetForCharacter(normalizedCharacterID);
   return fleet && fleet.members.has(normalizedCharacterID) ? fleet : null;
+}
+
+/**
+ * Fleet membership (doc/FLEET_SHARES.md): the character IDs of the
+ * members of the fleet the server holds `characterID` in as a member (the
+ * record getMemberFleetForCharacter reads), the character included, in
+ * ascending order. [] for a character in no fleet, only invited to one, or
+ * not a character. It reads only: it changes no fleet and sends nothing.
+ */
+function getFleetMemberCharacterIDs(characterID) {
+  const fleet = getMemberFleetForCharacter(characterID);
+  if (!fleet) {
+    return [];
+  }
+  return [...fleet.members.keys()]
+    .map((memberCharacterID) => toInteger(memberCharacterID, 0))
+    .sort((left, right) => left - right);
 }
 
 function getInviteForCharacter(characterID) {
@@ -3006,6 +3023,7 @@ module.exports = {
   initFleet,
   getFleetByID,
   getFleetForCharacter,
+  getFleetMemberCharacterIDs,
   getMemberRecord,
   getFleetState,
   getWings,

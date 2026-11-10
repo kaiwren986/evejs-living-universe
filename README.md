@@ -55,9 +55,8 @@ Docker is the recommended backend setup. Native Windows installation is also sup
 - [Market setup](doc/MARKET_SETUP.md)
 - [Market seeder guide](doc/MARKET_SEEDER.md)
 - [Jita index seeder, v3](tools/market-seederv3/README.md)
-- [Jita index seed design plan](doc/JITA_INDEX_SEED_PLAN.md)
+- [Iron Man NPC-only seeder, v4](tools/market-seederv4/README.md)
 - [Troubleshooting](doc/TROUBLESHOOTING.md)
 - [Tools and admin basics](doc/TOOLS.md)
-- [Non-Docker setup audit and improvement report](doc/NON_DOCKER_SETUP_AUDIT.md)
 
 Lots works; lots does not.

@@ -58,7 +58,7 @@ function refreshSkinLicensesForSession(session, characterID) {
     }
   }
   for (const skinID of skinIDs) {
-    session.sendNotification("OnSkinLicenseActivated", "clientID", [
+    session.sendNotification("OnSkinLicenseActivated", "charid", [
       skinID,
       characterID,
     ]);

@@ -5,7 +5,9 @@
  *
  * Handles initial server info queries from the client.
  * This is one of the first services called after handshake.
- * The client calls machoNet.GetInitVals() to get server configuration.
+ * Build 3396210 calls machoNet.GetServiceInfo() during ConnectToServer.
+ * Login global configuration comes from the handshake's config_vals field.
+ * See doc/CLIENT_REFERENCE.md for client evidence and EveSharper wire specs.
  *
  * Based on NetService.cpp in EVEmu.
  */
@@ -159,18 +161,13 @@ class MachoNetService extends BaseService {
   }
 
   /**
-   * GetInitVals — returns initial server values
+   * GetServiceInfo routing dictionary, also exposed by compatibility GetInitVals.
    *
-   * From NetService.cpp: Returns [serviceInfo, emptyDict]
-   * serviceInfo is a dict mapping service names to their access level.
-   * The client uses this at ServiceCallGPCS.py:197 to know where
-   * to route service calls:
-   *   where = self.machoNet.serviceInfo[service]
-   *
-   * Access levels from C++:
-   *   None   = direct call (unbound services)
-   *   "location" / "locationPreferred" / "solarsystem" / "solarsystem2"
-   *   "station" / "character" / "corporation" / "bulk"
+   * Client evidence: carbon/common/script/net/machoNet.py ConnectToServer;
+   * ServiceCallGPCS.py RemoteServiceCallWithoutTheStars consumes these values.
+   * Values mirror __machoresolve__ placement hints. None supplies no placement
+   * hint; strings such as "station", "solarsystem2" and "character"
+   * let the client reuse a node already resolved for a related service.
    */
   getServiceInfoDict() {
     return {
@@ -325,10 +322,9 @@ class MachoNetService extends BaseService {
 
   Handle_GetInitVals(args, session) {
     log.info("[MachoNet] GetInitVals");
-    // Return [serviceInfo, globalConfig]
-    // globalConfig is used by client for things like:
-    //   machoNet.GetGlobalConfig().get('imageserverurl') - portrait/logo image server
-    //   machoNet.GetGlobalConfig().get('defaultPortraitSaveSize') - portrait save size
+    // Retained compatibility API: [serviceInfo, globalConfig]. Build 3396210
+    // calls GetServiceInfo separately and initializes config from config_vals
+    // in the handshake response (machoNet.py ConnectToServer).
     return [this.getServiceInfoDict(), buildGlobalConfigDict()];
   }
 

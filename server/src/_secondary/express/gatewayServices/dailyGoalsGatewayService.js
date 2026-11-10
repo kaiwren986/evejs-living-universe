@@ -88,7 +88,7 @@ function buildAttributes(descriptor) {
   // of Fortune) so the client groups/labels it; omitted for the static jumps
   // goal and the bonus, which belong to no career path.
   if (Number(template.careerPath) > 0) {
-    attributes.career = { sequential: Number(template.careerPath) };
+    attributes.career = Number(template.careerPath);
   }
   return attributes;
 }
@@ -182,14 +182,35 @@ function createDailyGoalsGatewayService(context) {
     progressedNotice: lookup("ProgressedNotice"),
     completedNotice: lookup("CompletedNotice"),
     redeemedNotice: lookup("RedeemedNotice"),
+    currentGoalsNotice: lookup("CurrentGoalsNotice"),
   };
 
   // Bridge state-side goal events onto targeted client gateway notices.
   function publishGoalNotice(characterID, event) {
-    if (!publishGatewayNotice || !characterID || !event || !event.uuid) {
+    if (!publishGatewayNotice || !characterID || !event) {
       return;
     }
     const target = { character: Number(characterID) };
+    if (event.kind === "current") {
+      // goalsController flushes its cached goals on this notice and re-reads
+      // them, so the daily rollover reaches a pilot who stayed online.
+      const goals = dailyGoalsState.getCurrentGoals(Number(characterID));
+      const milestones = dailyGoalsState.getMonthlyMilestones(Number(characterID));
+      publishGatewayNotice(
+        "eve_public.dailygoal.api.CurrentGoalsNotice",
+        encodePayload(types.currentGoalsNotice, {
+          goals: [
+            ...goals.map(buildCurrentGoal),
+            ...milestones.map(buildMilestoneCurrentGoal),
+          ],
+        }),
+        target,
+      );
+      return;
+    }
+    if (!event.uuid) {
+      return;
+    }
     const id = buildIdentifier(event.uuid);
     if (event.kind === "progressed") {
       publishGatewayNotice(

@@ -30,6 +30,7 @@ const {
 const {
   NPC_STARTER_CORPORATION_ID,
   getCorporationInfoRecord,
+  getCorporationRecord,
 } = require(path.join(__dirname, "./corporationState"));
 const {
   getCorporationRuntime,
@@ -437,7 +438,7 @@ class CorpService extends BaseService {
             charData.corporationID ||
             (session ? session.corporationID : NPC_STARTER_CORPORATION_ID),
           buildFiletimeLong(entry.startDate || charData.startDateTime || charData.createDateTime),
-          entry.deleted ? 1 : 0,
+          entry.deleted || getCorporationRecord(Number(entry.corporationID))?.deleted ? 1 : 0,
         ]),
       ),
       "eve.common.script.sys.rowset.Rowset",

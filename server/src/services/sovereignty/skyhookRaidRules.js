@@ -23,7 +23,9 @@ const SILO_LINK_RULES = Object.freeze({ ...normalizeLinkRules({
   characterEnergyCost: null,
   solarsystemInterferenceCost: null,
 }), friendlyDurationMs: 300000 });
-const RAID_WINDOW_MS = 7200000;
+// One hour (CCP patch notes 2024-10-1.1: "only vulnerable to being attacked
+// during a 1 hour interval, every 3-4 days"; Equinox had two hours).
+const RAID_WINDOW_MS = 3600000;
 const SILO_SHIELD_LINK_THRESHOLD = 0.1;
 
 function isWindowOpen(record, nowMs) {

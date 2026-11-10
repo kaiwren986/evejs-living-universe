@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "source": "https://anoik.is/wormholes",
+  "verifiedAt": "2026-11-06",
+  "populationPolicy": "Emulator baseline, not measured retail counts. Ordinary profiles target roughly one percent of the authored source-class pool each; Thera targets one per source class. Existing installed profiles override these defaults.",
+  "origins": [
+    {
+      "sourceClassID": 7,
+      "sourceLabel": "High-sec",
+      "estimatedUniverseCount": 13,
+      "connections": { "Z971": 1, "R943": 2, "X702": 3, "O128": 4, "M555": 5, "B041": 6, "A641": 7, "R051": 8, "V283": 9, "T458": 12 }
+    },
+    {
+      "sourceClassID": 8,
+      "sourceLabel": "Low-sec",
+      "estimatedUniverseCount": 7,
+      "connections": { "Z971": 1, "R943": 2, "X702": 3, "O128": 4, "N432": 5, "U319": 6, "B449": 7, "N944": 8, "S199": 9, "M164": 12 }
+    },
+    {
+      "sourceClassID": 9,
+      "sourceLabel": "Null-sec",
+      "estimatedUniverseCount": 36,
+      "connections": { "Z971": 1, "R943": 2, "X702": 3, "O128": 4, "N432": 5, "U319": 6, "B449": 7, "N944": 8, "S199": 9, "L031": 12 }
+    }
+  ]
+}

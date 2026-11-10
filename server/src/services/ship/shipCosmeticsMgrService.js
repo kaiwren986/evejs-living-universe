@@ -31,6 +31,7 @@ const {
   removeSkin,
   expireSkin,
   applySkinToShip,
+  getAppliedSkinRecordsForOwner,
 } = require(path.join(__dirname, "./shipCosmeticsState"));
 const {
   consumeInventoryItemQuantity,
@@ -180,14 +181,47 @@ function syncInventoryChanges(session, changes = []) {
   }
 }
 
+// TQ sends OnSkinLicenseActivated(skinID, licenseeID) with idtype charid
+// (golden log "Career missions part 2 - Minmatar", args (11529, charID)).
 function notifySkinLicenseActivated(session, skinID, licenseeID) {
   if (!session || typeof session.sendNotification !== "function") {
     return;
   }
-  session.sendNotification("OnSkinLicenseActivated", "clientID", [
+  session.sendNotification("OnSkinLicenseActivated", "charid", [
     Number(skinID || 0) || 0,
     Number(licenseeID || 0) || 0,
   ]);
+}
+
+// The client's OnSkinLicenseRemoved(skinID, itemID, typeID) handlers are per
+// ship: shipSkinApplicationSvc.py:40 puts the default skin back on that ship
+// (it calls ApplySkinToShip(itemID, None)), skins/controller.py:553 resets the
+// fitting window's pick for that ship, and cosmeticsSvc.py:218 and
+// skinsPanel.py:158 drop their licence caches. So one notification goes out for
+// each ship of the licensee that carries the removed SKIN. A ship ID of None
+// would make the client call ApplySkinToShip on nothing, and a different ship
+// would lose the SKIN it really carries, so nothing is sent when no ship
+// carries this SKIN. No retail capture exists for this event.
+function notifySkinLicenseRemoved(session, skinID, licenseeID) {
+  if (!session || typeof session.sendNotification !== "function") {
+    return 0;
+  }
+  const numericSkinID = Number(skinID || 0) || 0;
+  let sent = 0;
+  for (const record of getAppliedSkinRecordsForOwner(licenseeID)) {
+    const shipID = Number(record && record.shipID) || 0;
+    const typeID = Number(record && record.typeID) || 0;
+    if (!shipID || !typeID || (Number(record.skinID) || 0) !== numericSkinID) {
+      continue;
+    }
+    session.sendNotification("OnSkinLicenseRemoved", "charid", [
+      numericSkinID,
+      shipID,
+      typeID,
+    ]);
+    sent += 1;
+  }
+  return sent;
 }
 
 function getSkinApplyFailureMessage(errorMsg) {
@@ -373,6 +407,9 @@ class ShipCosmeticsMgrService extends BaseService {
     log.info(
       `[ShipCosmeticsMgr] GiveSkin(charID=${charId}, skinID=${skinID}, durationDays=${durationDays}, isSingleUse=${isSingleUse}) -> ${result.success ? "ok" : result.errorMsg}`,
     );
+    if (result.success) {
+      notifySkinLicenseActivated(session, skinID, charId);
+    }
     return null;
   }
 
@@ -387,6 +424,9 @@ class ShipCosmeticsMgrService extends BaseService {
     log.info(
       `[ShipCosmeticsMgr] RemoveSkin(licenseeID=${licenseeID}, skinID=${skinID}) -> ${result.success ? "ok" : result.errorMsg}`,
     );
+    if (result.success) {
+      notifySkinLicenseRemoved(session, skinID, licenseeID);
+    }
     return null;
   }
 
@@ -403,6 +443,9 @@ class ShipCosmeticsMgrService extends BaseService {
     log.info(
       `[ShipCosmeticsMgr] GMExpireSkinLicense(charID=${charId}, skinID=${skinID}) -> ${result.success ? "ok" : result.errorMsg}`,
     );
+    if (result.success) {
+      notifySkinLicenseRemoved(session, skinID, charId);
+    }
     return null;
   }
 

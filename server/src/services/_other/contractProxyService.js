@@ -959,9 +959,11 @@ class contractProxyService extends BaseService {
     return false;
   }
 
-  Handle_GM_ExpireContract(args, session) {
+  async Handle_GM_ExpireContract(args, session) {
     recordAuditEvent("GM_ExpireContract", args, session);
-    return false;
+    const contractID = normalizePositiveInteger(Array.isArray(args) ? unwrapMarshalValue(args[0]) : 0, 0);
+    const result = await contractRuntime.expireContractByGM(contractID, session);
+    return result.success === true;
   }
 }
 

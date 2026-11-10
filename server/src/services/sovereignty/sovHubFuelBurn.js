@@ -18,7 +18,28 @@ function normalizeFuelState(value) {
     resources: { power: nonnegative(value.resources?.power), workforce: nonnegative(value.resources?.workforce) },
     upgrades: Array.isArray(value.upgrades) ? structuredClone(value.upgrades) : [],
     runningTypeIDs: Array.isArray(value.runningTypeIDs) ? value.runningTypeIDs.map(Number) : [],
+    ...(value.runningSinceByTypeID && typeof value.runningSinceByTypeID === "object" ? {
+      runningSinceByTypeID: Object.fromEntries(Object.entries(value.runningSinceByTypeID)
+        .map(([key, since]) => [key, nonnegative(since)])),
+    } : {}),
   };
+}
+
+// When each running upgrade started running: kept while it keeps running, set
+// to the settle time when it starts, dropped when it stops. The site supply
+// waits a first respawn after this (patch 23.01).
+function buildRunningSince(previous, runningTypeIDs, settledAtMs) {
+  const before = previous && previous.runningSinceByTypeID || {};
+  const wasRunning = new Set(previous ? previous.runningTypeIDs : []);
+  // A Hub with no checkpoint yet (seeded or older data), and an upgrade already
+  // running in a checkpoint written before this record existed, have run for
+  // long enough: 0. Only a start seen against an earlier checkpoint waits.
+  return Object.fromEntries(runningTypeIDs.map((typeID) => [
+    String(typeID),
+    !previous || wasRunning.has(typeID)
+      ? nonnegative(before[String(typeID)])
+      : settledAtMs,
+  ]));
 }
 
 function checkpointUpgrades(installations, definitions) {
@@ -116,6 +137,7 @@ function settleHubFuel({ fuelByTypeID, fuelState, upgrades, resources, nowMs }) 
     fractionalByTypeID: fractions,
     resources: { power: nonnegative(resources.power), workforce: nonnegative(resources.workforce) },
     upgrades: structuredClone(upgrades), runningTypeIDs: running.runningTypeIDs,
+    runningSinceByTypeID: buildRunningSince(previous, running.runningTypeIDs, endMs),
   };
   if (previous && !upgrades.some((entry) => entry.online && entry.fuelTypeID > 0 &&
     (entry.fuelConsumptionPerHour > 0 || entry.fuelStartupCost > 0)) && !Object.keys(running.rates).length &&

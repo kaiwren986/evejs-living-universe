@@ -111,6 +111,36 @@ function reconcileAwakeSovereigntySites(solarSystemID, reason) {
   });
 }
 
+// A newly running upgrade's sites wait one respawn (dungeonSiteSpawnPolicy
+// FIRST_SPAWN_WAIT_MS, patch 23.01), so refresh the system again when the
+// last wait ends. One timer per system; a later save replaces it.
+const firstSpawnRefreshTimers = new Map();
+
+function scheduleFirstSpawnSiteRefresh(solarSystemID, hubID, nowMs = Date.now()) {
+  const numericSolarSystemID = Number(solarSystemID) || 0;
+  if (numericSolarSystemID <= 0 || !hubID) return null;
+  const { getFirstSpawnWaitEndMs } = require(path.join(
+    __dirname,
+    "../../../services/dungeon/dungeonSiteSpawnPolicy",
+  ));
+  const payload = getHubUpgrades(hubID);
+  const waitEnds = (payload && Array.isArray(payload.upgrades) ? payload.upgrades : [])
+    .map((upgrade) => getFirstSpawnWaitEndMs(upgrade, nowMs))
+    .filter(Boolean);
+  const existing = firstSpawnRefreshTimers.get(numericSolarSystemID);
+  if (existing) clearTimeout(existing);
+  firstSpawnRefreshTimers.delete(numericSolarSystemID);
+  if (waitEnds.length === 0) return null;
+  const dueAtMs = Math.max(...waitEnds) + 1000;
+  const timer = setTimeout(() => {
+    firstSpawnRefreshTimers.delete(numericSolarSystemID);
+    reconcileAwakeSovereigntySites(numericSolarSystemID, "sovereignty-hub-upgrade-first-spawn");
+  }, Math.max(0, dueAtMs - nowMs));
+  if (timer && typeof timer.unref === "function") timer.unref();
+  firstSpawnRefreshTimers.set(numericSolarSystemID, timer);
+  return dueAtMs;
+}
+
 function buildSequentialIdentifier(id) {
   return {
     sequential: Number(id || 0),
@@ -684,6 +714,7 @@ function createSovereigntyGatewayService({ publishGatewayNotice }) {
         );
         if (!result.persistencePending) {
           publishHubStateNotices(result.hubID);
+          scheduleFirstSpawnSiteRefresh(result.solarSystemID, result.hubID);
           reconcileAwakeSovereigntySites(
             result.solarSystemID,
             "sovereignty-hub-upgrades-configured",
@@ -1000,6 +1031,14 @@ function createSovereigntyGatewayService({ publishGatewayNotice }) {
         const hubID = getHubIDForSolarSystem(result.solarSystemID);
         if (hubID) {
           publishHubStateNotices(hubID);
+          // A skyhook's power or workforce moves upgrades between online and low
+          // power, and an upgrade that is not running supplies no sites (patch
+          // 22.02: turning an upgrade off removes its sites).
+          scheduleFirstSpawnSiteRefresh(result.solarSystemID, hubID);
+          reconcileAwakeSovereigntySites(
+            result.solarSystemID,
+            "sovereignty-skyhook-activation-changed",
+          );
         }
         return {
           statusCode: 200,

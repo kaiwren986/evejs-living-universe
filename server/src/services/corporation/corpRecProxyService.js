@@ -11,6 +11,7 @@ const {
   buildRow,
   currentFileTime,
   resolveBoundNodeId,
+  unwrapMarshalValue,
 } = require(path.join(__dirname, "../_shared/serviceHelpers"));
 const {
   ensureRuntimeInitialized,
@@ -113,6 +114,13 @@ function buildAdvertRow(advert, corporationRecord = null) {
   ]);
 }
 
+function masksOverlap(left, right) {
+  // Native recruitment type IDs are bit positions (currently 0..44), not
+  // 32-bit flags. Number storage is exact here; JS bitwise operators are not.
+  if (!Number.isSafeInteger(left) || left < 0 || !Number.isSafeInteger(right) || right < 0) return false;
+  return (BigInt(left) & BigInt(right)) !== 0n;
+}
+
 function matchesSearchCriteria(
   advert,
   corporationRecord,
@@ -126,12 +134,12 @@ function matchesSearchCriteria(
   }
 
   const typeMask = normalizeInteger(filters.typeMask, 0);
-  if (typeMask > 0 && (normalized.typeMask & typeMask) === 0) {
+  if (typeMask > 0 && !masksOverlap(normalized.typeMask, typeMask)) {
     return false;
   }
 
   const langMask = normalizeInteger(filters.langMask, 0);
-  if (langMask > 0 && (normalized.langMask & langMask) === 0) {
+  if (langMask > 0 && !masksOverlap(normalized.langMask, langMask)) {
     return false;
   }
 
@@ -188,13 +196,13 @@ function matchesSearchCriteria(
   if (
     searchTimeMask > 0 &&
     normalized.hourMask1 > 0 &&
-    (normalized.hourMask1 & searchTimeMask) === 0
+    !masksOverlap(normalized.hourMask1, searchTimeMask)
   ) {
     return false;
   }
 
   const otherMask = normalizeInteger(filters.otherMask, 0);
-  if (otherMask > 0 && (normalized.otherMask & otherMask) === 0) {
+  if (otherMask > 0 && !masksOverlap(normalized.otherMask, otherMask)) {
     return false;
   }
 
@@ -308,9 +316,12 @@ class CorpRecruitmentProxyService extends BaseService {
     return adID;
   }
 
-  Handle_UpdateRecruitmentAd(args, session) {
+  Handle_UpdateRecruitmentAd(args, session, kwargs) {
     const { corporationID } = requireRecruitmentAuthority(session);
     const adID = args && args.length > 0 ? Number(args[0]) || 0 : 0;
+    // The native corporation proxy sends these fields as named arguments.
+    // Retain positional support for callers that send the full argument list.
+    const { minSP, otherMask } = unwrapMarshalValue(kwargs) || {};
     updateCorporationRuntime(corporationID, (runtime) => {
       if (!runtime.recruitmentAds[String(adID)]) {
         return runtime;
@@ -322,8 +333,8 @@ class CorpRecruitmentProxyService extends BaseService {
       advert.recruiters = Array.isArray(args && args[4]) ? args[4] : advert.recruiters || [];
       advert.title = normalizeText(args && args[5], advert.title || "");
       advert.hourMask1 = normalizeInteger(args && args[7], advert.hourMask1 || 0);
-      advert.minSP = normalizeInteger(args && args[8], advert.minSP || 0);
-      advert.otherMask = normalizeInteger(args && args[9], advert.otherMask || 0);
+      advert.minSP = normalizeInteger(minSP ?? args?.[8], advert.minSP || 0);
+      advert.otherMask = normalizeInteger(otherMask ?? args?.[9], advert.otherMask || 0);
       return runtime;
     });
     notifyCorporationRecruitmentAdChanged();

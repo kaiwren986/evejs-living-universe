@@ -40,6 +40,68 @@ const {
   voteItemLockdown,
   voteItemUnlock,
 } = require(path.join(__dirname, "./voteRuntimeState"));
+const {
+  notifySanctionedActionChanged,
+  notifyVoteCaseChanged,
+  notifyVoteCast,
+} = require(path.join(__dirname, "./corporationNotifications"));
+
+const FILETIME_EPOCH_OFFSET = 116444736000000000n;
+const FILETIME_TICKS_PER_MS = 10000n;
+// setTimeout's largest delay. Longer waits re-arm when they fire.
+const MAX_TIMER_DELAY_MS = 2_147_000_000;
+const voteCloseTimers = new Map();
+
+function fileTimeToUnixMs(fileTime) {
+  try {
+    return Number((BigInt(String(fileTime || "0")) - FILETIME_EPOCH_OFFSET) / FILETIME_TICKS_PER_MS);
+  } catch (_error) {
+    return 0;
+  }
+}
+
+// A vote case closes when its end date passes; nothing writes at that moment,
+// so tell online members then. Their cached case list is bucketed by status
+// and the closed case's sanctioned action becomes available. Timers are armed
+// when a case is created and whenever a corporation's case list is read, which
+// covers cases left open across a restart for every client that has the list.
+function armVoteCaseCloseTimer(voteCase) {
+  const corporationID = Number(voteCase && voteCase.corporationID) || 0;
+  const voteCaseID = Number(voteCase && voteCase.voteCaseID) || 0;
+  if (!corporationID || !voteCaseID || getVoteCaseStatus(voteCase) !== VOTECASE_STATUS_OPEN) {
+    return false;
+  }
+  const key = `${corporationID}:${voteCaseID}`;
+  if (voteCloseTimers.has(key)) {
+    return false;
+  }
+  const delayMs = Math.max(0, fileTimeToUnixMs(voteCase.endDateTime) - Date.now());
+  const timer = setTimeout(() => {
+    voteCloseTimers.delete(key);
+    const current = getVoteCase(corporationID, voteCaseID);
+    if (!current) {
+      return;
+    }
+    if (getVoteCaseStatus(current) === VOTECASE_STATUS_OPEN) {
+      armVoteCaseCloseTimer(current);
+      return;
+    }
+    notifyVoteCaseChanged(corporationID, voteCaseID);
+    notifySanctionedActionChanged(corporationID, voteCaseID);
+  }, Math.min(delayMs + 1000, MAX_TIMER_DELAY_MS));
+  if (timer && typeof timer.unref === "function") {
+    timer.unref();
+  }
+  voteCloseTimers.set(key, timer);
+  return true;
+}
+
+function clearVoteCaseCloseTimersForTests() {
+  for (const timer of voteCloseTimers.values()) {
+    clearTimeout(timer);
+  }
+  voteCloseTimers.clear();
+}
 
 const VOTE_CASE_HEADER = [
   "voteCaseID",
@@ -171,6 +233,9 @@ class VoteManagerService extends BaseService {
     const openVoteCases = allVoteCases.filter(
       (voteCase) => getVoteCaseStatus(voteCase) === VOTECASE_STATUS_OPEN,
     );
+    for (const voteCase of openVoteCases) {
+      armVoteCaseCloseTimer(voteCase);
+    }
     const closedVoteCases = allVoteCases.filter(
       (voteCase) => !openVoteCases.some((openVoteCase) => openVoteCase.voteCaseID === voteCase.voteCaseID),
     ).slice(0, MAX_CLOSED_VOTES_FETCHED);
@@ -292,6 +357,12 @@ class VoteManagerService extends BaseService {
       Array.isArray(options) ? options : [],
       duration,
     );
+    if (voteCase) {
+      // The client does not add its own new case to its cache; every member,
+      // the creator included, learns of it from this event.
+      notifyVoteCaseChanged(corporationID, voteCase.voteCaseID);
+      armVoteCaseCloseTimer(voteCase);
+    }
     return voteCase ? Number(voteCase.voteCaseID || 0) : null;
   }
 
@@ -299,7 +370,11 @@ class VoteManagerService extends BaseService {
     const corporationID = args && args.length > 0 ? Number(args[0]) || 0 : 0;
     const voteCaseID = args && args.length > 1 ? Number(args[1]) || 0 : 0;
     const optionID = args && args.length > 2 ? Number(args[2]) || 0 : 0;
-    return castVote(corporationID, voteCaseID, session, optionID).success ? null : null;
+    const result = castVote(corporationID, voteCaseID, session, optionID);
+    if (result && result.success) {
+      notifyVoteCast(corporationID, voteCaseID);
+    }
+    return null;
   }
 
   Handle_GetCorpSanctionedActions(args, session) {
@@ -318,7 +393,10 @@ class VoteManagerService extends BaseService {
     if (!authority || !authority.isCEO) throwWrappedUserError("CrpAccessDenied");
     const voteCaseID = args && args.length > 0 ? Number(args[0]) || 0 : 0;
     const corporationID = resolveCorporationID([], session);
-    activateSanctionedAction(corporationID, voteCaseID);
+    const result = activateSanctionedAction(corporationID, voteCaseID);
+    if (result && result.success) {
+      notifySanctionedActionChanged(corporationID, voteCaseID);
+    }
     return null;
   }
 
@@ -328,3 +406,4 @@ class VoteManagerService extends BaseService {
 }
 
 module.exports = VoteManagerService;
+VoteManagerService._testing = { armVoteCaseCloseTimer, clearVoteCaseCloseTimersForTests };

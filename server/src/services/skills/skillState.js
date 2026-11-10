@@ -1124,11 +1124,16 @@ function grantCharacterSkillLevelsOnce(charId, skillLevels, actionKey) {
   const types = [...levels.keys()].map(typeID => getSkillTypeByID(typeID));
   if (types.some(type => !type)) return { success: false, errorMsg: "SKILL_TYPE_NOT_FOUND" };
   ensureCharacterSkills(numericCharId);
+  const previousSkillMap = getCharacterBaseSkillMap(numericCharId);
   const skillsTable = readSkillsTable();
   const nextSkills = { ...(skillsTable[characterKey] || {}) };
+  const changedTypeIDs = [];
   for (const type of types) {
     const level = levels.get(type.typeID), current = nextSkills[String(type.typeID)];
-    if (!current || current.skillLevel < level) nextSkills[String(type.typeID)] = buildSkillRecord(numericCharId, type, level);
+    if (!current || current.skillLevel < level) {
+      nextSkills[String(type.typeID)] = buildSkillRecord(numericCharId, type, level);
+      changedTypeIDs.push(type.typeID);
+    }
   }
   // Skills and the permanent receipt share one skills-owner write. Extraction,
   // skill removal and whole-character skill replacement retain this namespace.
@@ -1142,7 +1147,44 @@ function grantCharacterSkillLevelsOnce(charId, skillLevels, actionKey) {
   if (!flushed?.success) return flushed;
   syncCharacterSkillPoints(numericCharId, Object.values(nextSkills).reduce((sum, skill) => sum + toNumber(skill.skillPoints, 0), 0));
   setCharacterSkillBootstrapSuppressed(numericCharId, false);
+  notifyGrantedSkillLevels(
+    numericCharId,
+    changedTypeIDs.map((typeID) => cloneValue(nextSkills[String(typeID)])),
+    previousSkillMap,
+  );
   return { success: true, duplicate: false };
+}
+
+// Tell a live client about committed reward skill levels the way other skill
+// grants do: OnServerSkillsChanged, a pruned queue (OnNewSkillQueueSaved) and
+// a Dogma resync. A notice failure never undoes the committed grant.
+function notifyGrantedSkillLevels(charId, changedSkillRecords, previousSkillMap) {
+  if (!Array.isArray(changedSkillRecords) || changedSkillRecords.length === 0) {
+    return;
+  }
+  try {
+    const queueResult = require("./skillAdminRuntime").reconcileQueueForSkillMutation(
+      charId,
+      "prune_satisfied",
+    );
+    const queueSnapshot = queueResult && queueResult.changed ? queueResult.snapshot : null;
+    require("./training/skillQueueNotifications").notifySkillStateChanged(
+      charId,
+      changedSkillRecords,
+      {
+        previousSkillMap,
+        queueEntries: queueSnapshot && Array.isArray(queueSnapshot.queueEntries)
+          ? queueSnapshot.queueEntries
+          : undefined,
+        emitQueuePaused: Boolean(
+          queueSnapshot &&
+          (!queueSnapshot.active || queueSnapshot.queueEntries.length === 0),
+        ),
+      },
+    );
+  } catch (error) {
+    // ignored: the grant and its receipt are already committed
+  }
 }
 
 // Free SP belongs to the character owner, with its receipt in the same write.

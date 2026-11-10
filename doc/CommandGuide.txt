@@ -86,6 +86,14 @@ What it does: Dumps a compact session summary: character, ship, corp, docked loc
 Parameters: none.
 Example: /session
 
+/reportdesync
+What it does: Returns the positions and velocities of visible local entities, together with the simulation tick, for native desync inspection tools.
+Parameters: none.
+Example: /reportdesync
+Notes:
+- Requires a staff/admin role and a ship in space.
+- Only your visible local scene is included. The native console uses the returned snapshot to compare client and server state.
+
 /hangar
 What it does: Shows your active ship and the ships in your current ship hangar.
 Parameters: none.
@@ -115,6 +123,20 @@ Parameters:
 - <itemID> = exact item ID
 Example: /iteminfo 1029384756
 Note: This is the real inspection command. The internal handler still prints a legacy usage string that says /item <itemID>, but /item is actually an alias of /giveitem.
+
+/getshipsetup <me|shipID>
+What it does: Exports a ship's fitted setup as legacy client DNA for the native Copycat tools.
+Parameters:
+- me = your active ship
+- <shipID> = an existing ship's inventory item ID; staff may inspect another owner's ship
+Examples:
+- /getshipsetup me
+- /getshipsetup 1029384756
+Notes:
+- Requires a staff/admin role.
+- Includes the hull, fitted module types, and empty slots before the last module in each rack. Loaded charges are excluded.
+- The client DNA parser cannot represent empty subsystem slots before another fitted subsystem. Such partial subsystem setups are refused; contiguous subsystem racks starting at the core slot export normally.
+- Returns the legacy DNA: format used by the native tools.
 
 /typeinfo <ship name|typeID>
 What it does: Shows ship type metadata: typeID, groupID, categoryID, and published flag.
@@ -158,6 +180,15 @@ Notes:
 - A bare bookmark ID is also accepted after existing destination ID types have been checked.
 - Runtime entities are point-move only and must stay in their current solar system.
 
+/fetch <entityID>
+What it does: Transports a local dynamic entity, such as a loot container or wreck, to your ship.
+Parameters:
+- <entityID> = exact ID of a dynamic entity in your current scene
+Example: /fetch 1029384756
+Notes:
+- Requires a staff/admin role and a ship in space.
+- Uses the same transport and access checks as /tr.
+
 /effect <name>
 /effect stop
 /effect stop <name>
@@ -200,6 +231,36 @@ CHARACTER, SKILLS, CURRENCY, CORP, ALLIANCE, AND LOGOS
 What it does: Fully restores shields, armor, hull, and capacitor on your active ship.
 Parameters: none.
 Example: /heal
+
+/heal me
+What it does: Performs a full heal of your active ship, including fitted modules.
+Parameters: me = your active ship.
+Example: /heal me
+Notes: This explicit target form requires a staff/admin role.
+
+/heal <moduleID>
+What it does: Repairs one owned module or subsystem, including a fitted module's damage.
+Parameters: <moduleID> = the owned inventory item's ID, not its typeID.
+Example: /heal 1029384756
+Notes: Requires a staff/admin role.
+
+/heal me capac=1
+What it does: Restores only your active ship's capacitor.
+Parameters: me capac=1 = the capacitor-only restore form.
+Example: /heal me capac=1
+Notes:
+- Requires a staff/admin role and a ship in space.
+- Does not repair ship or module damage.
+
+/ceq <0-100>
+What it does: Sets your selected character's CEQ to the requested amount and immediately refreshes the CEQ meter. Requires GML or WORLDMOD permissions.
+Parameters: one decimal value from 0 to 100; this sets the amount rather than adding to it.
+Example: /ceq 100
+
+/interference reset
+What it does: Resets signal interference to 0% in your current solar system and refreshes the meter for connected pilots there, including docked pilots. Requires GML or WORLDMOD permissions.
+Parameters: reset; no target system argument.
+Example: /interference reset
 
 /allskills
 What it does: Ensures all published skills are trained to level V for the current character.
@@ -335,6 +396,45 @@ Notes:
 - In space, the items must fit in your cargo hold. Capsules have no cargo hold.
 - /item is an alias of /giveitem, not an item inspector.
 
+/ammo <chargeTypeID|random>
+What it does: Uses the native EVE client's ammo macro to load compatible turrets and launchers with generated ammunition.
+Parameters:
+- <chargeTypeID> = ammunition type ID to load into compatible weapons
+- random = select the first compatible ammunition type found for each weapon
+Examples:
+- /ammo 266
+- /ammo random
+Notes:
+- Requires a staff/admin role and the native EVE client macro.
+- Generated charge loads obey compatibility, capacity, and active/reloading-module checks.
+- Unload a different charge type before fitting a replacement.
+
+/fit me <chargeTypeID> <quantity> flag=<slot>
+What it does: Creates and loads the requested number of charges into a compatible module in the specified fitting slot.
+Parameters:
+- me = your active ship
+- <chargeTypeID> = exact ammunition type ID
+- <quantity> = positive number of charges to add
+- flag=<slot> = fitting flag number, such as 27 for the first high slot
+Example: /fit me 266 10 flag=27
+Notes:
+- Requires a staff/admin role. Works docked or in space.
+- A compatible module must already occupy that slot and be idle. The load must fit its remaining capacity.
+- Topping up an existing stack requires the same charge type. This is the explicit charge-loading form used by the native ammo macro.
+
+/copyship <activeShipID> 1
+What it does: Copies your docked active ship and its owned inventory contents into a new ship in your hangar. Supports the native Copycat "Clone Perfect" action.
+Parameters:
+- <activeShipID> = the inventory item ID of your currently boarded ship
+- 1 = the native Clone Perfect flag; other flags are unsupported
+Example:
+- /copyship 140000001 1
+Notes:
+- Requires a staff/admin role and a docked, assembled active ship in your personal hangar. Capsules are excluded, as in the native menu.
+- Preserves names, fitting flags, loaded charges, quantities, condition, module state and custom item attributes. Nested owned containers receive new item IDs too.
+- Keeps your current ship active. The copy has a new identity and does not inherit insurance or SKIN application receipts.
+- Refuses foreign-owned contents, blueprints, contract packages, hidden modifier items and deployed or expiring contents. A refused copy creates no items.
+
 /fit me <module name|typeID>
 What it does: Fits one matching module from your active ship's cargo into the first free compatible slot. Creates a new module only when none is available in cargo.
 Parameters:
@@ -352,7 +452,86 @@ Notes:
 - Feedback states whether a module was fitted from cargo or newly created.
 - Checks skills, hull restrictions, hardpoints, rig limits, and available slots.
 - Brings the module online if fitting resources allow; otherwise fits it offline and reports why.
-- Rejected fits do not create an item. Charges and hulls cannot be fitted with this command.
+- Rejected fits do not create an item. This module form refuses charges and hulls; charges use the explicit quantity-and-flag form above.
+
+/repairmodules
+What it does: Repairs damage on the fitted modules of your active ship.
+Parameters: none.
+Example: /repairmodules
+Notes:
+- Requires a staff/admin role. Works while docked or in space.
+- This is a module repair; it does not restore ship shields, armor, hull, or capacitor.
+
+/dogma <me|activeShipID> <attributeName> = <value>
+What it does: Temporarily changes a base resource attribute on your docked active ship. Normal skill, implant and fitted-module modifiers still apply to that base value.
+Parameters:
+- me or <activeShipID> = your own currently boarded, docked ship
+- <attributeName> = cpuOutput, powerOutput, capacity, capacitorCapacity or upgradeCapacity
+- <value> = a finite resource value greater than 0 and at most 1000000000000; fitting counts use whole numbers from 0 to 8
+Examples:
+- /dogma me cpuOutput = 13371337
+- /dogma 140000001 powerOutput = 10000000
+- /dogma me turretSlotsLeft = 8
+- /dogma me launcherSlotsLeft = 8
+- /dogma me reset
+- /dogma me hiSlots = 8
+- /dogma me rigSlots = 8
+- /dogma me upgradeSlotsLeft = 8
+Notes:
+- Requires a staff/admin role. Supports the resource assignments used by the native attribute editor and module test tool.
+- Hardpoint edits update fitting validation and the unused hardpoint attributes sent to the client. Offline weapons still consume their slots attribute; unfitting restores that budget. Weapon charges do not consume hardpoints.
+- Weapon hardpoint attributes: turretSlotsLeft and launcherSlotsLeft accept whole numbers from 0 to 8. These set the base hardpoint capacity before subsystem bonuses and fitted-weapon slot usage, rather than directly assigning the displayed unused count.
+- A count edit is refused if it would undercut fitted weapon usage or raise the subsystem-adjusted hardpoint capacity above 8. Existing fitted weapons are preserved.
+- Unfit weapons outside the hull's normal limits before resetting or ending the staff session; the temporary edit does not move or remove weapons.
+- Recalculates fitting resources and calibration checks, updates cargo capacity, and sends changed attributes to your client.
+- Slot edits update fitting checks and client attributes. Zero slots prevents fitting in that family. Edits that would hide fitted modules or reduce the rig budget below current usage are refused.
+- Slot attributes: hiSlots, medSlots, lowSlots, rigSlots and upgradeSlotsLeft accept whole numbers from 0 to 8. Slot bases still receive subsystem bonuses; the resulting physical slot count must fit the eight flags in that family.
+- rigSlots controls the physical rig slots; upgradeSlotsLeft sets the base rig fitting budget. Fitted rigs subtract their slots attribute from that budget, even while offline. Increasing either count does not increase calibration.
+- Temporary limits do not create, move or remove modules. Unfit items outside the hull's normal limits before resetting or ending the session.
+- Overrides belong to your staff session and ship. They clear on character deselection, disconnect, restart, owner transfer, repackaging or destruction. /dogma me reset is a server convenience that clears this ship's overrides.
+- Changes no inventory metadata, type data or permanent item attributes. Leaves persisted ship condition unchanged; effective resources follow the normal fitting calculations.
+- Other attributes, other pilots, arbitrary items and assignments issued in space remain unsupported.
+
+Combined slot and hardpoint smoke test:
+Requires the resource, slot/rig and weapon hardpoint /dogma support together. Use a spare docked Rifter on a staff character with the required module and rigging skills.
+Run each group in order. /unfit me all moves the existing fitting and loaded charges into your station hangar.
+
+1. Empty the ship and enable the expanded limits:
+   /unfit me all
+   /dogma me cpuOutput = 13371337
+   /dogma me powerOutput = 10000000
+   /dogma me upgradeCapacity = 10000
+   /dogma me hiSlots = 8
+   /dogma me medSlots = 8
+   /dogma me lowSlots = 8
+   /dogma me rigSlots = 8
+   /dogma me upgradeSlotsLeft = 8
+   /dogma me turretSlotsLeft = 8
+   /dogma me launcherSlotsLeft = 8
+   Expected: each assignment reports success. The fitting window has 8 physical high, medium, low and rig slots, with 8 unused turret hardpoints, 8 unused launcher hardpoints and a remaining rig budget of 8. No items are created by the attribute edits. CPU and powergrid show the assigned bases with normal modifiers applied.
+
+2. Fit one turret, launcher and rig:
+   /fit me 3636
+   /fit me 10629
+   /fit me 31358
+   Expected: a Civilian Gatling Autocannon, Rocket Launcher I and Small Ancillary Current Router I are fitted. Physical slot counts stay at 8; 2 high slots and 1 rig slot are occupied. The unused turret count, unused launcher count and remaining rig budget each become 7. A weapon fitted offline still consumes its hardpoint.
+
+3. Refuse reductions below the occupied fitting:
+   /dogma me hiSlots = 0
+   /dogma me turretSlotsLeft = 0
+   /dogma me launcherSlotsLeft = 0
+   /dogma me upgradeSlotsLeft = 0
+   Expected: each command asks you to unfit the affected modules, weapons or rigs first. Counts and fitted items remain unchanged.
+
+4. Refuse invalid count values:
+   /dogma me hiSlots = 9
+   /dogma me launcherSlotsLeft = 1.5
+   Expected: each command requires a whole number from 0 to 8. Counts and fitted items remain unchanged.
+
+5. Clean up before restoring the normal hull limits:
+   /unfit me all
+   /dogma me reset
+   Expected: the turret, launcher, rig and any loaded charges move into your station hangar, then the temporary overrides clear and the Rifter's normal limits return. Overrides also clear when you leave the character or disconnect.
 
 /unfit me <module name|typeID|itemID|all>
 What it does: Offlines and removes one matching module, or strips every fitted item with "all".
@@ -375,6 +554,19 @@ Notes:
 - "all" strips every fitting slot, including rigs, subsystems, and loaded charges, preserving the items. This testing override leaves existing cargo and drones untouched.
 - After unfitting in space, /fit me can reuse the removed modules from cargo.
 
+/unload me <module name|typeID|itemID|all>
+What it does: Staff alias of /unfit: offlines and removes one matching module, or strips every fitting slot with all.
+Parameters:
+- me = your active ship
+- <module name|typeID|itemID> = one fitted module to remove; quote names with spaces
+- all = remove all fitted items, including rigs, subsystems, and loaded charges
+Examples:
+- /unload me 10629
+- /unload me all
+Notes:
+- Requires a staff/admin role. Works docked or in space.
+- Moves removed items to your docked hangar or active ship's cargo; the /unfit capacity and fitting checks still apply.
+
 /ship <ship name|typeID>
 /giveme <ship name|typeID>
 What they do: Add a hull to your ship hangar.
@@ -385,6 +577,21 @@ Examples:
 - /giveme 638
 Notes:
 - Hull only. Board it manually from the hangar.
+
+/online <me|shipID>
+What it does: Attempts to bring every offline fitted module on the target ship online and reports any refusals.
+Parameters:
+- me = your active ship
+- <shipID> = a ship's inventory item ID
+Examples:
+- /online me
+- /online 1029384756
+Notes:
+- Requires a staff/admin role.
+- While docked, the ship and its connected owner must be in your docked location.
+- In space, the target must be a locally visible active ship with a connected pilot; private interaction scopes are respected.
+- Uses the target pilot's skills, fitting resources, and capacitor. Notifications go to that pilot.
+- Normal skill, CPU, powergrid, and in-space capacitor requirements still apply; refused modules stay offline.
 
 /gmships
 What it does: Adds all unpublished ship hulls to your ship hangar.
@@ -503,6 +710,26 @@ Notes: You must be docked.
 SPACE OBJECTS, DEBRIS, DUMMIES, AND DEATH TESTS
 -----------------------------------------------
 
+/spawn <name|typeID> [name="custom name"] [stddev=meters]
+/spawnN <count> <distanceMeters> <name|typeID>
+/entity deploy <count> <name|typeID>
+What they do: Spawn empty player hulls, cargo containers, wrecks, or supported NPC types in your local scene.
+Parameters:
+- <name|typeID> = type to spawn; quote names with spaces
+- <count> = number of entities, from 1 to 50
+- <distanceMeters> = non-negative placement distance from your ship for /spawnN
+- name="custom name" = optional entity name
+- stddev=meters = optional non-negative random placement spread for /spawn
+Examples:
+- /spawn "Cargo Container" name="GM loot" stddev=0
+- /spawnN 2 4000 587
+- /entity deploy 1 "Cargo Container"
+Notes:
+- Requires a staff/admin role and a ship in space.
+- /spawn creates one entity. /spawn and /entity deploy use a default placement distance of 4 km.
+- Spawned player hulls are empty and do not become your active ship. NPC types must have an installed spawn profile.
+- A failed batch removes its created entities through their owners. If cleanup is refused, the reply lists pending IDs and survivors stay visible where possible. Further spawn commands retry that cleanup before creating anything; inventory cleanup intent survives reload/restart.
+
 /celestial <typeID>
 What it does: Spawns any published or unpublished type in the Celestial category (category 2), including all of its groups, in front of your ship.
 Parameters:
@@ -566,11 +793,38 @@ Notes:
 - /wreck list shows all valid wreck types.
 - You must be in space.
 
+/chowner <containerID|wreckID> <characterID>
+What it does: Changes a local loot container or wreck and its contents to the specified character owner.
+Parameters:
+- <containerID|wreckID> = exact local container or wreck ID
+- <characterID> = an existing character's ID
+Example: /chowner 1029384756 90000001
+Notes:
+- Requires a staff/admin role and a ship in space.
+- Supports inventory-backed loot containers and wrecks, plus native NPC wrecks. Other object classes are refused.
+- Native NPC wreck loot rights follow the new owner and corporation; previous fleet rights are cleared.
+- Contents keep their identities, quantities, and locations while following the new owner.
+
 /testclear
 What it does: Clears nearby wrecks/containers within about 20 km.
 Parameters: none.
 Example: /testclear
 Notes: You must be in space.
+
+/unspawn <entityID>
+/unspawn range=<meters> only=<filter[,filter...]>
+What it does: Removes a local dynamic entity, or matching visible dynamic entities within a radius, along with their stored contents.
+Parameters:
+- <entityID> = exact local dynamic entity ID
+- range=<meters> = positive selection radius from your ship
+- only=<filter[,filter...]> = comma-separated filter names without spaces
+- Supported filters: categoryDrone, categoryFighter, groupWreck, groupCargoContainer, groupFreightContainer, groupSecureCargoContainer, groupAuditLogSecureContainer
+Examples:
+- /unspawn 1029384756
+- /unspawn range=500000 only=groupCargoContainer,groupFreightContainer
+Notes:
+- Requires a staff/admin role and a ship in space.
+- Occupied ships are refused. The command reports successful removals and any refusals.
 
 /sysjunkclear
 What it does: Clears wrecks/containers across the entire current solar system.
@@ -612,6 +866,16 @@ Examples:
 - /deathtest
 - /deathtest Raven 12
 Notes: You must be in space.
+
+/heal <entityID> 0
+What it does: Destroys the specified locally visible entity through normal destruction handling.
+Parameters:
+- <entityID> = exact ID of the local target
+- 0 = select destruction
+Example: /heal 1029384756 0
+Notes:
+- Requires a staff/admin role and a ship in space.
+- Ship destruction uses the normal wreck and capsule/death transitions. GM destruction does not pay insurance.
 
 /suicide
 What it does: Self-destructs your active ship, creates a wreck, and places you in a capsule.
@@ -1641,15 +1905,26 @@ Notes: Repeating the command adds another 1,000 uses of each limited component. 
 What it does: Lists saved SKINR designs, their UUIDs, and design-slot usage.
 Parameters: [target] defaults to me; accepts a character ID or exact character name. /skinr with no arguments is shorthand for /skinr list me.
 Example: /skinr list me
-Notes: UUIDs identify saved drafts. The delete and export commands accept the compact 32-character UUID or the hyphenated form printed by this command. See SKINR saved-design capacity below for skill and server-setting limits.
+Notes: UUIDs identify saved drafts. The export command accepts the compact 32-character UUID or the hyphenated form printed by this command. Edit or delete saved designs through the Studio UI; slash commands do not delete Studio drafts. See SKINR saved-design capacity below for skill and server-setting limits.
 
-/skinr delete <draft UUID|all> [target]
-What it does: Deletes one saved SKINR design, or all saved designs for the target, to free design slots.
-Parameters: Use a UUID from /skinr list. [target] defaults to me; accepts a character ID or exact character name.
+/skinr skins [target]
+What it does: Lists finished SKINR design licenses, their 64-character hashes, and activated, unactivated and listed quantities.
+Parameters: [target] defaults to me; accepts a character ID or exact character name. This list is separate from the saved Studio drafts shown by /skinr list.
+Example: /skinr skins me
+
+/skinr delete <SKIN hash> [target]
+/skinr delete confirm all [target]
+What it does: Permanently removes one finished SKINR design license, or all finished SKINR licenses for the target, while preserving saved Studio designs for further editing and sequencing.
+Parameters: Use the full 64-character hash from /skinr skins, not a saved draft UUID. To delete everything, put confirm first: /skinr delete confirm all. The old form, /skinr delete all, now deletes nothing and only tells you what would be deleted. [target] defaults to me; accepts a character ID or exact character name. Only staff can target another character.
 Examples:
-- /skinr delete <draft UUID> me
-- /skinr delete all me
-Notes: This removes saved drafts only. Sequenced SKIN licenses and designs retained for sequencing jobs are preserved. Relog if the saved-design list is still cached.
+- /skinr delete <SKIN hash> me
+- /skinr delete confirm all me
+Notes: Removes the activated right and every unactivated copy of each selected design. Clears matching applications from the character's owned ships and sends native license-deletion notices to refresh the collection. Cancel marketplace listings and finish pending transactions first; a busy selection refuses the whole deletion before changing licenses. No components or sequencing costs are refunded. Studio drafts, shared previews, sequencing jobs and other characters' licenses are retained. Running jobs can still deliver new copies normally.
+
+Replacing a finished SKIN while keeping the editable Studio design:
+1. Run /skinr skins and copy the finished SKIN's hash.
+2. Run /skinr delete <SKIN hash>. The editable Studio design is retained.
+3. Load the retained Studio design, edit it and sequence the replacement normally.
 
 /skinr export <draft UUID> [target]
 What it does: Writes a portable .skinr.json file containing a saved design's hull, components, colors, pattern layout and editor settings.
@@ -1661,13 +1936,32 @@ Notes: The reply gives the full file path under _local/skinr/designs (or skinr/d
 What it does: Reads a portable design file and creates a new saved draft for the target character.
 Parameters: Place the file in the server's skinr/designs folder and pass only its filename. Quote filenames containing spaces. [target] defaults to me; accepts a character ID or exact character name.
 Example: /skinr import "My Design.skinr.json" me
-Notes: Import validates the file format/version, hull, component catalog, layout and editor settings, and requires a free saved-design slot. The maximum file size is 64 KiB. It preserves the source file and creates a new draft UUID. Component rights, SKIN licenses, wallets and sequencing jobs are not imported; the recipient supplies their own component licenses when sequencing. Relog if the saved-design list is still cached.
+Notes: Requires a staff/admin role, including imports into the caller's own drafts. Import validates the file format/version, hull, component catalog, layout and editor settings, and requires a free saved-design slot. The maximum file size is 64 KiB. It preserves the source file and creates a new draft UUID. Component rights, SKIN licenses, wallets and sequencing jobs are not imported; the recipient supplies their own component licenses when sequencing. Relog if the saved-design list is still cached.
+
+/skinr store import <filename.skinr.json> [price [ISK|PLEX] [quantity]]
+What it does: Imports a portable SKINR recipe directly into the Paragon HUB as a public store listing with finite stock.
+Parameters: Place the file in _local/skinr/designs (or skinr/designs under EVEJS_DATA_ROOT) and pass only its filename. Quote filenames containing spaces. Omit price for a joined EVE Ref listing file to use its stored price, currency and quantity. For recipe-only files, supply a price per copy; currency defaults to PLEX and quantity defaults to 1. PLEX requires whole units; ISK accepts up to two decimal places. Existing market price and quantity limits apply.
+Examples:
+- /skinr store import deep-void-matte.skinr.json 10 PLEX 5
+- /skinr store import aegean-wing.skinr.json 1000000 ISK 5
+Notes: Requires a staff/admin role. Validates the recipe and publishes its preview and stock together, without using a saved-design slot, component rights, sequencing resources or a personal SKIN license. The local catalogue vendor is the creator and seller; tier is calculated locally. Refresh the Paragon HUB listings after import. Restart the server to load newly installed command code.
+Persistence: Imported listings and recipes survive restarts. Joined files retain separate offers for different retail listing IDs, even when the recipe is the same. Repeating an identical import preserves remaining stock, including sold-out stock. Changed terms or a changed recipe for the same source listing refuse without altering it. Manual prices override the file's terms on first import while retaining the source listing identity. Recipe-only files retain one manual listing per local design. Buyers use the normal purchase, activation and application flow.
+
+Convert an EVE Ref SKINR details JSON file for the import commands:
+What it does: Splits an EVE Ref details snapshot into validated EveOffline .skinr.json recipes. Run this terminal command from the repository root after downloading the details file as skinr-details-latest.json:
+node scripts/DataSync/import-everef-skinr.js --input .\skinr-details-latest.json --out .\_local\skinr\designs --missing-only
+To include retail price, currency and quantity, download the matching listings JSON and join both files:
+node scripts/DataSync/import-everef-skinr.js --input .\skinr-details-latest.json --listings .\skinr-listings-latest.json --out .\_local\skinr\designs --missing-only
+Parameters: --input accepts a local uncompressed JSON details map or a single ESI design object. --listings optionally joins offers by skinr_id. --out selects the destination directory; use skinr/designs under your configured EVEJS_DATA_ROOT. --missing-only skips retail IDs already in the installed catalogue. Optional --skin-id <retail hash> selects one design.
+Notes: This converts files only; it does not publish store listings or create drafts. Use /skinr import <generated filename.skinr.json> for a draft, or /skinr store import <generated filename.skinr.json> <price> [ISK|PLEX] [quantity] for Paragon stock. Generated filenames use the retail hash. A JSON report lists written, existing, catalogue and rejected designs. Rejected designs receive no recipe file. Exit code 2 indicates some entries were rejected; successfully written files are still usable. Existing different files are preserved as conflicts.
+Joined output: Each valid offer produces <retail hash>-<listing UUID without hyphens>.skinr.json in addition to the recipe-only file. Use /skinr store import <joined filename.skinr.json> without a price. The tool also writes everef-store-import-commands-<checksum>.txt with one ready-to-run command per offer. Source seller IDs and timestamps are kept as provenance; local listings use the catalogue vendor and local expiry renewal. Inactive listings, missing recipe details, unsupported prices/quantities and invalid recipes are reported. Duplicate listing IDs in an input snapshot refuse. This imports a snapshot, not a live retail stock or price feed; later imports do not replenish or reprice existing offers. Joined files also work with /skinr import for drafts; listing metadata does not grant any rights.
+Compatibility: Requires installed hull, component and sequencing references. Missing components, hulls or projection defaults refuse explicitly; no components or names are substituted. ESI omits some wire settings, so known catalogue recipes retain their observed settings and new recipes use installed component projection defaults and zero coating overrides. Pattern placement, rotation, scale, mirroring and blend mode are preserved. Actual visual parity still needs client verification. Listing JSON contains prices and stock rather than recipes, so it must be paired with the details JSON.
 
 Sharing a SKINR design through Discord or another file-sharing service:
 1. Save the design in the in-game SKINR editor, then run /skinr list to obtain its UUID.
 2. Run /skinr export <draft UUID>. The reply gives the full path of the exported .skinr.json file.
 3. Send that file to the recipient. The recipient copies it into their server's _local/skinr/designs folder (or skinr/designs under their EVEJS_DATA_ROOT), creating the folder if needed.
-4. The recipient runs /skinr import "received filename.skinr.json". This creates their own saved draft, using one of their available design slots.
+4. A staff/admin runs /skinr import "received filename.skinr.json" [recipient target]. This creates a saved draft for that character, using one of their available design slots.
 5. Relog if needed, then load the imported draft in SKINR. To produce a finished SKIN, sequence it using the recipient's own component licenses and normal sequencing resources.
 Notes: Both installations must support the exported hull and components. Repeating an import creates another saved draft. Exporting does not remove the sender's saved draft.
 

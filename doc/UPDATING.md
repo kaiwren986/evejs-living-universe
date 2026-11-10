@@ -7,6 +7,199 @@ data.** You never need to rebuild the game database to install a new version.
 
 There are two ways to do it.
 
+Starter schools 31-38 now carry the client's own school corporations, and each
+school's station is that corporation's school station (for example, Royal Amarr
+Institute in Emrayur). The shipped `characterCreationSchools` table refreshes an
+existing store on start; no database rebuild is needed. New pilots join the
+corrected school corporation. Existing characters keep their corporation, but
+their school fallback home station follows the corrected table.
+
+CRAB beacons now retain an `encounter` under their existing
+`customInfo.evejsMobileAnalysisBeacon` state, plus permanent reward/drop receipts
+in `items` and durable wave members in the existing native NPC tables. Back up
+`items`, `npcEntities`, `npcModules`, `npcCargo` and `npcRuntimeControllers`
+together. Do not delete grant receipts to replenish rewards. Existing linked
+beacons start their missing encounter when their scene loads, without credit
+for time offline. Beacon expiry now belongs to this runtime: the inventory row's
+generic `expiresAtMs` is null, while the existing custom-info deadline remains
+authoritative. This permits earned loot to drop before the beacon is removed.
+No database reset or static-table rebuild is needed.
+
+New CRAB links also charge signal interference. During payment, a versioned
+`linkPayment` undo journal in the beacon's existing custom-info record holds the
+previous character-energy and system-interference rows. The game authority
+recovers unfinished payments at startup, on scene load, or before a later link;
+a fully committed link retains its charges. Preserve `items`,
+`characterEnergyState` and `solarSystemInterferenceState` together in backups.
+Existing running links keep their state; the new interference costs apply when
+starting a new link. No new table or manual migration is required.
+
+Restart the server and reconnect the client after the CRAB meter correction so
+both cached resource states receive the corrected floating-point payloads.
+New CEQ states recharge at the extracted client's default of 4.4 per hour;
+previously stored recharge policies remain valid. Wave members now retain an
+`arrivalPending` flag inside the existing beacon encounter. Failed arrivals
+reuse their durable native NPC birth; no data reset is needed.
+
+Jump clones now retain the active body's name in `characters.activeJumpCloneName`
+and refresh cached augmentations after a jump. Existing records need no migration;
+an absent active name is treated as empty. Names already lost before this fix
+must be entered again. Pod death clears the destroyed body's name.
+Swapping clones within the same NPC station or Upwell structure preserves the
+existing remote-jump cooldown, including when it is already active. Only jumps
+to a different location (or a ship clone bay) start a new cooldown.
+
+Phase 8 OCF fatal outcomes add death positions and commit ordinals to the existing
+`npcEntities.incursionOutcomes` journal, with event references in the encounter's
+retirements. No database rebuild is needed. Preserve this journal alongside
+`incursionReplay` when restoring backups; older deaths without these facts must
+not be treated as proof of a physical civilian drop.
+OCF civilian drops also retain their plan and acknowledgements under
+`dungeonRuntimeState` spawn state `incursionCivilianDrops`, using the existing
+permanent item grant receipts for the hull and cargo. Back up these records with
+`items`, `npcEntities` and `incursionReplay`; do not delete receipts to replenish
+spent drops. Existing installations need no reset or static-table rebuild.
+
+War declarations now retain their operation in `corporationRuntime.warDeclarations`,
+with matching bill/war creation keys and wallet adjustment receipts. Existing
+tables are extended automatically; no database rebuild or reset is needed.
+Preserve these records together when restoring backups so interrupted fees,
+bills and wars can recover without a second payment. See
+[war declarations and recovery](WAR_DECLARATIONS.md) for the optional peace-treaty
+switch and focused tests.
+
+Fleets now share NPC bounties and mission rewards. A mission reward settlement now
+stores each recipient's share and any leg it skipped, and a settlement left
+unfinished by an older version still settles as it was prepared. Keep bounty pending
+and settlement records with mission state in backups. Restart after updating. No
+database rebuild, mission reset or content-pack reinstall is needed. See
+[Fleet shares](FLEET_SHARES.md).
+
+Agent mission ISK and NPC bounties earned in a Safe Security (Exordium) system now
+pay CONCORD's 20% Safe Security tax. Mission reward settlements store the security
+tax they locked in, and pending bounty payouts store the tax per kill. A settlement
+or bounty payout stored by an older version pays as it was quoted. Restart after
+updating. No database rebuild or reset is needed.
+
+`config/gameplay.json` now accepts `missions.missionStandingGainMultiplier`
+(environment override: `EVEJS_MISSION_STANDING_GAIN_MULTIPLIER`). Its default `1`
+keeps mission standing gains as they are. Any non-negative value scales every
+standing gain a mission makes, including a fleet sharer's part and derived gains;
+`0` makes none. Standing losses, and standing changes from anything other than
+missions, are unchanged. Config initialization supplies the default for older
+files. Restart the server after editing it. No database migration is needed.
+
+Career pack 1.4.1 now contains all 180 career missions, 20 chains and 100 agent
+bindings as well as 93 sites. Normal startup installs the newest bundled pack;
+restart after updating. Older site-only pack versions remain immutable. No
+static-table rebuild or character reset is needed. Active older lessons update
+their predicates while retaining kills, actors, loot and receipts. Previously
+closed sites and already paid rewards stay closed/paid. Existing offers retain
+their stored reward amounts; new offers use corrected capture precedence.
+
+Keep `characters.careerPendingEwarEvents`, dungeon `spawnState.careerLesson`,
+mission sequences and inventory custody receipts together in backups. These
+fields extend existing owners; there is no new database directory. The twelve
+uncaptured racial AIR BPC outcomes use a documented provisional one-run ME0/TE0
+copy until exact retail metadata is recovered. See [career rewards](AIR_CAREER_REWARDS.md).
+Pending AIR wallet claims retain their permanent economic keys across the
+native journal-type correction. Exact pre-fix type-3 receipts are reused, with
+no journal rewrite or second payment; no manual claim or wallet reset is needed.
+
+Visions scene pack 1.0.4 and Fractured Legacy 1.0.2 include timed holograms, companion movement/effects,
+native-described purging and proximity mines. New instances require
+`epic-scene-actions-v1`; existing frozen layouts keep their old scene policy.
+The new releases also require `epic-cinematic-warp-v1` or
+`epic-branch-effects-v1`. Captured holograms retain their native warp profiles;
+transmit effects use durable simulation milestones. Older orphaned mine
+commands recover through the existing hazard index before admission or purge.
+Fractured milestones, finite effects and departure use native scene time; newly accepted mine losses
+retain wall-clock timestamps for insurance eligibility.
+Visions 1.0.3 combines the Caldari progress/combat policy from main with the
+captured cinematic release. New room clocks follow the scene's simulation time
+across maintenance/combat callbacks and preserve durable progress on recovery.
+Accepted older instances keep their frozen policy; no mission reset is needed.
+Visions 1.0.4 additionally uses captured Caldari rescue/protection/destroy timers
+of 240/90/300 seconds and the captured protection bonus failure count 2 (one loss
+allowed). Only new attempts admit these values; already accepted missions keep
+their saved rules. The prior 1.0.3 release is an immutable compatibility fixture.
+Career 1.4.1 corrects new repair-target health without resetting existing actors.
+Back up dungeon `spawnState.epicSceneActions`, `fracturedLegacyActions` and
+`siteHazardOutcomes` alongside existing mission/actor/custody state. They extend
+the existing dungeon owner and require no new data directory or rebuild.
+Four epic AIR UUID corrections retain legacy aliases and paid claim custody.
+Complete-arc credit also reads the existing durable terminal mission record;
+no achievement or claim reset is needed. See [the follow-up report](RETAIL_PARITY_FOLLOWUP_2026-11-03.md).
+
+The Stand now rejects a supplied-hull loss that occurred before its first
+kill/fleet arrival, including an older death plan acknowledged later. Full
+fleet defeat remains the survival alternative. This is a server predicate
+correction using durable loss receipts; restart after updating. New receipts
+record fleet-arrival eligibility when prepared, preserving event order under TiDi. It needs
+no new pack version, static-table sync or reset of completed lessons.
+
+Fractured Legacy now ships three captured scene templates in
+`evejs.fractured-legacy`. Restart after updating; startup installs the pack.
+Existing mission and agent identities remain authoritative, with no static-table
+sync or character reset. Mining/hacking and stage progress remain in the existing
+dungeon instance, and the Odysseus delivery uses permanent item-custody receipts.
+Keep those with mission progress and inventory in backups. New reward offers and
+settlement legs retain explicit blueprint research values; existing pending
+rewards keep their stored values. See [the retail mission comparison](RETAIL_MISSION_PARITY.md).
+Previously accepted sites retain their stored layout snapshots; reconstructed
+Fractured Legacy scenes apply to newly accepted missions.
+
+Visions of Greatness now ships all eight missions and five agents through a
+bundled missing-identity supplement, plus the `evejs.visions-of-greatness` scene
+pack. Restart after updating; normal startup installs the pack. Existing static
+catalogs retain precedence and need no rebuild or manual sync. The arc uses the
+existing epic mission progress and 90-day replay records. Its supply openings
+retain `visionsCrateOpenings` within `newEdenStoreRuntime`, together with permanent
+atomic item-exchange receipts; preserve both owners when backing up/restoring.
+Repair completion and platform hack outcomes remain with their dungeon instance.
+No character reset is needed. See [the retail mission comparison](RETAIL_MISSION_PARITY.md).
+
+Security mission levels 1–5 now ship as five optional version-1.1.9 content
+packs. Install the desired levels through the existing content-pack installer,
+then restart; new mission offers use the installed content. Existing accepted
+missions keep their stored snapshots. The base's observed mission definitions
+retain their gameplay and gain client evidence, captured payout/setup metadata,
+and mission 909's native room message. Keep normal backups; no new data layout
+or character reset is required. See [the Security content catalogue](security-missions/README.md).
+
+Security rewards now consume installed mission payout data and captured quotes.
+Existing offered/accepted missions retain their stored reward amounts. Optional
+`rewards.tqOfferEvidence` records the source capture hash and line references;
+keep it with mission state when backing up or restoring. Older saves need no
+rebuild or mission reset. Restart after updating; new offers use the new reward
+rules. Content packs remain a separate installation. See
+[Security rewards](SECURITY_MISSION_REWARDS.md).
+
+Ordinary Security offers now keep `lastOfferedMissionIDByAgentID` in the existing
+`missionRuntimeState` character record. Keep this field with mission state in
+backups so relogging or journal pruning does not lose the previous offered ID.
+Older saves migrate current offers and retained history on load, before journal
+pruning; discarded history cannot be recovered. Restart after updating. No
+database rebuild, mission reset or content-pack reinstall is needed for these
+offer rules. See [Security mission offers](SECURITY_MISSION_OFFERS.md).
+
+`config/server.json` now accepts `development.qaStarterSystemPicker` (environment
+override: `EVEJS_QA_STARTER_SYSTEM_PICKER`). Its default `false` stops the client
+showing the "QA - Pick Starter System" dialog, so a new character from an account
+with the QA role starts in the normal starter system. Set it to `true` to bring the
+dialog back. The QA role and its slash commands are unchanged. Config initialization
+adds the setting to older files. Restart the server after editing it. No database
+migration is needed.
+
+Career-agent progression now keeps `careerChainProgressByAgentID` in the existing
+`missionRuntimeState` character record. Retained journal completions migrate on
+load, before journal pruning; permanent completed-agent flags remain authoritative.
+Keep that field with mission state in backups. Completed lessons and explicit
+decline/quit outcomes survive journal retention and relog. Expired offers remain
+resumable. Partial history already discarded by an older server cannot be recovered
+without evidence; no completion or reward is fabricated. Restart the server after
+updating; no database rebuild is required. See [retail capture work](AIR_RETAIL_CAPTURE_PROGRESS.md).
+
 `config/gameplay.json` now accepts `skinr.skinrDesignIterationMultiplier`
 (environment override: `EVEJS_SKINR_DESIGN_ITERATION_MULTIPLIER`). Its default
 `1` preserves the standard saved-design capacity. Values from `0` to `100`
@@ -26,6 +219,16 @@ granting component rights or SKIN licenses. Existing drafts need no migration.
 Restart the server after updating; relog if an imported design remains absent
 from the client's cached saved-design list. See [the command guide](CommandGuide.txt).
 
+`/skinr skins [target]`, `/skinr delete <SKIN hash> [target]` and
+`/skinr delete confirm all [target]`
+manage finished SKINR licenses separately from Studio saved designs. Deleting a
+finished license preserves its Studio draft for editing and sequencing again.
+Studio draft deletion has been removed from slash commands; use the Studio UI
+to edit or delete saved designs.
+Restart after updating to register the commands. Existing stores need no
+migration. See [the command guide](CommandGuide.txt) for marketplace restrictions
+and the effect on activated rights, copies and applied ship appearances.
+
 Local Aura guidance adds its native UI flag to the offline server contract:
 version 4, `local-supported-features`, and exactly the achievement, character-title
 and Aura-guidance booleans. Update both server program files and `tools/ClientSETUP`,
@@ -44,9 +247,14 @@ See [license notices and historical training rates](USER_LICENSE_NOTICES.md).
 Local Project Discovery adds a versioned `characters.projectDiscovery` field on
 first use. Keep it with the character when backing up or restoring progress:
 it includes tutorial proofs/claim, XP/AK, remaining introductory bonuses and the
-issued-task/submission receipt. Previous in-memory placeholder progress was not
-durable and cannot be reconstructed. No database rebuild or donor-data import
-is required. Six authored sample images are generated from program data. See
+issued-task/submission receipt. The Coffee content port preserves old version-1
+tasks and their 512px images/replies until replaced; new tasks use the 64-plot
+768px corpus and daily admission policy. Keep `characters.discoveryWalletReceipts`,
+the `projectDiscoveryState` budget, and account `rewardTokenReceipts`, tokens and
+`campaignRedemptions` together when backing up/restoring pending rewards. These
+fields are initialized lazily; do not reset progress or rebuild the database.
+Previous in-memory placeholder progress cannot be reconstructed. ISK remains
+off unless explicitly enabled. Authored images are generated from program data. See
 [local Project Discovery](PROJECT_DISCOVERY.md).
 
 Faction Warfare occupation queries now project the existing `fwOpenReplay`
@@ -69,6 +277,74 @@ character progress. Hacking receipts depend on durable site/container identities
 back up `dungeonRuntimeState` and `identityState` consistently. New NPC ship
 killmails retain internal `careerNpcShip` provenance; old unmarked kills are not
 credited by inference. See [AIR career content](AIR_CAREER_PROGRAM.md).
+
+New AIR reward claims use direct earning-character delivery and add frozen
+`goalSymbol`, `catalogVersion`, entries and destination to accepted claim intents.
+Existing completed queue receipts and their tokens retain their previous meaning;
+they are not converted or paid again. Physical crate openings add
+`newEdenStoreRuntime.accounts[*].careerCrateOpenings`; retain it with inventory
+idempotency/custody receipts, industry blueprint state and scheduled jobs.
+ACP booster/expert inventory rows add `careerBoundCharacterID`, preserved through
+stack splits and custody. Keep these additive fields in backups. Restart the
+server to register recovery owners; no rebuild or reset is needed. See
+[AIR reward delivery](AIR_CAREER_REWARDS.md).
+
+The AIR merge-review fixes respect licensed MCT capacity and paused queue saves.
+Only a valid tutorial activation needing an occupied slot can pause another
+character's training. Reward and crate recovery also recheck live cargo capacity
+before uncommitted item grants and durably retain any home-hangar fallback in
+the existing per-item destination fields. Existing payout receipts remain
+authoritative. Restart after updating; no database rebuild or new table is needed.
+
+Captured AIR identity corrections migrate `careerProgramProgress` to version 2.
+Four formerly misassigned native goal IDs move by their stored mission metric,
+as one batch, before the durable migration is published. Preserve source receipt
+IDs, old account claim keys/tokens and new semantic claim metadata together;
+changing or deleting only one side can reopen or misattribute an entitlement.
+Ambiguous legacy progress is retained as an error for review, not guessed.
+
+Career-agent content packs 1.3.8 and 1.3.9 add a captured mining scene and a
+field-scoped salvage lesson correction. Startup imports shipped newer pack
+versions; old immutable revisions remain available for rollback. New salvage
+work is stored in `dungeonRuntimeState.instancesByID[*].spawnState.missionSalvageByContentKey`.
+Back it up with content entity refs, inventory custody receipts and mission
+state. Pending accepted salvage effects block removal of their own instance
+until recovery settles them. No database rebuild or client gameplay edit is
+required. See [the capture report](AIR_RETAIL_CAPTURE_PROGRESS.md).
+
+**Back up before updating to career-agent packs 1.3.10 and 1.3.11.** Before you
+start the updated server, take a full backup of your data folder, program files
+and content packs, all from the same moment. Starting it rewrites saved mining
+and gas stock once, in place, and there is no reverse conversion. Restoring that
+matching backup set is the only way back.
+
+Career-agent pack 1.3.10 repairs Industry part 1 (dungeon 2023), shared by all
+four empires. Versions 1.3.8/1.3.9 retained its asteroid stock but omitted ore
+yield metadata, causing mining lasers to reject it. Restart to import 1.3.10.
+The captured pocket now uses the runtime entry key with native room ID 15182.
+When an existing instance loads, its duplicate room records are reconciled
+durably; recorded mining depletion, content identities and mission progress
+are preserved. No mission reset or database rebuild is required.
+
+Career-agent pack 1.3.11 incorporates the full resource review corrections.
+Restart to import it. Business 3 now completes after paid mining while retaining
+the separate 333 Tritanium hand-in; Industry 9's ambush requires paid mining.
+Prepared extractions, permanent custody receipts, depletion and trigger times
+are retained together in `dungeonRuntimeState.instancesByID[*].spawnState.missionMining`
+and the existing inventory receipt ledger. Back these up together. Recovery
+finishes a committed grant without issuing it again, and pending receipts are
+settled before their site can be removed.
+
+`spawnState.retailResourceRevision` fences one-time captured-stock corrections;
+existing depletion is translated from the previous original stock, rather than
+refilling the resource. The gas training cloud retains its former environment
+item identity and becomes a finite 100-unit resource. Its stock-version metadata
+travels with the existing mining and dungeon records. Frozen known career hints
+are upgraded without replacing unrelated encounter identities or receipts.
+Explicit career scene room profiles now define the topology. Retired numeric
+environment-room records and references are archived under instance metadata;
+their configuration, history and canonical room progress are retained. No
+database rebuild or mission reset is required.
 
 Data/relic minigames add `spawnState.hackingContainers` to existing
 `dungeonRuntimeState` instances. These records retain failure counts, terminal
@@ -659,11 +935,13 @@ Before the next client launch, every existing install must pass the new offline
 gates. Stop the EveJS client and server, then run `SetupEveJS.bat -Only certs,client-offline`.
 The client must be the separate EveJS copy: `start.ini` must say
 `server = 127.0.0.1` and `cryptoPack = Placebo`. Setup refuses another install.
-It checks every resource-index entry against the local ResFiles folder, applies
+It checks that the ResFiles folder and both nonempty resource indexes exist, applies
 the reviewed outbound-endpoint patches and verifies them, rotates the old CA,
 and updates the client CA bundles and Windows CurrentUser trust.
 Missing resources must come from a complete offline client copy. Play does not
 download missing files, install trust or add firewall rules.
+As of 31 October 2026, the resource check uses folder and index metadata only;
+it no longer scans every indexed file during setup or launch.
 
 The two outbound firewall blocks for the client are a recommended extra and not
 part of the mandatory migration. `SetupEveJS.bat -Only firewall` adds them and
@@ -1025,7 +1303,7 @@ Homefront Operations adds a `homefrontReplay` table to the existing game databas
 for active encounters and pending payouts. Keep it with the rest of
 `_local\gameStore\`; startup migrates the earlier `/state` format automatically
 and prunes settled encounters without discarding unpaid rewards. Site density is
-configured in `config/world.json`; see [Homefront settings](HOMEFRONT_OPERATIONS_IMPLEMENTATION_STATUS.md#running-this-branch).
+configured in `config/world.json`; see [Homefront settings](HOMEFRONT_OPERATIONS_IMPLEMENTATION_STATUS.md#running-homefront-operations).
 
 This is what the updater does, and it is also the checklist the manual path is
 working from. The full list lives in `tools\Updater\update-policy.json`, and a
@@ -1317,3 +1595,86 @@ re-validation of unchanged packs. It holds nothing that cannot be rebuilt: if it
 is missing, unreadable or from another version, every pack is simply validated
 again on the next start and the file is rewritten. There is nothing to migrate,
 and backups and restores may include or leave out the file.
+
+The 1.4.0 career release also changes new Don't Look Back and The Pacifist
+layouts to periodic EM cloud damage and real prison inventory pickup. Already
+frozen hazard/rescue layouts retain their stored policy. No inventory reset is
+needed, and removed/consumed container contents are not regenerated.
+
+## Phase 8 incursion previews (2026-11-04)
+
+Occupied incursion rooms now refresh their native gate and structure models when
+the durable encounter predicates unlock them. Logistics controls also refresh
+when their phase or hacking generation changes. Same-ID local replacements carry
+explicit Remove/Add actions through the existing bubble history, so already
+connected pilots receive the current model and control state. Restart after
+updating; existing instances retain their frozen routes, actor progress and HP
+journals. No reset, client-data rebuild or new table is needed. Ordinary organic
+activation remains disabled.
+
+Distress Beacon's Civilian Orca now uses the existing native required-actor
+bundle and health journals. Its auxiliary birth/death is retained in
+`incursionReplay`; the operation pins `mechanics.friendlyActorPolicyVersion`
+before birth. Previously active instances without that version pin it lazily;
+closed historical operations remain unchanged. Back up the replay, dungeon state
+and all four NPC tables together. Earlier reducers cannot resume the new
+auxiliary births; do not downgrade an in-progress Orca encounter. No reset or
+new table is needed.
+Administrative Distress Beacon removal also retains a versioned
+`administrativeRetirement` and accepted HP audits in `incursionReplay`. Keep
+these with native retirement records until cleanup is durable. A missing cached
+actor is not permission to discard the four native-table writes. Administrative
+removal does not earn site progress or authorize replacement from absence.
+Pending removal is retried by the existing site scheduler, including after tale
+expiry; do not replay an administrative command to recover it. Scene rebuilding
+withdraws the retired actors while the scheduler finishes dungeon deletion.
+Active normal and final site scheduling also drains independently durable combat
+outcomes through the encounter owner before checking completion. Keep pending
+HP/repair receipts with their replay records; no new table or reset is needed.
+
+Fatal native incursion HP now stores an `evejs.incursion-death-wreck.v1` plan in
+`npcEntities.incursionOutcomes`. The actor's `incursionDeathEventID` points to
+that receipt. Wreck/item IDs, loot, rights, pose and original expiry are saved
+before HP acceptance; `deathWreckPublished` is a separate durable acknowledgement.
+Keep `npcEntities`, `npcRuntimeControllers`, `npcModules`, `npcCargo`,
+`npcWrecks` and `npcWreckItems` with the matching dungeon/replay/lifecycle state
+in one backup set. The two wreck counters must not be restored from an older
+backup than a plan that reserves their IDs. No new table or reset is needed.
+Do not downgrade a preview with plan-bearing outcomes: earlier readers can
+delete the source actor without finishing its wreck. Historical outcomes that
+have no plan retain their previous semantics; new real combat captures a plan.
+
+Enabled TCRC previews add factory generation and withdrawal receipts to the
+existing inventory/dungeon owners. Their existing structure-health journal may
+now contain ordered shield-repair events as well as damage. Existing tables
+extend automatically; no database rebuild, inventory reset or client-data
+reinstall is needed. Keep `items`, `dungeonRuntimeState`, `incursionLifecycle`
+and `incursionReplay` from the same backup so accepted custody and HP facts stay
+paired. Earlier damage-only readers cannot resume the new repair receipts.
+
+Organic activation remains disabled. These additions do not enable the isolated
+preview profiles in an ordinary store or change earlier frozen incursion policies.
+
+Configured automatic-focus previews add an optional `focusScheduling` record to
+`incursionLifecycle`. Keep its seed, frozen profiles, pending creation requests,
+generation history and tale identities together with `scheduledJobs`,
+`dungeonRuntimeState` and the matching incursion replay/economic/native state.
+Restore those from the same backup set. Never copy only a tale while dropping its
+focus reservation or rewind the lifecycle counter. New focus jobs use the
+existing `incursion.lifecycle` job type with a `focus` payload and distinct job
+identities. Startup recovers saved reservations before site publication. No new
+table, reset or client-data rebuild is needed. Older readers cannot resume these
+configured previews safely; do not downgrade them. Setup remains explicitly
+isolated/test-only, and ordinary stores are not opted in automatically.
+
+## Market order expiry index (2026-11-06)
+
+The market daemon now expires due player orders in batches of 5,000 per
+database transaction and keeps going until none are left. To find due orders
+without reading every open order, it replaces the index
+`idx_market_orders_player_expiry` with `idx_market_orders_player_due`, which
+indexes each open player order's due time. The daemon drops the old index and
+builds the new one when it starts, so the first start after updating takes a
+moment longer on a large market. Rebuild and restart the market executable, or
+rebuild the Docker image and recreate the market container. Do not reseed the
+market; orders, history and prices stay as they are.

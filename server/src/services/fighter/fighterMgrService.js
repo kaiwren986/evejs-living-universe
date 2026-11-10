@@ -4,6 +4,7 @@ const path = require("path");
 
 const BaseService = require(path.join(__dirname, "../baseService"));
 const log = require(path.join(__dirname, "../../utils/logger"));
+const { throwWrappedUserError } = require("../../common/machoErrors");
 const {
   getActiveShipRecord,
   syncInventoryItemForSession,
@@ -24,10 +25,12 @@ const {
   buildDict,
 } = require(path.join(__dirname, "../_shared/serviceHelpers"));
 const {
-  canLoadFighterTypeIntoHostTube,
+  getFighterTubeLoadRestriction,
   getFighterSquadronSizeForTypeID,
+  getFighterTubeOrdinal,
   isFighterItemRecord,
   isFighterTubeFlag,
+  listHostFighterOccupancy,
   buildInventorySquadronSize,
 } = require(path.join(__dirname, "./fighterInventory"));
 const {
@@ -129,28 +132,6 @@ class FighterMgrService extends BaseService {
     );
   }
 
-  _listHostTubeItems(session, hostRecord, options = {}) {
-    if (!hostRecord) {
-      return [];
-    }
-
-    const excludeItemID = Number(options.excludeItemID) || 0;
-    const ownerID = Number(hostRecord.ownerID) || this._getCharacterId(session);
-    const items = [];
-    for (const tubeFlagID of FIGHTER_TUBE_FLAGS) {
-      for (const item of listContainerItems(ownerID, hostRecord.itemID, tubeFlagID)) {
-        if (
-          item &&
-          (!excludeItemID || Number(item.itemID) !== excludeItemID)
-        ) {
-          items.push(item);
-        }
-      }
-    }
-
-    return items;
-  }
-
   _resolveLoadableFighterItem(session, hostRecord, fighterID) {
     const numericFighterID = Number(fighterID) || 0;
     if (!hostRecord || numericFighterID <= 0) {
@@ -192,19 +173,31 @@ class FighterMgrService extends BaseService {
     return null;
   }
 
-  _canLoadFighterIntoTube(session, hostRecord, fighterItem, tubeFlagID) {
+  _validateFighterLoad(session, hostRecord, fighterItem, tubeFlagID) {
     if (!hostRecord || !fighterItem || !isFighterTubeFlag(tubeFlagID)) {
       return false;
     }
 
-    return canLoadFighterTypeIntoHostTube(
+    const restriction = getFighterTubeLoadRestriction(
       hostRecord.typeID,
       fighterItem.typeID,
       tubeFlagID,
-      this._listHostTubeItems(session, hostRecord, {
+      listHostFighterOccupancy(hostRecord.itemID, {
         excludeItemID: fighterItem.itemID,
       }),
     );
+    if (restriction?.reason === "TUBE_OCCUPIED") {
+      throwWrappedUserError("FighterTubeIsBusy", {
+        tubeNumber: getFighterTubeOrdinal(tubeFlagID),
+      });
+    }
+    if (restriction?.reason === "FIGHTER_CLASS_LIMIT") {
+      const { limit, broadClassID } = restriction;
+      throwWrappedUserError("CustomNotify", {
+        notify: `This ship can load a maximum of ${limit} ${broadClassID} fighter ${limit === 1 ? "squadron" : "squadrons"}. Unload one before loading another.`,
+      });
+    }
+    return restriction === null;
   }
 
   _emitInventoryChanges(session, changes = []) {
@@ -322,7 +315,7 @@ class FighterMgrService extends BaseService {
     }
     if (
       !fighterItem ||
-      !this._canLoadFighterIntoTube(session, hostRecord, fighterItem, tubeFlagID) ||
+      !this._validateFighterLoad(session, hostRecord, fighterItem, tubeFlagID) ||
       this._getHostTubeItem(session, hostRecord, tubeFlagID)
     ) {
       return false;

@@ -1,0 +1,416 @@
+{
+ "source": "Career agents (agentTypeID 12, divisions 25-29) and their factions' career chains, found by mission name in the mission authority; built for EVE.js 261018.1. Sites: content pack evejs.career-agents (tools/CareerAgents).",
+ "chains": [
+  {
+   "name": "Career Business (faction 500001)",
+   "factionID": 500001,
+   "divisionID": 25,
+   "missionIDs": [
+    3203,
+    3181,
+    13848,
+    3109,
+    3114,
+    3118,
+    3126,
+    3210,
+    3214,
+    3218
+   ]
+  },
+  {
+   "name": "Career Exploration (faction 500001)",
+   "factionID": 500001,
+   "divisionID": 26,
+   "missionIDs": [
+    14997,
+    15000,
+    15009,
+    15006,
+    15012
+   ]
+  },
+  {
+   "name": "Career Industry (faction 500001)",
+   "factionID": 500001,
+   "divisionID": 27,
+   "missionIDs": [
+    3234,
+    13873,
+    3236,
+    3235,
+    3240,
+    13877,
+    13881,
+    3241,
+    3242,
+    3243
+   ]
+  },
+  {
+   "name": "Career Military (faction 500001)",
+   "factionID": 500001,
+   "divisionID": 28,
+   "missionIDs": [
+    3122,
+    3160,
+    3163,
+    3131,
+    3134,
+    3139,
+    3143,
+    3147,
+    13868,
+    3151
+   ]
+  },
+  {
+   "name": "Career Advanced Military (faction 500001)",
+   "factionID": 500001,
+   "divisionID": 29,
+   "missionIDs": [
+    15104,
+    15108,
+    15112,
+    15115,
+    15120,
+    15124,
+    15128,
+    15132,
+    15136,
+    15140
+   ]
+  },
+  {
+   "name": "Career Business (faction 500002)",
+   "factionID": 500002,
+   "divisionID": 25,
+   "missionIDs": [
+    3096,
+    3179,
+    13846,
+    3107,
+    3112,
+    3116,
+    3124,
+    3177,
+    3170,
+    3173
+   ]
+  },
+  {
+   "name": "Career Exploration (faction 500002)",
+   "factionID": 500002,
+   "divisionID": 26,
+   "missionIDs": [
+    14999,
+    15002,
+    15011,
+    15008,
+    15014
+   ]
+  },
+  {
+   "name": "Career Industry (faction 500002)",
+   "factionID": 500002,
+   "divisionID": 27,
+   "missionIDs": [
+    3166,
+    13871,
+    3229,
+    3172,
+    3198,
+    13875,
+    13879,
+    3233,
+    3106,
+    3105
+   ]
+  },
+  {
+   "name": "Career Military (faction 500002)",
+   "factionID": 500002,
+   "divisionID": 28,
+   "missionIDs": [
+    3120,
+    3157,
+    3162,
+    3128,
+    3135,
+    3136,
+    3140,
+    3145,
+    13866,
+    3149
+   ]
+  },
+  {
+   "name": "Career Advanced Military (faction 500002)",
+   "factionID": 500002,
+   "divisionID": 29,
+   "missionIDs": [
+    15103,
+    15106,
+    15110,
+    15114,
+    15118,
+    15122,
+    15126,
+    15130,
+    15134,
+    15138
+   ]
+  },
+  {
+   "name": "Career Business (faction 500003)",
+   "factionID": 500003,
+   "divisionID": 25,
+   "missionIDs": [
+    3201,
+    3180,
+    13847,
+    3108,
+    3113,
+    3117,
+    3125,
+    3209,
+    3213,
+    3217
+   ]
+  },
+  {
+   "name": "Career Exploration (faction 500003)",
+   "factionID": 500003,
+   "divisionID": 26,
+   "missionIDs": [
+    14990,
+    14991,
+    14995,
+    14993,
+    14996
+   ]
+  },
+  {
+   "name": "Career Industry (faction 500003)",
+   "factionID": 500003,
+   "divisionID": 27,
+   "missionIDs": [
+    3168,
+    13872,
+    3182,
+    3174,
+    3227,
+    13876,
+    13880,
+    3221,
+    3212,
+    3228
+   ]
+  },
+  {
+   "name": "Career Military (faction 500003)",
+   "factionID": 500003,
+   "divisionID": 28,
+   "missionIDs": [
+    3121,
+    3159,
+    3164,
+    3129,
+    3132,
+    3137,
+    3142,
+    3146,
+    13867,
+    3150
+   ]
+  },
+  {
+   "name": "Career Advanced Military (faction 500003)",
+   "factionID": 500003,
+   "divisionID": 29,
+   "missionIDs": [
+    15102,
+    15107,
+    15111,
+    15116,
+    15119,
+    15123,
+    15127,
+    15131,
+    15135,
+    15139
+   ]
+  },
+  {
+   "name": "Career Business (faction 500004)",
+   "factionID": 500004,
+   "divisionID": 25,
+   "missionIDs": [
+    3205,
+    3185,
+    13849,
+    3110,
+    3115,
+    3119,
+    3127,
+    3211,
+    3215,
+    3219
+   ]
+  },
+  {
+   "name": "Career Exploration (faction 500004)",
+   "factionID": 500004,
+   "divisionID": 26,
+   "missionIDs": [
+    14998,
+    15001,
+    15010,
+    15007,
+    15013
+   ]
+  },
+  {
+   "name": "Career Industry (faction 500004)",
+   "factionID": 500004,
+   "divisionID": 27,
+   "missionIDs": [
+    3244,
+    13874,
+    3246,
+    3245,
+    3250,
+    13878,
+    13882,
+    3251,
+    3252,
+    3253
+   ]
+  },
+  {
+   "name": "Career Military (faction 500004)",
+   "factionID": 500004,
+   "divisionID": 28,
+   "missionIDs": [
+    3123,
+    3161,
+    3165,
+    3130,
+    3133,
+    3138,
+    3144,
+    3148,
+    13869,
+    3152
+   ]
+  },
+  {
+   "name": "Career Advanced Military (faction 500004)",
+   "factionID": 500004,
+   "divisionID": 29,
+   "missionIDs": [
+    15105,
+    15109,
+    15113,
+    15117,
+    15121,
+    15125,
+    15129,
+    15133,
+    15137,
+    15141
+   ]
+  }
+ ],
+ "explorationSites": {
+  "0": {
+   "dungeonID": 4087,
+   "objectiveTypeID": 32350,
+   "note": "Anomaly Training Site, Proof of Discovery: Anomalies"
+  },
+  "2": {
+   "dungeonID": 4092,
+   "objectiveTypeID": 32366,
+   "note": "Data Training Site, Proof of Discovery: Data"
+  },
+  "3": {
+   "dungeonID": 4091,
+   "objectiveTypeID": 32365,
+   "note": "Relic Training Site, Proof of Discovery: Relic"
+  },
+  "4": {
+   "dungeonID": 4093,
+   "objectiveTypeID": 32376,
+   "note": "Gas Training Site, Proof of Discovery: Gas"
+  }
+ },
+ "bonusTimeIntervalMinutes": 360,
+ "_bonusTimeNote": "The career missions' bonus window where the client data sets none: 62 of the 73 TQ captures in careerRetailMissionData.json show 360 minutes; the others are the same window caught later (340, 338, 306) or a few single values. Military part 1 (300) and Industry parts 7 and 10 (180, 240) keep the client's own times.",
+ "missionPatches": {
+  "26": {
+   "0": {
+    "missionRewards": {
+     "reward": {
+      "rewardTypeID": 29,
+      "rewardQuantity": 108000
+     },
+     "bonusReward": {
+      "rewardTypeID": 29,
+      "rewardQuantity": 138000
+     }
+    }
+   },
+   "1": {
+    "missionRewards": {
+     "reward": {
+      "rewardTypeID": 29,
+      "rewardQuantity": 138000
+     },
+     "bonusReward": {
+      "rewardTypeID": 29,
+      "rewardQuantity": 108000
+     }
+    }
+   },
+   "2": {
+    "missionRewards": {
+     "reward": {
+      "rewardTypeID": 29,
+      "rewardQuantity": 102000
+     },
+     "bonusReward": {
+      "rewardTypeID": 29,
+      "rewardQuantity": 98000
+     }
+    }
+   },
+   "3": {
+    "missionRewards": {
+     "reward": {
+      "rewardTypeID": 29,
+      "rewardQuantity": 134000
+     },
+     "bonusReward": {
+      "rewardTypeID": 29,
+      "rewardQuantity": 101000
+     }
+    }
+   },
+   "4": {
+    "missionRewards": {
+     "bonusReward": {
+      "rewardTypeID": 29,
+      "rewardQuantity": 124000
+     }
+    }
+   },
+   "_note": "Rewards as a TQ recording of the Explorer chain shows them (Gallente, an agent in 0.9 space): the client data names only part 5 reward ship."
+  },
+  "27": {
+   "0": {
+    "missionKind": "mining",
+    "contentTemplate": "agent.missionTemplatizedContent_BasicMiningMission"
+   }
+  }
+ }
+}

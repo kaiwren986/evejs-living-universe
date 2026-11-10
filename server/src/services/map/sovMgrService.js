@@ -17,14 +17,11 @@ const {
   requireStructureManagementSession,
 } = require("../sovereignty/sovPlayerDeployment");
 const {
-  acquireSkyhooks,
-  destroySkyhooks,
-  getActiveCharacterIdentity,
   getFuelAccessGroupID,
-  getSkyhook,
   isOnLocalFuelAccessGroup,
   setFuelAccessGroupID,
 } = require("../sovereignty/sovModernState");
+const skyhookCleanup = require("../sovereignty/skyhookCleanup");
 const {
   buildSovClaimInfoPayload,
   buildSovHubInfoPayload,
@@ -47,27 +44,9 @@ function requireFuelAccessGroupManagement(solarSystemID, session) {
   });
 }
 
-function getRequestedSkyhookIDs(value) {
-  const values = Array.isArray(value) ? value : [];
-  return [...new Set(values
-    .map((entry) => Number(entry) || 0)
-    .filter((entry) => entry > 0))];
-}
-
-function requireSkyhookManagement(skyhookIDs, session) {
-  const characterID = Number(
-    session && (session.characterID || session.charID || session.charid),
-  ) || 0;
-  const identity = getActiveCharacterIdentity(characterID);
-  for (const skyhookID of skyhookIDs) {
-    const result = getSkyhook(skyhookID, identity);
-    if (!result.ok || !result.skyhook) {
-      throwWrappedUserError("CustomNotify", {
-        notify: "You do not have permission to manage that Orbital Skyhook.",
-      });
-    }
-    requireFuelAccessGroupManagement(result.skyhook.solarSystemID, session);
-  }
+function unwrapIDList(value) {
+  const items = Array.isArray(value) ? value : value && Array.isArray(value.items) ? value.items : [];
+  return items.map((entry) => Number(entry) || 0).filter((entry) => entry > 0);
 }
 
 class SovMgrService extends BaseService {
@@ -123,16 +102,15 @@ class SovMgrService extends BaseService {
     return isOnLocalFuelAccessGroup(session);
   }
 
+  // System cleanup after a Hub claim (skyhooksCleanup/cleanupWndController.py
+  // ProcessSkyhooks); the rules are in sovereignty/skyhookCleanup.js.
   Handle_DestroySkyhooks(args, session) {
-    const skyhookIDs = getRequestedSkyhookIDs(args && args[0]);
-    requireSkyhookManagement(skyhookIDs, session);
-    return buildList(destroySkyhooks(skyhookIDs));
+    return buildList(skyhookCleanup.destroySkyhooks(unwrapIDList(args && args[0]), session));
   }
 
-  Handle_AcquireSkyhooks(args, session) {
-    const skyhookIDs = getRequestedSkyhookIDs(args && args[0]);
-    requireSkyhookManagement(skyhookIDs, session);
-    return buildList(acquireSkyhooks(skyhookIDs, args && args[1], session));
+  async Handle_AcquireSkyhooks(args, session) {
+    const accessListID = Number(args && args[1]) || null;
+    return buildList(await skyhookCleanup.acquireSkyhooks(unwrapIDList(args && args[0]), accessListID, session));
   }
 
   callMethod(method, args, session, kwargs) {

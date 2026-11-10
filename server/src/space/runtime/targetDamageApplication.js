@@ -26,12 +26,13 @@ const {
 } = require(path.join(runtimeEntryDirname, "../services/inventory/itemStore"));
 const planetOrbitalState = require(path.join(runtimeEntryDirname, "../services/planet/planetOrbitalState"));
 const mobileDepotRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileDepotRuntime"));
+const mercenaryDenRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mercenaryDenRuntime"));
 const structureState = require(path.join(
   runtimeEntryDirname,
   "../services/structure/structureState",
 ));
 const {
-  STRUCTURE_STATE,
+  STRUCTURE_VULNERABLE_STATES,
 } = require(path.join(
   runtimeEntryDirname,
   "../services/structure/structureConstants",
@@ -91,6 +92,8 @@ const {
 const {
   TARGET_LOSS_REASON_ATTEMPT_CANCELLED,
 } = require("./targeting");
+const { resolveLayerResonanceOverrides } = require("../combat/visionsCombatPolicy");
+const incursionHooks = require("../../services/incursion/incursionHooks");
 
 function applyResolvedEnvironmentalDamageToTarget(
   scene,
@@ -134,6 +137,10 @@ function applyResolvedEnvironmentalDamageToTarget(
   if (require("../../services/sovereignty/skyhookRaidRuntime").blocksSiloDamage(targetEntity)) {
     return { success: false, errorMsg: "SKYHOOK_SILO_INVULNERABLE", damageResult: null, destroyResult: null, notified: false };
   }
+  if (targetEntity.incursionHealthPending || targetEntity.incursionWaveHeld || sourceEntity?.incursionWaveHeld) {
+    return { success: false, errorMsg: "INCURSION_HEALTH_PENDING" };
+  }
+  const incursionBefore = targetEntity.incursionOperationID ? { ...targetEntity.conditionState } : null;
   const damageResult = applyResolvedDamageAmountToEntity(targetEntity,
     targetEntity.evejsSkyhookReagentSilo
       ? Math.min(amount, targetEntity.shieldCapacity * targetEntity.conditionState.shieldCharge) : amount);
@@ -146,6 +153,9 @@ function applyResolvedEnvironmentalDamageToTarget(
       notified: false,
     };
   }
+  const incursion = incursionHooks.commitDamage(scene, sourceEntity, targetEntity, damageResult, incursionBefore, whenMs, options);
+  if (!incursion.success || incursion.pending) return { success: false, pending: incursion.pending,
+    errorMsg: incursion.errorMsg || "INCURSION_HEALTH_PENDING", damageResult: null, destroyResult: null, notified: false };
   require("../../services/sovereignty/skyhookRaidRuntime").applySiloDamage(targetEntity, damageResult);
 
   persistDynamicEntity(targetEntity);
@@ -268,6 +278,16 @@ function applyWeaponDamageToTarget(
   whenMs,
   options = {},
 ) {
+  if ((targetEntity?.incursionControlKey || targetEntity?.incursionLogisticsStation) &&
+      !require("../../services/incursion/incursionLogistics").canDamage(targetEntity)) {
+    return { damageResult: null, destroyResult: null, errorMsg: "INCURSION_CONTROL_INVULNERABLE" };
+  }
+  if (targetEntity?.incursionStructureObjectiveKey && !require("../../services/incursion/incursionStructures").canDamage(targetEntity)) {
+    return { damageResult: null, destroyResult: null, errorMsg: "INCURSION_STRUCTURE_INVULNERABLE" };
+  }
+  if (targetEntity?.incursionHealthPending || targetEntity?.incursionWaveHeld || attackerEntity?.incursionWaveHeld) {
+    return { damageResult: null, destroyResult: null, errorMsg: "INCURSION_HEALTH_PENDING" };
+  }
   const breacher = require("../combat/breacherPods");
   const breacherTick = breacher.isAuthorizedTick(scene, targetEntity, options.breacherTickToken);
   if (options.breacherTickToken && !breacherTick) return { damageResult: null, destroyResult: null };
@@ -282,11 +302,22 @@ function applyWeaponDamageToTarget(
       ? shotDamage
       : {};
   if (resolvedShotDamage === null) return { damageResult: null, destroyResult: null };
+  const incursionMultiplier = Number.isFinite(options.incursionDamageMultiplier) &&
+    options.incursionDamageMultiplier >= 0 && options.incursionDamageMultiplier <= 1
+    ? options.incursionDamageMultiplier
+    : require("../../services/incursion/incursionSystemEffects").damageMultiplier(
+      attackerEntity, options.incursionWeaponKind, scene?.systemID);
+  if (incursionMultiplier !== 1) resolvedShotDamage = Object.fromEntries(
+    Object.entries(resolvedShotDamage).map(([kind, amount]) => [kind, amount * incursionMultiplier]));
   const airMultiplier = require("../combat/airCombatPolicy").damageMultiplier(scene, attackerEntity, targetEntity);
   if (airMultiplier !== 1) resolvedShotDamage = Object.fromEntries(Object.entries(resolvedShotDamage).map(([kind, amount]) => [kind, amount * airMultiplier]));
   const fabricatorMultiplier = require("../../services/seasons/eventHooks").fabricator.damageMultiplier(scene,attackerEntity,targetEntity,options,whenMs);
   if (fabricatorMultiplier === 0) return {damageResult:null,destroyResult:null};
   if (fabricatorMultiplier !== 1) resolvedShotDamage = Object.fromEntries(Object.entries(resolvedShotDamage).map(([k,v])=>[k,v*fabricatorMultiplier]));
+  // The AIR fleet battle never wears a ship below its floor (airCombatPolicy).
+  const airBattleScale = require("../combat/airCombatPolicy").battleShotScale(attackerEntity, targetEntity, resolvedShotDamage);
+  if (airBattleScale <= 0) return { damageResult: null, destroyResult: null };
+  if (airBattleScale < 1) resolvedShotDamage = Object.fromEntries(Object.entries(resolvedShotDamage).map(([kind, amount]) => [kind, amount * airBattleScale]));
   if (
     targetEntity &&
     targetEntity.evejsAbyssalEnvironmentalObject === true &&
@@ -312,13 +343,11 @@ function applyWeaponDamageToTarget(
       destroyResult: null,
     };
   }
-  // A reinforced Upwell structure is invulnerable until its timer ends.
+  // Anchoring, fitting and FOB invulnerability protect health just as
+  // reinforcement does. Use the shared state contract for every structure.
   if (
     targetEntity.kind === "structure" &&
-    (
-      targetEntity.state === STRUCTURE_STATE.ARMOR_REINFORCE ||
-      targetEntity.state === STRUCTURE_STATE.HULL_REINFORCE
-    )
+    !STRUCTURE_VULNERABLE_STATES.has(toInt(targetEntity.state, 0))
   ) {
     return {
       damageResult: null,
@@ -349,6 +378,13 @@ function applyWeaponDamageToTarget(
       destroyResult: null,
     };
   }
+  // A reinforced Mercenary Den takes no damage (its reinforce component).
+  if (mercenaryDenRuntime.isMercenaryDenEntityInvulnerable(targetEntity)) {
+    return {
+      damageResult: null,
+      destroyResult: null,
+    };
+  }
   // NOTE: undock invulnerability is deliberately NOT handled here. It is a
   // refusal to be LOCKED (see validateTargetLockRequest), not a damage shield —
   // so smartbombs and other effects that need no lock land normally, matching
@@ -368,6 +404,13 @@ function applyWeaponDamageToTarget(
     ? openStructureDamageWindow(targetEntity, whenMs)
     : null;
   const beforeBreacherCondition = breacherTick ? { ...targetEntity.conditionState } : null;
+  const damageOptions = structureDamageWindow
+    ? { layerDamageLimits: structureDamageWindow.remaining }
+    : targetEntity.evejsSkyhookReagentSilo ? { layerDamageLimits: { armor: 0, structure: 0 } } : {};
+  const layerResonanceOverrides = !breacherTick && !fighterDamageContext?.damageResult
+    ? resolveLayerResonanceOverrides(scene, attackerEntity, targetEntity) : null;
+  if (layerResonanceOverrides) damageOptions.layerResonanceOverrides = layerResonanceOverrides;
+  const incursionBefore = targetEntity.incursionOperationID ? { ...targetEntity.conditionState } : null;
   const damageResult = breacherTick
     ? applyResolvedDamageAmountToEntity(targetEntity, options.resolvedDamageAmount)
     : fighterDamageContext && fighterDamageContext.damageResult
@@ -375,10 +418,14 @@ function applyWeaponDamageToTarget(
     : applyDamageToEntity(
       targetEntity,
       resolvedShotDamage,
-      structureDamageWindow
-        ? { layerDamageLimits: structureDamageWindow.remaining }
-        : targetEntity.evejsSkyhookReagentSilo ? { layerDamageLimits: { armor: 0, structure: 0 } } : undefined,
+      damageOptions,
     );
+  if (damageResult.success && incursionBefore) {
+    const incursion = incursionHooks.commitDamage(scene, attackerEntity, targetEntity, damageResult, incursionBefore, whenMs, options);
+    if (!incursion.success || incursion.pending) return {
+      damageResult: { success: false, errorMsg: incursion.errorMsg || "INCURSION_HEALTH_PENDING", pending: incursion.pending }, destroyResult: null,
+    };
+  }
   if (breacherTick && damageResult.success) {
     // Cursor, lethal intent and health commit together in the existing ship
     // item row, before notifications or normal destruction settlement.
@@ -504,6 +551,8 @@ function applyWeaponDamageToTarget(
         targetEntity.state = updatedStructure.state;
         targetEntity.stateStartedAt = updatedStructure.stateStartedAt || null;
         targetEntity.stateEndsAt = updatedStructure.stateEndsAt || null;
+        targetEntity.deployStartedAt = updatedStructure.deployStartedAt || null;
+        targetEntity.deployEndsAt = updatedStructure.deployEndsAt || null;
         targetEntity.timerPausedAt = updatedStructure.timerPausedAt || null;
         targetEntity.upkeepState = updatedStructure.upkeepState;
         targetEntity.deedState = updatedStructure.hasQuantumCore === true ? 1 : 0;
@@ -521,18 +570,49 @@ function applyWeaponDamageToTarget(
       }
     }
     if (targetEntity.kind === "orbital") {
-      // Persist the office's damage so it carries across scene reloads.  No
-      // reinforcement phase: a Customs Office is shot straight through to
-      // destruction (see applyOrbitalDamageTransition).
+      // Persist the orbital's damage so it carries across scene reloads. A player
+      // Customs Office or Skyhook stops at its reinforcement threshold and is
+      // invulnerable while reinforced (planetOrbitalReinforcement).
       const orbitalDamageResult = planetOrbitalState.applyRuntimeOrbitalDamage(
         targetEntity.itemID,
         damageResult,
+        whenMs,
+        {
+          attacker: {
+            characterID: toInt(
+              attackerEntity && (
+                attackerEntity.pilotCharacterID ||
+                attackerEntity.characterID ||
+                attackerEntity.session && attackerEntity.session.characterID
+              ),
+              0,
+            ),
+            corporationID: toInt(
+              attackerEntity && (
+                attackerEntity.corporationID ||
+                attackerEntity.session && attackerEntity.session.corporationID
+              ),
+              0,
+            ),
+            allianceID: toInt(
+              attackerEntity && (
+                attackerEntity.allianceID ||
+                attackerEntity.session && attackerEntity.session.allianceID
+              ),
+              0,
+            ),
+          },
+        },
       );
       if (orbitalDamageResult.success && orbitalDamageResult.data) {
         const updatedOrbital = orbitalDamageResult.data.orbital;
         targetEntity.conditionState = normalizeShipConditionState(
           updatedOrbital.conditionState,
         );
+        if (orbitalDamageResult.data.preventDestroy === true && damageResult.data) {
+          damageResult.data.destroyed = false;
+          damageResult.data.afterConditionState = { ...targetEntity.conditionState };
+        }
       } else if (!orbitalDamageResult.success) {
         log.warn(
           `[SpaceRuntime] Orbital damage persistence failed for ${targetEntity.itemID}: ${orbitalDamageResult.errorMsg || "UNKNOWN"}`,
@@ -550,6 +630,27 @@ function applyWeaponDamageToTarget(
       }
     } catch (error) {
       log.warn(`[SpaceRuntime] NPC aggression note failed: ${error.message}`);
+    }
+    if (targetEntity.dungeonSiteInstanceID) {
+      // A hit on a site's object or wave ship fires the waves that wait for it (encounter
+      // trigger "attacked"), also when no module activation came first (drones).
+      try {
+        lazyRequire("../services/dungeon/dungeonUniverseSiteService")
+          .handleEncounterEntityAttacked(scene, targetEntity, { nowMs: whenMs });
+      } catch (error) {
+        log.warn(`[SpaceRuntime] Site attacked trigger failed: ${error.message}`);
+      }
+    }
+    const mercenaryDenDamageResult = mercenaryDenRuntime.applyMercenaryDenDamage(
+      scene,
+      targetEntity,
+      damageResult,
+      { attackerEntity, nowMs: whenMs },
+    );
+    if (mercenaryDenDamageResult && mercenaryDenDamageResult.success === false) {
+      log.warn(
+        `[SpaceRuntime] Mercenary Den damage handling failed for ${targetEntity.itemID}: ${mercenaryDenDamageResult.errorMsg || "UNKNOWN"}`,
+      );
     }
     const mobileDepotReinforcementResult =
       mobileDepotRuntime.enterMobileDepotReinforcementFromDamage(

@@ -11,12 +11,14 @@ const {
   readStaticTable,
 } = require(path.join(__dirname, "../_shared/referenceData"));
 const {
+  getAgentByID,
   listAgents,
   listMissionTemplateIDsForAgent,
 } = require(path.join(__dirname, "./agentAuthority"));
 const dungeonAuthority = require(path.join(__dirname, "../dungeon/dungeonAuthority"));
+const { matchesCanonicalMission } = require("../../contentPacks/securityMissionBinding");
 const {
-  getChainContinuationMissionID,
+  getChainContinuationMissionID: getGoldenChainContinuationMissionID,
   isChainContinuationMissionID,
   isDisabledMissionIdentifier,
   isDisabledMissionSourceURL,
@@ -27,7 +29,15 @@ const {
   productionMissionPolicy,
 } = require(path.join(__dirname, "../../config/productionMissionPolicy"));
 
+const randomSource = require("../../common/random");
+const pirateFactionPolicy = require("../../space/npc/pirateFactionPolicy");
+const regionalOfferPolicy = require("../../config/securityMissionOfferPolicy.json");
+const offerEvidence = require("../../config/securityMissionOfferEvidence");
+const baselineChains = require("../../config/securityMissionChains");
+const offerProjection = require("../../config/securityMissionOfferProjection");
+
 let cache = null;
+let retirementGeneration = 0;
 const EPIC_ARC_MESSAGE_TYPES = Object.freeze([
   "messages.epicMission.journalText.chapterTitle",
   "messages.epicMission.journalText.inProgressMessage",
@@ -205,6 +215,7 @@ function normalizeMissionRecord(record = {}, missionID) {
     killMission: normalizeOptionalMissionObject(record.killMission),
     courierMission: normalizeOptionalMissionObject(record.courierMission),
     missionRewards: normalizeMissionRewards(record.missionRewards),
+    estimatedRewardFields: Array.isArray(record.estimatedRewardFields) ? [...record.estimatedRewardFields] : [],
     clientObjectives: normalizeOptionalMissionObject(record.clientObjectives),
     extraStandings: normalizeOptionalMissionObject(record.extraStandings),
     remoteCompletable:
@@ -275,6 +286,10 @@ function isPermanentlyDisabledMissionRecord(record = null, missionID = null) {
 
 function isMissionDungeonAvailable(record = null) {
   const sourceDungeonID = toInt(record && record.killMission && record.killMission.dungeonID, 0);
+  if ([17130, 17131, 17132].includes(Number(record?.missionID))) {
+    return Boolean(require("../dungeon/fracturedLegacyRuntime").contract(
+      dungeonAuthority.getTemplateByID(`client-dungeon:${sourceDungeonID}`)));
+  }
   if (sourceDungeonID <= 0) {
     return true;
   }
@@ -427,8 +442,13 @@ function addMissionTemplateIndex(missionTemplateToMissionIDs, templateID, missio
 }
 
 function buildCache() {
+  // Career agents offer their factions' career chains (careerAgentMissions).
+  const careerPayload = require(path.join(__dirname, "./careerAgentMissions")).applyToMissionAuthorityPayload(
+    require("./visionsOfGreatness").applyToMissionAuthorityPayload(readStaticTable(TABLE.MISSION_AUTHORITY)),
+    (readStaticTable(TABLE.AGENT_AUTHORITY) || {}).agentsByID,
+  );
   const payload = sanitizePayload(
-    normalizePayload(readStaticTable(TABLE.MISSION_AUTHORITY)),
+    normalizePayload(require(path.join(__dirname, "./careerRetailMissionData")).applyToMissionAuthorityPayload(careerPayload)),
   );
   const missionsByID = new Map();
   const epicArcMessageMaps = Object.fromEntries(
@@ -509,9 +529,14 @@ function ensureCache() {
 
 function clearCache() {
   cache = null;
+  retirementGeneration += 1;
   // Which mission dungeons hold ore depends on the installed content packs, so
   // it is recomputed alongside the mission payload.
   clearMinableDungeonIDCache();
+}
+
+function getRetirementGeneration() {
+  return retirementGeneration;
 }
 
 function getPayload() {
@@ -562,12 +587,15 @@ const SUPPORTED_GOLDEN_SECURITY_DUNGEON_IDS = new Set(
 );
 
 let minableDungeonIDCache = null;
+let minableDungeonLevelCache = null;
+const minableDungeonIDsByLevelCache = new Map();
 
 function listMinableMissionDungeonIDs() {
   if (minableDungeonIDCache) {
     return minableDungeonIDCache;
   }
   const ids = new Set();
+  const levels = new Map();
   for (const template of dungeonAuthority.listTemplatesBySource("client") || []) {
     const sourceDungeonID = toInt(template && template.sourceDungeonID, 0);
     if (sourceDungeonID <= 0) {
@@ -584,14 +612,42 @@ function listMinableMissionDungeonIDs() {
       objectiveTypeID > 0 &&
       rocks.every((rock) => toInt(rock && (rock.typeID || rock.oreTypeID), 0) === objectiveTypeID)) {
       ids.add(sourceDungeonID);
+      levels.set(sourceDungeonID, toInt(hints.missionLevel, 0));
     }
   }
+  minableDungeonLevelCache = levels;
   minableDungeonIDCache = ids;
   return minableDungeonIDCache;
 }
 
+// The sites span 1,080 m3 to 44,800 m3 of ore, so an agent offers only the
+// ones published at its own level; offering the pool flat hands a level 1
+// agent a level 4 haul. The pack states each site's missionLevel. A site that
+// does not state one stays offerable at every level rather than at none, and a
+// level the pack has no sites for (the client's mining dungeons stop at level
+// 4, but there are level 5 mining agents) keeps drawing on the whole set.
+function listMinableMissionDungeonIDsForLevel(agentLevel) {
+  const ids = listMinableMissionDungeonIDs();
+  const level = toInt(agentLevel, 0);
+  if (level <= 0) {
+    return ids;
+  }
+  if (!minableDungeonIDsByLevelCache.has(level)) {
+    const atLevel = new Set([...ids].filter((dungeonID) => {
+      const siteLevel = minableDungeonLevelCache.get(dungeonID) || 0;
+      return siteLevel <= 0 || siteLevel === level;
+    }));
+    const publishedAtLevel = [...atLevel].some((dungeonID) =>
+      (minableDungeonLevelCache.get(dungeonID) || 0) === level);
+    minableDungeonIDsByLevelCache.set(level, publishedAtLevel ? atLevel : ids);
+  }
+  return minableDungeonIDsByLevelCache.get(level);
+}
+
 function clearMinableDungeonIDCache() {
   minableDungeonIDCache = null;
+  minableDungeonLevelCache = null;
+  minableDungeonIDsByLevelCache.clear();
 }
 
 function isSupportedLevelOneClientDungeonID(dungeonID) {
@@ -736,6 +792,13 @@ function isRetiredOrdinaryEncounterMissionForAgent(
     return false;
   }
   const missionRecord = getMissionByID(normalizedMissionID);
+  const hasRuntimeAlias = [runtimeRecord && runtimeRecord.dungeonTemplateID, runtimeRecord && runtimeRecord.missionTemplateID]
+    .some((id) => String(id || "").startsWith("security-mission:"));
+  if (hasRuntimeAlias) {
+    const binding = getSecurityMissionBindingForAgent(getAgentByID(agentID), missionRecord);
+    return !(binding && runtimeRecord.dungeonTemplateID === binding.templateID &&
+      runtimeRecord.missionTemplateID === binding.templateID && runtimeRecord.dungeonID === binding.dungeonID);
+  }
   if (
     !missionRecord ||
     normalizeText(missionRecord.missionKind, "").toLowerCase() !== "encounter"
@@ -755,6 +818,68 @@ function isRetiredOrdinaryEncounterMissionForAgent(
   return true;
 }
 
+function getSecurityMissionBindingForAgent(agentRecord, missionRecord) {
+  if (!isOrdinarySecurityAgent(agentRecord) || !missionRecord ||
+    isPermanentlyDisabledMissionRecord(missionRecord) ||
+    GOLDEN_SECURITY_MISSION_BY_ID.has(String(missionRecord.missionID)) ||
+    isScriptedMissionRecord(missionRecord) || isChainContinuationMissionID(missionRecord.missionID)) return null;
+  const binding = dungeonAuthority.getSecurityMissionBinding(missionRecord.missionID);
+  // Only established canonical mission membership can gain a pack binding.
+  // Raw client QA/test records omitted by the canonical table stay unavailable.
+  const canonical = ensureCache().missionsByID.get(String(missionRecord.missionID));
+  const chainPart = baselineChains.getPart(missionRecord);
+  const chainLevel = chainPart?.part > 1 && chainPart.agentLevels.includes(toInt(agentRecord.level, 0));
+  if (!matchesCanonicalMission(binding, canonical) || !matchesCanonicalMission(binding, missionRecord) ||
+    (binding.agentLevel !== toInt(agentRecord.level, 0) && !chainLevel)) return null;
+  for (const key of ["factionID", "corporationID", "agentTypeID"]) {
+    if (binding[key] > 0 && binding[key] !== toInt(agentRecord[key], 0)) return null;
+  }
+  return binding;
+}
+
+function isBaselineChainPartAvailable(agentRecord, missionRecord) {
+  const part = baselineChains.getPart(missionRecord);
+  if (!part || !isOrdinarySecurityAgent(agentRecord) || isPermanentlyDisabledMissionRecord(missionRecord) ||
+      !part.agentLevels.includes(toInt(agentRecord.level, 0)) ||
+      !["factionID", "corporationID", "agentTypeID"].every((field) => !part[field] || part[field] === toInt(agentRecord[field], 0))) return false;
+  if (missionRecord.contentTemplate === "agent.missionTemplatizedContent_BasicKillMission") {
+    return Boolean(getSecurityMissionBindingForAgent(agentRecord, missionRecord));
+  }
+  const canonical = getMissionByID(missionRecord.missionID);
+  if (!baselineChains.getPart(canonical)) return false;
+  const goalField = missionRecord.courierMission ? "courierMission" : "killMission";
+  if (!["objectiveTypeID", "objectiveQuantity", "objectiveSingleton"].every((field) =>
+    missionRecord[goalField]?.[field] === canonical[goalField]?.[field])) return false;
+  if (["agent.missionTemplatizedContent_BasicCourierMission",
+    "agent.missionTemplatizedContent_BasicTradeMission"].includes(missionRecord.contentTemplate)) {
+    return toInt(missionRecord.courierMission?.objectiveTypeID, 0) > 0 && toInt(missionRecord.courierMission?.objectiveQuantity, 0) > 0;
+  }
+  return missionRecord.contentTemplate === "agent.missionTemplatizedContent_BasicMiningMission" &&
+    listMinableMissionDungeonIDs().has(part.dungeonID);
+}
+
+function getChainContinuationMissionID(missionID, agentRecord = null) {
+  if (require("./visionsOfGreatness").isMission(missionID)) {
+    const source = getMissionByID(missionID);
+    return source && Number(source.sourceAgentID) === Number(agentRecord?.agentID)
+      ? source.nextMissionIDs[0] ?? null : null;
+  }
+  const golden = getGoldenChainContinuationMissionID(missionID);
+  if (golden !== null) return golden;
+  const source = getMissionByID(missionID);
+  if (!isBaselineChainPartAvailable(agentRecord, source)) return null;
+  const part = baselineChains.getPart(source);
+  // TODO: Client-title/wiki pairing is a baseline. Golden logs replace these
+  // ordered candidates; never skip a numbered stage or randomize the next part.
+  for (const nextID of baselineChains.getCandidateMissionIDs(part, toInt(agentRecord.level, 0))) {
+    const next = getMissionByID(nextID);
+    const nextPart = baselineChains.getPart(next);
+    if (nextPart?.family === part.family && nextPart.total === part.total && nextPart.part === part.part + 1 &&
+        isBaselineChainPartAvailable(agentRecord, next)) return nextID;
+  }
+  return null;
+}
+
 function isMissionOfferAllowedForAgent(agentRecord = null, missionRecord = null) {
   if (!missionRecord || isPermanentlyDisabledMissionRecord(missionRecord)) {
     return false;
@@ -764,12 +889,15 @@ function isMissionOfferAllowedForAgent(agentRecord = null, missionRecord = null)
   if (isChainContinuationMissionID(missionRecord.missionID)) {
     return true;
   }
+  if (baselineChains.getPart(missionRecord)?.part > 1) {
+    return isBaselineChainPartAvailable(agentRecord, missionRecord);
+  }
   if (
     isOrdinarySecurityAgent(agentRecord) &&
     !isGoldenSecurityMissionRecord(
       missionRecord,
       toInt(agentRecord && agentRecord.level, 0),
-    )
+    ) && !getSecurityMissionBindingForAgent(agentRecord, missionRecord)
   ) {
     return false;
   }
@@ -783,21 +911,129 @@ function listGoldenSecurityMissionIDsForAgent(agentRecord = null) {
   return GOLDEN_SECURITY_MISSIONS
     .filter((mission) => mission.agentLevel === agentLevel)
     .map((mission) => mission.missionID)
-    .filter((missionID) => isGoldenSecurityMissionRecord(
-      getMissionByID(missionID),
-      agentLevel,
-    ));
+    .filter((missionID) => {
+      const record = getMissionByID(missionID);
+      return isGoldenSecurityMissionRecord(record, agentLevel) &&
+        ["factionID", "corporationID", "agentTypeID"].every((key) =>
+          !(record[key] > 0) || record[key] === toInt(agentRecord[key], 0));
+    });
 }
+
+function hasCapturedAgentOffer(agentRecord, candidate) {
+  if (offerEvidence.getMissionObservation?.(agentRecord, candidate.record)) return true;
+  const matchesAgent = (row) => row &&
+    row.sourceAgentID === toInt(agentRecord.agentID, 0) &&
+    row.sourceSolarSystemID === toInt(agentRecord.solarSystemID, 0);
+  const captured = candidate.binding?.rewards?.tqReportedMetadata || [];
+  if (captured.some((row) => !row.observationKind && matchesAgent(row) &&
+      row.missionID === candidate.record.missionID &&
+      row.dungeonID === candidate.record.killMission?.dungeonID &&
+      row.agentLevel === toInt(agentRecord.level, 0) &&
+      row.sourceRefs?.some((ref) => ["TQ_ParityCapture_briefing", "TQ_decoded_log"].includes(ref.source)))) return true;
+  if (candidate.binding) return false;
+  const template = dungeonAuthority.getTemplateByIDReadOnly(candidate.templateID);
+  return matchesAgent(template?.missionSetupByMissionID?.[candidate.record.missionID]);
+}
+
+
+function filterRegionalPirateVariants(agentRecord, missionIDs) {
+  if (toInt(agentRecord.level, 0) > regionalOfferPolicy.maximumAgentLevel) return missionIDs;
+  const supported = new Set(regionalOfferPolicy.pirateFactionKeys);
+  const families = new Map();
+  const candidates = missionIDs.map((missionID) => {
+    const record = getMissionByID(missionID);
+    const binding = dungeonAuthority.getSecurityMissionBinding(missionID);
+    const templateID = binding?.templateID || `client-dungeon:${record.killMission?.dungeonID}`;
+    const template = dungeonAuthority.getTemplateSelectionDescriptorByID(templateID);
+    // Use the native dungeon faction, never the offering-agent faction or an
+    // estimated wiki fallback enemy. Missing native evidence remains unknown.
+    const enemy = pirateFactionPolicy.PIRATE_FACTION_BY_FACTION_ID[template?.factionID];
+    const family = normalizeText(record.localizedName?.text, "").toLowerCase().replace(/\s+/g, " ");
+    const candidate = { record, binding, templateID, family, enemy, enemyFactionID: template?.factionID };
+    if (family && supported.has(enemy)) {
+      if (!families.has(family)) families.set(family, new Set());
+      families.get(family).add(enemy);
+    }
+    return candidate;
+  });
+  if (![...families.values()].some((enemies) => enemies.size > 1)) return missionIDs;
+  const region = pirateFactionPolicy.resolvePirateFactionForSystem(agentRecord.solarSystemID);
+  const localPirateFactionID = Number(Object.keys(pirateFactionPolicy.PIRATE_FACTION_BY_FACTION_ID)
+    .find((id) => pirateFactionPolicy.PIRATE_FACTION_BY_FACTION_ID[id] === region.factionKey)) || 0;
+  // TODO: security-regional-pirate-variants-v1 in securityMissionOfferPolicy.json
+  // records the source, per-level limits, exact-agent exceptions and unknowns.
+  return candidates.filter((candidate) => {
+    if (hasCapturedAgentOffer(agentRecord, candidate)) return true;
+    const desired = offerProjection.desiredEnemyFactionIDs(agentRecord, region, candidate.record.localizedName?.text, localPirateFactionID);
+    // Captured family patterns outrank the older blanket regional guess. Only
+    // select among variants actually available at this level; unknown enemies
+    // and families with no matching native alternative remain unresolved.
+    if (supported.has(candidate.enemy) && desired?.length && candidates.some((other) =>
+      other.family === candidate.family && desired.includes(other.enemyFactionID))) {
+      return desired.includes(candidate.enemyFactionID);
+    }
+    if (region.specialSpace || region.wormholeSpace || !supported.has(region.factionKey) ||
+        !["region", "faction_id"].includes(region.source)) return true;
+    const enemies = families.get(candidate.family);
+    return !supported.has(candidate.enemy) || !enemies || enemies.size < 2 ||
+      !enemies.has(region.factionKey) || candidate.enemy === region.factionKey ||
+      hasCapturedAgentOffer(agentRecord, candidate);
+  }).map((candidate) => candidate.record.missionID);
+}
+
+
+function listSelectableMissionIDsForAgent(agentRecord = null) {
+  const admitted = listMissionIDsForAgent(agentRecord);
+  const profile = offerEvidence.getProfile?.(agentRecord);
+  if (!isOrdinarySecurityAgent(agentRecord)) return admitted;
+  if (!profile) {
+    const space = pirateFactionPolicy.resolvePirateFactionForSystem(agentRecord.solarSystemID);
+    const cohort = offerProjection.getCohort(agentRecord, space);
+    return admitted.filter((missionID) => {
+      const record = getMissionByID(missionID);
+      return offerProjection.allowsFamily(cohort, record.localizedName?.text, toInt(agentRecord.level, 0)) ||
+        hasCapturedAgentOffer(agentRecord, { record, binding: dungeonAuthority.getSecurityMissionBinding(missionID),
+          templateID: `client-dungeon:${record.killMission?.dungeonID}` });
+    });
+  }
+  // TODO: This finite observed pool is provisional. Keep the broader admitted
+  // catalogue for restoring accepted missions and explicit test offers. Retain
+  // older exact-context captures even when this newer sample did not draw them.
+  return admitted.filter((missionID) => {
+    const record = getMissionByID(missionID);
+    return hasCapturedAgentOffer(agentRecord, { record,
+      binding: dungeonAuthority.getSecurityMissionBinding(missionID),
+      templateID: `client-dungeon:${record.killMission?.dungeonID}` });
+  });
+}
+
 
 function supportedDungeonIDsForAgent(agentRecord) {
   const missionKind = normalizeText(agentRecord && agentRecord.missionKind, "").toLowerCase();
   if (missionKind === "mining") {
-    return listMinableMissionDungeonIDs();
+    return listMinableMissionDungeonIDsForLevel(agentRecord && agentRecord.level);
   }
   return null;
 }
 
-function filterUnsupportedLevelOneAgentMissions(agentRecord, missionIDs) {
+// A storyline mining agent also hands out storyline missions with other
+// objectives, which the mining gate does not govern, so only its mining-site
+// candidates are held to its level. Unfiltered, every level's sites reached
+// level 1 storyline agents.
+function filterMiningSitesToAgentLevel(agentRecord, missionIDs) {
+  const supportedDungeonIDs = supportedDungeonIDsForAgent(agentRecord);
+  if (!supportedDungeonIDs) {
+    return missionIDs;
+  }
+  const minableDungeonIDs = listMinableMissionDungeonIDs();
+  return missionIDs.filter((missionID) => {
+    const record = getMissionByID(missionID);
+    const dungeonID = toInt(record && record.killMission && record.killMission.dungeonID, 0);
+    return !minableDungeonIDs.has(dungeonID) || supportedDungeonIDs.has(dungeonID);
+  });
+}
+
+function filterUnsupportedAgentMissions(agentRecord, missionIDs) {
   const supportedDungeonIDs = supportedDungeonIDsForAgent(agentRecord);
   if (!supportedDungeonIDs) {
     return missionIDs;
@@ -896,11 +1132,18 @@ function listMissionIDsForAgent(agentRecord = null) {
   const normalizedAgentID = toInt(agentRecord && agentRecord.agentID, 0);
   const agentSpecificMissionIDs = ensureCache().agentIDToMissionIDs.get(String(normalizedAgentID));
   if (agentSpecificMissionIDs && agentSpecificMissionIDs.length > 0) {
-    return cloneValue(agentSpecificMissionIDs);
+    return cloneValue(agentSpecificMissionIDs).filter((missionID) =>
+      !isOrdinarySecurityAgent(agentRecord) || !(baselineChains.getPart(getMissionByID(missionID))?.part > 1));
   }
 
   if (isOrdinarySecurityAgent(agentRecord)) {
-    return listGoldenSecurityMissionIDsForAgent(agentRecord);
+    return filterRegionalPirateVariants(agentRecord, uniqueMissionIDs([
+      ...listGoldenSecurityMissionIDsForAgent(agentRecord),
+      ...dungeonAuthority.listSecurityMissionBindings()
+        .filter((binding) => getSecurityMissionBindingForAgent(agentRecord, getMissionByID(binding.missionID)) &&
+          !(baselineChains.getPart(getMissionByID(binding.missionID))?.part > 1))
+        .map((binding) => binding.missionID),
+    ]));
   }
 
   const templateBoundMissionIDs = listTemplateBoundMissionIDsForAgent(agentRecord);
@@ -921,21 +1164,34 @@ function listMissionIDsForAgent(agentRecord = null) {
     return missionKind === "encounter"
       ? storylineCandidateIDs.filter((missionID) =>
         isScriptedStorylineMissionRecord(getMissionByID(missionID)))
-      : storylineCandidateIDs;
+      : filterMiningSitesToAgentLevel(agentRecord, storylineCandidateIDs);
   }
   if (templateBoundMissionIDs.length > 0) {
-    return filterUnsupportedLevelOneAgentMissions(
+    return filterUnsupportedAgentMissions(
       agentRecord,
       uniqueMissionIDs([...templateBoundMissionIDs, ...preferredMissionIDs]),
     );
   }
-  return filterUnsupportedLevelOneAgentMissions(agentRecord, preferredMissionIDs);
+  return filterUnsupportedAgentMissions(agentRecord, preferredMissionIDs);
 }
 
-function pickMissionForAgent(agentRecord = null, selectionIndex = 0) {
-  const missionIDs = listMissionIDsForAgent(agentRecord);
+function pickMissionForAgent(agentRecord = null, selectionIndex = 0, lastMissionID = 0) {
+  let missionIDs = listSelectableMissionIDsForAgent(agentRecord);
   if (!missionIDs.length) {
     return null;
+  }
+
+  if (isOrdinarySecurityAgent(agentRecord)) {
+    // TODO: L1 captures show no adjacent identical IDs, but do show adjacent
+    // variants sharing a title. Validate per-character/agent history scope and
+    // exceptions. Apply the same rule to L2-5 as a TODO-marked extrapolation.
+    if (missionIDs.length > 1) {
+      missionIDs = missionIDs.filter((id) => id !== toInt(lastMissionID, 0));
+    }
+    // TODO: Equal weight per admitted mission ID remains provisional. Counts
+    // in a finite capture do not establish TQ weights or family weighting.
+    const index = Math.floor(randomSource.random() * missionIDs.length);
+    return getMissionByID(missionIDs[index]);
   }
 
   const poolKey = normalizeText(agentRecord && agentRecord.missionPoolKey, "");
@@ -970,6 +1226,8 @@ function getMissionArcInfo(missionID) {
 }
 
 module.exports = {
+  getRetirementGeneration,
+  getSecurityMissionBindingForAgent,
   buildAgentPreferenceKeys,
   clearCache,
   getEpicArcMessageMaps,
@@ -994,5 +1252,6 @@ module.exports = {
   listDisabledMissionIDs,
   listMissionIDsByTemplate,
   listMissionIDsForAgent,
+  listSelectableMissionIDsForAgent,
   pickMissionForAgent,
 };

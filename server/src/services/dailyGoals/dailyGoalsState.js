@@ -69,6 +69,69 @@ let noticePublisher = null;
 
 function registerNoticePublisher(publisher) {
   noticePublisher = typeof publisher === "function" ? publisher : null;
+  if (noticePublisher) {
+    armDailyRolloverTimer();
+  } else {
+    disarmDailyRolloverTimer();
+  }
+}
+
+// New goals are generated lazily, so a pilot who stays online through the
+// 11:00 UTC rollover would keep yesterday's set: goalsController caches the
+// current goals and ignores progress on any goal it does not hold. TQ pushes
+// CurrentGoalsNotice, which makes the client flush and re-read them. Generate
+// the new period for each online pilot first so the re-read gets the same
+// goals that later progress writes use.
+let dailyRolloverTimer = null;
+
+function listOnlineCharacterIDs() {
+  const characterIDs = new Set();
+  try {
+    const sessionRegistry = require(path.join(__dirname, "../chat/sessionRegistry"));
+    for (const session of sessionRegistry.getSessions()) {
+      const characterID = toInt(session && (session.characterID || session.charid), 0);
+      if (characterID > 0) characterIDs.add(characterID);
+    }
+  } catch (error) {
+    log.debug(`[DailyGoals] online character lookup failed: ${error.message}`);
+  }
+  return [...characterIDs];
+}
+
+function publishDailyRollover(nowMs = getNowMs()) {
+  let published = 0;
+  for (const characterID of listOnlineCharacterIDs()) {
+    try {
+      getCurrentGoals(characterID, nowMs);
+      getMonthlyMilestones(characterID, nowMs);
+    } catch (error) {
+      log.debug(`[DailyGoals] rollover generation failed char=${characterID}: ${error.message}`);
+      continue;
+    }
+    publishNotice(characterID, { kind: "current" });
+    published += 1;
+  }
+  return published;
+}
+
+function armDailyRolloverTimer() {
+  disarmDailyRolloverTimer();
+  const delayMs = Math.max(0, currentPeriod(getNowMs()).activeUntilMs - getNowMs()) + 1000;
+  dailyRolloverTimer = setTimeout(() => {
+    dailyRolloverTimer = null;
+    publishDailyRollover();
+    if (noticePublisher) armDailyRolloverTimer();
+  }, Math.min(delayMs, DAY_MS + 1000));
+  if (dailyRolloverTimer && typeof dailyRolloverTimer.unref === "function") {
+    dailyRolloverTimer.unref();
+  }
+}
+
+function disarmDailyRolloverTimer() {
+  if (dailyRolloverTimer) {
+    clearTimeout(dailyRolloverTimer);
+    dailyRolloverTimer = null;
+  }
 }
 
 function publishNotice(characterID, event) {
@@ -1288,6 +1351,8 @@ module.exports._testing = {
   monthContext,
   ensureCurrentState,
   ensureMonthlyState,
+  publishDailyRollover,
+  disarmDailyRolloverTimer,
   templateForKey,
   characterHasOmega,
   buildRewardSettlementID,

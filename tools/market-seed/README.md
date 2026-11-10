@@ -17,7 +17,7 @@ From the repo root, double-click:
 BuildMarketSeed.bat
 ```
 
-Then choose:
+The root launcher lists all four seed types. Choose `[1] v1 - Synthetic starter market`, then:
 
 ```text
 Jita + New Caldari

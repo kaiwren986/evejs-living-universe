@@ -179,6 +179,24 @@ module.exports = [
     "integer": false
   },
   {
+    "key": "missionStandingGainMultiplier",
+    "defaultValue": 1,
+    "envVar": "EVEJS_MISSION_STANDING_GAIN_MULTIPLIER",
+    "envType": "number",
+    "valueType": "number",
+    "description": [
+      "Server-wide multiplier applied to standing gains from agent missions.",
+      "1 = Tranquility-calibrated gains, 2 = double, 0.5 = half. Use 0 for no mission standing gains.",
+      "Every mission outcome is covered: completion, the fleet share of a completion, an important mission's faction gain, an extraStandings bonus, and any gain on a decline or quit. Each derived standing that comes out positive is scaled too.",
+      "Standing losses are never scaled, including a derived loss caused by a mission gain. Standing changes from anything other than missions are unaffected.",
+      "Applied after Social. The offered standing gain shown in the agent conversation uses the current value; a completion already being paid out keeps the value it started with."
+    ],
+    "validValues": "Non-negative number such as 1, 2, or 0.5.",
+    "minValue": 0,
+    "allowBlank": false,
+    "integer": false
+  },
+  {
     "key": "omegaLicenseEnabled",
     "defaultValue": true,
     "envVar": "EVEJS_OMEGA_LICENSE",

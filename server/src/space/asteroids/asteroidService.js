@@ -12,6 +12,7 @@ const path = require("path");
 
 const config = require(path.join(__dirname, "../../config"));
 const asteroidData = require(path.join(__dirname, "./asteroidData"));
+const naturalBeltAuthority = require("./naturalBeltAuthority");
 const { mulberry32 } = require(path.join(__dirname, "../../common/random"));
 const {
   resolveItemByTypeID,
@@ -1092,21 +1093,71 @@ function populateBeltField(scene, belt) {
   }
 
   const systemBelts = asteroidData.getBeltsForSystem(scene.systemID);
-  const fieldProfile = buildCurvedFieldProfile(scene, belt, style, systemBelts);
+  const miningState = require("../../services/mining/miningRuntimeState");
+  let generation = miningState.readPersistedBeltGeneration(scene.systemID, belt.itemID);
+  let fieldProfile = generation?.fieldProfile || buildCurvedFieldProfile(scene, belt, style, systemBelts);
+  const native = naturalBeltAuthority.getBeltComposition(belt.itemID);
+  const existingRocks = miningState.readPersistedSystemEntities(scene.systemID);
+  const hasLegacyGeneration = Object.values(existingRocks)
+    .some((state) => Number(state?.beltID) === Number(belt.itemID));
+  let nativeTypes = null;
+  if (generation) {
+    if (![1, 2].includes(generation.version) || !Array.isArray(generation.typeIDs) ||
+        generation.typeIDs.length >= STATIC_ASTEROID_ITEM_ID_STRIDE || !generation.fieldProfile ||
+        generation.typeIDs.length !== Number(generation.fieldProfile.count)) {
+      throw new Error(`BELT_GENERATION_INVALID: ${belt.itemID}`);
+    }
+    if (generation.version === 1) {
+      const geometry = require("./beltV1GeometryMigration").getOriginalGeometry(scene.systemID, belt.itemID, generation);
+      generation = miningState.upgradeBeltGenerationGeometry(scene.systemID, belt.itemID, geometry);
+    }
+    if (!Number.isSafeInteger(generation.geometryRngSkip) || generation.geometryRngSkip < 0 ||
+        generation.geometryRngSkip > 1000000 ||
+        !["x", "y", "z"].every(axis => Number.isFinite(generation.fieldOrigin?.[axis]))) {
+      throw new Error(`BELT_GENERATION_GEOMETRY_INVALID: ${belt.itemID}`);
+    }
+    fieldProfile = generation.fieldProfile;
+    belt = { ...belt, fieldSeed: generation.fieldSeed, fieldStyleID: generation.fieldStyleID,
+      position: cloneVector(generation.fieldOrigin) };
+  } else if (native && !hasLegacyGeneration) {
+    nativeTypes = native.counts.flatMap(({ typeID, count }) => Array(count).fill(typeID));
+    const shuffle = createRng(hashText(`${belt.itemID}:${belt.fieldSeed}:nativeComposition`));
+    for (let index = nativeTypes.length - 1; index > 0; index -= 1) {
+      const other = Math.floor(shuffle() * (index + 1));
+      [nativeTypes[index], nativeTypes[other]] = [nativeTypes[other], nativeTypes[index]];
+    }
+    fieldProfile = { ...fieldProfile, count: native.totalCount };
+  }
   const totalCount = Math.max(0, toPositiveInt(fieldProfile.count, 0));
   if (totalCount <= 0) {
     return [];
   }
 
-  const rng = createRng(toPositiveInt(belt.fieldSeed, belt.itemID));
-  const enriched = buildEnrichedSystemOrePool(scene.systemID);
-  const systemOrePool = enriched.orePool;
-  const beltSubset = buildBeltOreSubset(systemOrePool, enriched.securityClass, rng);
+  const rawRng = createRng(toPositiveInt(belt.fieldSeed, belt.itemID));
+  let geometryRngSkip = 0;
+  const rng = () => { geometryRngSkip++; return rawRng(); };
+  // Accepted geometry never evaluates a refreshed ore-family/security catalog.
+  const enriched = generation ? null : buildEnrichedSystemOrePool(scene.systemID);
+  const systemOrePool = enriched?.orePool || [];
+  let beltSubset = [];
+  if (generation) {
+    for (let index = 0; index < generation.geometryRngSkip; index++) rng();
+  } else {
+    beltSubset = buildBeltOreSubset(systemOrePool, enriched.securityClass, rng);
+  }
+  const acceptedGeometryRngSkip = geometryRngSkip;
   const legacyClusterOffsets = [];
 
   const spawned = [];
+  const accepted = [];
   for (let asteroidIndex = 0; asteroidIndex < totalCount; asteroidIndex += 1) {
-    const entity = beltSubset.length > 0
+    const frozenTypeID = generation?.typeIDs[asteroidIndex] || nativeTypes?.[asteroidIndex];
+    const frozenType = frozenTypeID ? resolveItemByTypeID(frozenTypeID) : null;
+    if (frozenTypeID && (!frozenType || Number(frozenType.categoryID) !== 25)) {
+      throw new Error(`BELT_GENERATION_TYPE_UNAVAILABLE: ${belt.itemID}:${frozenTypeID}`);
+    }
+    const pool = frozenType ? [frozenType] : beltSubset;
+    const entity = pool.length > 0
       ? buildSystemOreAsteroidEntity(
         scene,
         belt,
@@ -1114,7 +1165,7 @@ function populateBeltField(scene, belt) {
         totalCount,
         fieldProfile,
         rng,
-        beltSubset,
+        pool,
       )
       : buildDecorativeFallbackAsteroidEntity(
         belt,
@@ -1126,16 +1177,38 @@ function populateBeltField(scene, belt) {
     if (!entity) {
       continue;
     }
-    if (scene.addStaticEntity(entity)) {
-      spawned.push(entity);
+    if (nativeTypes || generation?.source === "native-belt-counts") {
+      entity.generatedFromSystemIDTable = false;
+      entity.resourceFieldSource = "native-belt-counts";
     }
+    accepted.push(entity);
+  }
+  if (!generation && accepted.length > 0) {
+    // Persist before publishing any of the new rocks. Legacy partially mined
+    // fields keep their previous deterministic count/type/layout generation.
+    generation = miningState.persistBeltGeneration(scene.systemID, belt.itemID, {
+      version: 2,
+      source: nativeTypes ? "native-belt-counts" : "legacy-systemID",
+      sourceSha256: nativeTypes ? native.sourceSha256 : null,
+      fieldSeed: belt.fieldSeed,
+      fieldStyleID: belt.fieldStyleID,
+      fieldProfile,
+      fieldOrigin: cloneVector(belt.position),
+      geometryRngSkip: acceptedGeometryRngSkip,
+      typeIDs: accepted.map((entity) => entity.miningYieldTypeID),
+    });
+  }
+  for (const entity of accepted) {
+    if (scene.addStaticEntity(entity)) spawned.push(entity);
   }
 
   recordAsteroidBootstrap(scene, {
     beltID: toPositiveInt(belt && belt.itemID, 0),
     spawnedCount: spawned.length,
-    orePool: systemOrePool,
-    beltSubset,
+    orePool: generation
+      ? [...new Set(accepted.map((entity) => entity.miningYieldTypeID))].map((typeID) => ({ typeID }))
+      : systemOrePool,
+    beltSubset: [...new Set(accepted.map((entity) => entity.miningYieldTypeID))].map((typeID) => ({ typeID })),
     fieldProfile: {
       count: fieldProfile.count,
       authoredCount: fieldProfile.authoredCount,
@@ -1147,8 +1220,8 @@ function populateBeltField(scene, belt) {
       laneCount: fieldProfile.laneCount,
       sideOffsetMeters: fieldProfile.sideOffsetMeters,
     },
-    securityClass: enriched.securityClass,
-    securityStatus: enriched.securityStatus,
+    securityClass: enriched?.securityClass,
+    securityStatus: enriched?.securityStatus,
   });
 
   return spawned;
@@ -1185,12 +1258,12 @@ function handleSceneCreated(scene) {
     };
   }
 
-  scene._asteroidFieldsInitialized = true;
   const belts = asteroidData.getBeltsForSystem(scene.systemID);
   const spawned = [];
   for (const belt of belts) {
     spawned.push(...populateBeltField(scene, belt));
   }
+  scene._asteroidFieldsInitialized = true;
 
   return {
     success: true,

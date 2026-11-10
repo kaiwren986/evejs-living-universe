@@ -1,0 +1,18 @@
+{
+  "policyID": "security-regional-pirate-variants-v1",
+  "maximumAgentLevel": 5,
+  "pirateFactionKeys": ["guristas", "angels", "blood", "sanshas", "serpentis"],
+  "evidenceClass": "TQ_L1_patterns_projected_to_L1_L5_TODO",
+  "sourceRefs": [
+    {"source": "captured_TQ_offer_family_projection", "file": "server/src/config/securityMissionOfferProjection.json"},
+    {"source": "existing_regional_pirate_authority", "file": "server/src/space/npc/pirateFactionPolicy.js"},
+    {"source": "first_person_player_reports", "url": "https://forums.eveonline.com/t/missions-vs-agents-cross-reference/72666"},
+    {"source": "community_pool_research_L4", "url": "https://wiki.eveuniversity.org/User:Erwin_Madelung/Mission_reports_by_level"}
+  ],
+  "validationTODOs": [
+    {"fieldPath": "/regionalVariantSelection", "validationTODO": "TODO: Captured family-specific space, agent-faction and fixed/mixed enemy patterns outrank the former blanket regional rule. Apply them to L1-L5. Use local native pirate alternatives only where the family lacks stronger captured evidence; no blanket foreign-pirate ban."},
+    {"fieldPath": "/maximumAgentLevel", "validationTODO": "TODO: Apply L1 selection rules to L2-L5 as the approved baseline. L5 community reports describe possible variant differences; retain that counterevidence for validation rather than treating the projection as established parity."},
+    {"fieldPath": "/observedAgentExceptions", "validationTODO": "TODO: Validate capture-to-mission identity and dates. Existing exact-agent/system TQ observations override the regional inference, including recorded foreign-pirate offers. Wiki/video/family reward assumptions alone are not exact-agent offer evidence."},
+    {"fieldPath": "/unresolvedPools", "validationTODO": "TODO: Resolve families without an admitted local variant, unknown native enemy factions, special/unmapped space and standalone missions from recorded offers. Preserve them rather than inventing a complete deny-list. Weights and repeat rules remain separate TODOs."}
+  ]
+}

@@ -16,6 +16,8 @@ const path = require("path");
 const { createRng } = require(path.join(__dirname, "../../../common/random"));
 
 const WARP_JITTER_RADIUS_METERS = 2_500;
+// NPCWarpTo's default jitterRadius (behaviors/entity.py L53).
+const NPC_WARP_JITTER_RADIUS_METERS = 20_000;
 
 // A uniform point inside the ball of `radiusMeters`, from three draws of
 // `random` (each in [0, 1)): the direction's height and angle, then the
@@ -40,6 +42,11 @@ function pilotWarpStreamSeed(shipID, simTimeMs, orderCount) {
   return `pilotWarp:${shipID}:${simTimeMs}:${orderCount}`;
 }
 
+// The seed of an NPC warp's stream. An NPC warps at most once in a tick.
+function npcWarpStreamSeed(entityID, simTimeMs) {
+  return `npcWarp:${entityID}:${simTimeMs}`;
+}
+
 // One warp's jitter, pilot or fleet: `next()` is the next offset (a fleet
 // warp draws one per ship), `random` the stream itself (a stargate landing's
 // scatter draws from it too). `seed` names the stream; `options.random`
@@ -57,8 +64,10 @@ function createWarpJitter(seed, options = {}) {
 }
 
 module.exports = {
+  NPC_WARP_JITTER_RADIUS_METERS,
   WARP_JITTER_RADIUS_METERS,
   createWarpJitter,
   jitterOffset,
+  npcWarpStreamSeed,
   pilotWarpStreamSeed,
 };

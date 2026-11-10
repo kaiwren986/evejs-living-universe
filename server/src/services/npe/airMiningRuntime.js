@@ -9,6 +9,14 @@ const { graphError } = require("../nodegraph/nodeGraphCompiler");
 const { cloneValue: clone } = require("../../common/clone");
 const TEMPLATE_ID = "evejs.air-tutorial:9245";
 const ROCK_IDS = Object.freeze([1114285, 1114286, 1114287]);
+const WRECK_OBJECT_ID = 1114288;
+// Scene 2.1.01 counts the pilot as arrived only within 5,000 km of the client's
+// "2.1._beacon_item_id", and steps 2.1.02-2.1.05 run only while that check passes. The site
+// entity (entry_item_id_mining_dungeon) is shown only in the pilot's bubble, ~265 km from the
+// warp-in point, so the client never has that ball. The site's big asteroid (this dungeon
+// object, same spot as the site entity) is visible site-wide (content pack 1.0.4).
+const BEACON_OBJECT_ID = 1114302;
+const LOOT_BOX_TYPE_ID = 60784;
 const ports = () => require("../dungeon/dungeonUniverseSiteService").airMiningPorts;
 const runtime = () => require("../../space/runtime");
 function ok(result) { if (!result?.success) throw graphError("AIR_MINING_ACTION_FAILED", result?.errorMsg); return result; }
@@ -25,6 +33,30 @@ function entities(scene, site) {
   return [...(scene?.staticEntitiesByID?.values() || []), ...(scene?.getDynamicEntities() || [])].filter(entity => entity.dungeonSiteInstanceID === site.instanceID);
 }
 function object(scene, site, objectID) { return entities(scene, site).find(entity => Number(entity.dunObjectID || entity.dungeonSourceObjectID) === Number(objectID)) || null; }
+function beaconID(characterID) {
+  const site = siteFor(characterID);
+  return Number(site && object(runtime().scenes.get(site.solarSystemID), site, BEACON_OBJECT_ID)?.itemID) || null;
+}
+// The wreck can come back with a new item ID after the site was rebuilt or the server
+// restarted. Graph values saved before still name the old one; they mean the current wreck.
+function currentItemID(characterID, itemID) {
+  const state = characters.getCharacterRecord(characterID)?.authoredAirTutorial;
+  return state?.miningRetiredWreckIDs?.includes(Number(itemID)) && state.miningWreckID ? state.miningWreckID : Number(itemID);
+}
+// Step 2.1.05 wants the box from the site's wreck. Keep the remembered box while it still
+// exists (in a station, or in a container or ship that still exists); otherwise the wreck was
+// re-created, and EveJS seeds a site's loot only once, so a re-created wreck is empty: put the
+// box back and remember that one.
+function lootBoxIDs(state, wreckID) {
+  const reachable = (id) => {
+    const item = inventory.findItemById(id);
+    return Boolean(item && (Number(item.locationID) < 1e9 || inventory.findItemById(item.locationID)));
+  };
+  if (state.miningSourceItemIDs?.some(reachable)) return state.miningSourceItemIDs;
+  const boxes = () => inventory.listContainerItems(null, wreckID).filter(item => item.typeID === LOOT_BOX_TYPE_ID).map(item => item.itemID);
+  if (!boxes().length) ok(inventory.grantItemsToOwnerLocation(1, wreckID, 5, [{ itemType: LOOT_BOX_TYPE_ID, quantity: 1 }]));
+  return boxes();
+}
 function persist(site, updates) {
   dungeon.mergeSpawnState(site.instanceID, { airMining: { ...clone(dungeon.getInstance(site.instanceID).spawnState.airMining || {}), ...updates } });
   ok(require("../../gameStore").flushTableSync("dungeonRuntimeState"));
@@ -50,7 +82,9 @@ function ensureSite(session, state, root = null) {
   if (site) extraction.reconcile(site.instanceID);
   const result = ok(require("../dungeon/dungeonUniverseSiteService").spawnTemplateForSession(session, TEMPLATE_ID, {
     operationKey: `air:${state.runID}:mining`, broadcast: false, spawnEncounters: false,
-    markCurrentDungeonRoom: false, position: state.miningPosition || undefined, spawnOffsetMeters: 7 * 149597870700,
+    // 7 AU out, on the pilot's own lane (operationSiteRuntime.pilotLanePosition).
+    markCurrentDungeonRoom: false,
+    position: state.miningPosition || require("../dungeon/operationSiteRuntime").pilotLanePosition(session, 7 * 149597870700), spawnOffsetMeters: 7 * 149597870700,
   }));
   site = dungeon.getInstance(result.data.instance.instanceID);
   state.miningInstanceID = site.instanceID; state.miningPosition = site.position; state.miningSystemID = site.solarSystemID;
@@ -64,10 +98,13 @@ function ensureSite(session, state, root = null) {
   const template = authority.getTemplateByID(TEMPLATE_ID);
   if (!template?.airEncounter?.mining) throw graphError("AIR_MINING_CONTENT_VERSION_REQUIRED");
   ports().actors(scene, site, template.airEncounter.actors);
-  const wreck = object(scene, site, 1114288);
+  const wreck = object(scene, site, WRECK_OBJECT_ID);
   if (!wreck) throw graphError("AIR_MINING_WRECK_MISSING");
+  if (state.miningWreckID && state.miningWreckID !== wreck.itemID) {
+    state.miningRetiredWreckIDs = [...new Set([...(state.miningRetiredWreckIDs || []), state.miningWreckID])].slice(-8);
+  }
   state.miningWreckID = wreck.itemID;
-  state.miningSourceItemIDs ||= inventory.listContainerItems(null, wreck.itemID).filter(item => item.typeID === 60784).map(item => item.itemID);
+  state.miningSourceItemIDs = lootBoxIDs(state, wreck.itemID);
   // Rebuild the graph's presentation policy before any resumed action or
   // native acquisition. The durable extraction ledger decides depletion.
   extraction.reconcile(site.instanceID, scene);
@@ -111,25 +148,35 @@ function scoped(context) {
   if (!site || Number(session.solarsystemid2 || session.solarsystemid) !== site.solarSystemID || scene?.systemID !== site.solarSystemID || p.solar_system_id && Number(p.solar_system_id) !== site.solarSystemID || p.dungeon_spawn_id && Number(p.dungeon_spawn_id) !== site.instanceID || p.spawn_id && Number(p.spawn_id) !== site.instanceID) throw graphError("AIR_MINING_SCENE_FORBIDDEN");
   return { site, scene };
 }
+// Cycles of the fleet's fake-mining beam: in effect until stopped (8 s cycles, about 22 hours).
+const FAKE_MINING_REPEAT = 10000;
 function applyCommand(scene, site, group, command) {
   const contract = authority.getTemplateByID(TEMPLATE_ID).airEncounter.mining;
   const descriptor = contract.allowedTargets[String(command.target)];
   const target = descriptor?.kind === "actorType" ? entities(scene, site).find(entity => entity.typeID === descriptor.typeID) : object(scene, site, descriptor?.dungeonObjectID);
   const actors = entities(scene, site).filter(entity => entity.airMiningGroup === group);
+  // Distance and speed come from the current pack, also for a command saved by an older one.
+  const authored = Object.values(contract.commands || {}).find(entry => entry.kind === command.kind && entry.groups?.includes(group));
+  if (authored) command = { ...command, rangeMeters: authored.rangeMeters, maxSpeedMeters: authored.maxSpeedMeters };
   // A mined-out target is legitimately absent when a saved presentation
   // command is replayed. Stop the visual effect; never recreate that rock.
   if (!target && descriptor?.kind !== "actorType" && ROCK_IDS.includes(descriptor?.dungeonObjectID) && extraction.harvested(site.instanceID, descriptor.dungeonObjectID) >= 38) command = { ...command, kind: "stopFakeMining" };
   if (!target && command.kind !== "stopFakeMining") throw graphError("AIR_MINING_TARGET_MISSING");
   for (const actor of actors) {
     if ((command.kind === "follow" || command.kind === "startHaulerCycle") && !scene.followShipEntity(actor, target.itemID, command.rangeMeters || 1000)) throw graphError("AIR_MINING_MOVEMENT_REFUSED");
-    if (command.kind === "orbit" && !scene.orbitShipEntity(actor, target.itemID, command.rangeMeters || 500)) throw graphError("AIR_MINING_MOVEMENT_REFUSED");
+    // maxSpeedMeters (pack 1.0.5): the security escort's AIR Frigate and AIR Cruiser make 1,890 m/s
+    // and would whirl around Elias; each actor orbits at most at that speed.
+    const orbitOptions = command.maxSpeedMeters > 0 && actor.maxVelocity > command.maxSpeedMeters ? { speedFraction: command.maxSpeedMeters / actor.maxVelocity } : {};
+    if (command.kind === "orbit" && !scene.orbitShipEntity(actor, target.itemID, command.rangeMeters || 500, orbitOptions)) throw graphError("AIR_MINING_MOVEMENT_REFUSED");
     if (["startFakeMining", "stopFakeMining"].includes(command.kind)) {
       const start = command.kind === "startFakeMining";
       actor.presentationSpecialFx ||= new Map();
-      if (start) actor.presentationSpecialFx.set("air-mining", { guid: "effects.Mining", targetID: target.itemID, durationMs: 8000, repeat: 1, forceFreshAcquireSpecialFxReplay: true });
+      // Fake mining is presentation only and runs until the client's "Stop Fake Mine" command, as
+      // on TQ: one 8-second cycle showed the beams only briefly.
+      if (start) actor.presentationSpecialFx.set("air-mining", { guid: "effects.Mining", targetID: target.itemID, durationMs: 8000, repeat: FAKE_MINING_REPEAT, forceFreshAcquireSpecialFxReplay: true });
       else actor.presentationSpecialFx.delete("air-mining");
       if (actor.airMiningFxTarget !== (start ? target.itemID : null)) {
-        scene.broadcastSpecialFx(actor.itemID, "effects.Mining", { targetID: target?.itemID || actor.airMiningFxTarget, start: start ? 1 : 0, active: start ? 1 : 0, duration: 8000, repeat: start ? 1 : 0 }, actor);
+        scene.broadcastSpecialFx(actor.itemID, "effects.Mining", { targetID: target?.itemID || actor.airMiningFxTarget, start: start ? 1 : 0, active: start ? 1 : 0, duration: 8000, repeat: start ? FAKE_MINING_REPEAT : 0 }, actor);
         actor.airMiningFxTarget = start ? target.itemID : null;
       }
     }
@@ -146,7 +193,7 @@ function choreography(scene, site, p) {
   }
   const command = contract.commands[p.message_value];
   if (!command?.groups.includes(binding.group)) throw graphError("AIR_MINING_COMMAND_FORBIDDEN");
-  const selected = { kind: command.kind, rangeMeters: command.rangeMeters, target: targets[binding.group] };
+  const selected = { kind: command.kind, rangeMeters: command.rangeMeters, maxSpeedMeters: command.maxSpeedMeters, target: targets[binding.group] };
   const slot = ["startFakeMining", "stopFakeMining"].includes(command.kind) ? "effect" : command.kind === "stageTarget" ? "staged" : "movement";
   const commands = { ...state.commands, [binding.group]: { ...state.commands?.[binding.group], [slot]: selected } };
   persist(site, { commands });
@@ -168,11 +215,17 @@ function register(graphs, encounter) {
       const offset = authority.getTemplateByID(TEMPLATE_ID).airEncounter.mining.entryOffset;
       return { spawn_id: site.instanceID, beacon_id: site.spawnState.siteID, entry_position: { x: site.position.x + offset.x, y: site.position.y + offset.y, z: site.position.z + offset.z } };
     }
-    // AIR's instance warps land unjittered.
-    if (atomID === 408) { ok(runtime().warpToPoint(session, p.position, { destinationStaticInstanceID: site.instanceID, destinationDungeonSiteID: site.spawnState.siteID, stopDistance: 0, warpJitter: null })); return {}; }
+    if (atomID === 408) {
+      // "Warp to Site" while already inside: EveJS refuses it (DunCannotWarpWithinComplex), and
+      // the failed action is replayed at every login. The pilot is already there: done.
+      if (scene.getShipEntityForSession(session)?.dungeonCurrentInstanceID === site.instanceID) return {};
+      // AIR's instance warps land unjittered.
+      ok(runtime().warpToPoint(session, p.position, { destinationStaticInstanceID: site.instanceID, destinationDungeonSiteID: site.spawnState.siteID, stopDistance: 0, warpJitter: null }));
+      return {};
+    }
     if (atomID === 278) return choreography(scene, site, p);
     if (atomID === 214) { purgeSite(root.characterID); return {}; }
-    const entity = p.item_id ? scene.getEntityByID(Number(p.item_id)) : object(scene, site, p.dungeon_object_id);
+    const entity = p.item_id ? scene.getEntityByID(currentItemID(root.characterID, p.item_id)) : object(scene, site, p.dungeon_object_id);
     if (!entity && atomID === 464 && ROCK_IDS.includes(Number(p.dungeon_object_id)) && extraction.harvested(site.instanceID, Number(p.dungeon_object_id)) >= 38) return {};
     if (!entity || entity.dungeonSiteInstanceID !== site.instanceID) throw graphError("AIR_MINING_OBJECT_FORBIDDEN");
     if ([457, 459].includes(atomID)) ports().targetable(scene, entity, atomID === 457);
@@ -188,4 +241,4 @@ function retainOre(context) {
   if (p.type_id !== 60771 || p.quantity_to_keep !== 114 || Object.values(site.spawnState.airMining?.extractions || {}).reduce((sum, value) => sum + value.quantity, 0) > 114) throw graphError("AIR_MINING_QUANTITY_INVALID");
   return {};
 }
-module.exports = { TEMPLATE_ID, ROCK_IDS, siteFor, ensureSite, evidence, register, purgeSite, retainOre };
+module.exports = { TEMPLATE_ID, ROCK_IDS, siteFor, beaconID, ensureSite, evidence, register, purgeSite, retainOre };

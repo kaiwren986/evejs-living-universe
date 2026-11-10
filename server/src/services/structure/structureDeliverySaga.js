@@ -273,6 +273,27 @@ function executeOperation(operation) {
         `${retireResult && retireResult.errorMsg || "unknown persistence error"}`,
     );
   }
+  // The row was written quietly inside the delivery; now that the delivery has
+  // committed, push it live once (OnNotificationReceived) under the same key.
+  if (notificationContext && deliveredTypeSummary.length > 0) {
+    try {
+      createNotification(notificationContext.recipientCharacterID, {
+        typeID: NOTIFICATION_TYPE.STRUCTURE_ITEMS_DELIVERED,
+        senderID: notificationContext.senderCharacterID,
+        groupID: NOTIFICATION_GROUP.MISC,
+        processed: false,
+        idempotencyKey: `${operation.operationKey}:notification`,
+        data: {
+          ...cloneValue(notificationContext.baseData || {}),
+          charID: notificationContext.senderCharacterID,
+          listOfTypesAndQty: deliveredTypeSummary,
+        },
+        emitLive: true,
+      });
+    } catch (error) {
+      log.debug(`[StructureDelivery] live delivery notice failed: ${error && error.message}`);
+    }
+  }
   return {
     success: true,
     changes,

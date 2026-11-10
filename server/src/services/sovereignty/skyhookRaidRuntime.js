@@ -17,7 +17,7 @@ const worldData = require("../../space/worldData");
 const { getWallclockNowMs, toFileTimeFromMs } = require("../../space/runtime/runtimeClock");
 const { createDurableSchedulerBinding } = require("../_shared/durableSchedulerBinding");
 const { SILO_TYPE_ID, SKYHOOK_TYPE_ID, SILO_LINK_RULES,
-  SILO_SHIELD_LINK_THRESHOLD, isWindowOpen, sampleNextWindow } = require("./skyhookRaidRules");
+  RAID_WINDOW_MS, SILO_SHIELD_LINK_THRESHOLD, isWindowOpen, sampleNextWindow } = require("./skyhookRaidRules");
 
 const DURABLE_RAID_JOB_TYPE = "skyhook.raid-resume";
 const schedulerBinding = createDurableSchedulerBinding({ requires: ["schedule", "cancel"] });
@@ -209,11 +209,26 @@ function ownerRecipients(record, maximum) {
       getSystemDistanceWithin(record.solarSystemID, systemID, maximum) !== null;
   }).map((session) => Number(session.characterID)))].sort((a, b) => a - b);
 }
+// Link alerts go to every pilot nearby, not only the owner: Equinox notes,
+// "a notification to all players in the solar system, and after 2 minutes, all
+// pilots 1 jump away, and finally, after 5 minutes ... all pilots within 2
+// jumps"; 2024-10 notes, a friendly theft "will immediately alert everyone
+// within 2 jumps"; the client headers read "Nearby Skyhook Theft ...". The
+// linker is left out.
+function nearbyRecipients(record, maximum, linkerCharacterID) {
+  return [...new Set(sessionRegistry.getSessions().filter((session) => {
+    const characterID = Number(session.characterID);
+    const character = peekCharacterRecord(characterID);
+    const systemID = Number(session._space?.systemID || session.solarsystemid2 || session.solarsystemid);
+    return character && !character.deletedAt && characterID !== Number(linkerCharacterID) &&
+      getSystemDistanceWithin(record.solarSystemID, systemID, maximum) !== null;
+  }).map((session) => Number(session.characterID)))].sort((a, b) => a - b);
+}
 function deliverAlert(record, entry, wave) {
   const link = record.raid.activeLink;
   if (!link || link.alerts[String(wave)]?.completed) return;
   if (!link.alerts[String(wave)]) {
-    const recipients = ownerRecipients(record, link.friendly ? 2 : wave);
+    const recipients = nearbyRecipients(record, link.friendly ? 2 : wave, link.characterID);
     change(record.skyhookID, (next) => {
       next.raid.activeLink.alerts[String(wave)] = { recipients, completed: false };
     });
@@ -225,7 +240,10 @@ function deliverAlert(record, entry, wave) {
       groupID: NOTIFICATION_GROUP.STRUCTURES,
       idempotencyKey: `skyhook-link:${link.linkID}:${wave}:${characterID}`,
       data: { planetID: record.planetID, characterID: link.characterID,
-        linkTime: String(toFileTimeFromMs(link.startedAtMs)), reminderNumber: wave,
+        // A FILETIME long: the client's {[datetime]linkTime} cannot format a
+        // string, and the whole body then shows its raw placeholders
+        // (formatters/skyhook.py SkyhookLinkStarted; real client, 2026-11-07).
+        linkTime: { type: "long", value: String(toFileTimeFromMs(link.startedAtMs)) }, reminderNumber: wave,
         remainingMinutes: Math.max(0, Math.ceil((entry.completeAtSimMs - entry.scene.getCurrentSimTimeMs()) / 60000)) } };
     requireSuccess(createNotification(characterID, { ...options, emitLive: false }));
     requireSuccess(database().flushTableSync("notifications"));
@@ -570,11 +588,27 @@ function handleParentDestroyed(id, scene) {
     return { success: false, errorMsg: error.message };
   }
 }
+// GM time skip (owner ruling 2026-11-07: hybrid with time forwarding): the
+// skyhook's next theft window opens in `seconds` and runs its normal two hours.
+// Opening, notices, links and the next sampled window all stay with
+// processRecord.
+function adminSetTheftWindow(id, seconds) {
+  const record = read(id);
+  if (!record || !record.raid || record.destroyed) return { success: false, errorMsg: "SKYHOOK_NOT_FOUND" };
+  const startMs = getWallclockNowMs() + Math.max(0, Number(seconds) || 0) * 1000;
+  change(id, (next) => {
+    next.theftVulnerability = { startMs, endMs: startMs + RAID_WINDOW_MS };
+    next.raid.windowStartedMs = null;
+  });
+  require("./skyhookRuntime").publishSkyhookState(record.solarSystemID);
+  kick(id);
+  return { success: true, data: read(id).theftVulnerability };
+}
 async function idle() { while (admissions.size) await Promise.allSettled([...admissions]); }
 
-module.exports = { DURABLE_RAID_JOB_TYPE, startRaidLink, settleRaidReceipt,
+module.exports = { DURABLE_RAID_JOB_TYPE, startRaidLink, settleRaidReceipt, adminSetTheftWindow,
   reconcileScene, tickScene, processRecord, hydrateSilo, isSealedRaidContainer,
-  blocksSiloDamage, applySiloDamage, getSystemDistanceWithin, ownerRecipients,
+  blocksSiloDamage, applySiloDamage, getSystemDistanceWithin, ownerRecipients, nearbyRecipients,
   handleParentDestroyed,
   handleDurableRaid, reconcileDurableRaids, idle,
   bindDurableScheduler: schedulerBinding.bind, unbindDurableScheduler: schedulerBinding.unbind };

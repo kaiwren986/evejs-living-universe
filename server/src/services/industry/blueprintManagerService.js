@@ -15,6 +15,7 @@ const {
   listBlueprintInstancesByOwner,
 } = require(path.join(__dirname, "./industryRuntimeState"));
 const log = require(path.join(__dirname, "../../utils/logger"));
+const { throwWrappedUserError } = require(path.join(__dirname, "../../common/machoErrors"));
 
 class BlueprintManagerService extends BaseService {
   constructor() {
@@ -31,7 +32,13 @@ class BlueprintManagerService extends BaseService {
   Handle_GetBlueprintData(args, session) {
     const blueprintID = args && args.length > 0 ? args[0] : null;
     log.debug(`[BlueprintManager] GetBlueprintData(${String(blueprintID)})`);
-    return buildBlueprintInstancePayload(getBlueprintByItemID(blueprintID, session) || {});
+    const blueprint = getBlueprintByItemID(blueprintID, session);
+    if (!blueprint) {
+      // The client catches UserError and falls back to the job's real type.
+      // Unavailable and unauthorized instances share the same refusal.
+      throwWrappedUserError("IndustryBlueprintNotFound");
+    }
+    return buildBlueprintInstancePayload(blueprint);
   }
 
   Handle_GetBlueprintDataByOwner(args, session) {

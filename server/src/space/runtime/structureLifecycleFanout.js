@@ -36,6 +36,7 @@ const sessionRegistry = require(path.join(
   runtimeEntryDirname,
   "../services/chat/sessionRegistry",
 ));
+const { notifyDockingAccessChangedForStructures } = require("../../services/structure/structureAccessNotifications");
 const {
   buildStructureHangarViewState,
 } = require(path.join(
@@ -60,12 +61,16 @@ function getStructureStaticEntitySignature(entity) {
     state: entity && entity.state,
     stateStartedAt: entity && entity.stateStartedAt,
     stateEndsAt: entity && entity.stateEndsAt,
+    deployStartedAt: entity && entity.deployStartedAt,
+    deployEndsAt: entity && entity.deployEndsAt,
     timerPausedAt: entity && entity.timerPausedAt,
     upkeepState: entity && entity.upkeepState,
     deedState: entity && entity.deedState,
     repairing: entity && entity.repairing,
     serviceStates: entity && entity.serviceStates,
+    modules: entity && entity.modules,
     targetSolarsystemID: entity && entity.targetSolarsystemID,
+    activationState: entity && entity.activationState,
     dunRotation: entity && entity.dunRotation,
     destinationID: entity && entity.destinationID,
     unanchoring: entity && entity.unanchoring,
@@ -467,49 +472,16 @@ function notifyDockingAccessChangedSessions(changedStructures = []) {
   if (!Array.isArray(changedStructures) || changedStructures.length === 0) {
     return 0;
   }
-  const solarSystemIDs = new Set();
+  const structures = [];
   for (const change of changedStructures) {
     const previous = change && change.previous ? change.previous : null;
     const next = change && change.next ? change.next : null;
     if (!hasCorporationStructureDirectoryChange(previous, next)) {
       continue;
     }
-    const solarSystemID = toInt(
-      (next && next.solarSystemID) || (previous && previous.solarSystemID),
-      0,
-    );
-    if (solarSystemID > 0) {
-      solarSystemIDs.add(solarSystemID);
-    }
+    structures.push(next || previous);
   }
-  if (solarSystemIDs.size === 0) {
-    return 0;
-  }
-
-  const sessions =
-    typeof sessionRegistry.getSessions === "function"
-      ? sessionRegistry.getSessions()
-      : [];
-  let deliveredCount = 0;
-  for (const session of sessions) {
-    const sessionSystemID = toInt(
-      session && (session.solarsystemid2 || session.solarsystemid),
-      0,
-    );
-    if (
-      !solarSystemIDs.has(sessionSystemID) ||
-      typeof session.sendNotification !== "function"
-    ) {
-      continue;
-    }
-    session.sendNotification(
-      "OnDockingAccessChangedForCurrentSolarSystem",
-      "*solarsystemid",
-      [],
-    );
-    deliveredCount += 1;
-  }
-  return deliveredCount;
+  return notifyDockingAccessChangedForStructures(structures);
 }
 
 function syncRuntimeStructureStateChanges(runtime, changePayload = {}) {
