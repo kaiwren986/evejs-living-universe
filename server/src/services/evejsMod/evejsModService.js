@@ -90,9 +90,14 @@ function crewChief(ownerID) {
   try {
     const crew = require(path.join(__dirname, "../crew/crewRuntime")).getDefaultCrewService();
     const person = crew?.snapshot?.(ownerID)?.crew?.roster?.[0];
-    if (person?.name) return { name: person.name, role: person.role || "crew chief" };
+    if (person?.name) {
+      return { name: person.name, role: person.role || "crew chief",
+        voice: "a practical, loyal spacer, a little dry" };
+    }
   } catch { /* the crew chief is optional */ }
-  return { name: "Your first officer", role: "first officer" };
+  // No crew signed on: the ship's own AI answers (Aura is EVE's ship AI).
+  return { name: "Aura", role: "Ship AI",
+    voice: "the ship's onboard AI: calm, precise and quietly warm, never robotic, never servile" };
 }
 
 function shipFacts(session) {
@@ -136,7 +141,7 @@ class EvejsModService extends BaseService {
     const reply = await llm.chat([
       { role: "system", content:
         `You are ${chief.name}, ${chief.role} aboard the captain's ship in EVE Online's New Eden. ` +
-        "Speak in character: a practical, loyal spacer, a little dry. Address the captain as Captain. " +
+        `Speak in character as ${chief.voice}. Address the captain as Captain. ` +
         "Answer in two to four short sentences. Use only the facts below; never invent numbers, names, " +
         "cargo or events that are not listed. No stage directions, no lists, no markdown.\n\n" +
         `Facts:\n${factLines.join("\n")}` },

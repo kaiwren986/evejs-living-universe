@@ -62,8 +62,8 @@ class CrewLinkWindow(Window):
     default_caption = 'Crew Link'
     default_iconNum = eveicon.people
     default_width = 420
-    default_height = 600
-    default_minSize = (360, 460)
+    default_height = 520
+    default_minSize = (360, 440)
     default_isStackable = False
 
     def ApplyAttributes(self, attributes):
@@ -101,7 +101,8 @@ class CrewLinkWindow(Window):
         Line(parent=self.content, align=uiconst.TOTOP, weight=1, color=_accent(0.35), padTop=3, padBottom=6)
 
     def _BuildComms(self):
-        panel = ContainerAutoSize(parent=self.content, align=uiconst.TOTOP, alignMode=uiconst.TOTOP, minHeight=96)
+        # Fills the space above the action bar, so the window reads as one transmission screen.
+        panel = Container(parent=self.content, align=uiconst.TOALL)
         Frame(bgParent=panel, texturePath=CUT_FRAME, cornerSize=9, color=_accent(0.35))
         Fill(bgParent=panel, color=(0.0, 0.0, 0.0, 0.25))
         top = Container(parent=panel, align=uiconst.TOTOP, height=20, padding=(12, 10, 12, 0))
