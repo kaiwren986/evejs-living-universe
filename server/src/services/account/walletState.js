@@ -140,6 +140,7 @@ function buildWalletAdjustmentFingerprint(charId, amount, options = {}) {
     description: resolveLedgerReason(options, "Wallet balance change"),
     currency:
       Number(options.currency || JOURNAL_CURRENCY.ISK) || JOURNAL_CURRENCY.ISK,
+    ...(options.minimumBalance !== undefined ? { minimumBalance: options.minimumBalance } : {}),
   });
 }
 
@@ -160,6 +161,9 @@ function buildPlexAdjustmentFingerprint(charId, amount, options = {}) {
 }
 
 function findWalletOperationReceipt(record, idempotencyKey) {
+  if (/^crew-equipment:(mining|hauling|manufacturing):[1-3]$/.test(idempotencyKey)) return record.crewEquipmentWalletReceipts?.[idempotencyKey] || null;
+  const crew = /^crew-buy-wallet:(\d+):[a-f0-9]{64}:(debit|refund)$/.exec(idempotencyKey);
+  if (crew) { const prior = record.crewPurchaseWalletReceipts?.[crew[2]]; return prior?.serial >= Number(crew[1]) ? prior : null; }
   if (idempotencyKey.startsWith("campaign:")) return record.campaignWalletReceipts?.[idempotencyKey] || null;
   if (idempotencyKey.startsWith("contract:") && record.contractWalletReceipts?.[idempotencyKey]) return record.contractWalletReceipts[idempotencyKey];
   if (idempotencyKey.startsWith("freelance:")) return record.freelanceWalletReceipts?.[idempotencyKey] || null;
@@ -172,6 +176,13 @@ function findWalletOperationReceipt(record, idempotencyKey) {
 }
 
 function appendWalletOperationReceipt(record, receipt) {
+  // Nine permanent supplier receipts per pilot; ordinary wallet-history pruning
+  // must never allow an interrupted equipment purchase to charge again.
+  if (/^crew-equipment:(mining|hauling|manufacturing):[1-3]$/.test(receipt.idempotencyKey)) {
+    record.crewEquipmentWalletReceipts = { ...(record.crewEquipmentWalletReceipts || {}), [receipt.idempotencyKey]: cloneValue(receipt) }; return;
+  }
+  const crew = /^crew-buy-wallet:(\d+):[a-f0-9]{64}:(debit|refund)$/.exec(receipt.idempotencyKey);
+  if (crew) { record.crewPurchaseWalletReceipts = { ...(record.crewPurchaseWalletReceipts || {}), [crew[2]]: { ...cloneValue(receipt), serial: Number(crew[1]) } }; return; }
   if (receipt.idempotencyKey.startsWith("campaign:")) {
     record.campaignWalletReceipts = { ...(record.campaignWalletReceipts || {}), [receipt.idempotencyKey]: cloneValue(receipt) };
     return;
@@ -773,6 +784,8 @@ function applyAdjustCharacterBalance({ charId, amount, options = {} }) {
   }
 
   const currentWallet = getCharacterWallet(charId);
+  if (options.minimumBalance !== undefined && (!Number.isFinite(options.minimumBalance) || options.minimumBalance < 0)) return { success: false, errorMsg: "WALLET_RESERVE_INVALID" };
+  if (delta < 0 && options.minimumBalance !== undefined && normalizeMoney(currentWallet.balance + delta, 0) < options.minimumBalance) return { success: false, errorMsg: "WALLET_RESERVE" };
   if ((idempotencyKey?.startsWith("nodegraph:") || options.requireExactCredit === true) && currentWallet.balance + delta > MAX_WALLET_BALANCE) {
     return { success: false, errorMsg: "WALLET_LIMIT" };
   }

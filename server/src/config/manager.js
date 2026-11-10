@@ -451,6 +451,7 @@ function coerceConfigValue(entry, value) {
 }
 
 function configDomainForKey(key) {
+  if (key.startsWith("crew")) return "world";
   if (key.startsWith("skinr")) return "gameplay";
   if (key.startsWith("campaignTrail") || key === "eventSchedules" || key === "loginCampaigns") return "gameplay";
   if (key.startsWith("mining") || key.startsWith("industry") || key === "asteroidFieldsEnabled" || key === "asteroidBeltStartupReset") return "mining";
@@ -471,6 +472,7 @@ function configDomainForKey(key) {
 }
 
 function configSectionForKey(domain, key) {
+  if (key.startsWith("crew")) return "crew";
   if (key === "loginCampaigns") return "rewards";
   if (domain === "server") {
     if (key.startsWith("dev") || key === "playerConnectToken") return "development";

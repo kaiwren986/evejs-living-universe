@@ -18,7 +18,25 @@ Docker is the recommended backend setup. Native Windows installation is also sup
 - [Native Windows setup](doc/SETUP.md#native-windows-setup)
 - [Browser companion setup](doc/SETUP.md#browser-companion)
 
+## Design direction
+
+- [Ship crews and the industrial RPG](doc/SHIP_CREW_RPG_DESIGN.md): agreed direction,
+  proposed crew and trading mechanics, and native in-game UI requirements.
+
 ## Operations and maintenance
+
+- [X-Command: persistent courier crew prototype](doc/CREW_SLICE.md)
+- [X-Command: automated mining, refining and ammo/module manufacturing](doc/CREW_MANUFACTURING.md)
+- [X-Command: surplus selling and production funding](doc/CREW_SELLING.md)
+- [X-Command: sales-funded mineral buying](doc/CREW_BUYING.md)
+- [X-Command: full economy loop testing and recovery](doc/CREW_ECONOMY_LOOP.md)
+- [X-Command: profit-aware manufacturing and mineral buying](doc/CREW_PROFITABILITY.md)
+- [X-Command: adaptive production and procurement priorities](doc/CREW_PRODUCTION_PRIORITY.md)
+- [X-Command: production-directed mining and refining](doc/CREW_RESOURCE_PLANNING.md)
+- [X-Command: production-directed courier deliveries](doc/CREW_COURIER_PRIORITY.md)
+- [X-Command: full production-aware economy stress tests](doc/CREW_PRODUCTION_STRESS.md)
+- [X-Command: crew experience and work skills](doc/CREW_PROGRESSION.md)
+- [X-Command: buying and selling crew skills](doc/CREW_TRADE_PROGRESSION.md)
 
 - [Docker daily use](doc/SETUP.md#daily-docker-use)
 - [Market seed engines, backups, and maintenance](doc/SETUP.md#market-seed-engines-and-maintenance)

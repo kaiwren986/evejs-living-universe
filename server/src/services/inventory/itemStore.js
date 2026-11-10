@@ -8477,7 +8477,30 @@ function acknowledgeCareerCombatOutcome(characterID, eventID) {
   return flushCareerCombatOutcomes();
 }
 
+// The crew owner calls this only after its completed state is durably fenced.
+// No completed crew command can re-dispatch that job; inventory receipts can
+// then retire without growing forever on an automated supply route.
+function acknowledgeCrewCargoTransfer(jobID) {
+  if (!/^[a-f0-9]{64}$/.test(jobID)) return { success: false, errorMsg: "CREW_JOB_ID_INVALID" };
+  const keys = new Set([`crew:${jobID}:reserve`, `crew:${jobID}:deliver`]);
+  const pruned = pruneIdempotentGrantReceipts((receipt) => keys.has(receipt.receiptKey));
+  if (!pruned.success) return pruned;
+  const flushed = repo.flushTableSync(ITEMS_TABLE);
+  return flushed?.success ? { success: true, durable: true, removed: pruned.removed } : { success: false, errorMsg: "CREW_RECEIPT_ACK_PENDING" };
+}
+
+function acknowledgeMiningCrewTransfer(jobID) {
+  if (!/^[a-f0-9]{64}$/.test(jobID)) return { success: false, errorMsg: "CREW_JOB_ID_INVALID" };
+  const keys = new Set([`crew-mining:${jobID}:grant`, `crew-mining:${jobID}:unload`]);
+  const pruned = pruneIdempotentGrantReceipts((receipt) => keys.has(receipt.receiptKey));
+  if (!pruned.success) return pruned;
+  const flushed = repo.flushTableSync(ITEMS_TABLE);
+  return flushed?.success ? { success: true, durable: true } : { success: false, errorMsg: "CREW_RECEIPT_ACK_PENDING" };
+}
+
 module.exports = {
+  acknowledgeMiningCrewTransfer,
+  acknowledgeCrewCargoTransfer,
   getCareerCombatOutcome,
   commitCareerCombatOutcome,
   listPendingCareerCombatOutcomes,

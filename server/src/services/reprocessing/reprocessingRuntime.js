@@ -410,6 +410,18 @@ function resolveReprocessingContext(session) {
   };
 }
 
+// Owned NPC-station work does not move the pilot or claim their client session.
+function resolveCrewReprocessingContext(characterID, stationID) {
+  const station = worldData.getStationByID(stationID);
+  if (!station || !(Number(station.reprocessingEfficiency) > 0)) return { success: false, errorMsg: "REPROCESSING_OFFLINE" };
+  const character = getCharacterRecord(characterID);
+  if (!character) return { success: false, errorMsg: "CHARACTER_NOT_FOUND" };
+  return { success: true, data: { characterID, corporationID: Number(character.corporationID) || 0,
+    dockedLocationID: stationID, dockedKind: "station", stationRecord: { ...station, ownerID: station.corporationID },
+    structure: null, skillMap: getCachedCharacterSkillMap(characterID), implants: character.implants || [],
+    standing: standingRuntime.resolveBestStandingValue(characterID, station.corporationID).standing } };
+}
+
 function resolveStructureSecurityBand(context) {
   if (!context || context.dockedKind !== "structure") {
     return null;
@@ -1314,6 +1326,7 @@ function throwReprocessingError(errorMsg, values = {}) {
 }
 
 module.exports = {
+  resolveCrewReprocessingContext,
   buildReprocessingOptionsForTypes,
   buildReprocessingQuoteForItem,
   buildReprocessingQuotesForItems,

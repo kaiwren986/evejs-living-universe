@@ -110,6 +110,7 @@ const {
  * present for the server without anyone having to remember to enable it.
  */
 const PRODUCTION_STAGES = {
+  startCrewOperations: true,
   installLifecycleLogging: true,
   logBanner: true,
   syncStaticTables: true,
@@ -478,6 +479,10 @@ async function bootWorld(options = {}) {
     shutdown: null,
   };
 
+  if (stages.startCrewOperations && stages.startDurableOwners) {
+    require("./src/services/crew/crewRuntime").startCrewOperations();
+  }
+
   // A failed Homefront save must not stop the database shutdown that follows,
   // or every other table's pending writes are lost with it.
   const flushHomefrontOperations = () => {
@@ -490,6 +495,7 @@ async function bootWorld(options = {}) {
 
   if (!stages.startDurableOwners) {
     world.shutdown = async () => {
+      require("./src/services/crew/crewRuntime").stopCrewOperations();
       flushHomefrontOperations();
       return database.shutdown("bootWorld-shutdown");
     };
@@ -510,6 +516,7 @@ async function bootWorld(options = {}) {
   world.schedulerRuntime = productionSchedulerRuntime;
   world.walletAuthorityRuntime = productionWalletAuthorityRuntime;
   world.shutdown = async () => {
+    require("./src/services/crew/crewRuntime").stopCrewOperations();
     flushHomefrontOperations();
     unregisterProductionSchedulerShutdown();
     unregisterProductionWalletAuthorityShutdown();
@@ -566,6 +573,7 @@ async function bootWorld(options = {}) {
     // failure to the caller so a non-server caller is not killed by a startup
     // path it may want to recover from.
     log.err(`[Startup] Failed while starting production owners: ${error.message}`);
+    require("./src/services/crew/crewRuntime").stopCrewOperations();
     unregisterProductionSchedulerShutdown();
     unregisterProductionWalletAuthorityShutdown();
     await productionSchedulerRuntime.shutdown().catch(() => null);

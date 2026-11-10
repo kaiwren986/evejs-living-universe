@@ -1,4 +1,13 @@
 {
+  "crew": {
+    "crewOperationsEnabled": true,
+    "crewTravelLegMs": 30000,
+    "crewMiningTravelMs": 30000,
+    "crewMiningCycleMs": 60000,
+    "crewMiningBatchM3": 100,
+    "crewRefiningCycleMs": 30000,
+    "crewRefiningBatchM3": 1000
+  },
   "wormholes": {
     "wormholesEnabled": true,
     "wormholeLifetimeScale": 1,
@@ -43,9 +52,9 @@
       "gas_nebula": 1,
       "wormhole_gas": 1,
       "booster_lab": 1,
-        "booster_facility": 1,
-        "ded_rated": 1
-      }
+      "booster_facility": 1,
+      "ded_rated": 1
+    }
   },
   "scenery": {
     "defaultStargateBillboardsEnabled": true,

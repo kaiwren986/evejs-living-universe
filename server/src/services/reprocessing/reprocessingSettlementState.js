@@ -90,6 +90,7 @@ function readRoot() {
       root.byCharacter && typeof root.byCharacter === "object"
         ? cloneValue(root.byCharacter)
         : {},
+    crewReceipts: cloneValue(root.crewReceipts || {}),
   };
 }
 
@@ -99,6 +100,7 @@ function writeRoot(root) {
     version: ROOT_VERSION,
     nextOperationID: toPositiveInt(root.nextOperationID, 1),
     byCharacter: cloneValue(root.byCharacter || {}),
+    crewReceipts: cloneValue(root.crewReceipts || {}),
   });
   if (!result || result.success !== true) {
     return result || { success: false, errorMsg: "WRITE_ERROR" };
@@ -256,7 +258,11 @@ function prepareReprocessingSettlement(options = {}) {
     return { success: false, errorMsg: "INVALID_REPROCESSING_SETTLEMENT" };
   }
 
+  const crewOrder = options.crewOrder || null;
+  if (crewOrder && (!Number.isSafeInteger(crewOrder.serial) || crewOrder.serial < 1 ||
+      !/^[a-f0-9]{64}$/.test(crewOrder.jobID))) return { success: false, errorMsg: "INVALID_CREW_REPROCESSING_ORDER" };
   const requestFingerprint = JSON.stringify({
+    ...(crewOrder ? { crewOrder } : {}),
     characterID,
     target,
     inputs: inputs.map((entry) => ({
@@ -276,6 +282,14 @@ function prepareReprocessingSettlement(options = {}) {
   });
   const root = readRoot();
   const key = String(characterID);
+  const completed = root.crewReceipts[key];
+  if (crewOrder && completed?.serial >= crewOrder.serial) {
+    if (completed.serial !== crewOrder.serial || completed.jobID !== crewOrder.jobID || completed.requestFingerprint !== requestFingerprint) {
+      return { success: false, errorMsg: "CREW_REPROCESSING_STALE" };
+    }
+    return { success: true, completed: true, duplicate: true, result: cloneValue(completed.result) };
+  }
+  if (crewOrder && !completed && Object.keys(root.crewReceipts).length >= 128) return { success: false, errorMsg: "CREW_REPROCESSING_CAPACITY" };
   const existing = root.byCharacter[key];
   if (existing) {
     if (existing.requestFingerprint !== requestFingerprint) {
@@ -307,6 +321,7 @@ function prepareReprocessingSettlement(options = {}) {
   const totalCost = roundMoney(options.totalCost);
   const ownerCorporationID = toPositiveInt(options.ownerCorporationID, 0);
   const settlement = {
+    ...(crewOrder ? { crewOrder: cloneValue(crewOrder) } : {}),
     operationID,
     operationSequence,
     requestFingerprint,
@@ -595,7 +610,7 @@ async function compensateRejectedSettlement(characterID) {
     return { success: true, alreadySettled: true };
   }
   const errorMsg = settlement.rejectionError || "REPROCESSING_REJECTED";
-  const removed = updateSettlement(characterID, () => null);
+  const removed = finishSettlement(settlement, { success: true, rejected: true, errorMsg });
   return removed.success
     ? { success: true, rejected: true, errorMsg }
     : removed;
@@ -1113,7 +1128,7 @@ async function settleReprocessingInternal(characterID, options = {}) {
   const careerEvidence = require("../career/careerIndustrySources").recordReprocessing(settlement);
   if (!careerEvidence?.success) return careerEvidence || { success: false, errorMsg: "CAREER_REPROCESSING_FAILED" };
   recordAchievementReprocessing(settlement);
-  const removed = updateSettlement(characterID, () => null);
+  const removed = finishSettlement(settlement, { success: true, data: completion });
   if (!removed.success) {
     return removed;
   }
@@ -1124,6 +1139,40 @@ async function settleReprocessingInternal(characterID, options = {}) {
 function settleReprocessingSettlement(characterID, options = {}) {
   return runSerialized(characterID, () =>
     settleReprocessingInternal(characterID, options));
+}
+
+// Completion and the producer watermark share a table transaction. The crew
+// may lose its reply or restart after the native scheduler finished the job.
+function finishSettlement(settlement, result) {
+  const root = readRoot(), key = String(settlement.characterID);
+  if (root.byCharacter[key]?.operationID !== settlement.operationID) return { success: false, errorMsg: "REPROCESSING_COMPLETION_CONFLICT" };
+  if (settlement.crewOrder) {
+    const custodyKeys = [...settlement.inputLegs.flatMap(leg => [leg.stageKey, leg.returnKey, leg.commitKey]),
+      ...settlement.outputLegs.flatMap(leg => [leg.grantKey, leg.deliverKey, leg.revokeKey])];
+    root.crewReceipts[key] = { ...settlement.crewOrder, requestFingerprint: settlement.requestFingerprint,
+      operationID: settlement.operationID, custodyKeys,
+      result: result.rejected ? result : { success: true, data: { operationID: settlement.operationID,
+        outputByTypeID: cloneValue(settlement.outputByTypeID), processedItemIDs: cloneValue(settlement.processedItemIDs) } } };
+  }
+  delete root.byCharacter[key];
+  return writeRoot(root);
+}
+function getCrewReprocessingResult(characterID, jobID, serial) {
+  const receipt = readRoot().crewReceipts[String(characterID)];
+  return receipt?.jobID === jobID && receipt.serial === serial ? cloneValue(receipt.result) : null;
+}
+function acknowledgeCrewReprocessing(characterID, jobID, serial) {
+  const root = readRoot(), receipt = root.crewReceipts[String(characterID)];
+  if (!receipt || receipt.jobID !== jobID || receipt.serial !== serial || root.byCharacter[String(characterID)]?.crewOrder?.jobID === jobID) {
+    return { success: false, errorMsg: "CREW_REPROCESSING_ACK_CONFLICT" };
+  }
+  const hash = key => require("node:crypto").createHash("sha256").update(key).digest("hex");
+  const keys = new Set([`crew-refine:${jobID}:reserve`, `crew-refine:${jobID}:return`,
+    ...(receipt.custodyKeys || []).map(key => `item-custody:local:${hash(key)}`)]);
+  const pruned = itemStore.pruneIdempotentGrantReceipts(value => keys.has(value.receiptKey));
+  if (!pruned.success || !database.flushTableSync("items").success) return { success: false, errorMsg: "CREW_REPROCESSING_ACK_PENDING" };
+  delete receipt.custodyKeys;
+  return writeRoot(root);
 }
 
 function bindDurableScheduler(scheduler) {
@@ -1262,6 +1311,8 @@ async function reconcileDurableReprocessingSettlements(options = {}) {
 }
 
 module.exports = {
+  getCrewReprocessingResult,
+  acknowledgeCrewReprocessing,
   DURABLE_SETTLEMENT_JOB_TYPE,
   ESCROW_LOCATION_BASE,
   ESCROW_LOCATION_LIMIT,

@@ -10,7 +10,12 @@ const native = require("../../space/npc/nativeNpcStore");
 const TABLE = "miningCargoCommits";
 const clone = value => JSON.parse(JSON.stringify(value));
 const fail = errorMsg => ({ success: false, errorMsg });
-function records() { const result = repo.read(TABLE, "/"); return result.success ? result.data || {} : {}; }
+function records() {
+  repo.ensureTable(TABLE);
+  const result = repo.read(TABLE, "/");
+  if (!result.success || !result.data || typeof result.data !== "object" || Array.isArray(result.data)) throw new Error("MINING_JOURNAL_UNAVAILABLE");
+  return result.data;
+}
 let indexedRoot;
 let pendingByResource = new Map();
 let pendingByActor = new Map();
@@ -48,9 +53,17 @@ function settle(key, record) {
   if (record.status === "completed") return { success: true, duplicate: true, data: clone(record) };
   const resource = require("./miningRuntimeState").commitCargoDepletion(record);
   if (!resource.success) return resource;
-  const granted = record.cargo ? cargo.apply(record.cargo) : { success: true };
+  const granted = record.inventoryCargo
+    ? require("../inventory/itemStore").grantItemToOwnerLocationIdempotent(
+      record.inventoryCargo.ownerID, record.inventoryCargo.locationID, 5,
+      record.state.yieldTypeID, record.transferred,
+      { receiptKey: `crew-mining:${record.jobID}:grant`, requireDurable: true })
+    : record.cargo ? cargo.apply(record.cargo) : { success: true };
   if (!granted.success) return granted;
-  const completed = { ...record, status: "completed" };
+  const itemIDs = granted.data?.itemIDs || granted.data?.items?.map(item => item.itemID);
+  if (record.inventoryCargo && (granted.durable !== true || itemIDs?.length !== 1)) return fail("MINING_CREW_GRANT_PENDING");
+  const completed = { ...record, status: "completed",
+    ...(record.inventoryCargo ? { itemID: itemIDs[0] } : {}) };
   const saved = write(key, completed);
   return saved.success ? { success: true, data: completed } : saved;
 }
@@ -112,4 +125,30 @@ function commit({ scene, entity, target, state, moduleID, cycleMs, transferred, 
   const saved = write(key, record);
   return saved.success ? settle(key, record) : saved;
 }
-module.exports = { commit, reconcile, reconcileActor, reconcileResource, listRecords: records };
+// A bounded producer watermark remains after inventory receipts retire. Replaying
+// an old extraction can therefore never mint another stack or debit another rock.
+function commitCrewExtraction({ ownerID, locationID, serial, jobID, systemID, resourceID, state, quantity, atMs }) {
+  if (![ownerID, locationID, serial, systemID, resourceID, quantity].every(n => Number.isSafeInteger(n) && n > 0) ||
+      locationID !== 8_500_000_000_000_000 + ownerID || !/^[a-f0-9]{64}$/.test(jobID) ||
+      state?.yieldKind !== "ore" || quantity > state.remainingQuantity || !Number.isSafeInteger(atMs)) return fail("MINING_CREW_INVALID");
+  const key = `crew-mining:${ownerID}`, old = records()[key];
+  if (old && old.serial >= serial) {
+    if (old.serial !== serial || old.jobID !== jobID || old.resourceID !== resourceID || old.systemID !== systemID ||
+        old.transferred !== quantity || old.state.yieldTypeID !== state.yieldTypeID) return fail("MINING_CYCLE_STALE");
+    return settle(key, old);
+  }
+  if (old?.status === "pending") { const result = settle(key, old); if (!result.success) return result; }
+  const recovery = reconcileResource(systemID, resourceID);
+  if (!recovery.success) return recovery;
+  const commandID = `crew-mining:${jobID}`;
+  const record = { status: "pending", commandID, actorID: key, jobID, serial, systemID, resourceID,
+    cycleMs: atMs, previousState: clone(state), state: { ...clone(state), remainingQuantity: state.remainingQuantity - quantity,
+      updatedAtMs: atMs, lastCargoCommit: commandID }, transferred: quantity, mined: quantity, wasted: 0, critical: 0,
+    inventoryCargo: { ownerID, locationID } };
+  const checked = require("./miningRuntimeState").commitCargoDepletion(record, { validateOnly: true });
+  if (!checked.success) return { ...checked, notAccepted: true };
+  if (!old && Object.keys(records()).length >= 100000) return fail("MINING_PRODUCER_CAPACITY");
+  const saved = write(key, record);
+  return saved.success ? settle(key, record) : saved;
+}
+module.exports = { commit, commitCrewExtraction, reconcile, reconcileActor, reconcileResource, listRecords: records };

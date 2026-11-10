@@ -81,6 +81,7 @@ function readRoot() {
       root.byCharacter && typeof root.byCharacter === "object"
         ? cloneValue(root.byCharacter)
         : {},
+    crewReceipts: cloneValue(root.crewReceipts || {}),
   };
 }
 
@@ -90,6 +91,7 @@ function writeRoot(root) {
     version: ROOT_VERSION,
     nextOperationID: toPositiveInt(root.nextOperationID, 1),
     byCharacter: cloneValue(root.byCharacter || {}),
+    crewReceipts: cloneValue(root.crewReceipts || {}),
   });
   if (!result || result.success !== true) {
     return result || { success: false, errorMsg: "WRITE_ERROR" };
@@ -314,6 +316,16 @@ function prepareIndustryInstallSettlement(options = {}) {
   });
   const root = readRoot();
   const key = String(characterID);
+  const crewOrder = options.crewOrder || null;
+  if (crewOrder && (!/^[a-f0-9]{64}$/.test(crewOrder.jobID) || !Number.isSafeInteger(crewOrder.serial) || crewOrder.serial < 1)) {
+    return { success: false, errorMsg: "CREW_MANUFACTURING_ORDER_INVALID" };
+  }
+  const completed = root.crewReceipts[key];
+  if (crewOrder && completed?.serial >= crewOrder.serial) {
+    if (completed.serial !== crewOrder.serial || completed.jobID !== crewOrder.jobID || completed.requestFingerprint !== requestFingerprint) return { success: false, errorMsg: "CREW_MANUFACTURING_STALE" };
+    return { success: true, completed: true, duplicate: true, result: cloneValue(completed.result) };
+  }
+  if (crewOrder && !completed && Object.keys(root.crewReceipts).length >= 128) return { success: false, errorMsg: "CREW_MANUFACTURING_CAPACITY" };
   const existing = root.byCharacter[key];
   if (existing) {
     const legacyFingerprintMatches =
@@ -337,6 +349,7 @@ function prepareIndustryInstallSettlement(options = {}) {
   const materialEscrowLocationID = ESCROW_LOCATION_BASE + (operationSequence * 2);
   const blueprintEscrowLocationID = materialEscrowLocationID + 1;
   const settlement = {
+    ...(crewOrder ? { crewOrder: cloneValue(crewOrder) } : {}),
     operationID,
     operationSequence,
     requestFingerprint,
@@ -644,7 +657,7 @@ async function compensateRejectedSettlement(characterID) {
 
   settlement = getPendingIndustryInstallSettlement(characterID);
   const errorMsg = settlement && settlement.rejectionError || "INDUSTRY_INSTALL_REJECTED";
-  const removed = updateSettlement(characterID, () => null);
+  const removed = finishCrewAwareSettlement(settlement, { success: true, rejected: true, errorMsg });
   return removed.success
     ? { success: true, rejected: true, errorMsg }
     : removed;
@@ -943,7 +956,7 @@ async function settleIndustryInstallInternal(characterID, options = {}) {
     materialChanges: cloneValue(settlement.materialChanges || []),
     blueprintChanges: cloneValue(settlement.blueprintChanges || []),
   };
-  const removed = updateSettlement(characterID, () => null);
+  const removed = finishCrewAwareSettlement(settlement, { success: true, data: { jobID: settlement.jobID } });
   if (!removed.success) {
     return removed;
   }
@@ -960,6 +973,29 @@ async function settleIndustryInstallInternal(characterID, options = {}) {
 function settleIndustryInstallSettlement(characterID, options = {}) {
   return runSerialized(characterID, () =>
     settleIndustryInstallInternal(characterID, options));
+}
+
+function finishCrewAwareSettlement(settlement, result) {
+  const root = readRoot(), key = String(settlement.characterID);
+  if (root.byCharacter[key]?.operationID !== settlement.operationID) return { success: false, errorMsg: "INDUSTRY_INSTALL_COMPLETION_CONFLICT" };
+  if (settlement.crewOrder) root.crewReceipts[key] = { ...settlement.crewOrder, requestFingerprint: settlement.requestFingerprint,
+    result, custodyKeys: [...settlement.materialLegs.flatMap(leg => [leg.stageKey, leg.commitKey, leg.returnKey]),
+      settlement.blueprintLeg.stageKey, settlement.blueprintLeg.installKey, settlement.blueprintLeg.returnKey] };
+  delete root.byCharacter[key]; return writeRoot(root);
+}
+function getCrewIndustryInstallResult(characterID, crewOrder) {
+  const receipt = readRoot().crewReceipts[String(characterID)];
+  return receipt?.jobID === crewOrder.jobID && receipt.serial === crewOrder.serial ? cloneValue(receipt.result) : null;
+}
+function acknowledgeCrewIndustryInstall(characterID, crewOrder) {
+  const root = readRoot(), receipt = root.crewReceipts[String(characterID)];
+  if (!receipt || receipt.jobID !== crewOrder.jobID || receipt.serial !== crewOrder.serial ||
+      root.byCharacter[String(characterID)]?.crewOrder?.jobID === crewOrder.jobID) return { success: false, errorMsg: "CREW_MANUFACTURING_ACK_CONFLICT" };
+  const hash = key => require("node:crypto").createHash("sha256").update(key).digest("hex");
+  const keys = new Set((receipt.custodyKeys || []).map(key => `item-custody:local:${hash(key)}`));
+  const pruned = itemStore.pruneIdempotentGrantReceipts(value => keys.has(value.receiptKey));
+  if (!pruned.success || !database.flushTableSync("items").success) return { success: false, errorMsg: "CREW_MANUFACTURING_ACK_PENDING" };
+  delete receipt.custodyKeys; return writeRoot(root);
 }
 
 function bindDurableScheduler(scheduler) {
@@ -1039,6 +1075,8 @@ async function reconcileDurableIndustryInstallSettlements(options = {}) {
 }
 
 module.exports = {
+  getCrewIndustryInstallResult,
+  acknowledgeCrewIndustryInstall,
   DURABLE_SETTLEMENT_JOB_TYPE,
   ESCROW_LOCATION_BASE,
   TABLE_NAME,

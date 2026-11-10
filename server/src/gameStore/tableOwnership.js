@@ -46,6 +46,36 @@ const CONFIDENCE = Object.freeze({
 });
 
 const TABLE_OWNERSHIP = {};
+TABLE_OWNERSHIP.crewEquipmentRuntime = {
+  table: "crewEquipmentRuntime", tier: TIERS.RUNTIME, domain: "service:crew-equipment",
+  confidence: CONFIDENCE.INFERRED, note: "Crew equipment tiers, profit reinvestment policy and recoverable supplier payments.",
+};
+TABLE_OWNERSHIP.manufacturingCrewRuntime = {
+  table: "manufacturingCrewRuntime", tier: TIERS.RUNTIME, domain: "service:crew-manufacturing",
+  confidence: CONFIDENCE.INFERRED, note: "Persistent manufacturing teams, production targets and native installation intents.",
+};
+TABLE_OWNERSHIP.sellingCrewRuntime = {
+  table: "sellingCrewRuntime", tier: TIERS.RUNTIME, domain: "service:crew-selling",
+  confidence: CONFIDENCE.INFERRED, note: "Persistent selling crews, surplus policies and exact native market fill intents.",
+};
+TABLE_OWNERSHIP.buyingCrewRuntime = {
+  table: "buyingCrewRuntime", tier: TIERS.RUNTIME, domain: "service:crew-buying",
+  confidence: CONFIDENCE.INFERRED, note: "Persistent procurement crews, income budgets and native purchase intents.",
+};
+TABLE_OWNERSHIP.refiningCrewRuntime = {
+  table: "refiningCrewRuntime", tier: TIERS.RUNTIME, domain: "service:crew-refining",
+  confidence: CONFIDENCE.INFERRED, note: "Persistent refinery teams, ore custody and acknowledged native reprocessing batches.",
+};
+TABLE_OWNERSHIP.miningCrewRuntime = {
+  table: "miningCrewRuntime", tier: TIERS.RUNTIME, domain: "service:crew-mining",
+  confidence: CONFIDENCE.INFERRED,
+  note: "Persistent player mining teams, finite extraction intents and station delivery confirmations.",
+};
+TABLE_OWNERSHIP.crewRuntime = {
+  table: "crewRuntime", tier: TIERS.RUNTIME, domain: "service:crew",
+  confidence: CONFIDENCE.INFERRED,
+  note: "Persistent courier crews, route/custody intents and durable command receipts; one aggregate row per owner.",
+};
 
 TABLE_OWNERSHIP.freelanceProjects = {
   table: "freelanceProjects", tier: TIERS.RUNTIME, domain: "service:freelance",

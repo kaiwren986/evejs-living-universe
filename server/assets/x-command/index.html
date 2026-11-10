@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>X-Command • Crew operations</title><link rel="stylesheet" href="/x-command/style.css">
+<script src="/x-command/app.js" defer></script></head>
+<body>
+<header class="masthead"><a href="/x-command" class="brand"><span class="brand-mark" aria-hidden="true">✣</span> X-Command</a>
+<span class="edition">Living Universe / Crew operations</span><span id="connection" class="connection">Connecting</span></header>
+<div class="shell">
+<aside class="sidebar">
+<h2>Command link</h2>
+<form id="connect-form"><label for="token">Gateway token <span class="muted">if configured</span></label><div class="connect-row">
+<input id="token" type="password" autocomplete="off" placeholder="Local connection"><button type="submit" class="quiet">Connect</button></div></form>
+<label for="account">Account</label><select id="account" disabled><option>Connect to load accounts</option></select>
+<label for="character">Pilot</label><select id="character" disabled><option>Select an account</option></select>
+<div class="crew-roster"><h2>Your people</h2><ul id="roster"><li class="muted">Establish a crew to meet your team.</li></ul></div>
+<p class="side-note">Your crew keeps its own course while you fly. Courier cargo comes from your station hangar.</p>
+<p id="scope" class="scope">Living Universe<br>Mining, logistics and production</p>
+</aside>
+<main>
+<div class="page-title"><div><p class="context">Crew operations</p><h1 id="crew-name">A small team. A longer reach.</h1></div><span id="crew-state" class="state-tag">Stand by</span></div>
+<p id="message" class="message" role="status" aria-live="polite">Select a pilot to connect to their crew.</p>
+<button id="retry" class="quiet" hidden>Retry last order</button>
+<section id="create-panel" class="onboarding" hidden>
+<h2>Establish your founding crew</h2><p>A navigator and a cargo specialist, ready for their first assignment. Your crew starts at your current NPC station.</p>
+<form id="create-form"><label for="new-name">Crew name</label><div class="create-row"><input id="new-name" value="Wayfarer Logistics" maxlength="40" required><button type="submit">Establish crew</button></div></form>
+</section>
+<section id="operations" hidden>
+<div class="journey"><div class="journey-title"><h2 id="journey-title">At station</h2><span id="journey-timing"></span></div><p id="hauling-skill" class="capacity"></p>
+<p id="station-name" class="station-name"></p><ol id="route" class="route" aria-label="Crew route"></ol>
+<div class="journey-footer"><span id="cargo-status">Cargo hold empty</span><button id="pause" class="quiet" hidden>Pause travel</button></div></div>
+<section class="mining-panel" aria-labelledby="mining-heading">
+<div class="journey-title"><h2 id="mining-heading">Mining crew</h2><span id="mining-state" class="state-tag">Stand by</span></div>
+<p id="mining-summary" class="muted">Assign a foreman and ore tender to supply your home station.</p>
+<div class="mining-grid"><div>
+<form id="mining-home-form"><label for="mining-home-search">Find a mining home</label><div class="search-row"><input id="mining-home-search" minlength="2" placeholder="Station name or ID" required><button id="find-mining-home" class="quiet" type="submit">Find home</button></div></form>
+<label for="mining-home">Home station / supply source</label><select id="mining-home"></select>
+<button id="load-belts" class="quiet">Survey local belts</button>
+<label for="mining-belt">Asteroid belt</label><select id="mining-belt"><option value="">Survey belts first</option></select>
+<label for="mining-ore">Ore to extract</label><select id="mining-ore"><option value="">Choose a belt</option></select>
+<div class="standing-controls mining-controls"><button id="start-mining">Start mining crew</button><button id="pause-mining" class="quiet" hidden>Pause miners</button><button id="stop-mining" class="quiet" hidden>Return and stop</button><button id="follow-mining" class="quiet" hidden>Follow production</button></div>
+</div><div class="mining-output"><p class="context">Belt → home → supply route</p>
+<p id="mining-load">Mining hold empty</p><dl class="production-totals"><div><dt>Ore extracted</dt><dd id="mining-extracted">0</dd></div><div><dt>Delivered home</dt><dd id="mining-delivered">0</dd></div><div><dt>Loads delivered</dt><dd id="mining-trips">0</dd></div></dl>
+<p id="mining-skill" class="capacity"></p><p id="mining-settings" class="capacity"></p><p id="mining-priority" class="capacity">Fixed ore assignment.</p><p class="capacity">Follow production chooses useful ore in this home system, switches after accepted trips and waits when mineral buffers are covered. Fixed assignments need a new order after depletion.</p>
+</div></div></section>
+<section class="mining-panel" aria-labelledby="refining-heading">
+<div class="journey-title"><h2 id="refining-heading">Refining crew</h2><span id="refining-state" class="state-tag">Stand by</span></div>
+<p id="refining-summary" class="muted">Turn delivered ore into minerals for your supply route and manufacturing.</p>
+<div class="mining-grid"><div>
+<label for="refining-station">Refinery station</label><select id="refining-station"></select>
+<button id="load-refining" class="quiet mining-controls">Load ore recipes</button>
+<label for="refining-ore">Ore to refine</label><select id="refining-ore"><option value="">Load recipes first</option></select>
+<label for="refining-reserve">Keep raw ore (units)</label><input id="refining-reserve" type="number" min="0" step="1" value="0">
+<p id="refining-recipe" class="capacity">Recipes show mineral yield and station tax before you place an order.</p>
+<div class="standing-controls mining-controls"><button id="start-refining">Start refining crew</button><button id="pause-refining" class="quiet" hidden>Pause refinery</button><button id="stop-refining" class="quiet" hidden>Finish batch and stop</button><button id="follow-refining" class="quiet" hidden>Follow production</button></div>
+</div><div class="mining-output"><p class="context">Ore → minerals → production</p>
+<p id="refining-load">Waiting for a refining assignment</p>
+<dl class="production-totals"><div><dt>Ore processed</dt><dd id="refining-processed">0</dd></div><div><dt>Batches completed</dt><dd id="refining-batches">0</dd></div><div><dt>Tax paid / ISK</dt><dd id="refining-tax">0</dd></div></dl>
+<p id="refining-skill" class="capacity"></p><p id="refining-minerals" class="muted">No minerals produced yet.</p><p id="refining-priority" class="capacity">Fixed ore assignment.</p><p id="refining-routing" class="capacity">Minerals reach this station's hangar, where manufacturing and supply routes can use them. Partial ore portions remain available for a later batch.</p>
+</div></div></section>
+<section class="mining-panel manufacturing-panel" aria-labelledby="manufacturing-heading">
+<div class="journey-title"><h2 id="manufacturing-heading">Manufacturing crew</h2><span id="manufacturing-state" class="state-tag">Stand by</span></div>
+<p id="manufacturing-summary" class="muted">Keep ammo and modules stocked using your blueprints and delivered minerals.</p>
+<div class="mining-grid"><div>
+<form id="factory-search-form"><label for="factory-search">Find a factory station</label><div class="search-row"><input id="factory-search" minlength="2" placeholder="Station name or ID" required><button id="find-factory" type="submit" class="quiet">Find station</button></div></form>
+<label for="manufacturing-station">Factory station</label><select id="manufacturing-station"></select>
+<div class="standing-controls mining-controls"><button id="load-blueprints" class="quiet">Load owned blueprints</button><button id="starter-blueprints" class="quiet">Add starter blueprints</button></div>
+<p id="starter-note" class="capacity">One starter pack per pilot: Iron Charge S and 1MN Civilian Afterburner original blueprints.</p>
+<div id="blueprint-options" class="blueprint-options"><p class="muted">Load blueprints at a station with a factory to choose your queue.</p></div>
+<p class="capacity">Stock targets count finished goods in this station's hangar. Jobs repeat as minerals arrive and stock falls below target. A batch can exceed its target by its run size.</p>
+<div class="standing-controls"><button id="start-manufacturing">Start manufacturing crew</button><button id="pause-manufacturing" class="quiet" hidden>Pause new jobs</button><button id="stop-manufacturing" class="quiet" hidden>Finish job and stop</button></div>
+</div><div class="mining-output"><p class="context">Minerals → ammo &amp; modules</p>
+<p id="manufacturing-job">Waiting for a production queue</p><p id="manufacturing-eta" class="capacity"></p>
+<dl class="production-totals"><div><dt>Batches completed</dt><dd id="manufacturing-batches">0</dd></div><div><dt>Fees paid / ISK</dt><dd id="manufacturing-fees">0</dd></div></dl>
+<p id="manufacturing-produced" class="muted">No finished goods yet.</p><p id="manufacturing-availability" class="capacity"></p>
+<p id="manufacturing-profit" class="capacity">New jobs require net sales above mineral replacement costs and factory fees.</p>
+<p id="manufacturing-skill" class="capacity"></p><p id="manufacturing-strategy" class="context">Priority: net ISK per production hour</p><ol id="manufacturing-ranking" class="capacity"></ol>
+<p class="capacity">Native factory times, Industry skills, slot limits, blueprint licenses and ISK fees apply. Pausing or stopping prevents new jobs; accepted jobs finish and deliver automatically.</p>
+<div id="manufacturing-history" class="history"></div>
+</div></div></section>
+<section class="mining-panel manufacturing-panel" aria-labelledby="selling-heading">
+<div class="journey-title"><h2 id="selling-heading">Selling crew</h2><span id="selling-state" class="state-tag">Stand by</span></div>
+<p id="selling-summary" class="muted">Sell surplus ammo and modules to local NPC buyers. Net proceeds fund your shared pilot wallet.</p>
+<div class="mining-grid"><div>
+<form id="selling-search-form"><label for="selling-search">Find a selling station</label><div class="search-row"><input id="selling-search" minlength="2" placeholder="Station name or ID" required><button id="find-selling" type="submit" class="quiet">Find market</button></div></form>
+<label for="selling-station">Selling station</label><select id="selling-station"></select>
+<button id="load-selling" class="quiet mining-controls">Load products and buyers</button>
+<div id="selling-options" class="blueprint-options"><p class="muted">Load products to choose a stock reserve and minimum sale price.</p></div>
+<p id="selling-production" class="capacity">Set production targets higher than selling reserves so your factory can produce a surplus.</p>
+<div class="standing-controls"><button id="start-selling">Start selling crew</button><button id="pause-selling" class="quiet" hidden>Pause new sales</button><button id="stop-selling" class="quiet" hidden>Finish sale and stop</button></div>
+</div><div class="mining-output"><p class="context">Surplus goods → ISK → production</p>
+<p id="selling-job">Waiting for a selling policy</p>
+<dl class="production-totals"><div><dt>Sales completed</dt><dd id="selling-count">0</dd></div><div><dt>Net income / ISK</dt><dd id="selling-net">0</dd></div></dl>
+<p id="selling-skill" class="capacity"></p><p id="selling-accounting" class="muted">Gross 0 ISK · sales tax 0 ISK</p><p id="selling-availability" class="capacity"></p>
+<p class="capacity">Only stock above your reserve is offered. Immediate sales pay the best eligible local NPC bid above your price floor, using normal market tax. Goods wait safely when there are no buyers. Pausing stops new sales; an accepted sale finishes confirmation.</p>
+<div id="selling-history" class="history"></div>
+</div></div></section>
+<section class="mining-panel manufacturing-panel" aria-labelledby="buying-heading">
+<div class="journey-title"><h2 id="buying-heading">Buying crew</h2><span id="buying-state" class="state-tag">Stand by</span></div>
+<p id="buying-summary" class="muted">Restock production minerals using income earned by your selling crew.</p>
+<div class="mining-grid"><div>
+<label for="buying-station">Restock factory</label><select id="buying-station"></select>
+<button id="load-buying" class="quiet mining-controls">Load required minerals</button>
+<div class="batch-fields"><label for="buying-budget">Spending cap for this policy / ISK<input id="buying-budget" type="number" min="0.01" max="1000000000" step="0.01" value="10000"></label><label for="buying-reserve">Keep in wallet / ISK<input id="buying-reserve" type="number" min="0" max="1000000000000" step="0.01" value="100000"></label></div>
+<div id="buying-options" class="blueprint-options"><p class="muted">Load the active factory's minerals to set working-stock targets and price ceilings.</p></div>
+<p class="capacity">Targets are total mineral stock at the factory. Mined and hauled minerals count toward them. Defaults cover five batches of every queued recipe. A stopped or paused factory suspends new purchases.</p>
+<div class="standing-controls"><button id="start-buying">Start buying crew</button><button id="pause-buying" class="quiet" hidden>Pause new purchases</button><button id="stop-buying" class="quiet" hidden>Finish purchase and stop</button></div>
+</div><div class="mining-output"><p class="context">Sales income → minerals → factory</p>
+<p id="buying-job">Waiting for a restocking policy</p>
+<dl class="production-totals"><div><dt>Purchases completed</dt><dd id="buying-count">0</dd></div><div><dt>Lifetime spent / ISK</dt><dd id="buying-spent">0</dd></div></dl>
+<p id="buying-funding" class="muted">Only realized net crew sales income can fund purchases.</p><p id="buying-availability" class="capacity"></p>
+<p id="buying-skill" class="capacity"></p><p id="buying-profit" class="capacity">Purchases require a profitable factory recipe at current local prices. Accepted trades finish if prices change.</p>
+<p id="buying-priority" class="capacity">Procurement follows the best profitable production opportunity.</p>
+<p class="capacity">Purchases use local NPC sell orders below your price ceilings. Crews check the missing minerals for a complete batch and try affordable profitable recipes first. Your spending cap, sales income and wallet reserve still apply. New sales replenish the allowance; restarting a policy cannot reuse spent income.</p>
+<div id="buying-history" class="history"></div>
+</div></div></section>
+<div class="operations-grid">
+<section class="dispatch" aria-labelledby="equipment-heading"><div class="journey-title"><h2 id="equipment-heading">Reinvest in equipment</h2><span id="equipment-state" class="state-tag">Stand by</span></div>
+<p class="muted">Grow the operation with permanent mining tools, hauling equipment and factory tooling. Useful crews upgrade automatically when current demand supports the investment.</p>
+<div class="batch-fields"><label>Lifetime equipment cap / ISK<input id="equipment-budget" type="number" min="1" max="1000000000000" step="0.01" value="100000"></label><label>Keep in wallet / ISK<input id="equipment-reserve" type="number" min="0" max="1000000000000" step="0.01" value="100000"></label><label>Extra working capital / ISK<input id="equipment-capital" type="number" min="0" max="1000000000000" step="0.01" value="10000"></label><label>Profit share / %<input id="equipment-share" type="number" min="1" max="50" step="1" value="25"></label><label>Maximum estimated payback / hours<input id="equipment-payback" type="number" min="1" max="168" step="1" value="24"></label></div>
+<div class="standing-controls"><button id="start-equipment">Enable / update reinvestment</button><button id="stop-equipment" class="quiet" hidden>Stop new upgrades</button></div>
+<p id="equipment-funding" class="capacity">Uses realized sales after mineral purchases, refining tax and factory fees.</p><ul id="equipment-upgrades" class="capacity"></ul><p id="equipment-decision" class="capacity"></p>
+<p class="capacity">Three tiers per team, each 5% shorter work time; hauling also gains 25% hold capacity per tier. Upgrades preserve your procurement reserve and at least three replacement batches in cash. Estimated payback uses current profitable production; future sales can change. Accepted work keeps its saved timing.</p><div id="equipment-history" class="history"></div></section>
+<section class="dispatch"><h2>Next assignment</h2><p class="muted">Move the crew, or send a complete cargo stack to another station.</p>
+<form id="search-form"><label for="station-search">Find destination</label><div class="search-row"><input id="station-search" minlength="2" placeholder="Station name or ID" required><button class="quiet" type="submit">Find</button></div></form>
+<form id="order-form"><label for="destination">Destination station</label><select id="destination"><option value="">Find a station first</option></select>
+<label for="cargo">Cargo from this station</label><select id="cargo"><option value="">Travel without cargo</option></select>
+<p id="capacity" class="capacity">Courier hold: 1,000 m³. One packaged stack per trip.</p>
+<button id="dispatch" type="submit">Issue travel order</button></form></section>
+<section class="manifest"><h2>Standing supply order</h2>
+<p id="standing-status" class="muted">Choose cargo and a destination to establish a repeating supply route.</p>
+<label for="supply-type">Material to supply</label><select id="supply-type"><option value="">Choose material</option></select>
+<p id="supply-source" class="capacity">Supply starts at the crew's station.</p>
+<label for="source-reserve">Keep at source (units)</label><input id="source-reserve" type="number" min="0" step="1" value="0">
+<p class="capacity">Loads respect the source reserve and hold capacity. Following production prioritizes batch shortages, limits each load to factory need and waits while the factory is stocked. Rotate materials carries available stock in turn. The reserve applies to each type at the source.</p>
+<div class="standing-controls"><button id="automate" class="quiet">Automate supply route</button><button id="stop-automation" class="quiet" hidden>Stop after this trip</button><button id="follow-courier" class="quiet" hidden>Follow production</button></div>
+<p id="courier-priority" class="capacity">Supply routes rotate available materials. Follow production to haul needed minerals first and wait when the factory is stocked.</p>
+<h2 class="history-title">Completed journeys</h2><div id="history" class="history"><p class="muted">Your first completed journey will appear here.</p></div></section>
+</div>
+<section class="universe-panel"><h2>Living Universe</h2><p class="muted">Your people keep their identity, work and location between sessions.</p><ul id="universe-actors" class="universe-actors"><li>Connect to load crew activity.</li></ul><p class="capacity">Crew activity is currently virtual; their ore, cargo and station deliveries use the shared universe inventory.</p></section>
+</section>
+<footer>Orders and delivery confirmations are saved by your local server.</footer>
+</main></div>
+</body></html>

@@ -7,4 +7,5 @@ module.exports = [
   ...require("./mining"),
   ...require("./npc"),
   ...require("./economy"),
+  ...require("./crew"),
 ];

@@ -41,6 +41,8 @@ const CHARACTER_FIELDS = Object.freeze([
   "marketTransactions",
   "plexVaultTransactions",
   "walletOperationReceipts",
+  "crewPurchaseWalletReceipts",
+  "crewEquipmentWalletReceipts",
   "nodeGraphWalletReceipts",
   "freelanceWalletReceipts",
   "contractWalletReceipts",

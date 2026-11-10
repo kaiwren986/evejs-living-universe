@@ -6069,6 +6069,55 @@ function createEvejsWebGatewayRuntime({
 
   return Object.freeze({
     dependencies,
+    getManufacturingCrewSnapshot(characterID) {
+      return require("../../services/crew/manufacturingCrewRuntime").getDefaultManufacturingCrewService().snapshot(characterID);
+    },
+    getSellingCrewSnapshot(characterID) { return require("../../services/crew/sellingCrewRuntime").getDefaultSellingCrewService().snapshot(Number(characterID)); },
+    getBuyingCrewSnapshot(characterID) { return require("../../services/crew/buyingCrewRuntime").getDefaultBuyingCrewService().snapshot(Number(characterID)); },
+    getCrewEquipmentSnapshot(characterID) { return require("../../services/crew/crewEquipmentRuntime").getDefaultCrewEquipmentService().snapshot(Number(characterID)); },
+    submitCrewEquipmentCommand(characterID, command) { return require("../../services/crew/crewEquipmentRuntime").getDefaultCrewEquipmentService().submit(Number(characterID), command); },
+    submitBuyingCrewCommand(characterID, command) { return require("../../services/crew/buyingCrewRuntime").getDefaultBuyingCrewService().submit(Number(characterID), command); },
+    getBuyingCrewCatalog(characterID, stationID) { return require("../../services/crew/buyingCrewRuntime").getDefaultBuyingCrewService().catalog(Number(characterID), Number(stationID)); },
+    submitSellingCrewCommand(characterID, command) { return require("../../services/crew/sellingCrewRuntime").getDefaultSellingCrewService().submit(Number(characterID), command); },
+    getSellingCrewCatalog(characterID, stationID) { return require("../../services/crew/sellingCrewRuntime").getDefaultSellingCrewService().catalog(Number(characterID), Number(stationID)); },
+    submitManufacturingCrewCommand(characterID, command) {
+      return require("../../services/crew/manufacturingCrewRuntime").getDefaultManufacturingCrewService().submit(characterID, command);
+    },
+    getManufacturingCrewCatalog(characterID, stationID) {
+      return require("../../services/crew/manufacturingCrewRuntime").getDefaultManufacturingCrewService().catalog(characterID, stationID);
+    },
+    getRefiningCrewSnapshot(characterID) {
+      return require("../../services/crew/refiningCrewRuntime").getDefaultRefiningCrewService().snapshot(characterID);
+    },
+    submitRefiningCrewCommand(characterID, command) {
+      return require("../../services/crew/refiningCrewRuntime").getDefaultRefiningCrewService().submit(characterID, command);
+    },
+    getRefiningCrewOptions(characterID, stationID) {
+      const miners = require("../../services/crew/miningCrewRuntime").getDefaultMiningCrewService().snapshot(characterID).mining;
+      return require("../../services/crew/refiningCrewRuntime").getDefaultRefiningCrewService().options(characterID, stationID,
+        miners?.plan.homeStationID === stationID ? miners.plan.typeID : null);
+    },
+    getMiningCrewSnapshot(characterID) {
+      return require("../../services/crew/miningCrewRuntime").getDefaultMiningCrewService().snapshot(characterID);
+    },
+    submitMiningCrewCommand(characterID, command) {
+      return require("../../services/crew/miningCrewRuntime").getDefaultMiningCrewService().submit(characterID, command);
+    },
+    getMiningCrewSites(characterID, homeStationID) {
+      return require("../../services/crew/miningCrewRuntime").getDefaultMiningCrewService().sites(characterID, homeStationID);
+    },
+    getCrewSnapshot(characterID) {
+      return require("../../services/crew/crewRuntime").getDefaultCrewService().snapshot(characterID);
+    },
+    getCrewUniverse(characterID) {
+      return require("../../services/livingUniverse/actorDirectory").getDefaultActorDirectory().snapshot({ ownerID: characterID });
+    },
+    submitCrewCommand(characterID, command) {
+      return require("../../services/crew/crewRuntime").getDefaultCrewService().submit(characterID, command);
+    },
+    searchCrewStations(query) {
+      return require("../../services/crew/crewRuntime").getDefaultCrewService().searchStations(query);
+    },
     getStatus() {
       const accounts = listAccounts();
       return {

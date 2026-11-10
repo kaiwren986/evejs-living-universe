@@ -1135,6 +1135,8 @@ function mountEvejsWebGateway(app, runtimeContext = null) {
     res.status(200).json(buildGatewayHealth(runtimeContext));
   });
 
+  require("./crewGateway").mountCrewGateway(app, { requireAuthorizedRuntime, validateOwnedCharacter });
+
   app.get(`${GATEWAY_PREFIX}/status`, requireAuthorizedRuntime(async (runtime, req, res) => {
     res.status(200).json({
       ok: true,

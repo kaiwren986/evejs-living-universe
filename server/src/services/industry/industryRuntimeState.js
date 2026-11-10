@@ -3089,6 +3089,23 @@ function normalizeLocationForFacility(
   return locations[0] || null;
 }
 
+const crewIndustryActors = new WeakMap();
+const crewIndustrySkills = new WeakMap();
+const crewIndustryEquipment = new WeakMap();
+function createCrewIndustryActor(characterID, stationID) {
+  const character = require("../character/characterState").getCharacterRecord(characterID);
+  const station = worldData.getStationByID(stationID);
+  if (!character || !station) throw new Error("CREW_INDUSTRY_ACTOR_INVALID");
+  const actor = { characterID, characterName: character.characterName, corporationID: character.corporationID };
+  const record = require("../../gameStore").read("manufacturingCrewRuntime", `/${characterID}`);
+  if (!record.success && !["ENTRY_NOT_FOUND", "TABLE_NOT_FOUND"].includes(record.errorMsg)) throw new Error("CREW_PROGRESSION_UNAVAILABLE");
+  const skill = require("../crew/crewProgression").profile(record.success ? record.data : null, "manufacturing");
+  crewIndustryActors.set(actor, stationID);
+  crewIndustrySkills.set(actor, Object.freeze(skill));
+  crewIndustryEquipment.set(actor, Object.freeze(require("../crew/crewEquipmentState").forOwner(characterID, "manufacturing")));
+  return actor;
+}
+
 function quoteIndustryJob(session, requestInput) {
   const request =
     requestInput && requestInput.rawRequest
@@ -3262,7 +3279,9 @@ function quoteIndustryJob(session, requestInput) {
   }
 
   const installerID = toInt(session && (session.characterID || session.charid), 0);
-  const distanceRestriction = resolveIndustryFacilityDistanceRestriction(
+  // This capability is created only for a server-owned crew at its NPC station.
+  // All blueprint, skill, slot, material, fee and facility rules still apply.
+  const distanceRestriction = crewIndustryActors.get(session) === facility.facilityID ? null : resolveIndustryFacilityDistanceRestriction(
     session,
     facility,
     activityID,
@@ -3477,7 +3496,7 @@ function quoteIndustryJob(session, requestInput) {
   const sccSurcharge = resolveActivitySccSurcharge(baseCost, activityID, facility);
   const industrySecurityTax = resolveIndustrySecurityTax(baseCost, facility);
   const totalCost = cost + tax + sccSurcharge + industrySecurityTax;
-  const timeInSeconds = resolveActivityJobTimeSeconds(
+  const baseTimeInSeconds = resolveActivityJobTimeSeconds(
     definition,
     activityID,
     runs,
@@ -3487,6 +3506,12 @@ function quoteIndustryJob(session, requestInput) {
     licensedRuns,
     activityProductTypeID,
   );
+  // Only server-created crew actors carry this private capability. A retail
+  // session or request payload cannot supply its own crew level or multiplier.
+  const crewSkill = activityID === INDUSTRY_ACTIVITY.MANUFACTURING ? crewIndustrySkills.get(session) : null;
+  const crewEquipment = crewIndustryEquipment.get(session);
+  const skilledTime = crewSkill ? Math.max(1, Math.ceil(baseTimeInSeconds * crewSkill.durationBasisPoints / 10000)) : baseTimeInSeconds;
+  const timeInSeconds = crewEquipment ? require("../crew/crewEquipmentState").duration(skilledTime, crewEquipment) : skilledTime;
   const previousRunLengthSeconds =
     runs > 0 ? timeInSeconds - timeInSeconds / Math.max(1, toInt(runs, 1)) : timeInSeconds;
   if (previousRunLengthSeconds > MAX_JOB_LENGTH_SECONDS) {
@@ -3599,6 +3624,7 @@ function quoteIndustryJob(session, requestInput) {
       industrySecurityTax,
       totalCost,
       timeInSeconds,
+      ...(crewSkill ? { crewSkill, crewEquipment, baseTimeInSeconds } : {}),
       productTypeID: activityProductTypeID,
       licensedRuns,
       state,
@@ -4892,6 +4918,48 @@ function installManufacturingJob(session, requestInput) {
   return installIndustryJob(session, requestInput);
 }
 
+// Return an exact install intent before the crew fences it in its own journal.
+// Reserving an ID has no material, blueprint or wallet effect.
+function prepareCrewManufacturingIntent(actor, request, crewOrder) {
+  if (crewIndustryActors.get(actor) !== request.facilityID || request.activityID !== INDUSTRY_ACTIVITY.MANUFACTURING ||
+      !/^[a-f0-9]{64}$/.test(crewOrder?.jobID) || !Number.isSafeInteger(crewOrder.serial) || crewOrder.serial < 1) {
+    return { success: false, errorMsg: "CREW_MANUFACTURING_INVALID" };
+  }
+  const result = quoteIndustryJob(actor, request);
+  if (!result.success) return result;
+  const quote = result.quote;
+  if (quote.ownerID !== actor.characterID || quote.payerOwnerID !== actor.characterID ||
+      ![7, 8].includes(quote.definition.productCategoryID) || quote.materials.some(m => getItemMetadata(m.typeID)?.groupID !== 18)) {
+    return { success: false, errorMsg: "CREW_MANUFACTURING_RECIPE_INVALID" };
+  }
+  const inputs = selectExactIndustryMaterialInputs(quote);
+  if (!inputs.success) return { success: false, errorMsg: "MISSING_MATERIAL" };
+  const reservation = reserveIndustryJobID();
+  if (!reservation.success) return reservation;
+  const blueprint = findItemById(quote.blueprint.itemID);
+  const jobRecord = { ...buildIndustryInstallJobRecord(quote, actor, reservation.jobID), crewOrder: { ...crewOrder }, crewSkill: crewIndustrySkills.get(actor), crewEquipment: crewIndustryEquipment.get(actor) };
+  return { success: true, data: { characterID: actor.characterID, ownerID: actor.characterID, ownerKind: "character",
+    payerOwnerID: actor.characterID, payerKind: "character", accountKey: DEFAULT_ACCOUNT_KEY,
+    jobID: reservation.jobID, jobRecord, quote, materialInputs: inputs.data,
+    blueprintInput: { itemID: blueprint.itemID, typeID: blueprint.typeID, ownerID: blueprint.ownerID,
+      locationID: blueprint.locationID, flagID: blueprint.flagID, sourceSnapshot: blueprint },
+    totalCost: quote.totalCost, walletDescription: "Crew manufacturing installation", crewOrder: { ...crewOrder },
+    clientRequestFingerprint: buildIndustryInstallRequestFingerprint(actor, { ...request, crewOrder }) } };
+}
+
+function acknowledgeCrewManufacturingJob(characterID, jobID, crewOrder) {
+  const job = getJobByID(jobID);
+  if (!job || job.ownerID !== characterID || job.crewOrder?.jobID !== crewOrder.jobID || job.crewOrder.serial !== crewOrder.serial ||
+      ![INDUSTRY_STATUS.DELIVERED, INDUSTRY_STATUS.CANCELLED, INDUSTRY_STATUS.REVERTED].includes(job.status)) {
+    return { success: false, errorMsg: "CREW_MANUFACTURING_ACK_CONFLICT" };
+  }
+  const hash = key => crypto.createHash("sha256").update(key).digest("hex");
+  const keys = new Set([getIndustryOutputReceiptKey(job), ...["return", "consume"].map(action =>
+    `item-custody:local:${hash(getIndustryBlueprintCustodyKey(job, "delivery", action))}`)]);
+  const pruned = require("../inventory/itemStore").pruneIdempotentGrantReceipts(receipt => keys.has(receipt.receiptKey));
+  return pruned.success ? database.flushTableSync("items") : pruned;
+}
+
 function getIndustryOutputReceiptKey(job) {
   const receiptID = String(job && job.deliveryReceiptID || "").trim();
   if (receiptID) {
@@ -5778,6 +5846,9 @@ function seedBlueprintForOwner(ownerID, locationID, options = {}) {
 }
 
 module.exports = {
+  createCrewIndustryActor,
+  prepareCrewManufacturingIntent,
+  acknowledgeCrewManufacturingJob,
   DURABLE_READY_JOB_TYPE,
   bindDurableScheduler,
   buildDurableIndustryJob,

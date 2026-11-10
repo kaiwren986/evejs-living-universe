@@ -100,6 +100,8 @@ const {
   putEscrowRecordDurable,
   removeEscrowRecord: removeEscrowRecordState,
   removeEscrowRecordDurable: removeEscrowRecordDurableState,
+  getCrewSaleReceipt, completeCrewSaleSaga,
+  getCrewPurchaseReceipt, completeCrewPurchaseSaga,
 } = require(path.join(__dirname, "./marketEscrowState"));
 const {
   RANGE_STATION,
@@ -1622,7 +1624,7 @@ async function debitCharacterWallet(
     return null;
   }
 
-  ensureCharacterHasFunds(characterID, normalizedAmount, description, options);
+  if (options.minimumBalance === undefined) ensureCharacterHasFunds(characterID, normalizedAmount, description, options);
 
   if (options.isCorp) {
     const accountKey = normalizeCorporationWalletKey(options.accountKey);
@@ -1653,8 +1655,14 @@ async function debitCharacterWallet(
     referenceID: options.referenceID ?? ownerID2,
     entryTypeID: options.entryTypeID ?? JOURNAL_ENTRY_TYPE.ADMIN_ADJUSTMENT,
     idempotencyKey: options.idempotencyKey,
+      ...(options.minimumBalance !== undefined ? { minimumBalance: options.minimumBalance } : {}),
   });
   if (!result.success) {
+      if (options.minimumBalance !== undefined) {
+        const error = new Error(result.errorMsg || "CREW_PURCHASE_WALLET_PENDING");
+        error.walletDefinitive = ["WALLET_RESERVE", "INSUFFICIENT_FUNDS", "CHARACTER_NOT_FOUND", "WALLET_RESERVE_INVALID"].includes(result.errorMsg);
+        throw error;
+      }
     throwWrappedUserError("CustomInfo", {
       info: `${description} failed: ${result.errorMsg || "wallet write error"}.`,
     });
@@ -3167,9 +3175,22 @@ function buildSeedSellFillSaga({
   };
 }
 
+function debitCrewPurchase(saga, typeLabel) {
+  return debitCharacterWallet(saga.buyerCharacterID, saga.grossCost, `Market purchase of ${typeLabel}`, saga.destinationStationID, {
+    entryTypeID: JOURNAL_ENTRY_TYPE.MARKET_TRANSACTION, ownerID1: saga.buyerCharacterID,
+    ownerID2: saga.stationMarketOwnerID || saga.destinationStationID, referenceID: saga.destinationStationID,
+    minimumBalance: saga.crewPurchase.walletReserve,
+    idempotencyKey: `crew-buy-wallet:${saga.crewPurchase.serial}:${saga.crewPurchase.jobID}:debit`,
+  });
+}
 async function compensateSeedSellFillSaga(anchorRecord, saga, typeLabel) {
   saga.status = "compensating";
   persistSeedMarketFillSaga(anchorRecord, saga);
+  if (saga.crewPurchase && saga.buyerDebitAttempted && !saga.buyerDebited && !saga.buyerDebitRejected) {
+    try { await debitCrewPurchase(saga, typeLabel); flushCharacterWalletSagaBoundary("Confirming crew purchase debit before refund"); saga.buyerDebited = true; }
+    catch (error) { if (!error.walletDefinitive) throw error; saga.buyerDebitRejected = true; }
+    persistSeedMarketFillSaga(anchorRecord, saga);
+  }
 
   const buyerWalletOptions = saga.buyerIsCorp
     ? { isCorp: true, accountKey: saga.buyerAccountKey }
@@ -3207,7 +3228,7 @@ async function compensateSeedSellFillSaga(anchorRecord, saga, typeLabel) {
         ownerID1: saga.buyerCharacterID,
         ownerID2: saga.stationMarketOwnerID || saga.destinationStationID,
         referenceID: saga.destinationStationID,
-        idempotencyKey: `${saga.operationKey}:wallet:buyer-compensate`,
+        idempotencyKey: saga.crewPurchase ? `crew-buy-wallet:${saga.crewPurchase.serial}:${saga.crewPurchase.jobID}:refund` : `${saga.operationKey}:wallet:buyer-compensate`,
       },
     );
     flushCharacterWalletSagaBoundary("Persisting seeded buyer compensation");
@@ -3216,7 +3237,7 @@ async function compensateSeedSellFillSaga(anchorRecord, saga, typeLabel) {
   }
 
   requireDurableMarketSagaWrite(
-    removeEscrowRecordDurable(saga.anchorOrderID),
+    saga.crewPurchase ? completeCrewPurchaseSaga(saga, true) : removeEscrowRecordDurable(saga.anchorOrderID),
     `Clearing compensated seeded market fill saga ${saga.operationKey}`,
   );
 }
@@ -3227,6 +3248,20 @@ async function executeSeedSellFillSagaUnlocked(
   typeLabel,
   options = {},
 ) {
+  if (saga.crewPurchase) {
+    const prior = getCrewPurchaseReceipt(saga.buyerCharacterID);
+    if (prior?.serial >= saga.crewPurchase.serial) {
+      if (prior.serial !== saga.crewPurchase.serial || prior.jobID !== saga.crewPurchase.jobID) throw new Error("CREW_PURCHASE_STALE");
+      return { compensated: prior.result.rejected, crewResult: prior.result };
+    }
+    if (!saga.buyerDebitAttempted) {
+      const stock = listContainerItems(saga.buyerCharacterID, saga.destinationStationID, ITEM_FLAGS.HANGAR)
+        .filter(i => i.typeID === saga.typeID && i.singleton === 0 && !i.custodyReservation).reduce((sum,i) => sum+i.quantity,0);
+      if (stock + saga.tradedQuantity > saga.crewPurchase.targetStock) {
+        await compensateSeedSellFillSaga(anchorRecord, saga, typeLabel); return { compensated: true };
+      }
+    }
+  }
   if (saga.status === "compensating") {
     await compensateSeedSellFillSaga(anchorRecord, saga, typeLabel);
     return { compensated: true };
@@ -3238,7 +3273,8 @@ async function executeSeedSellFillSagaUnlocked(
       : {};
     let buyerWalletResult = null;
     if (saga.chargeBuyerWallet && !saga.buyerDebited) {
-      buyerWalletResult = await debitCharacterWallet(
+      if (saga.crewPurchase) { saga.buyerDebitAttempted = true; persistSeedMarketFillSaga(anchorRecord, saga); }
+      try { buyerWalletResult = saga.crewPurchase ? await debitCrewPurchase(saga, typeLabel) : await debitCharacterWallet(
         saga.buyerWalletID,
         saga.grossCost,
         `Market purchase of ${typeLabel}`,
@@ -3251,7 +3287,7 @@ async function executeSeedSellFillSagaUnlocked(
           referenceID: saga.destinationStationID,
           idempotencyKey: `${saga.operationKey}:wallet:buyer-debit`,
         },
-      );
+      ); } catch (error) { if (saga.crewPurchase && error.walletDefinitive) { saga.buyerDebitRejected = true; persistSeedMarketFillSaga(anchorRecord, saga); } throw error; }
       flushCharacterWalletSagaBoundary("Persisting seeded market buyer debit");
       saga.buyerDebited = true;
       persistSeedMarketFillSaga(anchorRecord, saga);
@@ -3325,7 +3361,7 @@ async function executeSeedSellFillSagaUnlocked(
         saga.typeID,
         saga.tradedQuantity,
         {
-          notify: false,
+          notify: Boolean(saga.crewPurchase),
           idempotencyKey: `${saga.operationKey}:inventory:deliver`,
         },
       );
@@ -3341,7 +3377,7 @@ async function executeSeedSellFillSagaUnlocked(
     persistSeedMarketFillSaga(anchorRecord, saga);
 
     requireDurableMarketSagaWrite(
-      removeEscrowRecordDurable(saga.anchorOrderID),
+      saga.crewPurchase ? completeCrewPurchaseSaga(saga) : removeEscrowRecordDurable(saga.anchorOrderID),
       `Completing seeded market fill saga ${saga.operationKey}`,
     );
     return {
@@ -3559,6 +3595,20 @@ function buildSeedBuyFillSaga({
 function compensateSeedBuyFillSaga(anchorRecord, saga) {
   saga.status = "compensating";
   persistSeedMarketFillSaga(anchorRecord, saga);
+  if (saga.crewSale) for (const leg of saga.itemLegs) {
+    if (!leg.reserved) {
+      const receipt = itemCustody.getCommittedReceipt(leg.reserveKey);
+      if (!receipt.success) throw new Error("CREW_SALE_CUSTODY_PENDING");
+      if (receipt.committed) {
+        const ids = [...(receipt.resultData?.itemIDs || []), ...(receipt.resultData?.changes || []).map(change => change.item?.itemID).filter(Boolean)];
+        const restored = ids.map(id => findItemById(id)).find(item => item?.ownerID === saga.sellerCharacterID && item.locationID === marketItemCustody.getSeedFillEscrowLocationID(saga.sagaID));
+        if (itemCustody.getCommittedReceipt(leg.releaseKey).committed) { leg.reserved = true; leg.released = true; }
+        else if (restored) { leg.destinationItem = restored; leg.reserved = true; }
+        else throw new Error("CREW_SALE_RESERVATION_UNRESOLVED");
+      }
+    }
+  }
+  persistSeedMarketFillSaga(anchorRecord, saga);
   for (let index = saga.itemLegs.length - 1; index >= 0; index -= 1) {
     const leg = saga.itemLegs[index];
     if (!leg.reserved || leg.released || !leg.destinationItem) {
@@ -3582,7 +3632,7 @@ function compensateSeedBuyFillSaga(anchorRecord, saga) {
     persistSeedMarketFillSaga(anchorRecord, saga);
   }
   requireDurableMarketSagaWrite(
-    removeEscrowRecordDurable(saga.anchorOrderID),
+    saga.crewSale ? completeCrewSaleSaga(saga, true) : removeEscrowRecordDurable(saga.anchorOrderID),
     `Clearing compensated seeded market fill saga ${saga.operationKey}`,
   );
 }
@@ -3593,6 +3643,23 @@ async function executeSeedBuyFillSagaUnlocked(
   typeLabel,
   options = {},
 ) {
+  if (saga.crewSale) {
+    const prior = getCrewSaleReceipt(saga.sellerCharacterID);
+    if (prior?.serial >= saga.crewSale.serial) {
+      if (prior.serial !== saga.crewSale.serial || prior.jobID !== saga.crewSale.jobID) throw new Error("CREW_SALE_STALE");
+      return { compensated: prior.result.rejected, crewResult: prior.result };
+    }
+    // Before the first reservation only. A committed custody receipt also
+    // proves reservation when its native checkpoint was interrupted.
+    if (!saga.itemLegs.some(leg => leg.reserved || itemCustody.getCommittedReceipt(leg.reserveKey).committed)) {
+      const stock = listContainerItems(saga.sellerCharacterID, saga.crewSale.stationID, ITEM_FLAGS.HANGAR)
+        .filter(i => i.typeID === saga.typeID && i.singleton === 0 && !i.custodyReservation)
+        .reduce((sum, i) => sum + i.quantity, 0);
+      if (stock - saga.fillableQuantity < saga.crewSale.reserve) {
+        compensateSeedBuyFillSaga(anchorRecord, saga); return { compensated: true };
+      }
+    }
+  }
   if (saga.status === "compensating") {
     compensateSeedBuyFillSaga(anchorRecord, saga);
     return { compensated: true };
@@ -3729,7 +3796,7 @@ async function executeSeedBuyFillSagaUnlocked(
     persistSeedMarketFillSaga(anchorRecord, saga);
 
     requireDurableMarketSagaWrite(
-      removeEscrowRecordDurable(saga.anchorOrderID),
+      saga.crewSale ? completeCrewSaleSaga(saga) : removeEscrowRecordDurable(saga.anchorOrderID),
       `Completing seeded market fill saga ${saga.operationKey}`,
     );
     return {
@@ -7403,6 +7470,86 @@ class MarketProxyService extends BaseService {
 }
 
 module.exports = MarketProxyService;
+module.exports.quoteCrewSalesTax = (ownerID, stationID, gross) => computeSalesTaxAmount(buildCharacterMarketContext(null, ownerID, stationID), gross);
+module.exports.isCrewQuoteOrderPending = orderID => hasPendingMarketFillSagaForOrder(orderID);
+module.exports.prepareCrewPurchase = async function prepareCrewPurchase(ownerID, stationID, order, tag, limits) {
+  const station = require("../../space/worldData").getStationByID(stationID), metadata = resolveItemByTypeID(order.typeID);
+  if (!station || metadata?.groupID !== 18 || !/^[a-f0-9]{64}$/.test(tag.jobID) || !Number.isSafeInteger(tag.serial) || tag.serial < 1) throw new Error("CREW_PURCHASE_INVALID");
+  const stock = () => listContainerItems(ownerID,stationID,ITEM_FLAGS.HANGAR).filter(i=>i.typeID===order.typeID&&i.singleton===0&&!i.custodyReservation).reduce((sum,i)=>sum+i.quantity,0);
+  if (stock() >= order.targetStock) return { ready:false,status:"stock_target_met" };
+  const book = await marketDaemonClient.call("GetOrders",{region_id:station.regionID,type_id:order.typeID});
+  const available = Math.min(limits.allowance, Math.max(0, getCharacterWallet(ownerID).balance - limits.walletReserve));
+  if (available < 0.01) return {ready:false,status:"wallet_reserve"};
+  const needed = order.targetStock-stock();
+  if (needed <= 0) return {ready:false,status:"stock_target_met"};
+  const asks = (book?.sells||[]).filter(o=>o.source==="seed"&&o.bid===false&&Number(o.station_id)===stationID&&Number(o.type_id)===order.typeID&&o.price>=0.01&&Math.abs(o.price*100-Math.round(o.price*100))<0.0001&&o.price<=order.maximumPrice&&o.vol_remaining>0&&!hasPendingMarketFillSagaForOrder(o.order_id)).sort((a,b)=>a.price-b.price||String(a.order_id).localeCompare(String(b.order_id)));
+  for (const ask of asks) {
+    const priceCents = Math.round(ask.price*100), quantity = Math.min(needed,order.batchSize,ask.vol_remaining,Math.floor(Math.round(available*100)/priceCents));
+    if (quantity < Math.min(ask.min_volume||1,ask.vol_remaining)) continue;
+    const cost = roundIsk(quantity*ask.price);
+    const saga = buildSeedSellFillSaga({sellOrder:ask,buyerCharacterID:ownerID,destinationStationID:stationID,typeID:order.typeID,
+      tradedQuantity:quantity,availableQuantity:ask.vol_remaining,orderPrice:ask.price,grossCost:cost,stationMarketOwnerID:getMarketCounterpartyOwnerID(stationID),chargeBuyerWallet:true});
+    saga.crewPurchase = {...tag,walletReserve:limits.walletReserve,targetStock:order.targetStock};
+    return {ready:true,saga,summary:{typeID:order.typeID,name:metadata.name,quantity,unitPrice:ask.price,cost,orderID:saga.orderID}};
+  }
+  return {ready:false,status:asks.length?"budget_too_small":"waiting_for_sellers"};
+};
+module.exports.settleCrewPurchase = async function settleCrewPurchase(saga) {
+  const prior = getCrewPurchaseReceipt(saga.buyerCharacterID);
+  if (prior?.serial >= saga.crewPurchase.serial) {
+    if (prior.serial !== saga.crewPurchase.serial || prior.jobID !== saga.crewPurchase.jobID) throw new Error("CREW_PURCHASE_STALE");
+    return prior.result;
+  }
+  let anchor = getEscrowRecord(saga.anchorOrderID);
+  if (!anchor) {anchor={orderId:saga.anchorOrderID,escrowType:"seed-fill",pendingFill:saga,createdAt:saga.createdAt};persistSeedMarketFillSaga(anchor,saga);}
+  if (anchor.pendingFill?.operationKey !== saga.operationKey) throw new Error("CREW_PURCHASE_CONFLICT");
+  try {await executeSeedSellFillSaga(anchor,anchor.pendingFill,getMarketTypeLabel(saga.typeID),{scheduleRecovery:false});}
+  catch(error){if(getCrewPurchaseReceipt(saga.buyerCharacterID)?.jobID!==saga.crewPurchase.jobID)throw error;}
+  const done=getCrewPurchaseReceipt(saga.buyerCharacterID);if(done?.jobID!==saga.crewPurchase.jobID)throw new Error("CREW_PURCHASE_PENDING");return done.result;
+};
+// Server-owned crew trading: one exact local NPC bid fill per durable intent.
+// The crew never fabricates a docked pilot session or creates market demand.
+module.exports.prepareCrewSale = async function prepareCrewSale(ownerID, stationID, order, tag) {
+  const station = require("../../space/worldData").getStationByID(stationID);
+  const metadata = resolveItemByTypeID(order.typeID);
+  if (!station || ![7, 8].includes(metadata?.categoryID) || !/^[a-f0-9]{64}$/.test(tag.jobID) || !Number.isSafeInteger(tag.serial) || tag.serial < 1) throw new Error("CREW_SALE_INVALID");
+  let stocks = listContainerItems(ownerID, stationID, ITEM_FLAGS.HANGAR).filter(i => i.typeID === order.typeID && i.singleton === 0 && !i.custodyReservation && i.quantity > 0);
+  let surplus = stocks.reduce((sum, i) => sum + i.quantity, 0) - order.reserve;
+  if (surplus <= 0) return { ready: false, status: "reserve_met" };
+  const book = await marketDaemonClient.call("GetOrders", { region_id: station.regionID, type_id: order.typeID });
+  stocks = listContainerItems(ownerID, stationID, ITEM_FLAGS.HANGAR).filter(i => i.typeID === order.typeID && i.singleton === 0 && !i.custodyReservation && i.quantity > 0);
+  surplus = stocks.reduce((sum, i) => sum + i.quantity, 0) - order.reserve;
+  if (surplus <= 0) return { ready: false, status: "reserve_met" };
+  const bids = (book?.buys || []).filter(b => b.source === "seed" && b.bid === true && Number(b.station_id) === stationID &&
+    Number(b.type_id) === order.typeID && Number(b.price) >= order.minimumPrice && b.price > 0 && b.vol_remaining > 0 && !hasPendingMarketFillSagaForOrder(b.order_id))
+    .sort((a, b) => b.price - a.price || String(a.order_id).localeCompare(String(b.order_id)));
+  for (const bid of bids) for (const item of stocks.sort((a,b) => a.itemID - b.itemID)) {
+    const quantity = Math.min(surplus, item.quantity, order.batchSize, bid.vol_remaining);
+    if (quantity < Math.min(bid.min_volume || 1, bid.vol_remaining)) continue;
+    const gross = roundIsk(bid.price * quantity), tax = computeSalesTaxAmount(buildCharacterMarketContext(null, ownerID, stationID), gross);
+    const saga = buildSeedBuyFillSaga({ buyOrder: bid, sellerCharacterID: ownerID, destinationStationID: stationID,
+      typeID: order.typeID, fillableQuantity: quantity, availableQuantity: bid.vol_remaining, orderPrice: bid.price,
+      grossAmount: gross, salesTax: tax, stationMarketOwnerID: getMarketCounterpartyOwnerID(stationID), sourceItemID: item.itemID });
+    saga.crewSale = { ...tag, stationID, reserve: order.reserve };
+    return { ready: true, saga, summary: { typeID: order.typeID, name: metadata.name, quantity, unitPrice: bid.price, gross, tax, net: roundIsk(gross-tax), orderID: saga.orderID } };
+  }
+  return { ready: false, status: "waiting_for_buyers" };
+};
+module.exports.settleCrewSale = async function settleCrewSale(saga) {
+  const prior = getCrewSaleReceipt(saga.sellerCharacterID);
+  if (prior?.serial >= saga.crewSale.serial) {
+    if (prior.serial !== saga.crewSale.serial || prior.jobID !== saga.crewSale.jobID) throw new Error("CREW_SALE_STALE");
+    return prior.result;
+  }
+  let anchor = getEscrowRecord(saga.anchorOrderID);
+  if (!anchor) { anchor = { orderId: saga.anchorOrderID, escrowType: "seed-fill", pendingFill: saga, createdAt: saga.createdAt }; persistSeedMarketFillSaga(anchor, saga); }
+  if (anchor.pendingFill?.operationKey !== saga.operationKey) throw new Error("CREW_SALE_CONFLICT");
+  try { await executeSeedBuyFillSaga(anchor, anchor.pendingFill, getMarketTypeLabel(saga.typeID), { scheduleRecovery: false }); }
+  catch (error) { if (!getCrewSaleReceipt(saga.sellerCharacterID) || getCrewSaleReceipt(saga.sellerCharacterID).jobID !== saga.crewSale.jobID) throw error; }
+  const done = getCrewSaleReceipt(saga.sellerCharacterID);
+  if (done?.jobID !== saga.crewSale.jobID) throw new Error("CREW_SALE_PENDING");
+  return done.result;
+};
 module.exports.cancelStructureMarketOrdersForServiceLoss =
   cancelStructureMarketOrdersForServiceLoss;
 module.exports.DURABLE_EXPIRY_JOB_TYPE = DURABLE_EXPIRY_JOB_TYPE;

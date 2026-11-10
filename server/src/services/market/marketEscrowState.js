@@ -28,7 +28,7 @@ function ensureTable() {
 
 function listEscrowRecords() {
   return Object.entries(ensureTable())
-    .filter(([key]) => key !== META_KEY)
+    .filter(([key]) => key !== META_KEY && key !== "_crewSales" && key !== "_crewPurchases")
     .map(([, entry]) => entry)
     .filter((entry) => entry && typeof entry === "object")
     .map((entry) => cloneValue(entry));
@@ -136,6 +136,38 @@ function removeEscrowRecordDurable(orderId) {
     : { success: false, errorMsg: flushResult.errorMsg || "FLUSH_ERROR" };
 }
 
+function getCrewSaleReceipt(ownerID) {
+  if (!flushEscrowTableSync().success) throw new Error("CREW_SALE_COMPLETION_PENDING");
+  const result = database.read(TABLE, `/_crewSales/${ownerID}`);
+  return result.success && result.data ? cloneValue(result.data) : null;
+}
+function completeCrewSaleSaga(saga, rejected = false) {
+  const tag = saga.crewSale, root = cloneValue(ensureTable()), receipts = root._crewSales || {};
+  if (!tag || !/^[a-f0-9]{64}$/.test(tag.jobID) || !Number.isSafeInteger(tag.serial) || tag.serial < 1) return { success: false, errorMsg: "CREW_SALE_INVALID" };
+  const prior = receipts[saga.sellerCharacterID];
+  if (prior?.serial >= tag.serial) return prior.serial === tag.serial && prior.jobID === tag.jobID ? { success: true } : { success: false, errorMsg: "CREW_SALE_STALE" };
+  if (!prior && Object.keys(receipts).length >= 128) return { success: false, errorMsg: "CREW_SALE_CAPACITY" };
+  receipts[saga.sellerCharacterID] = { jobID: tag.jobID, serial: tag.serial, operationKey: saga.operationKey,
+    result: { rejected, quantity: rejected ? 0 : saga.fillableQuantity, typeID: saga.typeID, stationID: tag.stationID,
+      unitPrice: saga.orderPrice, gross: rejected ? 0 : saga.grossAmount, tax: rejected ? 0 : saga.salesTax,
+      net: rejected ? 0 : Math.round((saga.grossAmount - saga.salesTax) * 100) / 100, orderID: saga.orderID },
+    custodyKeys: saga.itemLegs.flatMap(leg => [leg.reserveKey, leg.releaseKey, leg.consumeKey]) };
+  delete root[saga.anchorOrderID]; root._crewSales = receipts;
+  const written = database.write(TABLE, "/", root);
+  return written.success ? flushEscrowTableSync() : written;
+}
+function acknowledgeCrewSale(ownerID, tag) {
+  const receipt = getCrewSaleReceipt(ownerID);
+  if (!receipt || receipt.jobID !== tag.jobID || receipt.serial !== tag.serial) return { success: false, errorMsg: "CREW_SALE_ACK_CONFLICT" };
+  const hash = key => require("node:crypto").createHash("sha256").update(key).digest("hex");
+  const keys = new Set((receipt.custodyKeys || []).map(key => `item-custody:local:${hash(key)}`));
+  const pruned = require("../inventory/itemStore").pruneIdempotentGrantReceipts(value => keys.has(value.receiptKey));
+  if (!pruned.success || !database.flushTableSync("items").success) return { success: false, errorMsg: "CREW_SALE_ACK_PENDING" };
+  delete receipt.custodyKeys;
+  const written = database.write(TABLE, `/_crewSales/${ownerID}`, receipt);
+  return written.success ? flushEscrowTableSync() : written;
+}
+
 module.exports = {
   TABLE,
   allocateMarketSagaIDDurable,
@@ -145,4 +177,36 @@ module.exports = {
   putEscrowRecordDurable,
   removeEscrowRecord,
   removeEscrowRecordDurable,
+  getCrewSaleReceipt, completeCrewSaleSaga, acknowledgeCrewSale,
 };
+
+function getCrewPurchaseReceipt(ownerID) {
+  if (!flushEscrowTableSync().success) throw new Error("CREW_PURCHASE_COMPLETION_PENDING");
+  const result = database.read(TABLE, `/_crewPurchases/${ownerID}`);
+  return result.success && result.data ? cloneValue(result.data) : null;
+}
+function completeCrewPurchaseSaga(saga, rejected = false) {
+  const tag = saga.crewPurchase, root = cloneValue(ensureTable()), receipts = root._crewPurchases || {};
+  if (!tag || !/^[a-f0-9]{64}$/.test(tag.jobID) || !Number.isSafeInteger(tag.serial) || tag.serial < 1) return { success: false, errorMsg: "CREW_PURCHASE_INVALID" };
+  const prior = receipts[saga.buyerCharacterID];
+  if (prior?.serial >= tag.serial) return prior.serial === tag.serial && prior.jobID === tag.jobID ? { success: true } : { success: false, errorMsg: "CREW_PURCHASE_STALE" };
+  if (!prior && Object.keys(receipts).length >= 128) return { success: false, errorMsg: "CREW_PURCHASE_CAPACITY" };
+  receipts[saga.buyerCharacterID] = { jobID: tag.jobID, serial: tag.serial, operationKey: saga.operationKey,
+    result: { rejected, quantity: rejected ? 0 : saga.tradedQuantity, typeID: saga.typeID, stationID: saga.destinationStationID,
+      unitPrice: saga.orderPrice, cost: rejected ? 0 : saga.grossCost, orderID: saga.orderID },
+    custodyKey: `${saga.operationKey}:inventory:deliver` };
+  delete root[saga.anchorOrderID]; root._crewPurchases = receipts;
+  const written = database.write(TABLE, "/", root);
+  return written.success ? flushEscrowTableSync() : written;
+}
+function acknowledgeCrewPurchase(ownerID, tag) {
+  const receipt = getCrewPurchaseReceipt(ownerID);
+  if (!receipt || receipt.jobID !== tag.jobID || receipt.serial !== tag.serial) return { success: false, errorMsg: "CREW_PURCHASE_ACK_CONFLICT" };
+  const key = receipt.custodyKey ? `item-custody:local:${require("node:crypto").createHash("sha256").update(receipt.custodyKey).digest("hex")}` : null;
+  const pruned = require("../inventory/itemStore").pruneIdempotentGrantReceipts(value => key && value.receiptKey === key);
+  if (!pruned.success || !database.flushTableSync("items").success) return { success: false, errorMsg: "CREW_PURCHASE_ACK_PENDING" };
+  delete receipt.custodyKey;
+  const written = database.write(TABLE, `/_crewPurchases/${ownerID}`, receipt);
+  return written.success ? flushEscrowTableSync() : written;
+}
+Object.assign(module.exports, { getCrewPurchaseReceipt, completeCrewPurchaseSaga, acknowledgeCrewPurchase });

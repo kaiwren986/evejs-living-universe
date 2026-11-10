@@ -25,6 +25,8 @@ const MAX_RECEIPTS = 1024;
 const RECEIPT_LIST_FIELDS = new Set([
   "walletAuthorityReceipts",
   "walletOperationReceipts",
+  "crewPurchaseWalletReceipts",
+  "crewEquipmentWalletReceipts",
   "nodeGraphWalletReceipts",
   "freelanceWalletReceipts",
   "contractWalletReceipts",
