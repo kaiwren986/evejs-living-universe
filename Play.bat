@@ -130,6 +130,12 @@ if not "!errorlevel!"=="0" (
   exit /b 1
 )
 
+call :EnsureClientMods
+if not "!errorlevel!"=="0" (
+  pause
+  exit /b 1
+)
+
 call :ValidateClientSetup
 if not "!errorlevel!"=="0" (
   pause
@@ -552,6 +558,20 @@ exit /b 0
 
 :EnsureClientNetworkPatches
 powershell -NoProfile -ExecutionPolicy Bypass -File "%EVEJS_REPO_ROOT%\tools\ClientSETUP\scripts\Set-EvEJSClientNetworkPatches.ps1" -ClientPath "%EVEJS_CLIENT_PATH%" -ClientExe "%CLIENT_EXE%" -Mode Apply
+exit /b %errorlevel%
+
+:EnsureClientMods
+rem EveJS RPG fork: native client mods (client-mods\, tools\ClientMods\).
+rem Installs the code.ccp hook if it is missing or out of date, and tells the
+rem client where the mods live. Set EVEJS_CLIENT_MODS=off to play the stock
+rem client: the original code.ccp is put back.
+if /I "%EVEJS_CLIENT_MODS%"=="off" (
+  node "%EVEJS_REPO_ROOT%\tools\ClientMods\patchClient.js" --client "%EVEJS_CLIENT_PATH%" --restore
+  set "EVEJS_CLIENT_MODS="
+  exit /b 0
+)
+set "EVEJS_CLIENT_MODS=%EVEJS_REPO_ROOT%\client-mods"
+node "%EVEJS_REPO_ROOT%\tools\ClientMods\patchClient.js" --client "%EVEJS_CLIENT_PATH%"
 exit /b %errorlevel%
 
 :ResolveClientResourceCache
