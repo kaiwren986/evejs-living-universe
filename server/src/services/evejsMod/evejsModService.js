@@ -18,7 +18,7 @@ const { EVEJS_VERSION } = require(path.join(__dirname, "../../config/manager"));
 
 const llm = require(path.join(__dirname, "../../rpg/llm/llmClient"));
 
-const BRIDGE_VERSION = 2;
+const BRIDGE_VERSION = 3;
 
 // Questions the Crew Link window can ask with one click. The model only phrases
 // the answer; every fact it may use comes from the server.
@@ -62,6 +62,27 @@ function courierCrewLines(ownerID) {
   } catch (error) {
     log.warn(`[evejsMod] crew snapshot failed for ${ownerID}: ${error.message}`);
     return ["Crew records are unavailable right now."];
+  }
+}
+
+// Structured crew data for the native window: {available, name, station, job, roster[{name, role}]}.
+function crewSummary(ownerID) {
+  try {
+    const crew = require(path.join(__dirname, "../crew/crewRuntime")).getDefaultCrewService();
+    const snapshot = crew?.snapshot?.(ownerID);
+    if (!snapshot?.enabled) return { available: false, note: "Crew operations are switched off on this server." };
+    if (!snapshot.crew) return { available: false, note: "No crew signed on yet." };
+    const state = snapshot.crew;
+    return {
+      available: true,
+      name: state.name || "Courier crew",
+      station: state.station?.name || state.station?.stationName || "",
+      job: state.job ? `${state.job.phase || "underway"}${state.job.destinationStation?.name ? ` to ${state.job.destinationStation.name}` : ""}` : "Standing by",
+      roster: (state.roster || []).map((person) => ({ name: person.name, role: person.role || "Crew" })),
+    };
+  } catch (error) {
+    log.warn(`[evejsMod] crew summary failed for ${ownerID}: ${error.message}`);
+    return { available: false, note: "Crew records are unavailable right now." };
   }
 }
 
@@ -145,6 +166,19 @@ class EvejsModService extends BaseService {
       ["solarSystemName", text(system?.solarSystemName || system?.name)],
       ["docked", Boolean(session?.stationid || session?.structureid)],
       ["crew", buildList(courierCrewLines(ownerID))],
+      ["security", Number.isFinite(system?.security) ? Math.round(system.security * 10) / 10 : null],
+      ["crewInfo", (() => {
+        const summary = crewSummary(ownerID);
+        return buildDict([
+          ["available", summary.available],
+          ["note", summary.note || ""],
+          ["name", summary.name || ""],
+          ["station", summary.station || ""],
+          ["job", summary.job || ""],
+          ["roster", buildList((summary.roster || []).map((person) =>
+            buildDict([["name", person.name], ["role", person.role]])))],
+        ]);
+      })()],
     ]);
   }
 }
