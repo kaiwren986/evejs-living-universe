@@ -18,6 +18,8 @@ const {
 } = require(path.join(__dirname, "./missionAuthority"));
 const { resolveItemByTypeID } = require("../inventory/itemTypeRegistry");
 const { isBlueprintCopyRewardType } = require("../inventory/blueprintRewardState");
+const { getAgentByID } = require("./agentAuthority");
+const careerAgentMissions = require("./careerAgentMissions");
 const repo = createTableRepository("service:agent", { strict: true });
 
 const MISSION_RUNTIME_TABLE = "missionRuntimeState";
@@ -231,6 +233,16 @@ function normalizeMissionStandingEvent(record, fallback = {}) {
       .filter((entry) => entry && typeof entry === "object")
       .map((entry) => cloneValue(entry));
   }
+  const extraStandings = Array.isArray(source.extraStandings)
+    ? source.extraStandings
+    : Array.isArray(fallback.extraStandings)
+      ? fallback.extraStandings
+      : null;
+  if (extraStandings) {
+    normalized.extraStandings = extraStandings
+      .filter((entry) => entry && typeof entry === "object")
+      .map((entry) => cloneValue(entry));
+  }
   return normalized;
 }
 
@@ -259,6 +271,9 @@ function normalizeMissionRewards(record) {
             typeID,
             quantity: blueprintRuns > 0 && !entry.blueprintRuns ? 1 : quantity,
             ...(blueprintRuns > 0 ? { blueprintRuns } : {}),
+            ...(blueprintRuns > 0 && (entry.blueprintMaterialLevel !== undefined || entry.blueprintProductivityLevel !== undefined)
+              ? { blueprintMaterialLevel: Math.max(0, Math.trunc(toFiniteNumber(entry.blueprintMaterialLevel, 0))),
+                blueprintProductivityLevel: Math.max(0, Math.trunc(toFiniteNumber(entry.blueprintProductivityLevel, 0))) } : {}),
             ...(Number(itemType?.categoryID) === 9 && !blueprintRuns ? { original: true } : {}),
             extra: entry.extra === undefined ? null : cloneValue(entry.extra),
           };
@@ -293,6 +308,14 @@ function normalizeMissionRewards(record) {
       Math.round(toFiniteNumber(source.bonusTimeIntervalMinutes, 0)),
     ),
     loyaltyPoints: Math.max(0, Math.round(toFiniteNumber(source.loyaltyPoints, 0))),
+    ...(source.tqOfferEvidence && /^[a-f0-9]{64}$/.test(source.tqOfferEvidence.captureID) ? {
+      tqOfferEvidence: {
+        captureID: source.tqOfferEvidence.captureID,
+        source: Object.fromEntries(["offer", "objective", "briefing"].map((key) =>
+          [key, toPositiveInteger(source.tqOfferEvidence.source?.[key], 0)])),
+        validationTODO: normalizeText(source.tqOfferEvidence.validationTODO, ""),
+      },
+    } : {}),
     researchPoints: Math.max(0, Math.round(toFiniteNumber(source.researchPoints, 0))),
     rawStandings,
     standingEvents: {
@@ -330,9 +353,11 @@ function createDefaultCharacterState(characterID) {
     characterID: toPositiveInteger(characterID, 0),
     lastUpdatedAtMs: Date.now(),
     missionSelectionCursorByAgentID: {},
+    lastOfferedMissionIDByAgentID: {},
     missionsByAgentID: {},
     declineTimersByAgentID: {},
     completedCareerAgentIDs: {},
+    careerChainProgressByAgentID: {},
     epicArcProgress: createDefaultEpicArcProgress(),
     storylineProgress: createDefaultStorylineProgress(),
     history: [],
@@ -1176,6 +1201,24 @@ function expirePendingStorylineOffers(characterState, options = {}) {
   return expiredOffers;
 }
 
+function normalizeLastOfferedMissionIDs(characterState, retiredAgentIDs) {
+  const previous = characterState.lastOfferedMissionIDByAgentID;
+  const result = {};
+  for (const [key, value] of Object.entries(previous && typeof previous === "object" && !Array.isArray(previous) ? previous : {})) {
+    const agentID = toPositiveInteger(key, 0);
+    const missionID = toPositiveInteger(value, 0);
+    if (agentID && missionID && !retiredAgentIDs.has(agentID)) result[agentID] = missionID;
+  }
+  // Migrate older saves. Normalized history is newest first; current offers
+  // take priority. The map survives the bounded history filling with other agents.
+  for (const row of [...Object.values(characterState.missionsByAgentID), ...characterState.history]) {
+    const agentID = toPositiveInteger(row?.agentID, 0);
+    const missionID = toPositiveInteger(row?.contentID, 0);
+    if (agentID && missionID && !result[agentID] && !retiredAgentIDs.has(agentID)) result[agentID] = missionID;
+  }
+  characterState.lastOfferedMissionIDByAgentID = result;
+}
+
 function ensureCharacterState(state, characterID) {
   const normalizedCharacterID = toPositiveInteger(characterID, 0);
   if (!normalizedCharacterID) {
@@ -1401,8 +1444,10 @@ function ensureCharacterState(state, characterID) {
   characterState.history = characterState.history
     .map((entry) => normalizeHistoryEntry(entry))
     .filter(Boolean)
-    .sort((left, right) => right.missionSequence - left.missionSequence)
-    .slice(0, 128);
+    .sort((left, right) => right.missionSequence - left.missionSequence);
+  careerAgentMissions.reconcileChainProgress(characterState, getAgentByID);
+  normalizeLastOfferedMissionIDs(characterState, retiredMissionAgentIDs);
+  characterState.history = characterState.history.slice(0, 128);
 
   return characterState;
 }

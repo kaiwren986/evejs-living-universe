@@ -1,0 +1,21 @@
+# Iron Man uses the v2 snapshot importer with its strict iron_man filter.
+# Paths resolve from tools/market-seederv2, where the shared launcher runs.
+[input]
+static_data_dir = "../../_local/gameStore/data"
+
+[output]
+database_path = "../../externalservices/market-server/data/generated/market.sqlite"
+
+[source]
+index_url = "https://data.everef.net/market-orders/index.json"
+download_dir = "cache"
+user_agent = "PublicEveJS market-seederv4/0.1"
+
+[import]
+order_filter = "iron_man"
+
+[build]
+sqlite_cache_size_kib = 262144
+sqlite_page_size_bytes = 32768
+sqlite_worker_threads = 24
+insert_batch_rows = 100000

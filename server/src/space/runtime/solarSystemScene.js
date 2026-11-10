@@ -23,6 +23,7 @@ const deployableCynoRuntime = require(path.join(runtimeEntryDirname, "../service
 const mobileAnalysisBeaconRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileAnalysisBeaconRuntime"));
 const mobileCynoInhibitorRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileCynoInhibitorRuntime"));
 const mobileDepotRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileDepotRuntime"));
+const mercenaryDenRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mercenaryDenRuntime"));
 const mobileMicroJumpUnitRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileMicroJumpUnitRuntime"));
 const mobileObservatoryRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileObservatoryRuntime"));
 const mobilePhaseAnchorRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobilePhaseAnchorRuntime"));
@@ -174,6 +175,13 @@ class SolarSystemScene {
         this.addStaticEntity(entity);
       }
 
+      const systemEss = lazyRequire("./encounterSurveillanceSystem").ensureSystemEssEntity(this);
+      if (systemEss) {
+        lazyRequire("../services/dynamic/essPresentationRuntime").refreshScene(this,
+          lazyRequire("../services/dynamic/dynamicResourceState").getSystemState(this.systemID),
+          { broadcast: false });
+      }
+
       let systemSpaceItems = listSystemSpaceItems(this.systemID);
       const destructionResults = lazyRequire("../services/starbase/starbaseCombatRuntime")
         .reconcileStarbaseDestructions(this.systemID, { broadcast: false, systemSpaceItems });
@@ -319,6 +327,7 @@ class SolarSystemScene {
         if (entity.kind === "deployable") {
           deployableCynoRuntime.registerMobileCynoDeployableItem(entity.itemID);
           mobileDepotRuntime.registerMobileDepotItem(entity.itemID);
+          mercenaryDenRuntime.registerMercenaryDenItem(entity.itemID);
           mobileAnalysisBeaconRuntime.registerMobileAnalysisBeaconItem(entity.itemID);
           mobileCynoInhibitorRuntime.registerMobileCynoInhibitorItem(entity.itemID);
           mobileMicroJumpUnitRuntime.registerMobileMicroJumpUnitItem(entity.itemID);

@@ -6,7 +6,7 @@ const { graphError } = require("./nodeGraphCompiler");
 // These handlers have current domain owners. AIR supplies its scene actions
 // separately; unsupported atoms are never allowed to fall through as success.
 const ACTION_ATOMS = Object.freeze([204, 269, 363, 364, 365]);
-const GETTER_ATOMS = Object.freeze([285, 301, 302, 303, 307, 391, 406, 415, 446, 452]);
+const GETTER_ATOMS = Object.freeze([285, 301, 302, 303, 307, 333, 391, 406, 415, 446, 452, 600]);
 const CONDITION_ATOMS = Object.freeze([34, 289, 308, 368]);
 const EVENT_ATOMS = Object.freeze([190, 305]);
 
@@ -82,6 +82,11 @@ function executeAction(instance, node, parameters, root, recovery) {
 
 function executeGetter(instance, node, parameters, root) {
   checkCharacter(instance, parameters);
+  if (node.atomID === 333) {
+    const fallback = parameters.default_value ?? null;
+    return { value: parameters.object == null || parameters.key == null ? fallback
+      : require("./nodeGraphCompiler").getObjectValueByPath(parameters.object, parameters.key, fallback) };
+  }
   const record = require("../character/characterState").getCharacterRecord(instance.characterID) || {};
   switch (node.atomID) {
     case 285: return { checkpoint_id: root.checkpoints[Number(parameters.node_graph_id || root.graphID)] ?? null };
@@ -98,6 +103,15 @@ function executeGetter(instance, node, parameters, root) {
     }
     case 446: return { value: null };
     case 452: return { solar_system_id: require("../_shared/stationStaticData").getStationRecord(null, record.homeStationID)?.solarSystemID || null };
+    case 600: {
+      const systemID = parameters.solar_system_id ?? record.solarSystemID;
+      if (!Number.isSafeInteger(systemID) || systemID <= 0) throw graphError("NODEGRAPH_SOLAR_SYSTEM_INVALID");
+      const system = require("../../space/worldData").getSolarSystemByID(systemID);
+      const security = system && Number(system.security ?? system.securityStatus);
+      if (!system || !Number.isFinite(security)) throw graphError("NODEGRAPH_SOLAR_SYSTEM_UNAVAILABLE", String(systemID));
+      return { faction_id: Number(system.factionID || 0), region_id: Number(system.regionID),
+        constellation_id: Number(system.constellationID), security_level: security };
+    }
     default: throw graphError("NODEGRAPH_ATOM_UNSUPPORTED", String(node.atomID));
   }
 }

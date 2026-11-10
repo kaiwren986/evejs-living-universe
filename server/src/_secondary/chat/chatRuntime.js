@@ -767,7 +767,20 @@ function canDestroyChannel(session, record) {
   if (record.static === true || record.type !== "player") {
     return false;
   }
-  return record.ownerCharacterID === characterID;
+  return isChannelOwner(session, record);
+}
+
+function isChannelOwner(session, record) {
+  const characterID = getCharacterID(session);
+  return Boolean(characterID && record && (record.ownerCharacterID === characterID ||
+    (record.ownerCharacterIDs || []).includes(characterID)));
+}
+
+function isExplicitChannelMember(session, record) {
+  return (record.invitedCharacters || []).includes(getCharacterID(session)) ||
+    (record.allowCharacterIDs || []).includes(getCharacterID(session)) ||
+    (record.allowCorporationIDs || []).includes(getCorporationID(session)) ||
+    (record.allowAllianceIDs || []).includes(getAllianceID(session));
 }
 
 function isChannelAdmin(session, record) {
@@ -775,7 +788,7 @@ function isChannelAdmin(session, record) {
   if (!characterID) {
     return false;
   }
-  if (record.ownerCharacterID === characterID) {
+  if (isChannelOwner(session, record)) {
     return true;
   }
   if ((record.adminCharacterIDs || []).includes(characterID)) {
@@ -866,23 +879,9 @@ function getChannelAccessFailure(session, record, options = {}) {
     record.inviteOnly &&
     !channelAdmin &&
     !isCorporationRoomMember &&
-    !(record.invitedCharacters || []).includes(characterID)
+    !isExplicitChannelMember(session, record)
   ) {
     return "invite_required";
-  }
-  const allowListsConfigured = (
-    (record.allowCharacterIDs || []).length > 0 ||
-    (record.allowCorporationIDs || []).length > 0 ||
-    (record.allowAllianceIDs || []).length > 0
-  );
-  if (
-    allowListsConfigured &&
-    !channelAdmin &&
-    !(record.allowCharacterIDs || []).includes(characterID) &&
-    !(record.allowCorporationIDs || []).includes(corporationID) &&
-    !(record.allowAllianceIDs || []).includes(allianceID)
-  ) {
-    return "not_allowed";
   }
   if (record.passwordRequired && !channelAdmin && record.password !== providedPassword) {
     return "password_required";
@@ -1011,12 +1010,24 @@ function sendChannelMessage(session, roomName, message, options = {}) {
   if (!trimmedMessage) {
     return null;
   }
-  const record = assertChannelAccess(session, roomName, options);
   const characterID = getCharacterID(session);
+  // A successful join already authenticated this occupant's room password.
+  const joinedRecord = chatStore.getChannelRecord(roomName);
+  const record = assertChannelAccess(session, roomName, {
+    ...options,
+    ...(joinedRecord && getActivityForRoom(roomName).activeCharacterIDs.has(characterID)
+      ? { providedPassword: joinedRecord.password } : {}),
+  });
   const mutedEntry = record.mutedCharacters && record.mutedCharacters[String(characterID)];
   if (mutedEntry) {
     const error = new Error("Muted");
     error.code = "muted";
+    throw error;
+  }
+  if (record.membersByDefault === false && !isChannelAdmin(session, record) &&
+      !isExplicitChannelMember(session, record)) {
+    const error = new Error("Channel is moderated");
+    error.code = "moderated";
     throw error;
   }
 
@@ -2020,6 +2031,8 @@ module.exports = {
   grantChannelAdmin,
   inviteCharacterToChannel,
   isChannelAdmin,
+  isChannelOwner,
+  isExplicitChannelMember,
   joinChannel,
   joinLocalLsc,
   leaveChannel,

@@ -4,7 +4,9 @@ const path = require("path");
 
 const sessionRegistry = require(path.join(__dirname, "../chat/sessionRegistry"));
 const runtime = require(path.join(__dirname, "./bookmarkRuntimeState"));
+const access = require(path.join(__dirname, "./bookmarkRuntimeAccess"));
 const {
+  ACCESS_NONE,
   BOOKMARKS_ADDED,
   BOOKMARKS_MOVED,
   BOOKMARKS_REMOVED,
@@ -22,6 +24,7 @@ const {
   buildSubfolderPayload,
 } = require(path.join(__dirname, "./bookmarkPayloads"));
 const {
+  buildDict,
   buildList,
 } = require(path.join(__dirname, "../_shared/serviceHelpers"));
 
@@ -218,12 +221,113 @@ function notifyFolderDeleted(folderID, options = {}) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Shared-folder access changes
+//
+// The client keeps every known folder (active or not) in bookmarkSvc.foldersNew
+// with its accessLevel. When a folder edit, an access-group membership change
+// or a group deletion changes what a character may do with a shared folder,
+// the client must be told: OnSharedBookmarksFoldersAccessLost([folderIDs])
+// drops the folder and its cached bookmarks, and
+// OnSharedBookmarksFoldersAccessChanged({folderID: accessLevel}) updates the
+// level that gates the add/edit/delete controls (bookmarkSvc.py:332-347).
+// ---------------------------------------------------------------------------
+
+/**
+ * Snapshot the shared-folder access level of every online character for the
+ * folders they know. Taken before a mutation; pass the result to
+ * notifyFolderAccessChanges after it succeeds.
+ */
+function captureFolderAccess(options = {}) {
+  // options.characterIDs limits the snapshot to those pilots, for changes that
+  // can only affect them (their own corporation or alliance moved).
+  const onlyCharacterIDs = Array.isArray(options && options.characterIDs)
+    ? new Set(options.characterIDs.map(Number).filter((value) => value > 0))
+    : null;
+  const snapshot = new Map();
+  for (const session of sessionRegistry.getSessions()) {
+    const characterID = getCharacterID(session);
+    if (!characterID || (onlyCharacterIDs && !onlyCharacterIDs.has(Number(characterID)))) {
+      continue;
+    }
+    let entry = snapshot.get(characterID);
+    if (!entry) {
+      const levels = new Map();
+      for (const known of access.listKnownFoldersForCharacter(characterID)) {
+        if (!known.folder || known.folder.isPersonal) {
+          continue;
+        }
+        levels.set(
+          Number(known.folder.folderID),
+          access.resolveFolderAccessLevel(characterID, known.folder.folderID),
+        );
+      }
+      entry = { levels, sessions: [] };
+      snapshot.set(characterID, entry);
+    }
+    entry.sessions.push(session);
+  }
+  return snapshot;
+}
+
+/**
+ * Compare a snapshot from captureFolderAccess with the current access levels
+ * and push AccessLost / AccessChanged to the affected characters' sessions.
+ */
+function notifyFolderAccessChanges(snapshot, options = {}) {
+  if (!(snapshot instanceof Map)) {
+    return [];
+  }
+  const excludeCharacterID = Number(options.excludeCharacterID || 0);
+  const sent = [];
+  for (const [characterID, entry] of snapshot) {
+    if (characterID === excludeCharacterID || !entry || entry.levels.size <= 0) {
+      continue;
+    }
+    const lostFolderIDs = [];
+    const changed = [];
+    for (const [folderID, previousLevel] of entry.levels) {
+      const currentLevel = access.resolveFolderAccessLevel(characterID, folderID);
+      if (currentLevel <= ACCESS_NONE) {
+        lostFolderIDs.push(folderID);
+      } else if (currentLevel !== previousLevel) {
+        changed.push([folderID, currentLevel]);
+      }
+    }
+    if (lostFolderIDs.length <= 0 && changed.length <= 0) {
+      continue;
+    }
+    for (const session of entry.sessions) {
+      if (!session || typeof session.sendNotification !== "function") {
+        continue;
+      }
+      if (lostFolderIDs.length > 0) {
+        session.sendNotification(
+          "OnSharedBookmarksFoldersAccessLost",
+          "clientID",
+          [buildList(lostFolderIDs)],
+        );
+      }
+      if (changed.length > 0) {
+        session.sendNotification(
+          "OnSharedBookmarksFoldersAccessChanged",
+          "clientID",
+          [buildDict(changed)],
+        );
+      }
+    }
+    sent.push({ characterID, lostFolderIDs, changed });
+  }
+  return sent;
+}
+
 module.exports = {
   buildBookmarksAddedUpdate,
   buildBookmarksMovedUpdate,
   buildBookmarksRemovedUpdate,
   buildBookmarksUpdatedUpdate,
   buildFolderUpdatedUpdate,
+  captureFolderAccess,
   captureFolderRecipients,
   buildSubfolderAddedUpdate,
   buildSubfolderRemovedUpdate,
@@ -232,6 +336,7 @@ module.exports = {
   notifyBookmarksMoved,
   notifyBookmarksRemoved,
   notifyBookmarksUpdated,
+  notifyFolderAccessChanges,
   notifyFolderDeleted,
   notifyFolderUpdated,
   notifySubfolderAdded,

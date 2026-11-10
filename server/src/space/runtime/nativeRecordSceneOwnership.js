@@ -74,5 +74,6 @@ function hasKnownNativeControllerSceneRematerializer(
   ) {
     return true;
   }
-  return hasValidDungeonNativeSceneOwner(entityRecord);
+  return hasValidDungeonNativeSceneOwner(entityRecord) ||
+    require("../../services/ship/mobileAnalysisBeaconRuntime").ownsBeaconNpcRecord(entityRecord);
 }

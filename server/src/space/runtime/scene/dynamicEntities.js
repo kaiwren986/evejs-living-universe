@@ -27,6 +27,7 @@ const deployableCynoRuntime = require(path.join(runtimeEntryDirname, "../service
 const mobileAnalysisBeaconRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileAnalysisBeaconRuntime"));
 const mobileCynoInhibitorRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileCynoInhibitorRuntime"));
 const mobileDepotRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileDepotRuntime"));
+const mercenaryDenRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mercenaryDenRuntime"));
 const mobileMicroJumpUnitRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileMicroJumpUnitRuntime"));
 const mobileObservatoryRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileObservatoryRuntime"));
 const mobilePhaseAnchorRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobilePhaseAnchorRuntime"));
@@ -609,6 +610,8 @@ destroyInventoryBackedDynamicEntity(entityID, options = {}) {
       };
     }
 
+    const beaconDrop = mobileAnalysisBeaconRuntime.prepareMobileAnalysisBeaconDestruction(inventoryItem);
+    if (!beaconDrop.success) return beaconDrop;
     const itemCustody = lazyRequire("../services/inventory/itemCustody");
     const custodyReason = String(
       options.custodyReason || itemCustody.CUSTODY_REASON.SPACE_ENTITY_DESTROY,
@@ -644,6 +647,7 @@ destroyInventoryBackedDynamicEntity(entityID, options = {}) {
     // registrations (fleet beacons, tractor pulls, timers, and similar state).
     deployableCynoRuntime.clearMobileCynoDeployable(inventoryItem, "destroyed");
     mobileDepotRuntime.clearMobileDepot(inventoryItem, "destroyed");
+    mercenaryDenRuntime.clearMercenaryDen(inventoryItem, "destroyed");
     mobileAnalysisBeaconRuntime.clearMobileAnalysisBeacon(inventoryItem, "destroyed");
     mobileCynoInhibitorRuntime.clearMobileCynoInhibitor(inventoryItem, "destroyed");
     mobileMicroJumpUnitRuntime.clearMobileMicroJumpUnit(inventoryItem, "destroyed");

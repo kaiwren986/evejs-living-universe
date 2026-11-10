@@ -7,6 +7,7 @@ const {
 } = require("../../common/numbers");
 
 const path = require("path");
+const NodeModule = require("node:module");
 
 const log = require(path.join(__dirname, "../../utils/logger"));
 const {
@@ -78,6 +79,7 @@ const ATTRIBUTE_ENTITY_ATTACK_RANGE = getAttributeIDByNames("entityAttackRange")
 const ATTRIBUTE_ENTITY_CHASE_MAX_DISTANCE =
   getAttributeIDByNames("entityChaseMaxDistance") || 665;
 const ATTRIBUTE_ORBIT_RANGE = getAttributeIDByNames("orbitRange") || 157;
+const ATTRIBUTE_WARP_SCRAMBLE_STATUS = getAttributeIDByNames("warpScrambleStatus") || 104;
 const ATTRIBUTE_MINING_AMOUNT = getAttributeIDByNames("miningAmount") || 77;
 // Residue. The name lookup is what resolves these; the numeric fallbacks are the
 // IDs the SDE actually uses (3153/3154), NOT the 2865/2864 pair the mining
@@ -396,6 +398,8 @@ function buildControllerDogmaFingerprint(
     activeImplantFingerprint,
     activeBoosterFingerprint,
     abyssalLocationModifierFingerprint,
+    require("../incursion/incursionSystemEffects").damageMultiplier(
+      { kind: "drone", ownerID: controllerOwnerID, systemID }, "drone", systemID),
   ].join("#");
 }
 
@@ -672,17 +676,55 @@ function buildDroneOperationalAttributes(droneEntity, controllerEntity) {
   return result;
 }
 
+let homefrontModuleEntry = null;
+let homefrontModuleLoader = null;
+function resolveHomefrontForDroneWeather() {
+  let filename = null;
+  let loader = null;
+  try {
+    filename = path.join(__dirname, "../homefront/homefrontHooks.js");
+    loader = NodeModule._load;
+    const entry = NodeModule._cache[filename];
+    if (typeof loader === "function" && loader === homefrontModuleLoader &&
+        entry && entry === homefrontModuleEntry && entry.loaded === true) {
+      return entry.exports;
+    }
+  } catch (_) {
+    // Metadata is optional: the original require remains authoritative.
+  }
+  const homefront = require("../homefront/homefrontHooks");
+  try {
+    const entry = filename && NodeModule._cache[filename];
+    if (typeof loader === "function" && NodeModule._load === loader && entry &&
+        entry.loaded === true && entry.exports === homefront &&
+        require.resolve("../homefront/homefrontHooks") === filename) {
+      homefrontModuleEntry = entry;
+      homefrontModuleLoader = loader;
+    } else {
+      homefrontModuleEntry = null;
+      homefrontModuleLoader = null;
+    }
+  } catch (_) {
+    homefrontModuleEntry = null;
+    homefrontModuleLoader = null;
+  }
+  return homefront;
+}
+
 function resolveDroneOperationalAttributes(droneEntity, controllerEntity) {
   const operational = buildDroneOperationalAttributes(droneEntity, controllerEntity);
   if (!operational) return null;
-  const weather = require("../homefront/homefrontHooks").weather.shipModifiers(
-    droneEntity,
-  );
-  if (!weather.length) return operational.attributes;
-  // The controller caches a shared per-type base. Environmental modifiers are
-  // local to this launched drone and must never mutate that shared cache.
+  const modifiers = [
+    ...resolveHomefrontForDroneWeather().weather.shipModifiers(droneEntity),
+    ...require("../../space/modules/hostileModuleRuntime").collectModifierEntriesForTarget(droneEntity)
+      // Keep point authority out of the deferred companion motion cache.
+      .filter((entry) => entry.modifiedAttributeID !== ATTRIBUTE_WARP_SCRAMBLE_STATUS),
+  ];
+  if (!modifiers.length) return operational.attributes;
+  // The controller caches a shared per-type base. Projected and environmental
+  // modifiers are local to this drone and must never mutate that shared cache.
   const attributes = { ...operational.attributes };
-  require("../fitting/liveFittingState").applyModifierGroups(attributes, weather);
+  require("../fitting/liveFittingState").applyModifierGroups(attributes, modifiers);
   return attributes;
 }
 
@@ -843,7 +885,11 @@ function resolveDroneTooltipAttributes(item, session = null, options = {}) {
     locationID: controllerShipID,
     systemID,
   };
-  return resolveDroneOperationalAttributes(droneEntity, controllerEntity);
+  const attributes = resolveDroneOperationalAttributes(droneEntity, controllerEntity);
+  if (!attributes || !runtimeShipEntity) return attributes;
+  const multiplier = require("../incursion/incursionSystemEffects").damageMultiplier(droneEntity, "drone", systemID);
+  return multiplier === 1 ? attributes : { ...attributes, [ATTRIBUTE_DAMAGE_MULTIPLIER]:
+    toFiniteNumber(attributes[ATTRIBUTE_DAMAGE_MULTIPLIER], 1) * multiplier };
 }
 
 // Deterministic identity of a resolved tooltip attribute map. The push path

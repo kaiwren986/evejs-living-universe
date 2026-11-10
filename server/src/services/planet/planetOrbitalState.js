@@ -4,6 +4,7 @@ const path = require("path");
 
 const database = require(path.join(__dirname, "../../gameStore"));
 const log = require(path.join(__dirname, "../../utils/logger"));
+const orbitalReinforcement = require(path.join(__dirname, "./planetOrbitalReinforcement"));
 const {
   TABLE,
   readStaticRows,
@@ -63,6 +64,15 @@ const DEFAULT_ORBITAL_TIMER_MS = Math.max(
   1_000,
   Number(process.env.EVEJS_PI_ORBITAL_TIMER_MS) || 60_000,
 );
+// A Skyhook's first activation is its activate space component, durationSeconds
+// 1800 (client static data 3396210, spacecomponentsbytype 81080); the client
+// counts component_activate down to it.
+const SKYHOOK_ACTIVATION_MS = 1_800_000;
+const ORBITAL_TRANSITION_DELAY_ATTRIBUTES = Object.freeze({
+  [-6]: "anchoringDelay",
+  [-5]: "onliningDelay",
+  [-3]: "unanchoringDelay",
+});
 
 const DEFAULT_TAX_RATES = Object.freeze({
   corporation: 0.05,
@@ -569,6 +579,9 @@ function normalizeOrbitalRecord(rawRecord = {}, defaults = {}) {
       record.conditionState ?? defaults.conditionState,
     ),
     destroyedAtMs: toInt(record.destroyedAtMs ?? defaults.destroyedAtMs, 0) || null,
+    reinforcement: isPlainObject(record.reinforcement) ? cloneJson(record.reinforcement) : null,
+    ...(record.stateBeforeReinforce !== undefined && record.stateBeforeReinforce !== null
+      ? { stateBeforeReinforce: toInt(record.stateBeforeReinforce, 0) } : {}),
   };
 }
 
@@ -664,6 +677,27 @@ function completeOnliningOrbital(record) {
   });
 }
 
+// An orbital's anchor, online and unanchor timers are its type's dogma
+// anchoringDelay (556), onliningDelay (677) and unanchoringDelay (676), in ms:
+// the client's bracket counts the same values down (inSpaceBracket.py:1600-1607).
+// The Customs Office Gantry has 5 s, 900 s and 900 s. EVEJS_PI_ORBITAL_TIMER_MS,
+// when set, still shortens every timer for local testing.
+function getOrbitalTransitionMs(typeID, nextState) {
+  if (Number(process.env.EVEJS_PI_ORBITAL_TIMER_MS) > 0) {
+    return DEFAULT_ORBITAL_TIMER_MS;
+  }
+  if (toInt(typeID, 0) === TYPE_ORBITAL_SKYHOOK && nextState === ORBITAL_STATE.ONLINING) {
+    return SKYHOOK_ACTIVATION_MS;
+  }
+  const attributeName = ORBITAL_TRANSITION_DELAY_ATTRIBUTES[nextState];
+  if (!attributeName) {
+    return DEFAULT_ORBITAL_TIMER_MS;
+  }
+  const { getTypeAttributeValue } = require(path.join(__dirname, "../fitting/liveFittingState"));
+  const delayMs = Number(getTypeAttributeValue(toInt(typeID, 0), attributeName));
+  return Number.isFinite(delayMs) && delayMs > 0 ? delayMs : DEFAULT_ORBITAL_TIMER_MS;
+}
+
 function beginSkyhookActivation(record, nowMs = Date.now()) {
   if (isSkyhookDeploymentPending(record)) return record;
   if (Number(record.typeID) === TYPE_ORBITAL_SKYHOOK && record.state !== ORBITAL_STATE.UNANCHORED) {
@@ -672,7 +706,8 @@ function beginSkyhookActivation(record, nowMs = Date.now()) {
   if (Number(record.typeID) === TYPE_ORBITAL_SKYHOOK && !record.destroyedAtMs &&
       record.state === ORBITAL_STATE.UNANCHORED && !record.skyhookActivationStarted) {
     return { ...record, skyhookActivationStarted: true, state: ORBITAL_STATE.ONLINING,
-      stateStartedAtMs: nowMs, stateEndsAtMs: nowMs + DEFAULT_ORBITAL_TIMER_MS };
+      stateStartedAtMs: nowMs,
+      stateEndsAtMs: nowMs + getOrbitalTransitionMs(record.typeID, ORBITAL_STATE.ONLINING) };
   }
   return record;
 }
@@ -758,6 +793,10 @@ function tickDueOrbitals(nowMs = Date.now()) {
   let changed = false;
   const normalizedNow = toInt(nowMs, Date.now());
   const completedRecords = [];
+  const reinforcementRefreshed = [];
+  // SkyhookDeployed 285 when its activation starts, SkyhookOnline 281 when it
+  // ends (client formatters notifications/common/formatters/skyhook.py).
+  const skyhookNotices = [];
 
   for (const [key, rawRecord] of Object.entries(state.orbitalsByID)) {
     // Repair each newly observed stable row once; subsequent reads need only
@@ -773,6 +812,18 @@ function tickDueOrbitals(nowMs = Date.now()) {
     const isRawTransitioning =
       rawEndsAtMs > 0 &&
       [ORBITAL_STATE.ANCHORING, ORBITAL_STATE.ONLINING, ORBITAL_STATE.UNANCHORING].includes(rawState);
+    if (rawRecord && rawRecord.reinforcement && !rawRecord.destroyedAtMs) {
+      const advanced = orbitalReinforcement.advance(normalizeOrbitalRecord(rawRecord), normalizedNow);
+      if (advanced.changed) {
+        state.orbitalsByID[key] = normalizeOrbitalRecord(advanced.record);
+        changed = true;
+        reinforcementRefreshed.push(state.orbitalsByID[key]);
+      }
+      if (advanced.nextDueMs) {
+        scheduleOrbitalTransitionReconciliation(toInt(rawRecord.itemID, 0), advanced.nextDueMs);
+      }
+      continue;
+    }
     if (!needsSkyhookActivationFlag && !isRawTransitioning &&
         checkedStableOrbitalRecords.has(rawRecord)) {
       const stableItemID = toInt(rawRecord && rawRecord.itemID, 0);
@@ -783,6 +834,11 @@ function tickDueOrbitals(nowMs = Date.now()) {
     }
 
     let record = beginSkyhookActivation(normalizeOrbitalRecord(rawRecord), normalizedNow);
+    if (Number(record.typeID) === TYPE_ORBITAL_SKYHOOK &&
+        toInt(rawRecord && rawRecord.state, 0) === ORBITAL_STATE.UNANCHORED &&
+        record.state === ORBITAL_STATE.ONLINING) {
+      skyhookNotices.push({ kind: "skyhook-deployed", record });
+    }
     if (resolveOrbitalAbyssalRestriction(findItemById(record.itemID), record)) {
       // Persisted host rows are retained for operator recovery, but they must
       // never advance a timer or convert inventory while the host is serving
@@ -838,6 +894,9 @@ function tickDueOrbitals(nowMs = Date.now()) {
           [GROUP_PLANETARY_CUSTOMS_OFFICES, GROUP_ORBITAL_SKYHOOK].includes(Number(other.groupID)));
       record = occupied ? normalizeOrbitalRecord({ ...record, state: ORBITAL_STATE.ANCHORED,
         stateStartedAtMs: null, stateEndsAtMs: null }) : completeOnliningOrbital(record);
+      if (Number(record.typeID) === TYPE_ORBITAL_SKYHOOK) {
+        skyhookNotices.push({ kind: "skyhook-online", record });
+      }
       changed = true;
     } else if (record.state === ORBITAL_STATE.UNANCHORING) {
       record = normalizeOrbitalRecord({
@@ -856,6 +915,15 @@ function tickDueOrbitals(nowMs = Date.now()) {
 
   if (changed) {
     writeState(state);
+    for (const record of reinforcementRefreshed) {
+      refreshOrbitalPresentation(record);
+    }
+    for (const notice of skyhookNotices) {
+      notifyOrbitalOwner(notice.record, [notice.kind], {
+        nowMs: normalizedNow,
+        timeLeftMs: Math.max(0, toInt(notice.record.stateEndsAtMs, 0) - normalizedNow),
+      });
+    }
     for (const record of completedRecords) {
       refreshOrbitalPresentation(record);
       if (Number(record.typeID) === TYPE_ORBITAL_SKYHOOK) {
@@ -874,6 +942,10 @@ function tickDueOrbitals(nowMs = Date.now()) {
 
 function reconcilePlanetaryOrbitalTransition(itemID, options = {}) {
   const numericItemID = toInt(itemID, 0);
+  const reinforced = readState().orbitalsByID[String(numericItemID)];
+  if (reinforced && reinforced.reinforcement && !reinforced.destroyedAtMs) {
+    return reconcileOrbitalReinforcement(numericItemID, toInt(options.nowMs, Date.now()));
+  }
   const item = findItemById(numericItemID);
   if (!item || toInt(item.categoryID, 0) !== CATEGORY_ORBITAL) {
     clearOrbitalTransitionTimer(numericItemID);
@@ -1072,7 +1144,12 @@ function beginOrbitalState(itemID, nextState, durationMs, session = null) {
     warFactionID: toInt(session && (session.warFactionID || session.warfactionid), record.warFactionID),
     state: nextState,
     stateStartedAtMs: nowMs,
-    stateEndsAtMs: nowMs + Math.max(1_000, toInt(durationMs, DEFAULT_ORBITAL_TIMER_MS)),
+    stateEndsAtMs: nowMs + Math.max(
+      1_000,
+      durationMs === null || durationMs === undefined
+        ? getOrbitalTransitionMs(item.typeID, nextState)
+        : toInt(durationMs, DEFAULT_ORBITAL_TIMER_MS),
+    ),
   });
 
   if ([ORBITAL_STATE.ANCHORING, ORBITAL_STATE.ONLINING].includes(nextState) &&
@@ -1127,7 +1204,7 @@ function anchorOrbital(itemID, session = null) {
       data: record,
     };
   }
-  return beginOrbitalState(itemID, ORBITAL_STATE.ANCHORING, DEFAULT_ORBITAL_TIMER_MS, session);
+  return beginOrbitalState(itemID, ORBITAL_STATE.ANCHORING, null, session);
 }
 
 function onlineOrbital(itemID, session = null) {
@@ -1142,7 +1219,7 @@ function onlineOrbital(itemID, session = null) {
       data: record,
     };
   }
-  return beginOrbitalState(itemID, ORBITAL_STATE.ONLINING, DEFAULT_ORBITAL_TIMER_MS, session);
+  return beginOrbitalState(itemID, ORBITAL_STATE.ONLINING, null, session);
 }
 
 function unanchorOrbital(itemID, session = null) {
@@ -1157,7 +1234,7 @@ function unanchorOrbital(itemID, session = null) {
       data: record,
     };
   }
-  return beginOrbitalState(itemID, ORBITAL_STATE.UNANCHORING, DEFAULT_ORBITAL_TIMER_MS, session);
+  return beginOrbitalState(itemID, ORBITAL_STATE.UNANCHORING, null, session);
 }
 
 function hydrateOrbitalEntityFromInventoryItem(entity, item, options = {}) {
@@ -1195,8 +1272,9 @@ function hydrateOrbitalEntityFromInventoryItem(entity, item, options = {}) {
   entity.level = Math.max(0, toInt(record.level, 1));
   entity.orbitalState = toInt(record.state, ORBITAL_STATE.UNANCHORED);
   if (entity.typeID === TYPE_ORBITAL_SKYHOOK) {
-    entity.skyhook_state = [ORBITAL_STATE.IDLE, ORBITAL_STATE.OPERATING].includes(entity.orbitalState) && !record.destroyedAtMs ? 210 : 0;
-    entity.component_activate = [entity.skyhook_state === 210, entity.skyhook_state === 210 ? null : record.stateEndsAtMs];
+    const operating = [ORBITAL_STATE.IDLE, ORBITAL_STATE.OPERATING].includes(entity.orbitalState) && !record.destroyedAtMs;
+    Object.assign(entity, orbitalReinforcement.getSkyhookPresentation(record, operating));
+    entity.component_activate = [operating, operating ? null : record.stateEndsAtMs];
   }
   entity.orbitalTimestampMs = toInt(record.stateEndsAtMs, 0) || null;
   entity.orbitalHackerID = null;
@@ -1324,26 +1402,115 @@ function ensureRuntimeOrbitalRecord(orbitalID) {
   return upsertResult.success ? upsertResult.data : null;
 }
 
-// A Customs Office takes damage straight through shield -> armor -> structure and
-// is destroyed when structure is gone.  There is no reinforcement phase: the
-// client has no way to surface an orbital reinforcement timer in this build
-// (component_reinforce is not rendered for orbitals and there is no reinforced
-// orbital-state value), so an invulnerable phase with no visible reason is worse
-// than just letting the office be destroyed.
-function applyOrbitalDamageTransition(record, damageResult) {
+// Player Customs Offices and Orbital Skyhooks go through one reinforcement
+// cycle (planetOrbitalReinforcement); InterBus offices take damage straight
+// through to destruction.
+function applyOrbitalDamageTransition(record, damageResult, nowMs = Date.now()) {
   if (!record || !damageResult || !damageResult.success || !damageResult.data) {
-    return { orbital: record, destroy: false, changed: false };
+    return { orbital: record, destroy: false, changed: false, events: [] };
   }
 
-  const next = normalizeOrbitalRecord({
-    ...record,
-    conditionState: damageResult.data.afterConditionState,
-  });
+  const transition = orbitalReinforcement.applyDamage(
+    record,
+    normalizeOrbitalConditionState(record.conditionState),
+    normalizeOrbitalConditionState(damageResult.data.afterConditionState),
+    nowMs,
+    { npcOwnerID: DEFAULT_CUSTOMS_OFFICE_OWNER_ID },
+  );
+  const next = normalizeOrbitalRecord(transition.record);
   return {
     orbital: next,
-    destroy: damageResult.data.destroyed === true,
+    destroy: damageResult.data.destroyed === true && transition.preventDestroy !== true,
+    preventDestroy: transition.preventDestroy === true,
     changed: true,
+    events: transition.events,
   };
+}
+
+function getOwnerNotificationTargets(record) {
+  const corporationID = toInt(record && (record.corporationID || record.ownerID), 0);
+  if (corporationID < 90_000_000) return [];
+  const { getCharacterIDsInCorporation } = require(path.join(__dirname, "../corporation/corporationState"));
+  return [...new Set(getCharacterIDsInCorporation(corporationID).map((id) => toInt(id, 0)).filter(Boolean))];
+}
+
+function getOwnerName(ownerID) {
+  const numericOwnerID = toInt(ownerID, 0);
+  if (!numericOwnerID) return null;
+  const corporation = getCorporationRecord(numericOwnerID);
+  if (corporation && (corporation.corporationName || corporation.name)) {
+    return String(corporation.corporationName || corporation.name);
+  }
+  try {
+    const { getAllianceRecord } = require(path.join(__dirname, "../corporation/corporationState"));
+    const alliance = getAllianceRecord(numericOwnerID);
+    return alliance ? String(alliance.allianceName || alliance.name || "") || null : null;
+  } catch (_) {
+    // ignored: an unknown owner has no name
+    return null;
+  }
+}
+
+// Owner notifications for an orbital's reinforcement events, sent to every
+// member of the owning corporation (Upwell structures use the same audience,
+// structureState collectStructureOwnerNotificationTargets).
+function notifyOrbitalOwner(record, kinds, context = {}) {
+  const targets = getOwnerNotificationTargets(record);
+  if (targets.length === 0 || kinds.length === 0) return;
+  const { createNotification } = require(path.join(__dirname, "../notifications/notificationState"));
+  const { NOTIFICATION_GROUP } = require(path.join(__dirname, "../notifications/notificationConstants"));
+  const planet = findPlanetByID(record.planetID);
+  const attacker = context.attacker || {};
+  for (const kind of kinds) {
+    const built = orbitalReinforcement.buildNotification(kind, record, {
+      ...context,
+      planetTypeID: toInt(planet && planet.typeID, 0),
+      aggressorCorpName: getOwnerName(attacker.corporationID),
+      aggressorAllianceName: getOwnerName(attacker.allianceID),
+      ownerCorpName: getOwnerName(record.corporationID || record.ownerID),
+    });
+    if (!built) continue;
+    for (const characterID of targets) {
+      const result = createNotification(characterID, {
+        typeID: built.typeID,
+        senderID: toInt(record.corporationID || record.ownerID, 0),
+        groupID: NOTIFICATION_GROUP.STRUCTURES,
+        processed: false,
+        data: built.data,
+      });
+      if (!result || result.success !== true) {
+        log.warn(
+          `[PlanetOrbitalState] Notification ${built.typeID} for orbital=${record.itemID} ` +
+          `character=${characterID} failed: ${result && result.errorMsg || "UNKNOWN"}`,
+        );
+      }
+    }
+  }
+}
+
+// Reinforcement timer exits and repairs for one orbital, then the next look.
+function reconcileOrbitalReinforcement(itemID, nowMs = Date.now()) {
+  const state = readState({ repair: true });
+  const key = String(toInt(itemID, 0));
+  const record = state.orbitalsByID[key] ? normalizeOrbitalRecord(state.orbitalsByID[key]) : null;
+  if (!record || !record.reinforcement) {
+    return { success: true, data: record, changed: false, completed: false };
+  }
+  const advanced = orbitalReinforcement.advance(record, toInt(nowMs, Date.now()));
+  let current = record;
+  if (advanced.changed) {
+    current = normalizeOrbitalRecord(advanced.record);
+    state.orbitalsByID[key] = current;
+    writeState(state);
+    refreshOrbitalPresentation(current);
+    if (Number(current.typeID) === TYPE_ORBITAL_SKYHOOK) {
+      require("../sovereignty/skyhookRuntime").publishSkyhookState(current.solarSystemID);
+    }
+  }
+  if (advanced.nextDueMs) {
+    scheduleOrbitalTransitionReconciliation(current.itemID, advanced.nextDueMs);
+  }
+  return { success: true, data: current, changed: advanced.changed, completed: false };
 }
 
 function applyRuntimeOrbitalDamage(orbitalID, damageResult, nowMs = Date.now(), options = {}) {
@@ -1355,17 +1522,37 @@ function applyRuntimeOrbitalDamage(orbitalID, damageResult, nowMs = Date.now(), 
     };
   }
 
-  const transition = applyOrbitalDamageTransition(record, damageResult);
+  const transition = applyOrbitalDamageTransition(record, damageResult, nowMs);
   const upsertResult = upsertOrbitalRecord(transition.orbital, options);
   if (!upsertResult.success) {
     return upsertResult;
+  }
+  const updated = upsertResult.data;
+  const stageBefore = record.reinforcement ? record.reinforcement.stage : null;
+  const stageAfter = updated.reinforcement ? updated.reinforcement.stage : null;
+  if (stageBefore !== stageAfter || toInt(record.state, 0) !== toInt(updated.state, 0)) {
+    refreshOrbitalPresentation(updated);
+    if (Number(updated.typeID) === TYPE_ORBITAL_SKYHOOK) {
+      require("../sovereignty/skyhookRuntime").publishSkyhookState(updated.solarSystemID);
+    }
+  }
+  if (transition.events && transition.events.length > 0) {
+    notifyOrbitalOwner(updated, transition.events.map((event) => event.kind), {
+      attacker: options.attacker,
+      nowMs,
+    });
+  }
+  const dueMs = orbitalReinforcement.getDueMs(updated);
+  if (dueMs) {
+    scheduleOrbitalTransitionReconciliation(updated.itemID, dueMs);
   }
 
   return {
     success: true,
     data: {
-      orbital: upsertResult.data,
+      orbital: updated,
       destroy: transition.destroy === true,
+      preventDestroy: transition.preventDestroy === true,
       changed: transition.changed === true,
     },
   };
@@ -1391,11 +1578,137 @@ function markOrbitalDestroyed(orbitalID, nowMs = Date.now()) {
     destroyedAtMs: toInt(nowMs, Date.now()),
     conditionState: { shieldCharge: 0, armorDamage: 1, damage: 1 },
   });
-  const upsertResult = upsertOrbitalRecord(destroyedRecord);
+  const upsertResult = upsertOrbitalRecord({ ...destroyedRecord, reinforcement: null });
   if (upsertResult.success) {
     log.info(`[PlanetOrbitalState] Orbital=${record.itemID} destroyed`);
+    if (Number(record.typeID) === TYPE_ORBITAL_SKYHOOK) {
+      notifyOrbitalOwner(record, ["skyhook-destroyed"], { nowMs });
+    }
   }
   return upsertResult;
+}
+
+// GM setup for client checks (owner ruling 2026-11-06, hybrid time control:
+// GM tools only bring an orbital near a threshold or skip a timer; the shots and
+// the stage changes still happen for real). Sets the shield, armor and hull left
+// (fractions), or makes a running reinforcement timer end in `seconds`.
+function adminSetOrbitalCondition(orbitalID, remaining = {}) {
+  const record = ensureRuntimeOrbitalRecord(orbitalID);
+  if (!record || isOrbitalRecordDestroyed(record)) {
+    return { success: false, errorMsg: "ORBITAL_NOT_FOUND" };
+  }
+  const unit = (value, fallback) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? Math.max(0, Math.min(1, numeric)) : fallback;
+  };
+  const current = normalizeOrbitalConditionState(record.conditionState);
+  const result = upsertOrbitalRecord(normalizeOrbitalRecord({
+    ...record,
+    conditionState: {
+      shieldCharge: unit(remaining.shield, current.shieldCharge),
+      armorDamage: 1 - unit(remaining.armor, 1 - current.armorDamage),
+      damage: 1 - unit(remaining.hull, 1 - current.damage),
+    },
+  }));
+  if (result.success) {
+    refreshOrbitalPresentation(result.data);
+    // A synthesized (InterBus) office has no inventory item for the refresh to
+    // rebuild from, so set the live ball's health and announce it directly.
+    const runtime = getSpaceRuntime();
+    const scene = runtime.scenes && runtime.scenes.get(toInt(result.data.solarSystemID, 0));
+    const entity = scene && typeof scene.getEntityByID === "function"
+      ? scene.getEntityByID(toInt(orbitalID, 0))
+      : null;
+    if (entity) {
+      entity.conditionState = {
+        ...(entity.conditionState || {}),
+        ...normalizeOrbitalConditionState(result.data.conditionState),
+      };
+      require(path.join(__dirname, "../../space/runtime/shipHealthState"))
+        .broadcastDamageStateChange(scene, entity);
+    }
+  }
+  return result;
+}
+
+function adminSetOrbitalReinforcementTimer(orbitalID, seconds, nowMs = Date.now()) {
+  const record = getOrbitalByID(orbitalID, { refresh: false });
+  const stage = record && record.reinforcement && record.reinforcement.stage;
+  const endsAtMs = toInt(nowMs, Date.now()) + Math.max(0, Number(seconds) || 0) * 1000;
+  // A gantry or office that is anchoring, onlining or unanchoring has a timer
+  // of its own (owner ruling 2026-11-07: hybrid with time forwarding).
+  const transitional = [ORBITAL_STATE.ANCHORING, ORBITAL_STATE.ONLINING, ORBITAL_STATE.UNANCHORING];
+  if (record && !stage && transitional.includes(toInt(record.state, 0)) && record.stateEndsAtMs) {
+    // A deploying skyhook finishes from its replacement intent's own deadline
+    // (skyhookOfficeReplacement resume), so move that deadline with the record.
+    const intent = readState().replacementsByPlanet[String(record.planetID)];
+    if (intent && toInt(intent.launchedItemID, 0) === toInt(record.itemID, 0) && intent.phase === "onlining") {
+      const state = cloneJson(readState());
+      state.replacementsByPlanet[String(record.planetID)] = { ...intent, onliningEndsAtMs: endsAtMs };
+      if (!writeState(state)) {
+        return { success: false, errorMsg: "WRITE_ERROR" };
+      }
+    }
+    const result = upsertOrbitalRecord(normalizeOrbitalRecord({ ...record, stateEndsAtMs: endsAtMs }));
+    if (result.success) {
+      refreshOrbitalPresentation(result.data);
+      scheduleOrbitalTransitionReconciliation(result.data.itemID, endsAtMs);
+    }
+    return result;
+  }
+  if (!record || !["armor_reinforce", "reinforced"].includes(stage)) {
+    return { success: false, errorMsg: "ORBITAL_NOT_REINFORCED" };
+  }
+  const next = normalizeOrbitalRecord({
+    ...record,
+    reinforcement: { ...record.reinforcement, endsAtMs },
+    ...(stage === "reinforced" ? { stateEndsAtMs: endsAtMs } : {}),
+  });
+  const result = upsertOrbitalRecord(next);
+  if (result.success) {
+    refreshOrbitalPresentation(result.data);
+    scheduleOrbitalTransitionReconciliation(result.data.itemID, endsAtMs);
+  }
+  return result;
+}
+
+// Sovereignty Hub cleanup conversion (client localization 1011727,
+// ConvertedSkyhooksHintText): the orbital passes to the Hub owner, its
+// reinforcement hour and tax settings go back to their defaults, and its access
+// list becomes the one picked in the cleanup window (1011796, AccessListReset).
+function transferOrbitalOwnership(orbitalID, { corporationID, allianceID = null, aclGroupID = null } = {}) {
+  const record = getOrbitalByID(orbitalID, { refresh: false });
+  const newCorporationID = toInt(corporationID, 0);
+  if (!record || isOrbitalRecordDestroyed(record) || !newCorporationID) {
+    return { success: false, errorMsg: "ORBITAL_NOT_FOUND" };
+  }
+  const itemResult = updateInventoryItem(record.itemID, (currentItem) => ({
+    ...currentItem,
+    ownerID: newCorporationID,
+  }));
+  if (!itemResult || !itemResult.success) {
+    return itemResult || { success: false, errorMsg: "ITEM_WRITE_ERROR" };
+  }
+  const {
+    reinforceHour: _hour,
+    taxRates: _taxRates,
+    standingLevel: _standing,
+    allowAlliance: _alliance,
+    allowStandings: _standings,
+    ...kept
+  } = record;
+  const result = upsertOrbitalRecord(normalizeOrbitalRecord({
+    ...kept,
+    ownerID: newCorporationID,
+    corporationID: newCorporationID,
+    allianceID: toInt(allianceID, 0),
+    aclGroupID: toInt(aclGroupID, 0) || null,
+  }));
+  if (result.success) {
+    log.info(`[PlanetOrbitalState] Orbital=${record.itemID} transferred to corp=${newCorporationID}`);
+    refreshOrbitalPresentation(result.data);
+  }
+  return result;
 }
 
 function buildOrbitalSettingsInfo(orbitalID) {
@@ -1579,10 +1892,16 @@ module.exports = {
   TYPE_CUSTOMS_OFFICE,
   TYPE_CUSTOMS_OFFICE_GANTRY,
   TYPE_INTERBUS_CUSTOMS_OFFICE,
+  TYPE_ORBITAL_SKYHOOK,
   DEFAULT_CUSTOMS_OFFICE_ITEM_ID_OFFSET,
   DEFAULT_CUSTOMS_OFFICE_OWNER_ID,
   ORBITAL_STATE,
   DEFAULT_ORBITAL_TIMER_MS,
+  SKYHOOK_ACTIVATION_MS,
+  getOrbitalTransitionMs,
+  adminSetOrbitalCondition,
+  adminSetOrbitalReinforcementTimer,
+  transferOrbitalOwnership,
   DEFAULT_TAX_RATES,
   INTERBUS_TAX_RATE,
   readState,

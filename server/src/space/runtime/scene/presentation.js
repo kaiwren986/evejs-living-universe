@@ -401,6 +401,24 @@ presentAbandonedShip(entity) {
     return true;
   },
 
+// A ship whose pilot stepped into a FLEX structure (BoardStructure) or back
+// out of it: only its interactive flag changes, on the bubble's history. The
+// client's "Board Previous Ship" (structureControl.BoardPreviousShip) offers
+// the left ship only while that flag is off (celestialCheckers.py
+// OfferBoardShip -> IsInteractive, 'ShipAlreadyPiloted').
+presentShipInteractive(entity) {
+    if (!entity || entity.kind !== "ship" || isAbyssalRoomEntityDeliveryHidden(entity)) {
+      return false;
+    }
+    return this.queueBallHistory(entity, [{
+      stamp: this.historyStamp(),
+      payload: destiny.buildSetBallInteractivePayload(
+        entity.itemID,
+        isFreeBallInteractive(entity),
+      ),
+    }]) !== null;
+  },
+
 // A Ball whose pilot or owner changed (a ship boarded or left): its new slim
 // item and its interactive flag to its Grid bubble's history, on one stamp.
 // Observers that have the Ball keep it; an AddBalls of a Ball the client

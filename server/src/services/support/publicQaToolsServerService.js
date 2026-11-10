@@ -47,7 +47,16 @@ class PublicQaToolsServerService extends BaseService {
 
   Handle_MoveMeTo(args, session) {
     recordQaToolEvent("move_me_to", args, session);
-    return null;
+    if (!hasStaffAccountRole(session)) return null;
+    // publicQaToolsClient.py sends the system name from the Move Me window.
+    // Resolve it before constructing a command, so it cannot become arguments.
+    const { resolveSolarSystemByName } = require("../chat/solarSystemRegistry");
+    const lookup = resolveSolarSystemByName(toText(Array.isArray(args) ? args[0] : null));
+    if (!lookup.success) {
+      const { throwWrappedUserError } = require("../../common/machoErrors");
+      throwWrappedUserError("CustomNotify", { notify: "Choose a known solar system for Move Me." });
+    }
+    return this.Handle_SlashCmd([`/tr me ${lookup.match.solarSystemID}`], session, {});
   }
 
   Handle_SlashCmd(args, session, kwargs) {

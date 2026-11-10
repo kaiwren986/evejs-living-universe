@@ -6,6 +6,7 @@ const {
 
 const path = require("path");
 
+const config = require(path.join(__dirname, "../../config"));
 const database = require(path.join(__dirname, "../../gameStore"));
 const sessionRegistry = require(path.join(__dirname, "../chat/sessionRegistry"));
 const {
@@ -103,6 +104,9 @@ const EVENT_STANDING_COMBAT_AGGRESSION = 76;
 const EVENT_STANDING_CONTRABAND_TRAFFICKING = 126;
 const EVENT_STANDING_GROUP_REWARD_CORPORATION = 485;
 const EVENT_STANDING_GROUP_REWARD_FACTION = 486;
+
+const DERIVED_STANDINGS_MESSAGE = "Derived standings";
+const MISSION_DERIVED_FACTION_FACTOR = 0.04;
 
 const MISSION_STANDING_EVENT_TYPE_BY_OUTCOME = Object.freeze({
   completed: EVENT_STANDING_AGENT_MISSION_COMPLETED,
@@ -582,7 +586,7 @@ function getCharacterRawStanding(characterID, ownerID) {
     normalizedOwnerID,
     normalizedCharacterID,
   );
-  return row ? roundStandingValue(row.standing) : 0;
+  return row ? clampStanding(row.standing) : 0;
 }
 
 function getStandingBonusSkillTypeID(ownerID, rawStanding) {
@@ -750,7 +754,7 @@ function applyStandingBonusToValue(rawStanding, bonus) {
     return numericStanding;
   }
 
-  return roundStandingValue(
+  return clampStanding(
     (1 - (1 - numericStanding / 10) * (1 - numericBonus / 10)) * 10,
   );
 }
@@ -822,10 +826,35 @@ function calculateNewStandingsUnrounded(rawChange) {
   return clampStanding(10 * toNumber(rawChange, 0));
 }
 
-function calculateStandingPreviewDelta(currentStanding, rawChange) {
-  const current = clampStanding(currentStanding);
-  const nextStanding = calculateStandingsByRawChange(current, rawChange);
-  return roundStandingValue(nextStanding - current);
+// The server-wide mission standing gain multiplier. Read per call so a config reload or a test
+// override takes effect without a restart. An unset, blank or invalid value is 1, never 0.
+function resolveMissionStandingGainMultiplier() {
+  const configuredValue = config.missionStandingGainMultiplier;
+  if (configuredValue === null || configuredValue === undefined || configuredValue === "") {
+    return 1;
+  }
+  const multiplier = Number(configuredValue);
+  return Number.isFinite(multiplier) && multiplier >= 0 ? multiplier : 1;
+}
+
+// A mission change carries the gain multiplier it was built with (gainMultiplier); it scales
+// that change's gains, never its losses. Any other change has none and passes through. The
+// value is checked again here because a pending settlement's changes are read back from storage.
+function scaleMissionStandingGain(rawChange, change) {
+  const gainMultiplier = change && change.gainMultiplier;
+  return rawChange > 0 && Number.isFinite(gainMultiplier) && gainMultiplier >= 0
+    ? rawChange * gainMultiplier
+    : rawChange;
+}
+
+// The gain multiplier is server policy, not part of the operation: a retry under a changed
+// setting is the same operation and reuses its receipt, so the fingerprint leaves it out.
+function withoutGainMultiplier(change) {
+  if (!change || !Object.prototype.hasOwnProperty.call(change, "gainMultiplier")) {
+    return change;
+  }
+  const { gainMultiplier: _gainMultiplier, ...operation } = change;
+  return operation;
 }
 
 function calculateSocialAdjustedRawChange(characterID, rawChange) {
@@ -834,10 +863,8 @@ function calculateSocialAdjustedRawChange(characterID, rawChange) {
     return 0;
   }
 
-  return roundStandingValue(
-    baseRawChange *
-      Math.max(0, getCharacterSocialAttribute(characterID, ATTRIBUTE_SOCIAL_BONUS, 1)),
-  );
+  return baseRawChange *
+    Math.max(0, getCharacterSocialAttribute(characterID, ATTRIBUTE_SOCIAL_BONUS, 1));
 }
 
 function buildStandingPreview(characterID, entries = [], options = {}) {
@@ -847,22 +874,42 @@ function buildStandingPreview(characterID, entries = [], options = {}) {
   }
 
   const preview = {};
+  // Per owner, the standing before the first entry and after the latest one, so
+  // a second entry for an owner (a direct and a derived faction change) builds
+  // on the first, as application does.
+  const standingsByOwnerID = new Map();
   for (const entry of Array.isArray(entries) ? entries : []) {
     const ownerID = normalizePositiveInteger(entry && entry.ownerID, 0);
     if (!ownerID) {
       continue;
     }
-    const rawChange = options.applySocial === false
-      ? toNumber(entry && entry.rawChange, 0)
-      : calculateSocialAdjustedRawChange(
-          normalizedCharacterID,
-          entry && entry.rawChange,
-        );
+    const rawChange = scaleMissionStandingGain(
+      options.applySocial === false || entry && entry.applySocial === false
+        ? toNumber(entry && entry.rawChange, 0)
+        : calculateSocialAdjustedRawChange(
+            normalizedCharacterID,
+            entry && entry.rawChange,
+          ),
+      entry,
+    );
     if (rawChange === 0) {
       continue;
     }
-    const currentStanding = getCharacterRawStanding(normalizedCharacterID, ownerID);
-    preview[ownerID] = calculateStandingPreviewDelta(currentStanding, rawChange);
+    if (!standingsByOwnerID.has(ownerID)) {
+      const currentRow = getCharacterRawStandingFromRecord(
+        getCharacterRecord(normalizedCharacterID), ownerID, normalizedCharacterID,
+      );
+      const standing = currentRow ? clampStanding(currentRow.standing) : null;
+      standingsByOwnerID.set(ownerID, { initial: standing || 0, current: standing });
+    }
+    const standings = standingsByOwnerID.get(ownerID);
+    // Match application: no standing row uses the client's new-standing
+    // formula; an existing row (including zero) uses its update formula.
+    standings.current = standings.current === null
+      ? calculateNewStandingsUnrounded(rawChange)
+      : calculateStandingsByRawChangeUnrounded(standings.current, rawChange);
+    // Round only the displayed delta, never the authoritative next standing.
+    preview[ownerID] = roundStandingValue(standings.current - standings.initial);
   }
   return preview;
 }
@@ -1145,6 +1192,18 @@ function notifyStandingsModified(characterID, modifications) {
   }
 }
 
+// Whether an apply under the key was recorded. Own keys only: "constructor" or
+// "__proto__" is no receipt unless an apply recorded it. A failed store read
+// reaches the caller, so it never passes for an unused key.
+function hasStandingOperationReceipt(characterID, idempotencyKey) {
+  const record = getCharacterRecord(characterID);
+  const receipts = record && record.standingOperationReceipts &&
+    typeof record.standingOperationReceipts === "object"
+    ? record.standingOperationReceipts
+    : {};
+  return Object.prototype.hasOwnProperty.call(receipts, idempotencyKey);
+}
+
 function applyStandingChanges(characterID, changes = [], options = {}) {
   const normalizedCharacterID = normalizePositiveInteger(characterID, 0);
   if (!normalizedCharacterID || !Array.isArray(changes) || !changes.length) {
@@ -1167,7 +1226,7 @@ function applyStandingChanges(characterID, changes = [], options = {}) {
   const idempotencyFingerprint = idempotencyKey
     ? JSON.stringify({
         characterID: normalizedCharacterID,
-        changes,
+        changes: changes.map(withoutGainMultiplier),
         disableDerived: options.disableDerived === true,
         preservePrecision: options.preservePrecision === true,
       })
@@ -1205,9 +1264,55 @@ function applyStandingChanges(characterID, changes = [], options = {}) {
       if (!ownerID) {
         continue;
       }
-      const rawChange = change && change.applySocial === false
+      const socialAdjustedRawChange = change && change.applySocial === false
         ? toNumber(change.rawChange, 0)
         : calculateSocialAdjustedRawChange(normalizedCharacterID, change && change.rawChange);
+      const scaledRawChange = scaleMissionStandingGain(socialAdjustedRawChange, change);
+      // Pending pre-precision settlements retain their accepted arithmetic as
+      // well as their receipt fingerprint. New settlements freeze true.
+      const keepPrecision = options.preservePrecision === true || change && change.applySocial === false;
+      const rawChange = keepPrecision ? scaledRawChange : roundStandingValue(scaledRawChange);
+      // Derived standings start from the unscaled change, and each is scaled only if it is a
+      // gain: a mission gain's derived loss is not multiplied.
+      const unscaledRawChange = keepPrecision
+        ? socialAdjustedRawChange
+        : roundStandingValue(socialAdjustedRawChange);
+      if (Math.abs(unscaledRawChange) <= ZERO_STANDING_EPSILON) {
+        continue;
+      }
+
+      if (!options.disableDerived && change.propagate !== false) {
+        for (const relation of getRelationsForOwner(ownerID)) {
+          const targetID = normalizePositiveInteger(relation && relation.toID, 0);
+          const relationValue = toNumber(
+            relation && (
+              Object.prototype.hasOwnProperty.call(relation, "propagationMultiplier")
+                ? relation.propagationMultiplier
+                : relation.standing
+            ),
+            0,
+          );
+          if (!targetID || targetID === ownerID || !Number.isFinite(relationValue)) {
+            continue;
+          }
+          const derivedRawChange = scaleMissionStandingGain(unscaledRawChange * relationValue, change);
+          if (Math.abs(derivedRawChange) <= ZERO_STANDING_EPSILON) {
+            continue;
+          }
+          const existing = derivedAccumulator.get(targetID);
+          if (existing) {
+            existing.rawChange += derivedRawChange;
+            continue;
+          }
+          derivedAccumulator.set(targetID, {
+            rawChange: derivedRawChange,
+            sourceOwnerID: ownerID,
+          });
+        }
+      }
+
+      // A gain the multiplier takes to zero writes no row of its own, but its derived losses
+      // above still apply.
       if (Math.abs(rawChange) <= ZERO_STANDING_EPSILON) {
         continue;
       }
@@ -1258,36 +1363,6 @@ function applyStandingChanges(characterID, changes = [], options = {}) {
         previousStanding: currentStanding,
         standing: nextStanding,
       });
-
-      if (!options.disableDerived) {
-        for (const relation of getRelationsForOwner(ownerID)) {
-          const targetID = normalizePositiveInteger(relation && relation.toID, 0);
-          const relationValue = toNumber(
-            relation && (
-              Object.prototype.hasOwnProperty.call(relation, "propagationMultiplier")
-                ? relation.propagationMultiplier
-                : relation.standing
-            ),
-            0,
-          );
-          if (!targetID || targetID === ownerID || !Number.isFinite(relationValue)) {
-            continue;
-          }
-          const derivedRawChange = rawChange * relationValue;
-          if (Math.abs(derivedRawChange) <= ZERO_STANDING_EPSILON) {
-            continue;
-          }
-          const existing = derivedAccumulator.get(targetID);
-          if (existing) {
-            existing.rawChange += derivedRawChange;
-            continue;
-          }
-          derivedAccumulator.set(targetID, {
-            rawChange: derivedRawChange,
-            sourceOwnerID: ownerID,
-          });
-        }
-      }
 
       appendStandingTransaction(record, {
         fromID: ownerID,
@@ -1371,7 +1446,7 @@ function applyStandingChanges(characterID, changes = [], options = {}) {
             : EVENT_STANDING_DERIVED_NEGATIVE,
         eventDateTime: nowFileTimeString(),
         modification: derivedRawChange,
-        msg: "Derived standings",
+        msg: DERIVED_STANDINGS_MESSAGE,
         int_1: derived && derived.sourceOwnerID ? derived.sourceOwnerID : null,
         int_2: null,
         int_3: null,
@@ -1605,7 +1680,14 @@ function buildMissionStandingMessage(outcome, missionName, eventDefinition = {})
   });
 }
 
-function buildMissionOutcomeStandingChanges(agentRecord, missionRecord, outcome = "completed") {
+// `share`, for a completion only, builds one fleet share recipient's part instead of the whole
+// gain: { completingPilot, partOf(rawChange) }, as Mission turn-in divides it.
+function buildMissionOutcomeStandingChanges(
+  agentRecord,
+  missionRecord,
+  outcome = "completed",
+  share = null,
+) {
   const rewards =
     missionRecord && missionRecord.rewards && typeof missionRecord.rewards === "object"
       ? missionRecord.rewards
@@ -1753,21 +1835,125 @@ function buildMissionOutcomeStandingChanges(agentRecord, missionRecord, outcome 
       }))
     : [];
 
-  const orderedDirectChanges = normalizedOutcome === "failed"
+  // A mission's faction standing bonus (extraStandings): a direct gain that triggers no derived
+  // standings.
+  const extraChanges = Array.isArray(eventDefinition && eventDefinition.extraStandings)
+    ? eventDefinition.extraStandings.map((entry) => ({
+        ownerID: normalizePositiveInteger(entry && entry.ownerID, 0),
+        rawChange: toNumber(entry && entry.rawChange, 0),
+        eventTypeID,
+        applySocial,
+        msg,
+        notificationMin,
+        notificationMax,
+        notificationGroup,
+        propagate: false,
+        int_1: null,
+        int_2: null,
+        int_3: null,
+      }))
+    : [];
+
+  const orderedDirectChanges = normalizedOutcome === "failed" ||
+    normalizedOutcome === "declined" && eventDefinition.notificationGroup === "direct"
     ? [directChanges[2], directChanges[0], directChanges[1]]
     : directChanges;
-  return [...orderedDirectChanges, ...derivedChanges].filter(
+  // Each change carries the gain multiplier it is built with, so a settlement that stores its
+  // changes keeps the value it was prepared under. At 1 the changes carry nothing, exactly as
+  // before the setting existed.
+  const gainMultiplier = resolveMissionStandingGainMultiplier();
+  if (normalizedOutcome === "completed") {
+    const keepsWhole = !share || share.completingPilot === true;
+    return buildMissionCompletionStandingChanges(
+      agentRecord,
+      eventDefinition,
+      [
+        ...shareMissionCompletionDirectChanges(agentRecord, orderedDirectChanges, share),
+        ...(keepsWhole ? extraChanges : []),
+      ],
+      keepsWhole ? derivedChanges : [],
+    ).map((entry) => (gainMultiplier === 1 ? entry : { ...entry, gainMultiplier }));
+  }
+  return [...orderedDirectChanges, ...extraChanges, ...derivedChanges].filter(
     (entry) =>
       entry.ownerID > 0 &&
       Math.abs(entry.rawChange) > ZERO_STANDING_EPSILON,
-  );
+  ).map((entry) => (gainMultiplier === 1 ? entry : { ...entry, gainMultiplier }));
 }
 
-function buildMissionRewardStandingChanges(agentRecord, missionRecord) {
+// A fleet share recipient's direct changes (doc/FLEET_SHARES.md -> Mission turn-in): their part
+// of the agent's, the corporation's and the faction's gains (an important mission's direct
+// faction gain), as `share.partOf` divides them. Any other direct change stays whole with the
+// completing pilot. The faction change derived from the corporation then follows the
+// recipient's own part.
+function shareMissionCompletionDirectChanges(agentRecord, directChanges, share) {
+  if (!share) {
+    return directChanges;
+  }
+  const sharedOwnerIDs = new Set([
+    normalizePositiveInteger(agentRecord && agentRecord.agentID, 0),
+    normalizePositiveInteger(agentRecord && agentRecord.corporationID, 0),
+    normalizePositiveInteger(agentRecord && agentRecord.factionID, 0),
+  ].filter((ownerID) => ownerID > 0));
+  return directChanges.flatMap((entry) => {
+    if (sharedOwnerIDs.has(entry.ownerID)) {
+      return [{ ...entry, rawChange: share.partOf(entry.rawChange) }];
+    }
+    return share.completingPilot === true ? [entry] : [];
+  });
+}
+
+// A completion moves the agent and its corporation directly, and the faction by
+// one derived change of the corporation's gain x 0.04. Nothing spreads through
+// the NPC relation graph, whose x1 multipliers would hand the faction the
+// corporation's whole gain and move friend and enemy corporations.
+// A captured completion that lists its own derived rows keeps them as captured.
+function buildMissionCompletionStandingChanges(
+  agentRecord,
+  eventDefinition,
+  directChanges,
+  derivedChanges,
+) {
+  const corporationID = normalizePositiveInteger(agentRecord && agentRecord.corporationID, 0);
+  const corporationChange = directChanges.find((entry) => entry.ownerID === corporationID);
+  const capturedDerived = Array.isArray(eventDefinition && eventDefinition.derivedStandings);
+  const derivedRawChange = corporationChange
+    ? corporationChange.rawChange * MISSION_DERIVED_FACTION_FACTOR
+    : 0;
+  const factionDerivedChanges = capturedDerived || !corporationChange
+    ? derivedChanges
+    : [{
+        ownerID: normalizePositiveInteger(agentRecord && agentRecord.factionID, 0),
+        rawChange: derivedRawChange,
+        eventTypeID: derivedRawChange >= 0
+          ? EVENT_STANDING_DERIVED_POSITIVE
+          : EVENT_STANDING_DERIVED_NEGATIVE,
+        // Social boosts the corporation's gain, so the change derived from it
+        // carries the same boost.
+        applySocial: corporationChange.applySocial,
+        msg: DERIVED_STANDINGS_MESSAGE,
+        notificationMin: MIN_STANDING,
+        notificationMax: MAX_STANDING,
+        notificationGroup: "derived",
+        int_1: corporationID,
+        int_2: null,
+        int_3: null,
+      }];
+  return [...directChanges, ...factionDerivedChanges]
+    .map((entry) => ({ ...entry, propagate: false }))
+    .filter(
+      (entry) =>
+        entry.ownerID > 0 &&
+        Math.abs(entry.rawChange) > ZERO_STANDING_EPSILON,
+    );
+}
+
+function buildMissionRewardStandingChanges(agentRecord, missionRecord, share = null) {
   return buildMissionOutcomeStandingChanges(
     agentRecord,
     missionRecord,
     "completed",
+    share,
   );
 }
 
@@ -1793,7 +1979,14 @@ function applyMissionStandingChanges(
     };
   }
 
-  return applyStandingChanges(characterID, changes, options);
+  const decline = normalizeMissionStandingOutcome(outcome) === "declined"
+    ? resolveMissionStandingEventDefinition(missionRecord?.rewards || {}, "declined") : null;
+  // This captured ripple already contains the intended recipients and fractions.
+  // Generic relationship propagation would apply a second, unobserved loss.
+  const applyOptions = decline?.notificationGroup === "direct" && Array.isArray(decline.derivedStandings)
+    ? { ...options, disableDerived: true, preservePrecision: true, splitNotificationGroups: true }
+    : options;
+  return applyStandingChanges(characterID, changes, applyOptions);
 }
 
 function getAllAgentStandingOwners() {
@@ -1862,6 +2055,7 @@ module.exports = {
   TYPE_SECURITY_CONNECTIONS,
   TYPE_SOCIAL,
   applyMissionStandingChanges,
+  hasStandingOperationReceipt,
   applyStandingBonusToValue,
   applyStandingChanges,
   buildMissionRewardStandingChanges,
@@ -1869,7 +2063,6 @@ module.exports = {
   buildStandingPreview,
   calculateNewStandings,
   calculateSocialAdjustedRawChange,
-  calculateStandingPreviewDelta,
   calculateStandingsByRawChange,
   canCharacterUseAgent,
   clearStandingRuntimeCaches,

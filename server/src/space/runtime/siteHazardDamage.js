@@ -112,7 +112,11 @@ function publishHealth(intent, result, scene, target) {
   const health = require("./shipHealthState");
   const session = require("./entityOwnerSession").getOwningSessionForEntity(scene, target);
   if (session) health.notifyShipHealthAttributesToSession(session, target, result.data.damageResult, intent.atMs);
-  require("./combatDamageMessages").notifyEnvironmentalDamageMessage(scene, null, target,
+  // The client's combat log names the source from its ballpark and drops a hit whose source it
+  // cannot find, so the message carries the hazard's object while it is still in space.
+  const sourceID = Number(intent.source?.itemID) || 0;
+  const source = sourceID && scene?.getEntityByID?.(sourceID) ? { itemID: sourceID } : null;
+  require("./combatDamageMessages").notifyEnvironmentalDamageMessage(scene, source, target,
     intent.sourceName || "Site Hazard", require("./combatDamageMessages").getAppliedDamageAmount(result.data.damageResult));
   health.broadcastDamageStateChange(scene, target, intent.atMs);
   return true;

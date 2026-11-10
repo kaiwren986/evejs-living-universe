@@ -116,19 +116,22 @@ function evacuateDockedCharactersFromStructure(structure, options = {}) {
     if (session) {
       try {
         session.sessionChangeReason = "structure_destroyed";
-        session.stationID = null;
-        session.stationid = null;
-        session.structureID = null;
-        session.structureid = null;
-        session.locationid = solarSystemID;
-        session.solarsystemid = solarSystemID;
-        session.solarsystemid2 = solarSystemID;
-        if (activeShip) {
-          session.shipID = activeShip.itemID;
-          session.shipid = activeShip.itemID;
-          session.activeShipID = activeShip.itemID;
-          session.activeShipId = activeShip.itemID;
-          session.shipTypeID = activeShip.typeID;
+        // Re-apply the character, now in space, the way an undock does, so the
+        // client gets the session change. Setting the fields by hand moved only
+        // the server's view: the live client stayed docked in the destroyed
+        // structure (client check, 2026-11-05). No client call carries this
+        // change, so it is sent as a notification.
+        const applyResult = require(path.join(__dirname, "../character/characterState"))
+          .applyCharacterToSession(session, occupant.characterID, {
+            emitNotifications: true,
+            logSelection: false,
+            selectionEvent: false,
+            deferDockedShipSessionChange: false,
+          });
+        if (!applyResult || !applyResult.success) {
+          log.warn(
+            `[StructureDockedRecovery] Session change failed for character ${occupant.characterID} after structure ${structureID} destruction: ${applyResult && applyResult.errorMsg}`,
+          );
         }
         if (session._space) {
           spaceRuntime.detachSession(session, {

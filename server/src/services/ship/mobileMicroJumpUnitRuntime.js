@@ -848,6 +848,7 @@ function launchMobileMicroJumpUnitFromShip(session, itemID, options = {}) {
   const sourceTypeID = toInt(item.typeID, 0);
   const transferResult = mobileItemCustody.deployFromShip({
     item,
+    position: spawnState.position,
     ownerID: context.ownerID,
     shipID: context.shipID,
     systemID: context.systemID,

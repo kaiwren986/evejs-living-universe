@@ -6,6 +6,7 @@ const {
 } = require("../../common/numbers");
 
 const path = require("path");
+const { rangeMultiplier, scaleDamage, targetCoefficient } = require("./fighterDamageApplication");
 
 // Memoized resolver for lazy (circular-dependency-safe) requires that run on the
 // fighter tick path. require(path.join(__dirname, id)) costs ~1.8us/call even
@@ -44,6 +45,7 @@ const {
   getAttributeIDByNames,
   getShipBaseAttributeValue,
   getTypeAttributeValue,
+  getDogmaAttributeDefaultValue,
 } = require(path.join(__dirname, "../fitting/liveFittingState"));
 const {
   getShipFittingSnapshot,
@@ -68,8 +70,10 @@ const {
   FIGHTER_TUBE_FLAGS,
   buildInventorySquadronSize,
   canLoadFighterTypeIntoHostTube,
+  getFighterTubeOrdinal,
   isFighterItemRecord,
   isFighterTubeFlag,
+  listHostFighterOccupancy,
 } = require(path.join(__dirname, "./fighterInventory"));
 const {
   resolveFighterOperationalAttributes,
@@ -93,6 +97,10 @@ const hostileModuleRuntime = require(path.join(
   __dirname,
   "../../space/modules/hostileModuleRuntime",
 ));
+const {
+  applyHostileHudCycle,
+  removeHostileHudState,
+} = require("../../space/runtime/hudIconStates");
 const {
   entityIDsEqual,
   normalizeNonNegativeInt64,
@@ -133,17 +141,25 @@ const {
 } = require(path.join(__dirname, "../../space/destiny/simulation/evolve.js"));
 
 const FIGHTER_EWAR_FAMILY_CONFIG = Object.freeze({
+  fighterabilitytackle: Object.freeze({
+    onlySmallCraft: true,
+    optimalAttribute: "fighterAbilityTackleRange",
+    falloffAttribute: null,
+  }),
   fighterabilitywarpdisruption: Object.freeze({
+    strengthPerFighter: true,
     strengthAttribute: "fighterAbilityWarpDisruptionPointStrength",
     optimalAttribute: "fighterAbilityWarpDisruptionRange",
     falloffAttribute: null,
   }),
   fighterabilityenergyneutralizer: Object.freeze({
+    strengthPerFighter: true,
     strengthAttribute: "fighterAbilityEnergyNeutralizerAmount",
     optimalAttribute: "fighterAbilityEnergyNeutralizerOptimalRange",
     falloffAttribute: "fighterAbilityEnergyNeutralizerFalloffRange",
   }),
   fighterabilitystasiswebifier: Object.freeze({
+    snapshotStrengthKey: "webSpeedPenalty",
     strengthAttribute: "fighterAbilityStasisWebifierSpeedPenalty",
     optimalAttribute: "fighterAbilityStasisWebifierOptimalRange",
     falloffAttribute: "fighterAbilityStasisWebifierFalloffRange",
@@ -160,6 +176,23 @@ const TUBE_STATE_READY = "READY";
 const TUBE_STATE_INSPACE = "INSPACE";
 const TUBE_STATE_RECALLING = "RECALLING";
 const TUBE_STATE_LANDING = "LANDING";
+// A landed squadron refuels before it can launch again, for its type's
+// fighterRefuelingTime (attribute 2426, ms; EVE University "Fighters"). The
+// client draws the timer from OnFighterTubeTaskStatus's start and end
+// (squadronManagementCont.py) and sends no launch for a tube that is not READY.
+const TUBE_STATE_REFUELLING = "REFUELLING";
+const FILETIME_UNIX_EPOCH_OFFSET = 116444736000000000n;
+
+// The scene's refuelling tubes: `${shipID}:${tubeFlagID}` -> { endsAtMs, ownerCharacterID }.
+function getSceneRefuellingTubes(scene, create = false) {
+  if (!scene) {
+    return null;
+  }
+  if (!(scene._fighterTubeRefuels instanceof Map) && create) {
+    scene._fighterTubeRefuels = new Map();
+  }
+  return scene._fighterTubeRefuels instanceof Map ? scene._fighterTubeRefuels : null;
+}
 
 const DEFAULT_FIGHTER_ORBIT_DISTANCE_METERS = 1500;
 const FIGHTER_RECOVERY_DISTANCE_METERS = 5000;
@@ -1194,6 +1227,7 @@ function cloneAbilityState(state = null) {
     "remainingChargeCount",
     "targetID",
     "firedAtActivation",
+    "reactivateNotBeforeMs",
   ]) {
     const value = state[key];
     if (value === undefined || value === null) {
@@ -1391,6 +1425,9 @@ function syncFighterMobilityAbilityState(
   const passiveSignatureRadius = resolveFighterPassiveSignatureRadius(fighterEntity);
   let nextMaxVelocity = passiveMaxVelocity;
   let nextSignatureRadius = passiveSignatureRadius;
+  const shieldAttributes = fighterEntity.passiveDerivedState?.attributes;
+  const passiveShield = fighterEntity.fighterPassiveShieldResonances;
+  if (shieldAttributes && passiveShield) Object.assign(shieldAttributes, passiveShield);
   let hasActiveMobilityEffect = false;
 
   if (controllerEntity && hasAbilityState) {
@@ -1409,6 +1446,12 @@ function syncFighterMobilityAbilityState(
         continue;
       }
 
+      if (abilityMeta.evasionShieldMultipliers && fighterEntity.passiveDerivedState) {
+        const attributes = fighterEntity.passiveDerivedState.attributes;
+        for (const [id, multiplier] of Object.entries(abilityMeta.evasionShieldMultipliers)) {
+          attributes[id] = toNumber(attributes[id], getDogmaAttributeDefaultValue(id)) * multiplier;
+        }
+      }
       hasActiveMobilityEffect = true;
       const speedMultiplier =
         1 + (Math.max(-99.999, toNumber(abilityMeta && abilityMeta.speedBonusPercent, 0)) / 100);
@@ -1810,7 +1853,7 @@ function serializeFighterRuntimeState(entity) {
 }
 
 // options.keepMotion: a presentation refresh of a fighter already in the
-// scene (every AddBalls and slim build) leaves its motion values alone
+// scene (every AddBalls and slim build) leaves its motion and signature alone
 // (only the Movement queue and Evolve write them). They come from its
 // controller (the operational attributes), and re-deriving them here from the
 // item reset them to the type's base until the next fighter tick put them
@@ -1886,9 +1929,9 @@ function hydrateFighterEntityFromItem(entity, itemRecord = null, options = {}) {
     entity.alignTime = inertia * Math.log(4);
     entity.maxAccelerationTime = inertia;
     entity.agilitySeconds = Math.max((mass * inertia) / 1000000, 0.05);
+    entity.baseSignatureRadius = signatureRadius;
+    entity.signatureRadius = signatureRadius;
   }
-  entity.baseSignatureRadius = signatureRadius;
-  entity.signatureRadius = signatureRadius;
   entity.launcherID = toInt(item.launcherID, toInt(entity.launcherID, 0)) || null;
   entity.controllerID = toInt(
     fighterState && fighterState.controllerID,
@@ -2022,6 +2065,9 @@ function applyFighterOperationalEntityAttributes(fighterEntity, controllerEntity
     ...(fighterEntity.passiveDerivedState || {}),
     attributes: { ...attributes },
   };
+  fighterEntity.fighterPassiveShieldResonances = Object.fromEntries(
+    [271, 272, 273, 274].map((id) => [id, toNumber(attributes[id], getDogmaAttributeDefaultValue(id))]),
+  );
   return (
     Math.abs(previousPassiveMaxVelocity - maxVelocity) > 1e-6 ||
     Math.abs(previousPassiveSignatureRadius - signatureRadius) > 1e-6
@@ -2212,28 +2258,6 @@ function getShipTubeItem(shipRecord, tubeFlagID) {
   return contents[0] || null;
 }
 
-function listShipTubeItems(shipRecord, options = {}) {
-  if (!shipRecord) {
-    return [];
-  }
-
-  const excludeItemID = toInt(options.excludeItemID, 0);
-  const items = [];
-  for (const tubeFlagID of FIGHTER_TUBE_FLAGS) {
-    for (const item of listContainerItems(
-      toInt(shipRecord.ownerID, 0),
-      shipRecord.itemID,
-      tubeFlagID,
-    )) {
-      if (item && (!excludeItemID || toInt(item.itemID, 0) !== excludeItemID)) {
-        items.push(item);
-      }
-    }
-  }
-
-  return items;
-}
-
 function getOwnerSession(shipRecord, fallbackSession = null) {
   const ownerSession = findSessionByCharacterID(toInt(shipRecord && shipRecord.ownerID, 0));
   return ownerSession || fallbackSession || null;
@@ -2277,14 +2301,71 @@ function notifyTubeEmpty(session, tubeFlagID) {
   ]);
 }
 
-function notifyTubeState(session, tubeFlagID, stateID, userError = null) {
+function notifyTubeState(session, tubeFlagID, stateID, userError = null, times = null) {
   return sendNotification(session, "OnFighterTubeTaskStatus", [
     toInt(tubeFlagID, 0),
     String(stateID || ""),
-    null,
-    null,
+    times ? times.start : null,
+    times ? times.end : null,
     userError,
   ]);
+}
+
+function msToSimFiletime(ms) {
+  return BigInt(Math.round(toNumber(ms, 0))) * 10000n + FILETIME_UNIX_EPOCH_OFFSET;
+}
+
+function getRefuellingTubeKey(shipID, tubeFlagID) {
+  return `${toInt(shipID, 0)}:${toInt(tubeFlagID, 0)}`;
+}
+
+// The refuel end in ms while the squadron in the tube refuels, else 0. The
+// refuel belongs to the squadron that landed there.
+function getTubeRefuelEndMs(scene, shipID, tubeFlagID, fighterID, nowMs) {
+  const refuels = getSceneRefuellingTubes(scene);
+  const entry = refuels ? refuels.get(getRefuellingTubeKey(shipID, tubeFlagID)) : null;
+  return entry && entry.fighterID === toInt(fighterID, 0) && entry.endsAtMs > toNumber(nowMs, 0)
+    ? entry.endsAtMs
+    : 0;
+}
+
+// Starts the landed squadron's refuel, or makes the tube READY when its type
+// needs none.
+function startTubeRefuel(scene, shipRecord, tubeFlagID, fighterID, fighterTypeID, ownerSession) {
+  const refuelMs = Math.max(0, toNumber(getTypeAttributeValue(fighterTypeID, "fighterRefuelingTime"), 0));
+  if (refuelMs <= 0) {
+    notifyTubeState(ownerSession, tubeFlagID, TUBE_STATE_READY);
+    return;
+  }
+  const nowMs = scene && typeof scene.getCurrentSimTimeMs === "function"
+    ? scene.getCurrentSimTimeMs()
+    : Date.now();
+  const endsAtMs = nowMs + refuelMs;
+  getSceneRefuellingTubes(scene, true).set(getRefuellingTubeKey(shipRecord.itemID, tubeFlagID), {
+    fighterID: toInt(fighterID, 0),
+    endsAtMs,
+    ownerCharacterID: toInt(shipRecord.ownerID, 0),
+  });
+  notifyTubeState(ownerSession, tubeFlagID, TUBE_STATE_REFUELLING, null, {
+    start: msToSimFiletime(nowMs),
+    end: msToSimFiletime(endsAtMs),
+  });
+}
+
+// Makes every tube in the scene whose refuel has ended READY.
+function finishDueTubeRefuels(scene, nowMs) {
+  const refuels = getSceneRefuellingTubes(scene);
+  if (!refuels || refuels.size <= 0) {
+    return;
+  }
+  for (const [key, entry] of refuels) {
+    if (entry.endsAtMs > nowMs) {
+      continue;
+    }
+    refuels.delete(key);
+    const tubeFlagID = toInt(key.split(":")[1], 0);
+    notifyTubeState(findSessionByCharacterID(entry.ownerCharacterID), tubeFlagID, TUBE_STATE_READY);
+  }
 }
 
 function notifyFighterAdded(session, scene, fighterEntity) {
@@ -2456,6 +2537,26 @@ function resolveFighterControllerSession(fighterEntity, controllerEntity = null)
   return findSessionByCharacterID(controllerCharacterID) || null;
 }
 
+// Fighters have no ship session of their own. Their currently controlling pilot
+// consumes incoming EWAR using the fighter target ID, including remote/structure
+// control resolved by the same production helper used for fighter notifications.
+function resolveControlledFighterHudRecipient(scene, targetEntity) {
+  const controllerID = toInt(targetEntity && targetEntity.controllerID, 0);
+  if (!scene || !isFighterEntity(targetEntity) || controllerID <= 0) {
+    return null;
+  }
+  const session = resolveFighterControllerSession(
+    targetEntity,
+    scene.getEntityByID(controllerID),
+  );
+  // A released structure can still have returning fighters with its old
+  // controllerOwnerID. That pilot's restored ship no longer owns this HUD.
+  // Remote/Standup control remains valid because its observer and session ship
+  // both name the structure host while control is actually held.
+  return session && toInt(session._space?.shipID, 0) === controllerID &&
+    toInt(session.shipID || session.shipid, 0) === controllerID ? session : null;
+}
+
 function buildFighterCombatSourceEntity(fighterEntity, controllerEntity = null) {
   if (!fighterEntity) {
     return null;
@@ -2562,11 +2663,11 @@ function getFighterOrbitDistance(fighterItemOrTypeID) {
   const itemRecord = resolveFighterRuntimeItemRecord(fighterItemOrTypeID);
   const typeID = toInt(itemRecord && itemRecord.typeID, toInt(fighterItemOrTypeID, 0));
   const attributes = buildEffectiveItemAttributeMap(itemRecord || typeID);
+  // The default supplies a missing range; it must not floor an authored one.
   return Math.max(
-    DEFAULT_FIGHTER_ORBIT_DISTANCE_METERS,
+    0,
     toNumber(
-      attributes[ATTRIBUTE_FIGHTER_SQUADRON_ORBIT_RANGE] ??
-        getTypeAttributeValue(typeID, "fighterSquadronOrbitRange"),
+      attributes[ATTRIBUTE_FIGHTER_SQUADRON_ORBIT_RANGE],
       DEFAULT_FIGHTER_ORBIT_DISTANCE_METERS,
     ),
   );
@@ -2839,20 +2940,11 @@ function executeFighterOffensiveCycle(scene, fighterEntity, controllerEntity, sl
     snapshot,
     nowMs,
   );
-  const rangeGate = Math.max(
-    0,
-    toNumber(snapshot.rangeMeters, 0) + Math.max(0, toNumber(snapshot.falloffMeters, 0)),
+  const shotDistance = surfaceDistance(
+    fighterEntity, targetEntity, scene, nowMs, "fighter-offensive-cycle",
   );
-  if (
-    rangeGate > 0 &&
-    surfaceDistance(
-      fighterEntity,
-      targetEntity,
-      scene,
-      nowMs,
-      "fighter-offensive-cycle",
-    ) > rangeGate + 1
-  ) {
+  // Turrets already apply falloff in their solver; missiles need it below.
+  if (snapshot.falloffMeters <= 0 && shotDistance > snapshot.rangeMeters + 1) {
     return { continueActive: true, deactivate: false };
   }
 
@@ -2917,17 +3009,20 @@ function executeFighterOffensiveCycle(scene, fighterEntity, controllerEntity, sl
         : null;
     }
   } else if (snapshot.offensiveKind === "missile") {
-    const missileDamageResult = ["npc","core","bonus"].includes(targetEntity.fabricatorRole) && require("../seasons/fabricatorModel").SPACE_SUPERIORITY_TYPES.has(Number(fighterEntity.typeID))
-      ? {appliedDamage:snapshot.rawShotDamage} : resolveMissileAppliedDamage({
-      rawShotDamage: snapshot.rawShotDamage,
-      explosionRadius: snapshot.explosionRadius,
-      explosionVelocity: snapshot.explosionVelocity,
-      damageReductionFactor: snapshot.damageReductionFactor,
-      damageReductionSensitivity: snapshot.damageReductionSensitivity,
-    }, targetEntity);
-    shotDamage = missileDamageResult && missileDamageResult.appliedDamage
-      ? missileDamageResult.appliedDamage
-      : null;
+    const fabricatorException = ["npc", "core", "bonus"].includes(targetEntity.fabricatorRole) &&
+      require("../seasons/fabricatorModel").SPACE_SUPERIORITY_TYPES.has(Number(fighterEntity.typeID));
+    const missileDamageResult = fabricatorException
+      ? { appliedDamage: snapshot.rawShotDamage }
+      : resolveMissileAppliedDamage({
+        rawShotDamage: snapshot.rawShotDamage,
+        explosionRadius: snapshot.explosionRadius,
+        explosionVelocity: snapshot.explosionVelocity,
+        damageReductionFactor: snapshot.damageReductionFactor,
+        damageReductionSensitivity: snapshot.damageReductionSensitivity,
+      }, targetEntity);
+    shotDamage = scaleDamage(missileDamageResult?.appliedDamage,
+      rangeMultiplier(shotDistance, snapshot.rangeMeters, snapshot.falloffMeters) *
+      (fabricatorException ? 1 : targetCoefficient(snapshot, targetEntity, getDogmaAttributeDefaultValue)));
     hitQuality = sumDamageVector(shotDamage) > 0 ? 4 : 0;
     if (sumDamageVector(shotDamage) > 0) {
       weaponDamageResult = droneInterop.applyWeaponDamageToTarget(
@@ -3034,125 +3129,61 @@ function executeFighterOffensiveCycle(scene, fighterEntity, controllerEntity, sl
   };
 }
 
-function executeFighterBombCycle(scene, fighterEntity, controllerEntity, slotID, abilityState, nowMs) {
-  const runtime = getRuntime();
-  const droneInterop =
-    runtime && runtime.droneInterop && typeof runtime.droneInterop === "object"
-      ? runtime.droneInterop
-      : null;
-  const targetPoint = abilityState && abilityState.targetPoint;
-  if (
-    !scene ||
-    !isFighterEntity(fighterEntity) ||
-    !controllerEntity ||
-    !droneInterop ||
-    !targetPoint ||
-    typeof targetPoint !== "object"
-  ) {
-    return { continueActive: false, deactivate: true };
+function launchFighterBomb(scene, fighterEntity, controllerEntity, slotID, abilityState, nowMs) {
+  const bombTypeID = toInt(getTypeAttributeValue(fighterEntity.typeID, "fighterAbilityLaunchBombType"), 0);
+  const attrs = buildEffectiveItemAttributeMap({ typeID: bombTypeID });
+  const velocity = Math.max(0, toNumber(attrs[37], 0));
+  const flightTimeMs = Math.max(0, toNumber(attrs[281], 0));
+  const blastRange = Math.max(0, toNumber(attrs[107], toNumber(attrs[99], 0)));
+  const rawShotDamage = scaleDamage({
+    em: Math.max(0, toNumber(attrs[114], 0)),
+    thermal: Math.max(0, toNumber(attrs[118], 0)),
+    kinetic: Math.max(0, toNumber(attrs[117], 0)),
+    explosive: Math.max(0, toNumber(attrs[116], 0)),
+  }, resolveSquadronSize(fighterEntity));
+  if (!abilityState.targetPoint || !(velocity > 0) || !(flightTimeMs > 0) ||
+      !(blastRange > 0) || !(sumDamageVector(rawShotDamage) > 0)) {
+    return { success: false, errorMsg: "UNSUPPORTED_FIGHTER_BOMB" };
   }
-
-  const bombTypeID = toInt(
-    getTypeAttributeValue(fighterEntity.typeID, "fighterAbilityLaunchBombType"),
-    0,
-  );
-  if (bombTypeID <= 0) {
-    return { continueActive: false, deactivate: true };
-  }
-  const blastRangeMeters = Math.max(
-    0,
-    toNumber(
-      getTypeAttributeValue(bombTypeID, "empFieldRange") ||
-        getTypeAttributeValue(bombTypeID, "explosionRange"),
-      0,
-    ),
-  );
-  const damageVector = {
-    em: Math.max(0, toNumber(getTypeAttributeValue(bombTypeID, "emDamage"), 0)),
-    thermal: Math.max(0, toNumber(getTypeAttributeValue(bombTypeID, "thermalDamage"), 0)),
-    kinetic: Math.max(0, toNumber(getTypeAttributeValue(bombTypeID, "kineticDamage"), 0)),
-    explosive: Math.max(0, toNumber(getTypeAttributeValue(bombTypeID, "explosiveDamage"), 0)),
+  const bombRuntime = lazyRequire("../../space/modules/bombRuntime");
+  const { buildBombRuntimeCallbacks } = lazyRequire("../../space/runtime/moduleRuntimeCallbacks");
+  const callbacks = buildBombRuntimeCallbacks(scene, {
+    resolveAttackerNotificationSession(source) {
+      const characterID = toInt(source.characterID, 0);
+      const session = characterID > 0 ? findSessionByCharacterID(characterID) : null;
+      return session && toInt(session.characterID, 0) === characterID &&
+        [...scene.sessions.values()].includes(session) && getRuntime().getSceneForSession(session) === scene
+        ? session : null;
+    },
+  });
+  const previousState = getEntityAbilityState(fighterEntity, slotID);
+  const launchSource = {
+    ...buildFighterCombatSourceEntity(fighterEntity, controllerEntity),
+    direction: normalizeVector(subtractVectors(abilityState.targetPoint, fighterEntity.position), fighterEntity.direction),
   };
-  if (blastRangeMeters <= 0 || sumDamageVector(damageVector) <= 0) {
-    return { continueActive: false, deactivate: true };
-  }
-
-  const combatSourceEntity = buildFighterCombatSourceEntity(
-    fighterEntity,
-    controllerEntity,
-  ) || fighterEntity;
-  const pseudoModuleItem = buildFighterPseudoModuleItem(fighterEntity, slotID);
-  for (const targetEntity of scene.dynamicEntities.values()) {
-    if (
-      !targetEntity ||
-      toInt(targetEntity.itemID, 0) === toInt(fighterEntity.itemID, 0) ||
-      !hasDamageableHealth(targetEntity) ||
-      distance(targetEntity.position, targetPoint) > blastRangeMeters
-    ) {
-      continue;
-    }
-
-    const weaponDamageResult = droneInterop.applyWeaponDamageToTarget(
-      scene,
-      combatSourceEntity,
-      targetEntity,
-      damageVector,
-      nowMs,
-      { destructionReason: "fighter-bomb" },
-    );
-    const appliedDamageAmount = droneInterop.getAppliedDamageAmount(
-      weaponDamageResult && weaponDamageResult.damageResult,
-    );
-    if (appliedDamageAmount > 0) {
-      droneInterop.noteKillmailDamage(
-        combatSourceEntity,
-        targetEntity,
-        appliedDamageAmount,
-        {
-          whenMs: nowMs,
-          weaponSnapshot: {
-            effectFamily: "fighterAbilityLaunchBomb",
-            moduleTypeID: pseudoModuleItem.typeID,
-            rawShotDamage: damageVector,
-          },
-          moduleItem: pseudoModuleItem,
-          chargeItem: null,
-        },
-      );
-    }
-    if (
-      weaponDamageResult &&
-      weaponDamageResult.destroyResult &&
-      weaponDamageResult.destroyResult.success === true
-    ) {
-      droneInterop.recordKillmailFromDestruction(
-        targetEntity,
-        weaponDamageResult.destroyResult,
-        {
-          attackerEntity: combatSourceEntity,
-          victimSession: weaponDamageResult.victimSession,
-          whenMs: nowMs,
-          weaponSnapshot: {
-            effectFamily: "fighterAbilityLaunchBomb",
-            moduleTypeID: pseudoModuleItem.typeID,
-            rawShotDamage: damageVector,
-          },
-          moduleItem: pseudoModuleItem,
-          chargeItem: null,
-        },
-      );
-    }
-    droneInterop.notifyWeaponDamageMessages(
-      combatSourceEntity,
-      targetEntity,
-      pseudoModuleItem,
-      damageVector,
-      appliedDamageAmount,
-      appliedDamageAmount > 0 ? 4 : 0,
-    );
-  }
-
-  return { continueActive: false, deactivate: false };
+  // This launch snapshot retains the controller's attribution after recall,
+  // destruction or disconnect. Evolve owns the projectile from admission on.
+  callbacks.hasCurrentSourceOwner = () => false;
+  callbacks.consumeLoadedCharge = () => {
+    // Fighter ability state owns its charges/cooldown, rather than fitted ammo.
+    // Commit it after a successful spawn but before publishing the projectile.
+    setEntityAbilityState(fighterEntity, slotID, abilityState);
+    if (persistFighterEntityState(fighterEntity)) return { success: true };
+    setEntityAbilityState(fighterEntity, slotID, previousState);
+    return { success: false, errorMsg: "FIGHTER_BOMB_STATE_WRITE_FAILED" };
+  };
+  return bombRuntime.executeBombLaunchCycle({
+    scene, entity: launchSource,
+    moduleItem: buildFighterPseudoModuleItem(fighterEntity, slotID),
+    chargeItem: { typeID: bombTypeID }, nowMs, callbacks,
+    effectState: { bombSnapshot: {
+      effectFamily: "fighterAbilityLaunchBomb", chargeAttributes: attrs,
+      rawShotDamage, maxVelocity: velocity, flightTimeMs,
+      approxRange: velocity * flightTimeMs / 1000,
+      explosionRadius: Math.max(1, toNumber(attrs[654], 1)),
+      blastRange, detonationRange: Math.max(0, toNumber(attrs[108], 0)),
+    } },
+  });
 }
 
 function buildFighterJammerRuntimeCallbacks(scene) {
@@ -3231,7 +3262,10 @@ function buildFighterEwarEffectState(
         : definition.modifierOperation,
     hostileResistanceAttributeID: toInt(definition.resistanceAttributeID, 0),
     hostileStrengthValue: strengthValue,
-    hostileWarpScrambleStrength: isWarpPoint ? Math.max(0, strengthValue) : 0,
+    hostileWarpScrambleStrength:
+      definition.family === hostileModuleRuntime.HOSTILE_FAMILY_FIGHTER_TACKLE
+        ? Math.max(0, toNumber(snapshot.tackleWarpDisruptionStrength, 0))
+        : isWarpPoint ? Math.max(0, strengthValue) : 0,
     hostileStackingPenalized: definition.stackingPenalized === true,
     hostileAffectsTargetDerivedState: definition.affectsTargetDerivedState === true,
     hostileBlocksMicrowarpdrive: definition.blocksMicrowarpdrive === true,
@@ -3243,6 +3277,22 @@ function buildFighterEwarEffectState(
 }
 
 function refreshFighterEwarTargetDerivedState(scene, targetEntity, aggregateChanged) {
+  if (aggregateChanged === true && ["drone", "fighter"].includes(targetEntity?.kind)) {
+    queueOrApplyMovementChange(scene, targetEntity, "fighterEwarTargetRefresh", null, () => {
+      const controller = scene.getEntityByID(toInt(targetEntity.controllerID, 0));
+      if (isFighterEntity(targetEntity)) {
+        syncFighterMobilityAbilityState(scene, targetEntity, controller);
+      } else {
+        const previousSpeed = targetEntity.maxVelocity;
+        lazyRequire("../drone/droneRuntime").applyDroneOperationalEntityAttributes(targetEntity, controller);
+        if (previousSpeed !== targetEntity.maxVelocity) {
+          scene.queueBubbleHistory(lazyRequire("../../space/destiny/commands/drone")
+            .captureDroneMaxVelocityPresentation(scene, targetEntity));
+        }
+      }
+    });
+    return;
+  }
   if (
     aggregateChanged === true &&
     targetEntity &&
@@ -3300,6 +3350,13 @@ function removeFighterEwarEffect(
     sourceEntity: fighterEntity,
     effectState,
   });
+  removeHostileHudState(
+    targetEntity,
+    fighterEntity,
+    effectState,
+    scene.getCurrentSimTimeMs(),
+    { recipientSession: resolveControlledFighterHudRecipient(scene, targetEntity) },
+  );
   refreshFighterEwarTargetDerivedState(
     scene,
     targetEntity,
@@ -3495,7 +3552,9 @@ function executeFighterUtilityCycle(scene, fighterEntity, controllerEntity, slot
     const targetEntity = targetID > 0 ? scene.getEntityByID(targetID) : null;
     if (
       !targetEntity ||
-      targetEntity.kind !== "ship" ||
+      (ewarConfig.onlySmallCraft
+        ? !["drone", "fighter"].includes(targetEntity.kind) || isWarping(targetEntity)
+        : targetEntity.kind !== "ship") ||
       !hasDamageableHealth(targetEntity) ||
       !canPlayerCompanionActOnTarget(
         scene,
@@ -3512,7 +3571,8 @@ function executeFighterUtilityCycle(scene, fighterEntity, controllerEntity, slot
     const optimalRangeMeters = Math.max(
       0,
       toNumber(
-        getTypeAttributeValue(fighterTypeID, ewarConfig.optimalAttribute),
+        ewarConfig.onlySmallCraft ? snapshot.rangeMeters
+          : getTypeAttributeValue(fighterTypeID, ewarConfig.optimalAttribute),
         toNumber(snapshot.rangeMeters, 0),
       ),
     );
@@ -3526,9 +3586,12 @@ function executeFighterUtilityCycle(scene, fighterEntity, controllerEntity, slot
       )
       : 0;
     const strengthValue = toNumber(
-      getTypeAttributeValue(fighterTypeID, ewarConfig.strengthAttribute),
+      ewarConfig.onlySmallCraft ? snapshot.tackleWebSpeedPenalty
+        : ewarConfig.snapshotStrengthKey
+        ? snapshot[ewarConfig.snapshotStrengthKey]
+        : getTypeAttributeValue(fighterTypeID, ewarConfig.strengthAttribute),
       0,
-    );
+    ) * (ewarConfig.strengthPerFighter ? resolveSquadronSize(fighterEntity) : 1);
     const definition = hostileModuleRuntime.resolveHostileDefinition({
       name: effectFamily,
     });
@@ -3551,6 +3614,9 @@ function executeFighterUtilityCycle(scene, fighterEntity, controllerEntity, slot
         "fighter-ewar-range",
       ) > rangeGate + 1
     ) {
+      if (ewarConfig.onlySmallCraft) {
+        removeFighterEwarEffect(scene, fighterEntity, controllerEntity, slotID, abilityState);
+      }
       return { continueActive: true, deactivate: false };
     }
 
@@ -3628,6 +3694,14 @@ function executeFighterUtilityCycle(scene, fighterEntity, controllerEntity, slot
         scene,
         cycleResult.data && cycleResult.data.targetEntity,
         Boolean(cycleResult.data && cycleResult.data.aggregateChanged),
+      );
+      const recipientTarget = cycleResult.data && cycleResult.data.targetEntity || targetEntity;
+      applyHostileHudCycle(
+        recipientTarget,
+        fighterEntity,
+        effectState,
+        nowMs,
+        { recipientSession: resolveControlledFighterHudRecipient(scene, recipientTarget) },
       );
       return { continueActive: true, deactivate: false };
     }
@@ -3727,6 +3801,16 @@ function launchFightersFromTubes(session, rawTubeFlagIDs) {
 
   const { characterID, shipRecord, shipEntity, scene } = shipState;
   const tubeFlagIDs = normalizeTubeFlagList(rawTubeFlagIDs);
+  // A carrier in warp launches no fighters: each tube is answered with the
+  // client's ShipInWarp ("You cannot do that while warping."), which
+  // fightersSvc shows through OnRemoteMessage. A carrier still aligning to
+  // warp (mode WARP, its warp not yet begun) launches as before.
+  if (isWarping(shipEntity)) {
+    for (const tubeFlagID of tubeFlagIDs) {
+      errors.push([tubeFlagID, buildFighterUserError("ShipInWarp")]);
+    }
+    return { success: false, errors };
+  }
   if (
     getPlayerCompanionSecurityScope(shipEntity, {
       controller: true,
@@ -3767,12 +3851,18 @@ function launchFightersFromTubes(session, rawTubeFlagIDs) {
       errors.push([tubeFlagID, buildFighterError("No fighter squadron is loaded in that launch tube.")]);
       continue;
     }
+    if (getTubeRefuelEndMs(scene, shipRecord.itemID, tubeFlagID, fighterItem.itemID, scene.getCurrentSimTimeMs()) > 0) {
+      errors.push([tubeFlagID, buildFighterUserError("FighterTubeIsBusy", {
+        tubeNumber: getFighterTubeOrdinal(tubeFlagID),
+      })]);
+      continue;
+    }
     if (
       !canLoadFighterTypeIntoHostTube(
         shipRecord.typeID,
         fighterItem.typeID,
         tubeFlagID,
-        listShipTubeItems(shipRecord, { excludeItemID: fighterItem.itemID }),
+        listHostFighterOccupancy(shipRecord.itemID, { excludeItemID: fighterItem.itemID }),
       )
     ) {
       errors.push([tubeFlagID, buildFighterError("That fighter squadron cannot launch from that tube.")]);
@@ -4064,7 +4154,7 @@ function landFighterToTube(scene, shipRecord, fighterEntity, fallbackSession = n
   notifyFighterRemoved(ownerSession, fighterEntity.itemID, tubeFlagID);
   syncInventoryChangesToSession(ownerSession, changes);
   notifyTubeContent(ownerSession, tubeFlagID, recoveredItem);
-  notifyTubeState(ownerSession, tubeFlagID, TUBE_STATE_READY);
+  startTubeRefuel(scene, shipRecord, tubeFlagID, fighterEntity.itemID, fighterEntity.typeID, ownerSession);
   syncFightersLaunchedTetherRestriction(scene, shipRecord);
   return {
     success: true,
@@ -4073,6 +4163,28 @@ function landFighterToTube(scene, shipRecord, fighterEntity, fallbackSession = n
       fighterID: fighterEntity.itemID,
     },
   };
+}
+
+function stopAbilityForRecall(abilityState, abilityMeta, nowMs) {
+  // Recall cancels the effect, not its spent charges or paid cycle. A squadron
+  // still in space must not get a free volley by reversing its return order.
+  const nextState = { ...abilityState,
+    reactivateNotBeforeMs: Math.max(toNumber(abilityState.reactivateNotBeforeMs, 0),
+      toNumber(abilityState.activeUntilMs, 0)),
+  };
+  const cooldownMs = getEffectiveAbilityCooldownMs(abilityMeta);
+  if (toNumber(abilityState.activeUntilMs, 0) > nowMs && cooldownMs !== null) {
+    nextState.cooldownStartMs = nowMs;
+    nextState.cooldownEndMs = nowMs + cooldownMs;
+  }
+  return clearAbilityActiveWindow(nextState);
+}
+
+function cancelPendingAbilityForRecall(fighterEntity, ownerSession) {
+  const pending = fighterEntity.pendingAbilityActivation;
+  if (!pending) return;
+  delete fighterEntity.pendingAbilityActivation;
+  notifyAbilityDeactivated(ownerSession, fighterEntity.itemID, pending.slotID);
 }
 
 function recallFightersToTubes(session, rawFighterIDs) {
@@ -4117,6 +4229,7 @@ function recallFightersToTubes(session, rawFighterIDs) {
       continue;
     }
 
+    cancelPendingAbilityForRecall(fighterEntity, ownerSession);
     for (const slotID of ABILITY_SLOT_IDS) {
       const abilityState = getEntityAbilityState(fighterEntity, slotID);
       if (!abilityState) {
@@ -4135,7 +4248,8 @@ function recallFightersToTubes(session, rawFighterIDs) {
         slotID,
         abilityState,
       );
-      setEntityAbilityState(fighterEntity, slotID, null);
+      setEntityAbilityState(fighterEntity, slotID,
+        stopAbilityForRecall(abilityState, abilityMeta, scene.getCurrentSimTimeMs()));
       notifyAbilityDeactivated(ownerSession, fighterEntity.itemID, slotID, null);
     }
 
@@ -4211,10 +4325,18 @@ function queueControlledFightersReturnToTubes(scene, controllerEntity, options =
       continue;
     }
 
+    cancelPendingAbilityForRecall(fighterEntity, ownerSession);
     fighterEntity.fighterCommand = "RECALL_TUBE";
     fighterEntity.fighterRecallTubeFlagID = tubeFlagID;
     removeAllFighterEwarEffects(scene, fighterEntity, controllerEntity);
-    clearEntityAbilityStates(fighterEntity);
+    for (const slotID of ABILITY_SLOT_IDS) {
+      const state = getEntityAbilityState(fighterEntity, slotID);
+      if (!state) continue;
+      const meta = resolveFighterAbilitySnapshot(fighterEntity, controllerEntity, slotID) ||
+        getFighterAbilityMetaForSlot(fighterEntity.typeID, slotID);
+      setEntityAbilityState(fighterEntity, slotID,
+        stopAbilityForRecall(state, meta, toNumber(options.nowMs, scene.getCurrentSimTimeMs())));
+    }
     scene.followShipEntity(
       fighterEntity,
       controllerID,
@@ -4243,6 +4365,10 @@ function queueControlledFightersReturnToTubes(scene, controllerEntity, options =
 
 function buildAbilityError(message) {
   return buildFighterError(message);
+}
+
+function resolveFighterControlRangeMeters(fighterEntity) {
+  return Math.max(0, toNumber(getTypeAttributeValue(fighterEntity && fighterEntity.typeID, "maxTargetRange"), 0));
 }
 
 function resolveAbilityTargetEntity(scene, rawTargetID) {
@@ -4306,6 +4432,13 @@ function validateAbilityActivation(
           error: buildAbilityError("That fighter ability requires a valid target."),
         };
       }
+      if (getFighterEwarConfig(abilityMeta)?.onlySmallCraft &&
+          (!["drone", "fighter"].includes(targetEntity.kind) || isWarping(targetEntity))) {
+        return {
+          success: false,
+          error: buildAbilityError("That tackle ability requires a drone or fighter target outside warp."),
+        };
+      }
       if (
         !canPlayerCompanionActOnTarget(
           scene,
@@ -4334,7 +4467,32 @@ function validateAbilityActivation(
           error: safetyRestrictionError,
         };
       }
+      // Fighters, like drones, only take on targets inside their control
+      // range around the carrier (owner rule, 2026-10-28). TQ has no fighter
+      // control-range attribute; the fighter's own targeting range (76, 60 km
+      // for light fighters) is the bound players report.
+      const controlRangeMeters = resolveFighterControlRangeMeters(fighterEntity);
       if (
+        controlRangeMeters > 0 &&
+        controllerEntity &&
+        surfaceDistance(
+          controllerEntity,
+          targetEntity,
+          scene,
+          nowMs,
+          "fighter-control-range",
+        ) > controlRangeMeters
+      ) {
+        return {
+          success: false,
+          error: buildAbilityError("That target is out of fighter control range."),
+        };
+      }
+      // Beyond the ability's own range the order still stands: the squadron
+      // closes in and the ability starts once in range, as drones do (EVE
+      // University "Fighters"; the client keeps the ability pending until
+      // OnFighterAbilitySlotActivated).
+      const beyondAbilityRange =
         abilityMeta.rangeMeters > 0 &&
         surfaceDistance(
           fighterEntity,
@@ -4342,16 +4500,11 @@ function validateAbilityActivation(
           scene,
           nowMs,
           "fighter-ability-activation",
-        ) > abilityMeta.rangeMeters
-      ) {
-        return {
-          success: false,
-          error: buildAbilityError("That target is outside fighter ability range."),
-        };
-      }
+        ) > abilityMeta.rangeMeters;
       return {
         success: true,
         targetID: toInt(targetEntity.itemID, 0),
+        beyondAbilityRange,
       };
     }
     case TARGET_MODE_POINTTARGETED: {
@@ -4481,6 +4634,10 @@ function activateAbilitySlots(session, rawFighterIDs, rawAbilitySlotID, rawTarge
       errors.push([fighterID, buildAbilityError("That fighter ability is already active.")]);
       continue;
     }
+    if (existingState && toNumber(existingState.reactivateNotBeforeMs, 0) > nowMs) {
+      errors.push([fighterID, buildAbilityError("That fighter ability is still finishing its cycle.")]);
+      continue;
+    }
 
     const abilityChargeCount = getEffectiveAbilityChargeCount(abilityMeta);
     const remainingChargeCount = getAbilityStateChargeCount(
@@ -4541,6 +4698,28 @@ function activateAbilitySlots(session, rawFighterIDs, rawAbilitySlotID, rawTarge
       }
     }
 
+    if (validation.beyondAbilityRange === true) {
+      // The movement scheduler owns one unpaid approach order. Clear the old
+      // native slot when another ability replaces it, so it cannot stay pending.
+      const superseded = fighterEntity.pendingAbilityActivation;
+      if (superseded && toInt(superseded.slotID, -1) !== abilitySlotID) {
+        queueAbilityDeactivated(ownerSession, fighterEntity.itemID, superseded.slotID, null);
+      }
+      // Close in on the target; the scene tick starts the ability in range.
+      fighterEntity.pendingAbilityActivation = {
+        slotID: abilitySlotID,
+        targetID: validation.targetID,
+      };
+      scene.orbitShipEntity(
+        fighterEntity,
+        validation.targetID,
+        getFighterOrbitDistance(fighterEntity),
+        { broadcast: true },
+      );
+      persistFighterEntityState(fighterEntity);
+      continue;
+    }
+
     const durationMs = getEffectiveAbilityDurationMs(abilityMeta);
     const cooldownMs = getEffectiveAbilityCooldownMs(abilityMeta);
     const rearmTimeMs = getEffectiveAbilityRearmTimeMs(abilityMeta);
@@ -4552,6 +4731,7 @@ function activateAbilitySlots(session, rawFighterIDs, rawAbilitySlotID, rawTarge
       targetID: validation.targetID,
     };
     delete nextState.firedAtActivation;
+    delete nextState.reactivateNotBeforeMs;
     if (validation.targetPoint) {
       nextState.targetPoint = cloneVector(validation.targetPoint);
     } else {
@@ -4575,6 +4755,13 @@ function activateAbilitySlots(session, rawFighterIDs, rawAbilitySlotID, rawTarge
     } else {
       delete nextState.cooldownStartMs;
       delete nextState.cooldownEndMs;
+    }
+    if (isLaunchBombAbility(abilityMeta)) {
+      const launch = launchFighterBomb(scene, fighterEntity, shipEntity, abilitySlotID, nextState, nowMs);
+      if (!launch.success) {
+        errors.push([fighterID, buildAbilityError(launch.errorMsg)]);
+        continue;
+      }
     }
     setEntityAbilityState(fighterEntity, abilitySlotID, nextState);
     const activeAbilityState = getEntityAbilityState(fighterEntity, abilitySlotID);
@@ -4686,6 +4873,19 @@ function deactivateAbilitySlots(session, rawFighterIDs, rawAbilitySlotID) {
       continue;
     }
 
+    const pending = fighterEntity.pendingAbilityActivation;
+    if (pending && toInt(pending.slotID, -1) === abilitySlotID) {
+      // Cancel the unpaid order before charge refresh or paid-cycle handling.
+      delete fighterEntity.pendingAbilityActivation;
+      const paidState = getEntityAbilityState(fighterEntity, abilitySlotID);
+      if (!paidState || toNumber(paidState.activeUntilMs, 0) <= nowMs) {
+        queueAbilityDeactivated(ownerSession, fighterEntity.itemID, abilitySlotID, null);
+        continue;
+      }
+      // A direct retarget can coexist with a paid effect. Cancel that effect
+      // through the normal path below, retaining its original paid-cycle fence.
+    }
+
     const abilityMeta =
       resolveFighterAbilitySnapshot(
         fighterEntity,
@@ -4712,6 +4912,10 @@ function deactivateAbilitySlots(session, rawFighterIDs, rawAbilitySlotID) {
       cooldownEndMs: getEffectiveAbilityCooldownMs(abilityMeta) !== null
         ? nowMs + getEffectiveAbilityCooldownMs(abilityMeta)
         : existingState.cooldownEndMs,
+      reactivateNotBeforeMs: Math.max(
+        toNumber(existingState.reactivateNotBeforeMs, 0),
+        toNumber(existingState.activeUntilMs, 0),
+      ),
     };
     removeFighterEwarEffect(
       scene,
@@ -4817,6 +5021,11 @@ function executeMovementCommandOnFighters(session, rawFighterIDs, command, ...ar
     clearFighterCommandState(fighterEntity);
     if (isFighterTubeFlag(canceledRecallTubeFlagID)) {
       notifyTubeState(ownerSession, canceledRecallTubeFlagID, TUBE_STATE_INSPACE);
+    }
+    // A new movement order replaces a pending close-in attack.
+    if (fighterEntity.pendingAbilityActivation) {
+      notifyAbilityDeactivated(ownerSession, fighterID, fighterEntity.pendingAbilityActivation.slotID);
+      delete fighterEntity.pendingAbilityActivation;
     }
     switch (normalizedCommand) {
       case MOVEMENT_COMMAND_ORBIT: {
@@ -5060,7 +5269,14 @@ function scoopAbandonedFighterFromSpace(session, rawFighterID, rawToFlagID) {
   }
   if (
     isFighterTubeFlag(toFlagID) &&
-    getShipTubeItem(shipRecord, toFlagID)
+    !canLoadFighterTypeIntoHostTube(
+      shipRecord.typeID,
+      fighterEntity.typeID,
+      toFlagID,
+      listHostFighterOccupancy(shipRecord.itemID, {
+        excludeItemID: fighterEntity.itemID,
+      }),
+    )
   ) {
     return false;
   }
@@ -5134,6 +5350,7 @@ function syncFighterRecallTravel(scene, fighterEntity, controllerEntity, recallD
 
   if (
     recallDistance > FIGHTER_RECALL_WARP_MINIMUM_DISTANCE_METERS &&
+    !hostileModuleRuntime.isEntityWarpScrambled(fighterEntity) &&
     typeof scene.warpDynamicEntityToPoint === "function"
   ) {
     const warpResult = scene.warpDynamicEntityToPoint(
@@ -5170,6 +5387,35 @@ function syncFighterRecallTravel(scene, fighterEntity, controllerEntity, recallD
   }
 }
 
+// A squadron closing in on an ability's target starts the ability once in
+// range; a target that is gone or out of control range drops the order and
+// clears the client's pending ability.
+function resolvePendingAbilityActivation(scene, fighterEntity, ownerSession, nowMs) {
+  const pending = fighterEntity && fighterEntity.pendingAbilityActivation;
+  if (!pending) {
+    return;
+  }
+  const targetEntity = scene.getEntityByID(toInt(pending.targetID, 0));
+  const abilityMeta = getFighterAbilityMetaForSlot(fighterEntity.typeID, pending.slotID);
+  if (!targetEntity || !abilityMeta || !ownerSession) {
+    delete fighterEntity.pendingAbilityActivation;
+    notifyAbilityDeactivated(ownerSession, fighterEntity.itemID, pending.slotID);
+    return;
+  }
+  if (
+    abilityMeta.rangeMeters > 0 &&
+    surfaceDistance(fighterEntity, targetEntity, scene, nowMs, "fighter-ability-pending") >
+      abilityMeta.rangeMeters
+  ) {
+    return;
+  }
+  delete fighterEntity.pendingAbilityActivation;
+  const result = activateAbilitySlots(ownerSession, [fighterEntity.itemID], pending.slotID, pending.targetID);
+  if (!result || result.success !== true) {
+    notifyAbilityDeactivated(ownerSession, fighterEntity.itemID, pending.slotID);
+  }
+}
+
 function tickScene(scene, now) {
   const numericNow = toNumber(
     now,
@@ -5177,6 +5423,7 @@ function tickScene(scene, now) {
       ? scene.getCurrentSimTimeMs()
       : Date.now(),
   );
+  finishDueTubeRefuels(scene, numericNow);
 
   for (const fighterEntity of getSceneFighterEntities(scene)) {
     const controllerID = toInt(fighterEntity.controllerID, 0);
@@ -5208,6 +5455,7 @@ function tickScene(scene, now) {
         controllerEntity,
         numericNow,
       );
+      resolvePendingAbilityActivation(scene, fighterEntity, ownerSession, numericNow);
       for (const slotID of ABILITY_SLOT_IDS) {
         const persistedAbilityState = getEntityAbilityState(fighterEntity, slotID);
         if (!persistedAbilityState) {
@@ -5304,14 +5552,7 @@ function tickScene(scene, now) {
             abilityState.firedAtActivation === true
             ? { continueActive: false, deactivate: true }
             : isLaunchBombAbility(abilityMeta)
-            ? executeFighterBombCycle(
-              scene,
-              fighterEntity,
-              controllerEntity,
-              slotID,
-              abilityState,
-              numericNow,
-            )
+            ? { continueActive: false, deactivate: false }
             : getFighterEwarConfig(abilityMeta)
             ? executeFighterUtilityCycle(
               scene,
@@ -5399,16 +5640,14 @@ function tickScene(scene, now) {
         }
 
         const maxChargeCount = getEffectiveAbilityChargeCount(abilityMeta);
+        const chargesReady = maxChargeCount === null ||
+          getAbilityStateChargeCount(abilityState, abilityMeta) >= maxChargeCount;
+        // A stopped cycle still owns its original deadline, independently of
+        // whether this ability has charges or its magazine is already full.
         if (
-          maxChargeCount !== null &&
-          getAbilityStateChargeCount(abilityState, abilityMeta) >= maxChargeCount &&
-          toNumber(abilityState.cooldownEndMs, 0) <= numericNow
-        ) {
-          setEntityAbilityState(fighterEntity, slotID, null);
-          abilityStateChanged = true;
-        } else if (
-          maxChargeCount === null &&
-          toNumber(abilityState.cooldownEndMs, 0) <= numericNow
+          chargesReady &&
+          toNumber(abilityState.cooldownEndMs, 0) <= numericNow &&
+          toNumber(abilityState.reactivateNotBeforeMs, 0) <= numericNow
         ) {
           setEntityAbilityState(fighterEntity, slotID, null);
           abilityStateChanged = true;

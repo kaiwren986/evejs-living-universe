@@ -10,6 +10,7 @@ const explorationAuthority = require(path.join(
   __dirname,
   "../explorationAuthority",
 ));
+const kspaceWanderingProfiles = require("./kspaceWanderingProfiles.json");
 
 let cache = null;
 
@@ -44,16 +45,42 @@ function normalizePayload(payload = {}) {
 }
 
 function buildCache() {
-  const payload = normalizePayload(explorationAuthority.getWormholeAuthorityPayload());
+  const installedPayload = explorationAuthority.getWormholeAuthorityPayload();
+  const payload = normalizePayload(installedPayload);
+  const authoredProfiles = [...payload.wanderingProfiles];
+  const authoredOrigins = new Set(authoredProfiles.map((profile) =>
+    `${toInt(profile.sourceClassID, 0)}:${String(profile.code || "").trim().toUpperCase()}`));
+  const typesByCode = new Map(payload.codeTypes.map((record) =>
+    [String(record.code || "").trim().toUpperCase(), record]));
+  const defaultOrigins = Object.keys(installedPayload).length > 0
+    ? kspaceWanderingProfiles.origins
+    : [];
+  for (const origin of defaultOrigins) {
+    for (const [code, destinationClassID] of Object.entries(origin.connections)) {
+      if (authoredOrigins.has(`${origin.sourceClassID}:${code}`)) {
+        continue;
+      }
+      const type = typesByCode.get(code);
+      if (!type || toInt(type.targetClassID, 0) !== destinationClassID) {
+        throw new Error(`Missing or incompatible K-space wormhole type ${code}`);
+      }
+      authoredProfiles.push({
+        ...type,
+        profileKey: `kspace:${origin.sourceClassID}:${code}`,
+        sourceClassID: origin.sourceClassID,
+        sourceLabel: origin.sourceLabel,
+        destinationClassID,
+        estimatedUniverseCount: destinationClassID === 12 ? 1 : origin.estimatedUniverseCount,
+      });
+    }
+  }
   const systemsByID = new Map();
   const codeTypesByCode = new Map();
   const typeRecordsByTypeID = new Map();
   const candidateSystemIDsByClass = new Map();
+  const candidatePositionsByClass = new Map();
   const wanderingProfilesBySourceClass = new Map();
-  const wanderingProfiles = (Array.isArray(payload.wanderingProfiles)
-    ? payload.wanderingProfiles
-    : []
-  ).map((profile) => ({
+  const wanderingProfiles = authoredProfiles.map((profile) => ({
     ...profile,
     profileKey: String(profile.profileKey || "").trim(),
     code: String(profile.code || "").trim().toUpperCase(),
@@ -67,7 +94,7 @@ function buildCache() {
     distributionID: toInt(profile.distributionID, 0),
     radius: Number(profile.radius) || 3000,
     graphicID: toInt(profile.graphicID, 0),
-    estimatedUniverseCount: Math.max(1, toInt(profile.estimatedUniverseCount, 1)),
+    estimatedUniverseCount: Math.max(0, toInt(profile.estimatedUniverseCount, 1)),
     sourceLabel: String(profile.sourceLabel || "").trim(),
     totalCountText: String(profile.totalCountText || "").trim(),
   })).filter((profile) => profile.profileKey && profile.sourceClassID > 0 && profile.destinationClassID > 0);
@@ -131,12 +158,16 @@ function buildCache() {
   }
 
   for (const [classKey, systemIDs] of Object.entries(payload.systemsByClass || {})) {
+    const candidates = [...new Set((Array.isArray(systemIDs) ? systemIDs : [])
+      .map((systemID) => toInt(systemID, 0))
+      .filter((systemID) => systemID > 0))];
     candidateSystemIDsByClass.set(
       toInt(classKey, 0),
-      (Array.isArray(systemIDs) ? systemIDs : [])
-        .map((systemID) => toInt(systemID, 0))
-        .filter((systemID) => systemID > 0),
+      Object.freeze(candidates),
     );
+    candidatePositionsByClass.set(toInt(classKey, 0), new Map(
+      candidates.map((systemID, index) => [systemID, index]),
+    ));
   }
 
   for (const profile of wanderingProfiles) {
@@ -155,6 +186,7 @@ function buildCache() {
     codeTypesByCode,
     typeRecordsByTypeID,
     candidateSystemIDsByClass,
+    candidatePositionsByClass,
     wanderingProfiles,
     wanderingProfilesBySourceClass,
     k162Type: payload.k162Type
@@ -223,10 +255,21 @@ function listStaticSlotsForSystem(systemID) {
   return system && Array.isArray(system.staticSlots) ? [...system.staticSlots] : [];
 }
 
-function listCandidateSystemIDsForClass(classID) {
-  return [
-    ...(ensureCache().candidateSystemIDsByClass.get(toInt(classID, 0)) || []),
-  ];
+function listCandidateSystemIDsForClass(classID, options = {}) {
+  const candidates = ensureCache().candidateSystemIDsByClass.get(toInt(classID, 0)) || [];
+  return options.clone === false ? candidates : [...candidates];
+}
+
+function selectCandidateSystemIDForClass(classID, selection, excludedSystemID) {
+  const candidates = listCandidateSystemIDsForClass(classID, { clone: false });
+  const positions = ensureCache().candidatePositionsByClass.get(toInt(classID, 0));
+  const excludedIndex = positions ? positions.get(toInt(excludedSystemID, 0)) : undefined;
+  const count = candidates.length - (excludedIndex === undefined ? 0 : 1);
+  if (count <= 0) {
+    return 0;
+  }
+  const index = Math.abs(toInt(selection, 0)) % count;
+  return candidates[excludedIndex !== undefined && index >= excludedIndex ? index + 1 : index];
 }
 
 function getCodeTypeRecord(codeOrTypeID) {
@@ -275,4 +318,5 @@ module.exports = {
   listWanderingProfiles,
   listWanderingProfilesForSourceClass,
   listSystems,
+  selectCandidateSystemIDForClass,
 };

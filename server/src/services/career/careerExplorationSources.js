@@ -3,6 +3,7 @@
 // Typed exploration observations come from completed server travel, scanning
 // and dungeon-entry handlers. The AIR gateway only reads these facts.
 const database = require("../../gameStore");
+const { readDurablePath } = require("./careerOwnerReads");
 const world = require("../../space/worldData");
 const positive = value => Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : 0;
 const SPACE_CLASSES = new Set(["high", "low", "null", "wormhole"]);
@@ -21,9 +22,9 @@ function supports(source) {
 function observe(characterID, record, definition, context = {}) {
   const source = definition?.source;
   if (!supports(source) || !positive(characterID)) return null;
-  const persisted = context.careerMapVisits ||= database.readPersisted("mapTelemetry", "/");
-  if (!persisted?.success) throw new Error(persisted?.errorMsg || "CAREER_VISITS_UNAVAILABLE");
-  const visits = persisted.data?.visitsByCharacterID?.[String(characterID)]?.systems || {};
+  const persisted = readDurablePath("mapTelemetry", `/visitsByCharacterID/${characterID}`, context,
+    "CAREER_VISITS_UNAVAILABLE");
+  const visits = persisted?.systems || {};
   const regions = new Set();
   let updatedAtMs = 0;
   for (const [id, visit] of Object.entries(visits)) {
@@ -178,16 +179,32 @@ function recordSiteEntry(characterID, instance, roomKey, solarSystemID) {
   if (String(roomKey) !== "room:entry" || !positive(instance?.instanceID)) return { success: true };
   const actual = require("../dungeon/dungeonRuntime").getInstance(instance.instanceID);
   if (!actual || actual.templateID !== instance.templateID ||
-      Number(actual.solarSystemID) !== Number(solarSystemID) || actual.siteKind !== "signature" ||
+      Number(actual.solarSystemID) !== Number(solarSystemID) ||
+      !(actual.siteKind === "signature" || actual.siteFamily === "combat" && actual.siteKind === "anomaly") ||
       !["gas", "combat"].includes(actual.siteFamily) || actual.instanceScope === "private" ||
       actual.ownership?.visibilityScope === "private" || actual.ownership?.missionOwnerCharacterID ||
       actual.metadata?.missionRuntime === true || actual.metadata?.privateOperation === true ||
       actual.runtimeFlags?.missionRuntime === true) return { success: true };
   return require("./careerEventLedger").record(characterID, {
     kind: "site-entry", id: `dungeon:${actual.instanceID}`, solarSystemID: positive(actual.solarSystemID),
-    instanceID: positive(actual.instanceID), family: actual.siteFamily, siteKind: "signature",
+    instanceID: positive(actual.instanceID), family: actual.siteFamily, siteKind: actual.siteKind,
   });
 }
 
+function recordTutorialCombatArrival(session) {
+  // Captured Tutorial.lsw rows60185–60201 award the first combat-site goal at
+  // the Investigate the Signal arrival. Admit only AIR's owned combat room,
+  // after its authority has acknowledged the fleet arrival, never an RPC grid.
+  const characterID = require("../_shared/sessionIdentity").resolveSessionCharacterID(session);
+  const jobs = require("../npe/airEncounterJobs").state(characterID);
+  if (jobs?.status !== "active" || jobs.phaseGraphID !== 686 || jobs.encounter?.fleetTransition?.status !== "complete") return { success: true };
+  const site = require("../npe/airEncounterRuntime").siteFor(characterID, 2433);
+  const scene = require("../../space/runtime").getSceneForSession(session), ship = scene?.getShipEntityForSession(session);
+  if (!site || scene?.systemID !== site.solarSystemID || Number(ship?.dungeonCurrentInstanceID) !== site.instanceID ||
+      ship.mode === "WARP" || scene.hasQueuedWarpOrder(ship) || Number(ship.itemID) !== Number(jobs.encounter?.boardingHullID)) return { success: true };
+  return require("./careerEventLedger").record(characterID, { kind: "site-entry", id: "air:investigate-signal:v1",
+    solarSystemID: positive(site.solarSystemID), instanceID: positive(site.instanceID), family: "combat", siteKind: "anomaly" });
+}
+
 module.exports = { observe, supports, securityClass, stageStargateJump, prepareGateArrival, reconcileGateArrival,
-  recordResolvedWormholes, recordSiteEntry, SPACE_CLASSES };
+  recordResolvedWormholes, recordSiteEntry, recordTutorialCombatArrival, SPACE_CLASSES };

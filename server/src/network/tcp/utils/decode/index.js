@@ -1,5 +1,7 @@
 "use strict";
 
+const { MAX_GAME_PAYLOAD_BYTES } = require("../../../gameFrame");
+
 // main func
 module.exports = function decode(buffer) {
   let packets = [];
@@ -13,7 +15,7 @@ module.exports = function decode(buffer) {
     const totalLength = payloadLength + 4;
 
     // sanity checks
-    if (payloadLength <= 0 || payloadLength > 10_000_000) break;
+    if (payloadLength <= 0 || payloadLength > MAX_GAME_PAYLOAD_BYTES) break;
     if (offset + totalLength > buffer.length) break;
 
     packets.push(buffer.slice(offset, offset + totalLength));

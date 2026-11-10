@@ -762,13 +762,13 @@ module.exports = [
   },
   {
     "key": "asteroidBeltStartupReset",
-    "defaultValue": true,
+    "defaultValue": false,
     "envVar": "EVEJS_ASTEROID_BELT_STARTUP_RESET",
     "envType": "boolean",
     "valueType": "boolean",
     "description": [
       "Clears persisted belt asteroid depletion state during server startup so every asteroid belt repopulates.",
-      "Matches Tranquility, where mined-out belts come back on downtime rather than on a respawn timer. Generated ice sites keep their own respawn lifecycle and are not affected."
+      "Disabled by default so ordinary restarts preserve accepted belt generations and depletion. Enable only for a deliberate downtime reset. Generated ice sites keep their own respawn lifecycle and are not affected."
     ],
     "validValues": "true or false.",
     "allowBlank": false,

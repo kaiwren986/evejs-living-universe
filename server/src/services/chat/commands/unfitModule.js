@@ -61,6 +61,14 @@ function handleUnfitCommand(session, argumentText, chatHub, options) {
   // Load lazily: dogma's command helpers also depend on chat commands.
   const DogmaService = require("../../dogma/dogmaService");
   const dogma = new DogmaService();
+  // Cargo rows and fitted charges have different native identities. Preserve
+  // each original slot tuple before moving its physical charge stack so the
+  // client can retire that tuple after the move commits.
+  const chargeTransitions = [...new Set(charges.map((charge) => Number(charge.flagID)))]
+    .map((flagID) => ({ flagID,
+      previousState: dogma._captureChargeStateSnapshot(characterID, ship.itemID, flagID),
+      previousChargeItem: dogma._captureChargeItemSnapshot(characterID, ship.itemID, flagID),
+    }));
   for (const item of stripAll ? modules : [moduleItem]) {
     const offline = dogma._setModuleOnlineState(ship.itemID, item.itemID, false, session);
     if (!offline.success) return reply(`Could not offline module ${item.itemID}: ${offline.errorMsg}. No items were moved; earlier modules may already be offline.`);
@@ -73,6 +81,22 @@ function handleUnfitCommand(session, argumentText, chatHub, options) {
   })), false);
   if (!result.success) return reply(`Modules were offlined, but removal failed: ${result.errorMsg}.`);
   emitFittingTransactionForSession(session, ship.itemID, result.moveChanges);
+  // An unfitted module leaves its weapon group, as on the normal move path
+  // (invBroker _applyModuleGroupingMoveCleanup); otherwise the module bar keeps
+  // the stale group until the next fitting change or relog.
+  require("../../moduleGrouping/moduleGroupingRuntime").clearModuleFromBanksAndNotify(
+    session,
+    ship.itemID,
+    (stripAll ? modules : [moduleItem]).map((item) => item.itemID),
+    { characterID: session.characterID || session.charid },
+  );
+  for (const transition of chargeTransitions) {
+    const nextState = dogma._captureChargeStateSnapshot(characterID, ship.itemID, transition.flagID);
+    const nextChargeItem = dogma._captureChargeItemSnapshot(characterID, ship.itemID, transition.flagID);
+    dogma._notifyChargeQuantityTransition(session, characterID, ship.itemID, transition.flagID,
+      transition.previousState, nextState,
+      { previousChargeItem: transition.previousChargeItem, nextChargeItem });
+  }
   if (entity) {
     spaceRuntime.refreshShipDerivedState(session, { broadcast: true });
     scene.broadcastSlimItemChanges([entity]);

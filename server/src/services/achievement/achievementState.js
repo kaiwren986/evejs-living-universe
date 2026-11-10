@@ -63,34 +63,65 @@ function defaultCharacterState(characterID) {
   };
 }
 
-function readRoot() {
-  const result = repo.read(TABLE_NAME, "/");
-  const root = result && result.success && result.data && typeof result.data === "object"
-    ? cloneValue(result.data)
-    : {};
-  return {
-    version: ROOT_VERSION,
-    characters: root.characters && typeof root.characters === "object"
-      ? root.characters
-      : {},
-  };
+function readCheckpoint(pathSuffix) {
+  let result;
+  try { result = repo.read(TABLE_NAME, pathSuffix); }
+  catch (error) { return { success: false, errorMsg: error.message || "ACHIEVEMENT_READ_FAILED" }; }
+  if (!result?.success) {
+    return ["ENTRY_NOT_FOUND", "TABLE_NOT_FOUND"].includes(result?.errorMsg)
+      ? { success: true, pathSuffix, exists: false }
+      : (result || { success: false, errorMsg: "ACHIEVEMENT_READ_FAILED" });
+  }
+  // The repository exposes its cached row. Keep an independent actor preimage
+  // for rollback and never copy any other character's receipt history.
+  return { success: true, pathSuffix, exists: true, data: cloneValue(result.data) };
 }
 
-function writeRoot(root) {
-  const previous = readRoot();
-  const written = repo.write(TABLE_NAME, "/", {
-    version: ROOT_VERSION,
-    characters: root.characters || {},
-  });
-  if (!written?.success) return written;
-  let flushed;
-  try { flushed = repo.flushTableSync(TABLE_NAME); }
-  catch (error) { flushed = { success: false, errorMsg: error.message || "ACHIEVEMENT_FLUSH_FAILED" }; }
-  if (!flushed?.success) {
-    repo.write(TABLE_NAME, "/", previous, { force: true });
-    return flushed || { success: false, errorMsg: "ACHIEVEMENT_FLUSH_FAILED" };
+function flushCheckpoint() {
+  try { return repo.flushTableSync(TABLE_NAME) || { success: false, errorMsg: "ACHIEVEMENT_FLUSH_FAILED" }; }
+  catch (error) { return { success: false, errorMsg: error.message || "ACHIEVEMENT_FLUSH_FAILED" }; }
+}
+
+function rollbackCheckpoints(previous) {
+  const errors = [];
+  for (const checkpoint of [...previous].reverse()) {
+    try {
+      const result = checkpoint.exists
+        ? repo.write(TABLE_NAME, checkpoint.pathSuffix, cloneValue(checkpoint.data), { force: true })
+        : repo.remove(TABLE_NAME, checkpoint.pathSuffix);
+      if (!result?.success && result?.errorMsg !== "ENTRY_NOT_FOUND") {
+        errors.push(result?.errorMsg || "ACHIEVEMENT_ROLLBACK_FAILED");
+      }
+    } catch (error) { errors.push(error.message || "ACHIEVEMENT_ROLLBACK_FAILED"); }
   }
-  return written;
+  // A failed fence may have committed before its acknowledgement was lost.
+  // Restore the durable preimage too; an unsuccessful rollback stays ambiguous.
+  const flushed = flushCheckpoint();
+  if (!flushed.success) errors.push(flushed.errorMsg || "ACHIEVEMENT_ROLLBACK_FLUSH_FAILED");
+  return { success: errors.length === 0, durable: errors.length === 0, errors };
+}
+
+function writeCharacterCheckpoint(previous, next) {
+  const version = readCheckpoint("/version");
+  if (!version.success) return version;
+  const changes = [{ previous, data: next }];
+  if (!version.exists || version.data !== ROOT_VERSION) changes.push({ previous: version, data: ROOT_VERSION });
+  const touched = [];
+  let failure;
+  for (const change of changes) {
+    touched.push(change.previous);
+    try {
+      const written = repo.write(TABLE_NAME, change.previous.pathSuffix, change.data);
+      if (!written?.success) { failure = written || { success: false, errorMsg: "WRITE_ERROR" }; break; }
+    } catch (error) { failure = { success: false, errorMsg: error.message || "WRITE_ERROR" }; break; }
+  }
+  if (!failure) {
+    const flushed = flushCheckpoint();
+    if (flushed.success) return { success: true };
+    failure = flushed;
+  }
+  const rollback = rollbackCheckpoints(touched);
+  return { ...failure, success: false, rollback, ambiguous: !rollback.success };
 }
 
 function normalizeStringList(values) {
@@ -184,8 +215,8 @@ function getCharacterState(characterID) {
   if (!numericCharacterID) {
     return null;
   }
-  const root = readRoot();
-  return normalizeCharacterState(root.characters[String(numericCharacterID)], numericCharacterID);
+  const checkpoint = readCheckpoint(`/characters/${numericCharacterID}`);
+  return checkpoint.success ? normalizeCharacterState(checkpoint.data, numericCharacterID) : null;
 }
 
 function updateCharacterState(characterID, updater) {
@@ -193,13 +224,13 @@ function updateCharacterState(characterID, updater) {
   if (!numericCharacterID || typeof updater !== "function") {
     return { success: false, errorMsg: "INVALID_CHARACTER" };
   }
-  const root = readRoot();
-  const current = normalizeCharacterState(root.characters[String(numericCharacterID)], numericCharacterID);
+  const previous = readCheckpoint(`/characters/${numericCharacterID}`);
+  if (!previous.success) return previous;
+  const current = normalizeCharacterState(previous.data, numericCharacterID);
   const updated = updater(cloneValue(current));
   const next = normalizeCharacterState(updated, numericCharacterID);
   next.updatedAtMs = Date.now();
-  root.characters[String(numericCharacterID)] = next;
-  const result = writeRoot(root);
+  const result = writeCharacterCheckpoint(previous, next);
   return result && result.success
     ? { success: true, data: cloneValue(next) }
     : (result || { success: false, errorMsg: "WRITE_ERROR" });

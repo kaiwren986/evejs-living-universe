@@ -64,7 +64,7 @@ Docker installs, even when the server has crashed.
 
 It never includes certificates, keys, or your game database.
 
-### `tools\market-seed`
+### Market seed builders
 
 Use this only if you want the optional standalone market server.
 
@@ -74,11 +74,16 @@ Easy launcher:
 BuildMarketSeed.bat
 ```
 
-Good for:
+The root launcher describes all four seed types and opens the chosen builder:
 
-- building the market database
-- rebuilding the seed after config changes
-- using the Jita + New Caldari preset
+| Seed | Tool folder | What it supplies |
+|---|---|---|
+| v1 | `tools\market-seed` | Offline synthetic prices, with Jita + New Caldari and wider presets |
+| v2 | `tools\market-seederv2` | Real Tranquility station prices and quantities; Jita plus NPC stock by default |
+| v3 | `tools\market-seederv3` | A cost-priced Jita hub plus authentic NPC stock at its original stations |
+| v4 | `tools\market-seederv4` | Iron Man: only NPC BPOs, skillbooks, command centers, trade goods and buybacks |
+
+See [MARKET_SEEDER.md](MARKET_SEEDER.md) for the individual launchers and build steps.
 
 ### `tools\NewEdenStoreEditor`
 

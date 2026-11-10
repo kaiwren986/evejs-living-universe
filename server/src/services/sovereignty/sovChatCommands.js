@@ -69,6 +69,10 @@ function buildHelpText() {
     "/sov capture <allianceID> <corporationID> [here|systemID]",
     "/sov lose [allianceID|0] [corporationID|0] [here|systemID]",
     "/sov clear [here|systemID]",
+    "/sov orbital <itemID> damage <shield> [armor] [hull] (fractions left, e.g. 0.05 1 1)",
+    "/sov orbital <itemID> timer <seconds> (end a running reinforcement, anchoring or onlining timer sooner)",
+    "/sov selfdestruct <structureID> <seconds> (end a running Hub self-destruct countdown sooner)",
+    "/sov theft <skyhookID> <seconds> (open the skyhook's next two-hour theft window sooner)",
   ].join("\n");
 }
 
@@ -673,6 +677,70 @@ function executeSovCommand(session, argumentText) {
           : `Cleared sovereignty ownership in solar system ${systemResult.data}.`,
         systemResult.data,
       ),
+    };
+  }
+
+  // GM setup for Customs Offices and Skyhooks (owner ruling 2026-11-06,
+  // hybrid time control): bring one near a threshold or end its timer sooner.
+  if (subcommand === "orbital") {
+    const usage = "Usage: /sov orbital <itemID> damage <shield> [armor] [hull] | /sov orbital <itemID> timer <seconds>";
+    const orbitalID = normalizePositiveInteger(rest[0], null);
+    const action = String(rest[1] || "").toLowerCase();
+    const planetOrbitalState = require(path.join(__dirname, "../planet/planetOrbitalState"));
+    let result = null;
+    if (orbitalID && action === "damage" && rest[2] !== undefined) {
+      result = planetOrbitalState.adminSetOrbitalCondition(orbitalID, {
+        shield: rest[2], armor: rest[3], hull: rest[4],
+      });
+    } else if (orbitalID && action === "timer" && rest[2] !== undefined) {
+      result = planetOrbitalState.adminSetOrbitalReinforcementTimer(orbitalID, rest[2]);
+    } else {
+      return { success: false, message: usage };
+    }
+    if (!result || !result.success) {
+      return { success: false, message: `Failed: ${result && result.errorMsg || "UNKNOWN"}. ${usage}` };
+    }
+    const condition = result.data.conditionState || {};
+    const stage = result.data.reinforcement ? result.data.reinforcement.stage : "shield";
+    return {
+      success: true,
+      message: `Orbital ${orbitalID}: shield ${condition.shieldCharge}, armor lost ${condition.armorDamage}, hull lost ${condition.damage}, stage ${stage}.`,
+    };
+  }
+
+  // GM time skip for a Hub or TCU self-destruct (owner ruling 2026-11-07:
+  // hybrid with time forwarding). Only the deadline moves; the countdown is
+  // started and finished by the normal command and job.
+  if (subcommand === "theft") {
+    const usage = "Usage: /sov theft <skyhookID> <seconds>";
+    const skyhookID = normalizePositiveInteger(rest[0], null);
+    if (!skyhookID || rest[1] === undefined) {
+      return { success: false, message: usage };
+    }
+    const result = require(path.join(__dirname, "./skyhookRaidRuntime")).adminSetTheftWindow(skyhookID, rest[1]);
+    if (!result || !result.success) {
+      return { success: false, message: `Failed: ${result && result.errorMsg || "UNKNOWN"}. ${usage}` };
+    }
+    return {
+      success: true,
+      message: `Skyhook ${skyhookID} theft window ${new Date(result.data.startMs).toISOString()} to ${new Date(result.data.endMs).toISOString()}.`,
+    };
+  }
+
+  if (subcommand === "selfdestruct") {
+    const usage = "Usage: /sov selfdestruct <structureID> <seconds>";
+    const structureID = normalizePositiveInteger(rest[0], null);
+    if (!structureID || rest[1] === undefined) {
+      return { success: false, message: usage };
+    }
+    const result = require(path.join(__dirname, "../structure/structureSelfDestructRuntime"))
+      .adminSetSelfDestructRemaining(structureID, rest[1]);
+    if (!result || !result.success) {
+      return { success: false, message: `Failed: ${result && result.errorMsg || "UNKNOWN"}. ${usage}` };
+    }
+    return {
+      success: true,
+      message: `Structure ${structureID} self-destructs at ${new Date(result.data.expiresAtMs).toISOString()}.`,
     };
   }
 

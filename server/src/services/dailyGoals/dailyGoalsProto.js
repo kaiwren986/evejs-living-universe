@@ -100,10 +100,10 @@ function buildDailyGoalsProtoRoot() {
             },
           },
           career: {
-            // Placeholder so Attributes.career resolves; never populated.
             nested: {
               Path: {
-                fields: { sequential: { type: "uint32", id: 1 } },
+                values: { CAREER_UNSPECIFIED: 0, CAREER_EXPLORATION: 1,
+                  CAREER_INDUSTRIALIST: 2, CAREER_ENFORCER: 3, CAREER_SOLDIER_OF_FORTUNE: 4 },
               },
             },
           },

@@ -1,4 +1,7 @@
 {
+  "abyssal": {
+    "voidReplayEnabled": false
+  },
   "wormholes": {
     "wormholesEnabled": true,
     "wormholeLifetimeScale": 1,
@@ -21,6 +24,9 @@
     ]
   },
   "cosmicSites": {
+    "incursionOrganicHighSecEnabled": true,
+    "incursionOrganicLowSecEnabled": false,
+    "incursionOrganicNullSecEnabled": false,
     "homefrontPopulationPreset": "evejs",
     "homefrontCustomSitesPerType": 8,
     "universeSiteCountDefault": 1,

@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "TQ_objective_packet",
+  "validationTODO": "TODO: Direct TQ objective packets outside the offer studies, kept only where the projection could not reach them. Each is one observed offer, so the counts are not established probabilities.",
+  "contextsByAgentID": {
+    "3012016": {
+      "agentID": 3012016,
+      "agentTypeID": 2,
+      "level": 1,
+      "missionKind": "encounter",
+      "corporationID": 1000034,
+      "factionID": 500001,
+      "stationID": 60003727,
+      "solarSystemID": 30002750,
+      "missionsByID": {
+        "13492": {
+          "missionID": 13492,
+          "titleID": 57087,
+          "dungeonID": 2735,
+          "name": "Interstellar Railroad (3 of 4)",
+          "count": 1,
+          "destinations": [
+            {
+              "solarSystemID": 30002750,
+              "jumps": 0,
+              "count": 1,
+              "capture": "Missions/Done/Interstellar Railroad 4 parts level 1/Interstellar Railroad (2 of 4).txt",
+              "sha256": "c035027fa45d77bd295807af1d70b11f5b5fec8ceadf1769ef75d1a85f53a9fc",
+              "line": 53148
+            }
+          ]
+        },
+        "13493": {
+          "missionID": 13493,
+          "titleID": 56981,
+          "dungeonID": 2744,
+          "name": "Interstellar Railroad (4 of 4)",
+          "count": 1,
+          "destinations": [
+            {
+              "solarSystemID": 30002750,
+              "jumps": 0,
+              "count": 1,
+              "capture": "Missions/Done/Interstellar Railroad 4 parts level 1/Interstellar Railroad (3 of 4).txt",
+              "sha256": "1a41f8c26c224ec9c4b54435ac525d3328716d54bea228f0bd965ee9f9ea8759",
+              "line": 27710
+            }
+          ]
+        }
+      }
+    },
+    "3020249": {
+      "agentID": 3020249,
+      "agentTypeID": 2,
+      "level": 1,
+      "missionKind": "encounter",
+      "corporationID": 1000035,
+      "factionID": 500001,
+      "stationID": 60015218,
+      "solarSystemID": 30100067,
+      "missionsByID": {
+        "1237": {
+          "missionID": 1237,
+          "titleID": 54381,
+          "dungeonID": 309,
+          "name": "The Roving Rogue Drones",
+          "count": 2,
+          "destinations": [
+            {
+              "solarSystemID": 30100069,
+              "jumps": 1,
+              "count": 1,
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "row": 762974
+            },
+            {
+              "solarSystemID": 30100070,
+              "jumps": 1,
+              "count": 1,
+              "capture": "Tutorial/lvl1SecurityAgentsPlusOthers.lsw",
+              "sha256": "c2597a565a5afd6753ead5ef913182b1170c560ad6a5dc044aeb232e75fcb00a",
+              "row": 1507160
+            }
+          ]
+        },
+        "15168": {
+          "missionID": 15168,
+          "titleID": 57785,
+          "dungeonID": 4257,
+          "name": "Onslaught",
+          "count": 2,
+          "destinations": [
+            {
+              "solarSystemID": 30100048,
+              "jumps": 4,
+              "count": 1,
+              "capture": "Tutorial/part deux.lsw",
+              "sha256": "f572614e9286e84f2ba4c3e814d618f5b0fb809ad5d786f064bee432803d5436",
+              "row": 86841
+            },
+            {
+              "solarSystemID": 30100067,
+              "jumps": 0,
+              "count": 1,
+              "capture": "Tutorial/part tre.lsw",
+              "sha256": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+              "row": 367640
+            }
+          ]
+        }
+      }
+    }
+  }
+}

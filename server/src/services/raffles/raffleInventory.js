@@ -103,7 +103,7 @@ function buildChangeEntry(item, previousData = {}) {
   };
 }
 
-function notifyInventoryChange(session, item, previousData = {}) {
+function notifyInventoryChange(session, item, previousData = {}, options = {}) {
   if (
     !session ||
     !item ||
@@ -112,7 +112,9 @@ function notifyInventoryChange(session, item, previousData = {}) {
     return;
   }
 
-  syncInventoryItemForSession(session, item, previousData);
+  syncInventoryItemForSession(session, item, previousData, {
+    emitItemsChangedBatch: options.emitItemsChangedBatch === true,
+  });
 }
 
 function resolveInventoryChangeNotificationItem(change) {
@@ -136,7 +138,7 @@ function notifyInventoryChangesToCharacter(charId, changes = [], options = {}) {
       if (!notificationItem) {
         continue;
       }
-      notifyInventoryChange(session, notificationItem, change.previousData || {});
+      notifyInventoryChange(session, notificationItem, change.previousData || {}, options);
     }
   }
 }

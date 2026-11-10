@@ -27,6 +27,7 @@ const {
 } = require(path.join(__dirname, "./bountyNotifications"));
 const {
   notifyKillRightAvailable,
+  notifyKillRightForYouSold,
   notifyKillRightUnavailable,
 } = require(path.join(__dirname, "./killRightNotifications"));
 const { buildKeyVal } = require(path.join(
@@ -549,6 +550,10 @@ class BountyProxyService extends BaseService {
       ownerID: result.data.fromID,
       price: result.data.price,
       toEntityID: result.data.restrictedTo,
+    });
+    notifyKillRightForYouSold({
+      targetID: result.data.toID,
+      killRightID: result.data.killRightID,
     });
     return buildList([buildKillRightPayload(result.data)]);
   }

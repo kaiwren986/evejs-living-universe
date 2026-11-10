@@ -136,6 +136,7 @@ function hasPostMicroJumpWarpScramble(entity, nowMs = Date.now()) {
 function isEntityMicroJumpDriveBlocked(entity, nowMs = Date.now()) {
   return (
     require("../../services/spaceComponents/shipLinkRestrictions").blocksShipAction(entity, "blocksMicroJump") ||
+    require("../../services/dynamic/essFieldRuntime").isEntityInField(entity) ||
     hostileModuleRuntime.isMicroJumpDriveBlocked(entity) ||
     hasPostMicroJumpWarpScramble(entity, nowMs)
   );

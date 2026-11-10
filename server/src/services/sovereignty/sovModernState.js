@@ -1053,7 +1053,13 @@ function ensureLoaded(sourceTable = null) {
       staticSnapshot,
     );
     localHarvest.power += Number(contribution.power || 0);
-    localHarvest.workforce += Number(contribution.workforce || 0);
+    // A Mercenary Den at the skyhook takes its anarchy stage's workforce
+    // (mercenaryDenState). Upgrades the hub can no longer staff go low power.
+    const denSiphon = require("./mercenaryDenState").getSkyhookWorkforceSiphon(
+      table,
+      normalizedSkyhook.skyhookID,
+    );
+    localHarvest.workforce += Math.max(0, Number(contribution.workforce || 0) - denSiphon);
 
     const vulnerability = deriveSkyhookTheftVulnerability(normalizedSkyhook);
     if (vulnerability.endMs > Date.now()) {
@@ -1176,8 +1182,10 @@ function settleAllHubFuel(options = {}) {
         current.fuelByTypeID = plan.fuelByTypeID;
         current.hubFuelState = plan.fuelState;
       }
-      writeSovereigntyTable(table);
-      cache = null;
+      // A running upgrade debits a unit every few seconds. Rebuilding the cache
+      // from the table just written keeps the next read on the fast path; dropping
+      // it made that read re-bootstrap everything, a 100 ms tick each debit.
+      cache = ensureLoaded(writeSovereigntyTable(table));
       fuelPersistencePending = true;
       fuelPlansPendingPublication = publicationPlans;
       flushHubFuel();
@@ -1387,6 +1395,12 @@ function buildHubUpgradePayloadState(hubID, settleFuel = true) {
       installationTypeID: upgrade.definition.installationTypeID,
       powerState: upgrade.powerState,
       definition: upgrade.definition,
+      // When it started running (sovHubFuelBurn), for the site supply's
+      // first-spawn wait; null when not running.
+      runningSinceMs: hub.hubFuelState && hub.hubFuelState.runningSinceByTypeID &&
+        hub.hubFuelState.runningSinceByTypeID[String(upgrade.typeID)] !== undefined
+        ? Number(hub.hubFuelState.runningSinceByTypeID[String(upgrade.typeID)])
+        : null,
     })),
     lastUpdatedMs: hub.upgradesLastUpdatedMs || 0,
   };
@@ -2271,86 +2285,6 @@ function isOnLocalFuelAccessGroup(session) {
   return Boolean(characterID && getGroupForCharacter(characterID, fuelAccessGroupID));
 }
 
-function acquireSkyhooks(skyhookIDs, fuelAccessGroupID, session) {
-  const systemSolarSystemID = normalizePositiveInteger(
-    session && (session.solarsystemid2 || session.solarsystemid),
-    0,
-  );
-  const corporationID = normalizePositiveInteger(
-    session && (session.corporationID || session.corpid),
-    0,
-  );
-  const allianceID = normalizePositiveInteger(
-    session && (session.allianceID || session.allianceid),
-    0,
-  );
-  if (!systemSolarSystemID || !corporationID || !allianceID) {
-    return [];
-  }
-  const normalizedSkyhookIDs = normalizePositiveArray(skyhookIDs);
-  if (normalizedSkyhookIDs.length === 0) {
-    if (fuelAccessGroupID !== undefined) {
-      setFuelAccessGroupID(systemSolarSystemID, fuelAccessGroupID);
-    }
-    return [];
-  }
-
-  const result = mutateTable((table) => {
-    const processed = [];
-    for (const skyhookID of normalizedSkyhookIDs) {
-      const existing = table.skyhooks[String(skyhookID)];
-      if (!existing) {
-        continue;
-      }
-      const skyhook = normalizeSkyhookRecord(existing, existing);
-      skyhook.solarSystemID = systemSolarSystemID;
-      skyhook.corporationID = corporationID;
-      skyhook.allianceID = allianceID;
-      skyhook.lastUpdatedMs = Date.now();
-      table.skyhooks[String(skyhookID)] = skyhook;
-      processed.push(skyhookID);
-    }
-    const systemKey = String(systemSolarSystemID);
-    table.systems[systemKey] = {
-      ...(table.systems[systemKey] || { solarSystemID: systemSolarSystemID }),
-      fuelAccessGroupID: normalizePositiveInteger(fuelAccessGroupID, null),
-    };
-    return {
-      ok: true,
-      processed,
-    };
-  });
-  return cloneValue(result.processed || []);
-}
-
-function destroySkyhooks(skyhookIDs) {
-  const normalizedSkyhookIDs = normalizePositiveArray(skyhookIDs);
-  if (normalizedSkyhookIDs.length === 0) {
-    return [];
-  }
-  const result = mutateTable((table) => {
-    const processed = [];
-    for (const skyhookID of normalizedSkyhookIDs) {
-      const existing = table.skyhooks[String(skyhookID)];
-      if (!existing || existing.destroyed === true) {
-        continue;
-      }
-      table.skyhooks[String(skyhookID)] = {
-        ...existing,
-        active: false,
-        destroyed: true,
-        lastUpdatedMs: Date.now(),
-      };
-      processed.push(skyhookID);
-    }
-    return {
-      ok: true,
-      processed,
-    };
-  });
-  return cloneValue(result.processed || []);
-}
-
 function resetSovereigntyModernStateForTests() {
   cache = null;
   fuelPersistencePending = false;
@@ -2478,10 +2412,8 @@ module.exports = {
   releaseSkyhookExtraction,
   extractSkyhookReagents,
   POWER_STATE,
-  acquireSkyhooks,
   addHubFuel,
   configureWorkforce,
-  destroySkyhooks,
   getActiveCharacterIdentity,
   getFuelAccessGroupID,
   getHubFuel,

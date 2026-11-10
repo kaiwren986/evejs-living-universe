@@ -708,6 +708,16 @@ function assertGateItemRequirements(session, shipEntity, gateEntity, gateState, 
   const missing = requirement.requiredItems.filter((entry) => (
     getCargoTypeQuantity(cargoItems, entry.typeID) < Math.max(1, toInt(entry.quantity, 1))
   ));
+  if (missing.length === 1) {
+    // The client's own "Can't Activate" dialogs for a gate with one key ({[item]key.name}):
+    // a number of them, one the gate uses up, or one it does not consume.
+    const [entry] = missing;
+    const quantity = Math.max(1, toInt(entry.quantity, 1));
+    if (quantity > 1) {
+      throwWrappedUserError("DunGateLocked_ManyKeys", { key: entry.typeID, quantity });
+    }
+    throwWrappedUserError(entry.consume ? "DunGateLocked_OneKey" : "DunGateLocked_ZeroKey", { key: entry.typeID });
+  }
   if (missing.length > 0) {
     const requiredText = missing.map(formatRequiredItem).join(", ");
     throwWrappedUserError("CustomInfo", {
@@ -769,6 +779,10 @@ function activateAccelerationGateForSession(session, gateEntityOrID, options = {
   }
   if (isAbyssalPocketMarkerEntity(gateEntity)) {
     return activateAbyssalPocketMarkerForSession(session, gateEntity);
+  }
+  const essAccess = require("../dynamic/essAccessRuntime");
+  if (essAccess.isEssAccelerationGate(scene, gateEntity)) {
+    return essAccess.activateGateForSession(session, gateEntity);
   }
   if (!(gateEntity && gateEntity.dungeonMaterializedGate === true)) {
     throwWrappedUserError("DeniedTargetAttemptFailed");
@@ -845,6 +859,10 @@ function activateAccelerationGateForSession(session, gateEntityOrID, options = {
       : null;
   if (!gateState) {
     throwWrappedUserError("DeniedTargetAttemptFailed");
+  }
+  if (!require("./visionsSceneRuntime").gateReady(instance,
+    dungeonAuthority.getTemplateByID(instance.templateID), gateKey)) {
+    throwWrappedUserError("CustomInfo", { info: "Repair the Revelation's armor before continuing." });
   }
 
   const itemRequirement = resolveGateItemRequirement(gateEntity, gateState);

@@ -5,6 +5,8 @@ const {
 } = require("../../common/numbers");
 
 const path = require("path");
+const NodeModule = require("node:module");
+const { normalizeOwnerTransferLootInfo, replaceOwnerTransferLootInfo } = require("./lootOwnerTransferMetadata");
 const { isDeepStrictEqual } = require("util");
 const { performance } = require("perf_hooks");
 const { StarbaseItemIndex } = require("../starbase/starbaseItemIndex");
@@ -27,6 +29,7 @@ const log = require(path.join(__dirname, "../../utils/logger"));
 const {
   bumpDogmaInvalidationVersion,
 } = require(path.join(__dirname, "../character/dogmaInvalidationVersion"));
+const { noteCommittedItemChanges: noteGmDogmaItemChanges } = require("../dogma/gmDogmaOverrides");
 const worldData = require(path.join(__dirname, "../../space/worldData"));
 const { resolveItemByTypeID } = require(path.join(
   __dirname,
@@ -86,7 +89,9 @@ const OWNS_ITEMS_TABLE = persistenceRoles.roleMayMutateTable(
   ITEMS_TABLE,
 );
 const IDEMPOTENT_GRANT_RECEIPTS_KEY = "__evejsInventoryGrantReceipts";
+const ITEM_ROW_PLAN_LEDGER = Symbol("itemRowPlanLedger");
 const CAREER_COMBAT_OUTCOMES_KEY = "__evejsCareerCombatOutcomes";
+const INCURSION_COMBAT_OUTCOMES_KEY = "__evejsIncursionCombatOutcomes";
 const TRASH_MANY_OPERATION = "trash-inventory-items-many";
 const TRASH_MANY_RECEIPT_SCHEMA_VERSION = 1;
 const SHIP_CATEGORY_ID = 6;
@@ -859,12 +864,44 @@ function writeItems(data, options = {}) {
   return false;
 }
 
+let projectionModuleEntry = null;
+let projectionModuleLoader = null;
+function resolveInventoryProjectionForPublish() {
+  let filename = null;
+  let loader = null;
+  try {
+    filename = path.join(__dirname, "simulationInventoryProjection.js");
+    loader = NodeModule._load;
+    const entry = NodeModule._cache[filename];
+    if (typeof loader === "function" && loader === projectionModuleLoader &&
+        entry && entry === projectionModuleEntry && entry.loaded === true) {
+      return entry.exports;
+    }
+  } catch (_) {
+    // Metadata is optional: the original require remains authoritative.
+  }
+  const projection = require(path.join(__dirname, "./simulationInventoryProjection"));
+  try {
+    const entry = filename && NodeModule._cache[filename];
+    if (typeof loader === "function" && NodeModule._load === loader && entry &&
+        entry.loaded === true && entry.exports === projection &&
+        require.resolve(path.join(__dirname, "./simulationInventoryProjection")) === filename) {
+      projectionModuleEntry = entry;
+      projectionModuleLoader = loader;
+    } else {
+      projectionModuleEntry = null;
+      projectionModuleLoader = null;
+    }
+  } catch (_) {
+    projectionModuleEntry = null;
+    projectionModuleLoader = null;
+  }
+  return projection;
+}
+
 function publishSimulationInventoryMutation(data, indexDelta) {
   try {
-    const projection = require(path.join(
-      __dirname,
-      "./simulationInventoryProjection",
-    ));
+    const projection = resolveInventoryProjectionForPublish();
     if (!indexDelta || typeof indexDelta !== "object") {
       projection.publishItemMutation({
         version: itemMutationVersion,
@@ -987,8 +1024,95 @@ function createItemRowMutationPlan() {
   const baseItems = readItems();
   const stagedRows = new Map();
   const removedRows = new Set();
+  // The receipt ledger is one row holding every receipt ever written, so
+  // staging it as a copy cost the whole ledger on every receipt. A plan stages
+  // receipt entries in this overlay instead and commit applies them in place.
+  let ledgerOverlay = null;
+  function stageLedgerOverlay() {
+    if (ledgerOverlay) {
+      return stagedRows.get(IDEMPOTENT_GRANT_RECEIPTS_KEY) === ledgerOverlay.view
+        ? ledgerOverlay.view
+        : null;
+    }
+    // A whole ledger this plan already replaced or removed keeps the copy path.
+    if (stagedRows.has(IDEMPOTENT_GRANT_RECEIPTS_KEY) || removedRows.has(IDEMPOTENT_GRANT_RECEIPTS_KEY)) {
+      return null;
+    }
+    const live = getIdempotentGrantReceiptLedger(baseItems, false);
+    const base = live || {};
+    const entries = new Map();
+    const removed = new Set();
+    const view = new Proxy(base, {
+      get(target, property, receiver) {
+        if (typeof property === "string") {
+          if (removed.has(property)) return undefined;
+          if (entries.has(property)) return entries.get(property);
+        }
+        return Reflect.get(target, property, receiver);
+      },
+      set(_target, property, value) {
+        const key = String(property);
+        entries.set(key, value);
+        removed.delete(key);
+        return true;
+      },
+      deleteProperty(_target, property) {
+        const key = String(property);
+        entries.delete(key);
+        removed.add(key);
+        return true;
+      },
+      has(target, property) {
+        const key = String(property);
+        if (removed.has(key)) return false;
+        return entries.has(key) || Reflect.has(target, property);
+      },
+      ownKeys(target) {
+        const keys = new Set(Reflect.ownKeys(target));
+        for (const key of removed) keys.delete(key);
+        for (const key of entries.keys()) keys.add(key);
+        return [...keys];
+      },
+      getOwnPropertyDescriptor(target, property) {
+        const key = String(property);
+        if (removed.has(key)) return undefined;
+        if (entries.has(key)) {
+          return { configurable: true, enumerable: true, writable: true, value: entries.get(key) };
+        }
+        return Reflect.getOwnPropertyDescriptor(target, property);
+      },
+    });
+    ledgerOverlay = { live, entries, removed, view };
+    stagedRows.set(IDEMPOTENT_GRANT_RECEIPTS_KEY, view);
+    return view;
+  }
+  // Apply the overlay to the live ledger and return how to undo it.
+  function applyLedgerOverlay() {
+    const created = !ledgerOverlay.live;
+    const ledger = created ? {} : ledgerOverlay.live;
+    if (created) {
+      if (ledgerOverlay.entries.size === 0) return () => {};
+      baseItems[IDEMPOTENT_GRANT_RECEIPTS_KEY] = ledger;
+    }
+    const prior = [];
+    for (const key of new Set([...ledgerOverlay.entries.keys(), ...ledgerOverlay.removed])) {
+      prior.push([key, Object.prototype.hasOwnProperty.call(ledger, key), ledger[key]]);
+      if (ledgerOverlay.entries.has(key)) ledger[key] = ledgerOverlay.entries.get(key);
+      else delete ledger[key];
+    }
+    return () => {
+      for (const [key, existed, value] of prior) {
+        if (existed) ledger[key] = value;
+        else delete ledger[key];
+      }
+      if (created) delete baseItems[IDEMPOTENT_GRANT_RECEIPTS_KEY];
+    };
+  }
   const items = new Proxy(baseItems, {
     get(target, property, receiver) {
+      if (property === ITEM_ROW_PLAN_LEDGER) {
+        return stageLedgerOverlay;
+      }
       if (typeof property === "string") {
         if (removedRows.has(property)) {
           return undefined;
@@ -1047,7 +1171,43 @@ function createItemRowMutationPlan() {
 
   function commit(options = {}) {
     const { trackCustodyRevisionItemIDs = [], custodyRevisionRestoreFloors = {}, ...writeOptions } = options;
+    const factoryPaths = require("./incursionFactoryCustody").stageWithdrawals(baseItems, items, stagedRows, removedRows,
+      () => require("../incursion/incursionClock").now());
+    if (factoryPaths.length) writeOptions.knownChangedPaths = [...(writeOptions.knownChangedPaths || []), ...factoryPaths];
     const trackingIDs = new Set(trackCustodyRevisionItemIDs.map(String));
+    function preservesCharacterBinding(row) {
+      const bound = Number(row?.careerBoundCharacterID || 0);
+      if (!bound) return true;
+      if (Number(row.ownerID) !== bound || Number(row.locationID) < 0) return false;
+      let parent = items[String(row.locationID)];
+      const seen = new Set([Number(row.itemID)]);
+      while (parent && ![3, 65].includes(Number(parent.categoryID))) {
+        if (seen.has(Number(parent.itemID)) || Number(parent.ownerID) !== bound || Number(parent.locationID) < 0) return false;
+        seen.add(Number(parent.itemID)); parent = items[String(parent.locationID)];
+      }
+      return true;
+    }
+    // Character-bound ACP goods cannot be laundered through an owner update,
+    // an escrow location, or a container whose ownership changes around them.
+    // Validate the staged tree before changing the shared cache or writing it.
+    for (const [key, next] of stagedRows) {
+      if (!(Number(key) > 0) || !next) continue;
+      const previous = baseItems[key];
+      const bound = Number(next.careerBoundCharacterID || 0);
+      if (previous?.careerBoundCharacterID && bound !== Number(previous.careerBoundCharacterID)) return false;
+      if (bound && (Number(next.ownerID) !== bound || Number(next.locationID) < 0)) return false;
+      if (previous && Number(previous.ownerID) !== Number(next.ownerID) && hasCharacterBoundContents(Number(key))) return false;
+      if (!preservesCharacterBinding(next)) return false;
+      if (previous && Number(previous.locationID) !== Number(next.locationID))
+        for (const childID of collectContainedItemIDs(Number(key)))
+          if (!preservesCharacterBinding(items[String(childID)])) return false;
+    }
+    // The ledger overlay is not a row to replace: it is applied in place below.
+    const overlayStaged = Boolean(ledgerOverlay) &&
+      stagedRows.get(IDEMPOTENT_GRANT_RECEIPTS_KEY) === ledgerOverlay.view;
+    if (overlayStaged) {
+      stagedRows.delete(IDEMPOTENT_GRANT_RECEIPTS_KEY);
+    }
     const touchedKeys = new Set([...stagedRows.keys(), ...removedRows]);
     const originals = new Map();
     for (const key of touchedKeys) {
@@ -1075,6 +1235,7 @@ function createItemRowMutationPlan() {
         baseItems[key] = stampedRows.get(key);
       }
     }
+    const undoLedgerOverlay = overlayStaged ? applyLedgerOverlay() : () => {};
 
     let committed = false;
     try {
@@ -1083,6 +1244,7 @@ function createItemRowMutationPlan() {
         characterRecordInputChanges: { originals, unknownPreimage },
       });
     } catch (error) {
+      undoLedgerOverlay();
       for (const [key, original] of originals) {
         if (original.existed) {
           baseItems[key] = original.value;
@@ -1093,10 +1255,12 @@ function createItemRowMutationPlan() {
       throw error;
     }
     if (committed) {
+      noteGmDogmaItemChanges(originals, stampedRows, removedRows);
       noteDogmaAffectingRowChanges(originals, stampedRows, removedRows);
       return true;
     }
 
+    undoLedgerOverlay();
     for (const [key, original] of originals) {
       if (original.existed) {
         baseItems[key] = original.value;
@@ -1233,6 +1397,28 @@ function appendIndexedItem(indexMap, key, item) {
 // normalized item; byLocation/byOwner buckets stay ascending by itemID; empty
 // buckets are dropped. Only used when a caller passes writeItems an indexDelta.
 
+// Find itemID in an ascending-by-itemID bucket. A character's owner bucket holds
+// every item they own, so a linear scan here made each item mutation cost the
+// size of their whole inventory. The bucket order is an invariant of the insert
+// and rebuild paths; if an entry is ever not where the order puts it, fall back
+// to the scan rather than miss it.
+function findIndexBucketPosition(bucket, itemID) {
+  let lo = 0;
+  let hi = bucket.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (bucket[mid] && bucket[mid].itemID < itemID) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  if (lo < bucket.length && bucket[lo] && bucket[lo].itemID === itemID) {
+    return lo;
+  }
+  return bucket.findIndex((entry) => entry && entry.itemID === itemID);
+}
+
 function removeFromIndexBucket(indexMap, key, itemID) {
   if (!Number.isFinite(Number(key))) {
     return;
@@ -1241,7 +1427,7 @@ function removeFromIndexBucket(indexMap, key, itemID) {
   if (!bucket) {
     return;
   }
-  const at = bucket.findIndex((entry) => entry.itemID === itemID);
+  const at = findIndexBucketPosition(bucket, itemID);
   if (at >= 0) {
     bucket.splice(at, 1);
   }
@@ -1370,6 +1556,21 @@ function applyIndexRemovals(indexes, rawItemIDs = []) {
     for (const [key, ids] of removalsByKey) {
       const bucket = indexMap.get(key);
       if (!bucket) {
+        continue;
+      }
+      // A few removals from a large bucket (one item leaving a big hangar) are
+      // cheaper as searches than as a copy of the whole bucket. A bucket holds
+      // an itemID at most once, so one splice per id removes it.
+      if (ids.size * 16 < bucket.length) {
+        for (const itemID of ids) {
+          const at = findIndexBucketPosition(bucket, itemID);
+          if (at >= 0) {
+            bucket.splice(at, 1);
+          }
+        }
+        if (bucket.length === 0) {
+          indexMap.delete(key);
+        }
         continue;
       }
       const retained = bucket.filter(
@@ -1668,6 +1869,7 @@ function normalizeRuntimeEntityScopeMetadata(rawValue) {
     "dungeonSiteContentBonus",
     "dungeonSiteContentFailureExplodes",
     "dungeonSiteContentFailureNeverDestroys",
+    "dungeonSiteContentShowsContents",
     "dungeonSiteContentFailureLocksOut",
     "dungeonSiteContentCompletesSiteOnHack",
     "dungeonSiteContentPersistsAfterResponse",
@@ -1700,6 +1902,10 @@ function normalizeRuntimeEntityScopeMetadata(rawValue) {
     if (Array.isArray(rawValue[key])) {
       normalized[key] = cloneValue(rawValue[key]);
     }
+  }
+  const hackingBoard = rawValue.dungeonSiteContentHackingBoard;
+  if (hackingBoard && typeof hackingBoard === "object" && !Array.isArray(hackingBoard)) {
+    normalized.dungeonSiteContentHackingBoard = cloneValue(hackingBoard);
   }
   return normalized;
 }
@@ -2023,6 +2229,7 @@ function normalizeFighterAbilitySlotState(rawValue) {
   const activeUntilMs = toFiniteNumber(rawValue.activeUntilMs, null);
   const cooldownStartMs = toFiniteNumber(rawValue.cooldownStartMs, null);
   const cooldownEndMs = toFiniteNumber(rawValue.cooldownEndMs, null);
+  const reactivateNotBeforeMs = toFiniteNumber(rawValue.reactivateNotBeforeMs, null);
   const remainingChargeCount = toNumber(rawValue.remainingChargeCount, null);
   const targetID = toNumber(rawValue.targetID, 0);
   const targetPoint =
@@ -2045,8 +2252,14 @@ function normalizeFighterAbilitySlotState(rawValue) {
   if (cooldownEndMs !== null && cooldownEndMs >= 0) {
     normalized.cooldownEndMs = cooldownEndMs;
   }
+  if (reactivateNotBeforeMs !== null && reactivateNotBeforeMs >= 0) {
+    normalized.reactivateNotBeforeMs = reactivateNotBeforeMs;
+  }
   if (remainingChargeCount !== null && remainingChargeCount >= 0) {
     normalized.remainingChargeCount = remainingChargeCount;
+  }
+  if (rawValue.firedAtActivation === true) {
+    normalized.firedAtActivation = true;
   }
   if (targetID > 0) {
     normalized.targetID = targetID;
@@ -2383,12 +2596,14 @@ function findStackWithAvailableCapacity(
   locationID,
   flagID,
   typeID,
+  careerBoundCharacterID = 0,
 ) {
   const entries = stackIndex.get(
     buildStackKey(ownerID, locationID, flagID, typeID),
   ) || [];
   return entries.find(
-    (candidate) => getStackableItemQuantity(candidate) < CLIENT_INVENTORY_STACK_LIMIT,
+    (candidate) => Number(candidate.careerBoundCharacterID || 0) === Number(careerBoundCharacterID || 0) &&
+      getStackableItemQuantity(candidate) < CLIENT_INVENTORY_STACK_LIMIT,
   ) || null;
 }
 
@@ -2551,6 +2766,7 @@ function buildInventoryItem({
   inventoryCustodyRevision = undefined,
   skinrApplication = null,
   plasticWrapVolume = null,
+  careerBoundCharacterID = null,
 }) {
   const metadata = getItemMetadata(typeID, itemName);
   const defaultSingleton = shouldItemDefaultToSingleton(metadata) ? 1 : 0;
@@ -2602,6 +2818,8 @@ function buildInventoryItem({
     capacity: toFiniteNumber(metadata.capacity, 0),
     radius: toFiniteNumber(metadata.radius, 0),
   };
+  if (Number.isSafeInteger(Number(careerBoundCharacterID)) && Number(careerBoundCharacterID) > 0)
+    item.careerBoundCharacterID = Number(careerBoundCharacterID);
   if (encodedWrapQuantity !== null) {
     item.plasticWrapVolume = -encodedWrapQuantity / 100;
     item.volume = item.plasticWrapVolume;
@@ -2763,6 +2981,7 @@ function normalizeInventoryItem(rawItem, defaults = {}) {
     singleton: rawItem.singleton ?? defaults.singleton ?? null,
     plasticWrapVolume: rawItem.plasticWrapVolume ?? defaults.plasticWrapVolume ?? null,
     customInfo: rawItem.customInfo ?? defaults.customInfo ?? "",
+    careerBoundCharacterID: rawItem.careerBoundCharacterID ?? defaults.careerBoundCharacterID ?? null,
     skinrApplication: Object.hasOwn(rawItem, "skinrApplication") ? rawItem.skinrApplication : defaults.skinrApplication,
     spaceState: Object.prototype.hasOwnProperty.call(rawItem, "spaceState")
       ? rawItem.spaceState
@@ -2958,6 +3177,7 @@ function applyStackableGrant({
       locationID,
       flagID,
       metadata.typeID,
+      options.careerBoundCharacterID || 0,
     );
 
     if (existingStack) {
@@ -3006,6 +3226,7 @@ function applyStackableGrant({
       stacksize: chunkQuantity,
       singleton: 0,
       customInfo: options.customInfo || "",
+      careerBoundCharacterID: options.careerBoundCharacterID || null,
       spaceState: options.spaceState || null,
       conditionState: options.conditionState || null,
       moduleState: options.moduleState,
@@ -3759,6 +3980,7 @@ function grantItemsToCharacterLocation(
           singleton: resolvedSingleton,
           plasticWrapVolume: options.plasticWrapVolume ?? null,
           customInfo: options.customInfo || "",
+          careerBoundCharacterID: options.careerBoundCharacterID || null,
           spaceState: options.spaceState || null,
           conditionState: options.conditionState || null,
           moduleState: options.moduleState,
@@ -3994,6 +4216,7 @@ function grantItemsToOwnerLocation(
           singleton: resolvedSingleton,
           plasticWrapVolume: options.plasticWrapVolume ?? null,
           customInfo: options.customInfo || "",
+          careerBoundCharacterID: options.careerBoundCharacterID || null,
           spaceState: options.spaceState || null,
           conditionState: options.conditionState || null,
           moduleState: options.moduleState,
@@ -4508,6 +4731,65 @@ function takeItemTypeFromOwnerLocation(
   };
 }
 
+// The GM Clone Perfect action copies a docked hull and its inventory tree.
+// Allocate and publish the whole tree in one item-owner transaction: a failed
+// write must never leave a bare hull or contents pointing at the source ship.
+function cloneDockedShipForCharacter(characterID, shipID, dockedLocationID) {
+  ensureMigrated();
+  const actor = Number(characterID), sourceID = Number(shipID), dock = Number(dockedLocationID);
+  const character = readCharacters()[String(actor)];
+  const plan = createItemRowMutationPlan();
+  const source = normalizeInventoryItem(plan.items[String(sourceID)]);
+  if (!character || !Number.isSafeInteger(dock) || dock <= 0 ||
+      !source || source.ownerID !== actor || source.categoryID !== SHIP_CATEGORY_ID || source.groupID === 29 ||
+      source.singleton !== 1 || source.locationID !== dock || source.flagID !== ITEM_FLAGS.HANGAR) {
+    return { success: false, errorMsg: "OWNED_DOCKED_SHIP_REQUIRED" };
+  }
+  const children = new Map();
+  for (const row of Object.values(plan.items)) {
+    if (!row || typeof row !== "object" || !Number(row.itemID)) continue;
+    const locationID = Number(row.locationID);
+    if (!children.has(locationID)) children.set(locationID, []);
+    children.get(locationID).push(row);
+  }
+  const originals = [source], seen = new Set([sourceID]);
+  for (let index = 0; index < originals.length; index += 1) {
+    for (const row of children.get(originals[index].itemID) || []) {
+      const item = normalizeInventoryItem(row);
+      if (!item || seen.has(item.itemID) || item.ownerID !== actor ||
+          // Contract packages contain external ownership/escrow state. Copying
+          // their inventory row cannot copy the contract that owns that state.
+          item.typeID === 3468 || item.categoryID === BLUEPRINT_CATEGORY_ID || item.flagID === ITEM_FLAGS.HIDDEN_MODIFIERS ||
+          item.expiresAtMs || item.launcherID || item.spaceState) {
+        return { success: false, errorMsg: "UNSUPPORTED_SHIP_CONTENTS" };
+      }
+      seen.add(item.itemID);
+      originals.push(item);
+    }
+  }
+  const copies = new Map(), changes = [];
+  for (const original of originals) {
+    const itemID = nextItemID(actor, plan.items, character);
+    const item = normalizeInventoryItem({
+      ...original,
+      itemID,
+      locationID: original.itemID === sourceID ? dock : copies.get(original.locationID).itemID,
+      // A clone has a new identity. Custody and SKIN application receipts are
+      // evidence of operations on the source item, not transferable metadata.
+      inventoryCustodyRevision: null,
+      skinrApplication: null,
+      stackOriginID: null,
+    });
+    plan.items[String(itemID)] = item;
+    copies.set(original.itemID, item);
+    changes.push({ created: true, item: cloneValue(item), previousData: { locationID: 0, flagID: 0 } });
+  }
+  if (!plan.commit({ indexDelta: indexDeltaFromChanges(changes) })) {
+    return { success: false, errorMsg: "WRITE_ERROR" };
+  }
+  return { success: true, data: { ship: cloneValue(copies.get(sourceID)), changes } };
+}
+
 function createShipItemForCharacter(charId, stationId, shipType) {
   const createResult = grantItemToCharacterLocation(
     charId,
@@ -4527,7 +4809,25 @@ function createShipItemForCharacter(charId, stationId, shipType) {
   };
 }
 
-function updateInventoryItem(itemId, updater) {
+// Private capability: ordinary updateInventoryItem callers keep the complete result.
+const INVENTORY_UPDATE_SUCCESS_ONLY = Symbol("inventoryUpdateSuccessOnly");
+
+function updateInventoryItemSuccessOnly(itemId, updater) {
+  return updateInventoryItem(itemId, updater, INVENTORY_UPDATE_SUCCESS_ONLY);
+}
+
+function validateUnusedInventoryResultClone(value) {
+  // Keep JSON serialization, its toJSON side effects and its errors in the same
+  // post-commit order as cloneValue. Parsing valid JSON only creates the unused
+  // detached return row. JSON.stringify can return undefined via a root toJSON;
+  // preserve cloneValue's resulting native SyntaxError in that case as well.
+  const serialized = JSON.stringify(value);
+  if (serialized === undefined) {
+    JSON.parse(serialized);
+  }
+}
+
+function updateInventoryItem(itemId, updater, resultMode = null) {
   ensureMigrated();
   const numericItemId = toNumber(itemId, 0);
   if (numericItemId <= 0) {
@@ -4570,6 +4870,12 @@ function updateInventoryItem(itemId, updater) {
     normalizedItem,
     "updateInventoryItem",
   );
+
+  if (resultMode === INVENTORY_UPDATE_SUCCESS_ONLY) {
+    validateUnusedInventoryResultClone(currentItem);
+    validateUnusedInventoryResultClone(normalizedItem);
+    return { success: true };
+  }
 
   return {
     success: true,
@@ -4831,7 +5137,7 @@ function consumeInventoryItemStacksAtomic(rawRequests = [], options = {}) {
     // Preserve mutation-plan enumeration order and exclude input/marker rows.
     // Buckets contain IDs so later outputs see quantities staged by earlier ones.
     for (const row of Object.values(items)) {
-      if (!row || row.singleton !== 0 || updatedIDs.has(row.itemID) || row.custodyReservation) continue;
+      if (!row || row.singleton !== 0 || updatedIDs.has(row.itemID) || row.custodyReservation || row.careerBoundCharacterID) continue;
       const bucket = outputStacksByKey.get(buildStackKey(row.ownerID, row.locationID, row.flagID, row.typeID));
       if (bucket) bucket.push(row.itemID);
     }
@@ -5630,6 +5936,8 @@ function mergeItemStacks(sourceItemId, destinationItemId, quantity = null) {
       errorMsg: "ITEM_NOT_FOUND",
     };
   }
+  if (Number(sourceItem.careerBoundCharacterID || 0) !== Number(destinationItem.careerBoundCharacterID || 0))
+    return { success: false, errorMsg: "CAREER_BOUND_STACK_MISMATCH" };
 
   // A merge rebuilds the destination as a packaged stack (singleton 0) and
   // deletes the source row, so every individually-identified item has to
@@ -5693,6 +6001,7 @@ function mergeItemStacks(sourceItemId, destinationItemId, quantity = null) {
 
   const changes = [];
   const destinationPreviousData = captureItemState(destinationItem);
+  const destinationRollbackPreviousData = items[String(numericDestinationItemID)];
   const updatedDestination = buildInventoryItem({
     ...destinationItem,
     quantity: destinationQuantity + transferQuantity,
@@ -5700,11 +6009,13 @@ function mergeItemStacks(sourceItemId, destinationItemId, quantity = null) {
     singleton: 0,
   });
   items[String(updatedDestination.itemID)] = updatedDestination;
-  changes.push({
+  // Keep the small notification delta while retaining the exact preimage for
+  // compensation if a later step in a multi-slot load refuses.
+  changes.push(withRollbackPreviousData({
     removed: false,
     previousData: destinationPreviousData,
     item: cloneValue(updatedDestination),
-  });
+  }, destinationRollbackPreviousData));
 
   const sourcePreviousData = cloneValue(sourceItem);
   if (transferQuantity === sourceQuantity) {
@@ -5833,6 +6144,13 @@ function getIdempotentGrantReceiptLedger(items, create = false) {
 // ledger first and assigns the copy back — the plan then owns the ledger exactly
 // like any item row, and a rejected write leaves the live ledger untouched.
 function stageIdempotentGrantReceiptLedger(items) {
+  // A mutation plan stages receipts in an overlay it applies on commit, so it
+  // does not pay for a copy of every receipt ever written.
+  const stagePlanLedger = items && items[ITEM_ROW_PLAN_LEDGER];
+  const planLedger = typeof stagePlanLedger === "function" ? stagePlanLedger() : null;
+  if (planLedger) {
+    return planLedger;
+  }
   const ledger = { ...(getIdempotentGrantReceiptLedger(items, false) || {}) };
   items[IDEMPOTENT_GRANT_RECEIPTS_KEY] = ledger;
   return ledger;
@@ -6129,7 +6447,20 @@ function getIdempotentGrantReceipt(receiptKey, options = {}) {
       data: null,
     };
   }
-  const uncertainty = uncertainIdempotentGrantReceipts.get(normalizedReceiptKey) || "";
+  let uncertainty = uncertainIdempotentGrantReceipts.get(normalizedReceiptKey) || "";
+  if (uncertainty === "write" && options.reconcileWriteRefusal === true) {
+    // A refused admission may leave no mutation at all. Fence admitted rows,
+    // then compare the exact receipt against SQLite before releasing that
+    // process-local quarantine. Never retry against divergent cached state.
+    const cached = getIdempotentGrantReceiptLedger(readItems(), false)?.[storageKey] || null;
+    const fenced = repo.flushTableSync(ITEMS_TABLE);
+    if (!fenced?.success) return fenced;
+    const durable = database.readPersisted(ITEMS_TABLE, `/${IDEMPOTENT_GRANT_RECEIPTS_KEY}/${storageKey}`);
+    if ((durable?.success || durable?.errorMsg === "ENTRY_NOT_FOUND") && isDeepStrictEqual(cached, durable.data || null)) {
+      uncertainIdempotentGrantReceipts.delete(normalizedReceiptKey);
+      uncertainty = "";
+    }
+  }
   if (uncertainty === "write") {
     return {
       success: false,
@@ -6203,6 +6534,31 @@ function pruneIdempotentGrantReceipts(predicate) {
       removedReceiptKeys.push(String(receipt.receiptKey || ""));
     }
   }
+  return deleteIdempotentGrantReceipts(doomedStorageKeys, removedReceiptKeys);
+}
+
+// The same retirement for a caller that knows its receipt keys, so a finished
+// operation costs its own receipts rather than a scan of the whole ledger. The
+// caller must already have proved that nothing will replay those keys.
+function retireIdempotentGrantReceipts(receiptKeys) {
+  ensureMigrated();
+  const ledger = getIdempotentGrantReceiptLedger(readItems(), false);
+  if (!ledger || !Array.isArray(receiptKeys)) {
+    return { success: true, removed: 0, removedReceiptKeys: [] };
+  }
+  const doomedStorageKeys = [];
+  const removedReceiptKeys = [];
+  for (const value of new Set(receiptKeys.map(normalizeIdempotentGrantReceiptKey))) {
+    const storageKey = value ? buildIdempotentGrantReceiptStorageKey(value) : "";
+    if (storageKey && Object.prototype.hasOwnProperty.call(ledger, storageKey)) {
+      doomedStorageKeys.push(storageKey);
+      removedReceiptKeys.push(value);
+    }
+  }
+  return deleteIdempotentGrantReceipts(doomedStorageKeys, removedReceiptKeys);
+}
+
+function deleteIdempotentGrantReceipts(doomedStorageKeys, removedReceiptKeys) {
   if (doomedStorageKeys.length === 0) {
     return { success: true, removed: 0, removedReceiptKeys: [] };
   }
@@ -6939,6 +7295,31 @@ function stageItemMoveToLocation(
   };
 }
 
+// A mobile deployment's placement and component state depend on the final ID
+// allocated by a stack split. Finalize that row inside the same mutation plan
+// as the move so neither a refused write nor a crash can leave a bare item in
+// space. The callback cannot change the custody identity chosen by the owner.
+function finalizeMovedInventoryItem(items, changes, options, ownerID, locationID, flagID) {
+  const finalize = options && options.finalizeMovedItem;
+  if (finalize === undefined) return { success: true };
+  if (typeof finalize !== "function") return { success: false, errorMsg: "INVALID_ITEM_FINALIZER" };
+  const change = changes.findLast((entry) => entry && !entry.removed && entry.item &&
+    Number(entry.item.ownerID) === Number(ownerID) && Number(entry.item.locationID) === Number(locationID) &&
+    Number(entry.item.flagID) === Number(flagID));
+  if (!change) return { success: false, errorMsg: "MOVED_ITEM_NOT_FOUND" };
+  const previous = change.item;
+  const finalized = finalize(cloneValue(previous));
+  const item = finalized && typeof finalized === "object"
+    ? normalizeInventoryItem(finalized, previous) : null;
+  if (!item || item.itemID !== previous.itemID || item.ownerID !== previous.ownerID ||
+      item.locationID !== previous.locationID || item.flagID !== previous.flagID || item.typeID !== previous.typeID) {
+    return { success: false, errorMsg: "INVALID_ITEM_FINALIZER_STATE" };
+  }
+  items[String(item.itemID)] = item;
+  change.item = cloneValue(item);
+  return { success: true };
+}
+
 function moveItemToLocation(
   itemId,
   destinationLocationId,
@@ -6965,6 +7346,10 @@ function moveItemToLocation(
   }
 
   const changes = stageResult.data.changes;
+  const finalized = finalizeMovedInventoryItem(items, changes, options,
+    items[String(toNumber(itemId, 0))]?.ownerID,
+    destinationLocationId, destinationFlagId);
+  if (!finalized.success) return finalized;
   const receipt = options && options.__evejsIdempotentInventoryReceipt &&
     typeof options.__evejsIdempotentInventoryReceipt === "object"
     ? {
@@ -7220,6 +7605,12 @@ function collectContainedItemIDs(rootItemID) {
   return containedItemIDs;
 }
 
+function hasCharacterBoundContents(itemID) {
+  const items = readItems();
+  return [Number(itemID), ...collectContainedItemIDs(itemID)]
+    .some(id => Number(items[String(id)]?.careerBoundCharacterID || 0) > 0);
+}
+
 function transferItemToOwnerLocation(
   itemId,
   destinationOwnerId,
@@ -7256,6 +7647,20 @@ function transferItemToOwnerLocation(
       success: false,
       errorMsg: "ITEM_NOT_FOUND",
     };
+  }
+
+  const lootInfoResult = normalizeOwnerTransferLootInfo(options && options.ownerTransferLootInfo);
+  if (!lootInfoResult.success) return lootInfoResult;
+  let transferredCustomInfo = null;
+  if (lootInfoResult.info) {
+    if (options.reownContents !== true || Number(currentItem.singleton) !== 1 ||
+        currentItem.ownerID === destinationOwnerID || Number(currentItem.flagID) !== 0 || destinationFlagID !== 0 ||
+        Number(currentItem.locationID) !== destinationLocationID || quantity !== null && quantity !== undefined) {
+      return { success: false, errorMsg: "OWNER_TRANSFER_LOOT_ROUTE_NOT_SUPPORTED" };
+    }
+    const replacement = replaceOwnerTransferLootInfo(currentItem.customInfo, lootInfoResult.info);
+    if (!replacement.success) return replacement;
+    transferredCustomInfo = replacement.customInfo;
   }
 
   const destinationValidation = validateItemMoveDestination(
@@ -7310,6 +7715,8 @@ function transferItemToOwnerLocation(
   // model of content ownership -- contract escrow returns a hull whose fitting
   // never left the seller -- leave the flag off and are unaffected.
   const ownerChanges = destinationOwnerID !== toNumber(currentItem.ownerID, 0);
+  if (ownerChanges && hasCharacterBoundContents(currentItem.itemID))
+    return { success: false, errorMsg: "CAREER_REWARD_CHARACTER_BOUND" };
   const containedItemIDs =
     options && options.reownContents === true && ownerChanges && movingWholeItem
       ? collectContainedItemIDs(currentItem.itemID)
@@ -7334,6 +7741,9 @@ function transferItemToOwnerLocation(
         : null;
     const movedItem = buildInventoryItem({
       ...movedBase,
+      // The root metadata, recursive ownership and durable receipt join the
+      // same mutation-plan commit; publication never sees a half-transfer.
+      ...(transferredCustomInfo !== null ? { customInfo: transferredCustomInfo } : {}),
       ownerID: destinationOwnerID,
       quantity: destinationSingleton === 1 ? null : moveQuantity,
       stacksize: destinationSingleton === 1 ? 1 : moveQuantity,
@@ -7428,6 +7838,9 @@ function transferItemToOwnerLocation(
     });
   }
 
+  const finalized = finalizeMovedInventoryItem(items, changes, options,
+    destinationOwnerID, destinationLocationID, destinationFlagID);
+  if (!finalized.success) return finalized;
   const receipt = options && options.__evejsIdempotentInventoryReceipt &&
     typeof options.__evejsIdempotentInventoryReceipt === "object"
     ? {
@@ -7508,6 +7921,7 @@ function transferItemToOwnerLocationIdempotent(
       {
         __evejsIdempotentInventoryReceipt: receipt,
         reownContents: options && options.reownContents === true,
+        ownerTransferLootInfo: options && options.ownerTransferLootInfo,
         inventoryMoveBatch: options && options.inventoryMoveBatch,
       },
     ),
@@ -7531,6 +7945,75 @@ function consumeInventoryItemQuantityIdempotent(
       },
     ),
   );
+}
+
+// A native GM spawn must release its pending cleanup markers and checkpoint
+// acceptance together. Replaying an uncertain fence returns the same batch.
+function commitNativeSpawnItems(itemIDs, batchID, actorID, completion = null) {
+  const ids = [...new Set((Array.isArray(itemIDs) ? itemIDs : []).map(Number))].sort((a, b) => a - b);
+  if (!ids.length || !ids.every((id) => Number.isSafeInteger(id) && id > 0) ||
+      typeof batchID !== "string" || !batchID || batchID.length > 80 ||
+      !Number.isSafeInteger(actorID) || actorID <= 0) return { success: false, errorMsg: "NATIVE_SPAWN_COMMIT_INVALID" };
+  // Metadata does not change the established receipt fingerprint, so existing
+  // three-argument callers and their already-written receipts remain compatible.
+  const options = { receiptKey: `native-spawn-commit:${batchID}`, fingerprint: { ids, batchID, actorID },
+    receiptMetadata: completion ? { nativeSpawnCompletion: cloneValue(completion) } : null };
+  const reconciled = getIdempotentGrantReceipt(options.receiptKey, { reconcileWriteRefusal: true });
+  if (!reconciled.success) return reconciled;
+  return executeIdempotentInventoryMutation(options, "commit-native-spawn", (receipt) => {
+    const plan = createItemRowMutationPlan();
+    for (const id of ids) {
+      const item = normalizeInventoryItem(plan.items[String(id)]);
+      if (!item || item.ownerID !== actorID || item.flagID !== 0 || !item.spaceState) {
+        return { success: false, errorMsg: "NATIVE_SPAWN_CUSTODY_CHANGED" };
+      }
+      let info;
+      try { info = JSON.parse(item.customInfo || "{}"); }
+      catch (_error) { return { success: false, errorMsg: "NATIVE_SPAWN_MARKER_INVALID" }; }
+      const marker = info.evejsNativeSpawnPending;
+      if (marker?.version !== 1 || marker.batchID !== batchID || marker.actorID !== actorID) {
+        return { success: false, errorMsg: "NATIVE_SPAWN_MARKER_INVALID" };
+      }
+      delete info.evejsNativeSpawnPending;
+      plan.items[String(id)] = { ...item, customInfo: Object.keys(info).length ? JSON.stringify(info) : "" };
+    }
+    const attached = attachIdempotentInventoryReceipt(plan.items, { ...receipt, resultData: { itemIDs: ids } });
+    if (!plan.commit({ indexDelta: { upsertedIDs: ids }, knownChangedPaths: [attached.path] })) {
+      return { success: false, errorMsg: "WRITE_ERROR" };
+    }
+    return { success: true, data: { itemIDs: ids } };
+  });
+}
+
+// Only unresolved native-spawn commits from this inventory-owner process are
+// exposed. A command module can recover known fence ambiguity after reloading;
+// completed history and unrelated receipt families are never enumerated here.
+function listPendingNativeSpawnCompletions(actorID, solarSystemID) {
+  if (!Number.isSafeInteger(actorID) || actorID <= 0 ||
+      !Number.isSafeInteger(solarSystemID) || solarSystemID <= 0) return [];
+  ensureMigrated();
+  const ledger = getIdempotentGrantReceiptLedger(readItems(), false);
+  const result = [];
+  for (const key of uncertainIdempotentGrantReceipts.keys()) {
+    if (!key.startsWith("native-spawn-commit:")) continue;
+    const receipt = ledger?.[buildIdempotentGrantReceiptStorageKey(key)];
+    const fingerprint = receipt?.fingerprint;
+    const completion = receipt?.metadata?.nativeSpawnCompletion;
+    const marker = completion?.marker;
+    if (receipt?.operation !== "commit-native-spawn" || receipt.state !== "completed" ||
+        fingerprint?.actorID !== actorID || marker?.version !== 1 || marker.actorID !== actorID ||
+        marker.solarSystemID !== solarSystemID || marker.batchID !== fingerprint.batchID ||
+        key !== `native-spawn-commit:${marker.batchID}` ||
+        !Array.isArray(fingerprint.ids) || !fingerprint.ids.length ||
+        !fingerprint.ids.every(id => Number.isSafeInteger(id) && id > 0) ||
+        !Array.isArray(completion.ids) ||
+        !isDeepStrictEqual([...completion.ids].sort((a, b) => a - b), fingerprint.ids) ||
+        !["spawn", "spawnn", "entity"].includes(completion.command) ||
+        typeof completion.typeName !== "string" || !marker.scope || typeof marker.scope !== "object" || Array.isArray(marker.scope)) continue;
+    result.push({ ids: [...completion.ids], marker: cloneValue(marker),
+      command: completion.command, typeName: completion.typeName });
+  }
+  return result;
 }
 
 // Input stacks, produced stacks and the receipt commit in the same items-table
@@ -8458,9 +8941,9 @@ function commitCareerCombatOutcome({ characterID, event, conditionUpdates = [] }
 }
 
 function listPendingCareerCombatOutcomes(characterID) {
-  const result = database.readPersisted(ITEMS_TABLE, "/");
+  const result = database.readPersistedPendingCareerCombatOutcomes(characterID);
   if (!result?.success) return result || { success: false, errorMsg: "COMBAT_OUTCOME_READ_FAILED" };
-  const ledger = result.data?.[CAREER_COMBAT_OUTCOMES_KEY] || {};
+  const ledger = result.data || {};
   return { success: true, data: Object.values(ledger).filter(receipt => receipt?.version === 1 &&
     receipt.characterID === Number(characterID) && receipt.acknowledged !== true).map(cloneValue) };
 }
@@ -8477,7 +8960,138 @@ function acknowledgeCareerCombatOutcome(characterID, eventID) {
   return flushCareerCombatOutcomes();
 }
 
+// Incursion support credit shares the inventory health checkpoint. Its outbox
+// lives outside hull rows so later destruction cannot erase a qualifying repair.
+function commitIncursionCombatOutcome({ event, conditionUpdates = [], careerOutcome = null } = {}) {
+  const carrier = require("./incursionCombatOutcomes");
+  let normalized;
+  try { normalized = carrier.normalizeEvent(event); }
+  catch (error) { return { success: false, handled: true, errorMsg: error.message }; }
+  if (normalized.kind !== "repair") return { success: false, handled: true, errorMsg: "INCURSION_REPAIR_EVENT_REQUIRED" };
+  ensureMigrated();
+  const key = carrier.storageKey(normalized.eventID), plan = createItemRowMutationPlan();
+  const ledger = plan.items[INCURSION_COMBAT_OUTCOMES_KEY] || {}, existing = ledger[key];
+  if (existing) {
+    if (!isDeepStrictEqual(existing.event, normalized)) return { success: false, handled: true, errorMsg: "INCURSION_COMBAT_OUTCOME_CONFLICT" };
+    const flushed = flushCareerCombatOutcomes();
+    return { success: true, handled: true, accepted: true, duplicate: true, durable: flushed?.success === true,
+      pending: flushed?.success !== true, careerDeferred: existing.careerDeferred === true, receipt: cloneValue(existing) };
+  }
+  if (Object.values(ledger).filter(row => row.event?.operationID === normalized.operationID).length >= 65536)
+    return { success: false, handled: true, errorMsg: "INCURSION_COMBAT_OUTCOME_CAPACITY" };
+  if (database.isTransientPath(CHARACTERS_TABLE, `/${normalized.characterID}`))
+    return { success: false, handled: true, errorMsg: "INCURSION_COMBAT_TRANSIENT_OWNER" };
+  const touched = [];
+  for (const change of conditionUpdates) {
+    const itemID = Number(change?.itemID), current = plan.items[String(itemID)];
+    if (!Number.isSafeInteger(itemID) || itemID <= 0 || !normalizeInventoryItem(current) || touched.includes(itemID) ||
+        Number(current.categoryID) !== SHIP_CATEGORY_ID || Number(current.singleton) !== 1 ||
+        Number(current.ownerID) !== Number(change.ownerID) || Number(current.typeID) !== Number(change.typeID))
+      return { success: false, handled: true, errorMsg: "INCURSION_COMBAT_ITEM_INVALID" };
+    if (repo.isTransientPath(ITEMS_TABLE, `/${itemID}`)) return { success: false, handled: true, errorMsg: "INCURSION_COMBAT_ITEM_TRANSIENT" };
+    plan.items[String(itemID)] = { ...current,
+      conditionState: normalizeShipConditionState({ ...current.conditionState, ...change.conditionState }) };
+    touched.push(itemID);
+  }
+  if (!touched.includes(normalized.targetEntityID)) return { success: false, handled: true, errorMsg: "INCURSION_COMBAT_TARGET_MISSING" };
+  const changedPaths = [`/${INCURSION_COMBAT_OUTCOMES_KEY}/${key}`];
+  let careerDeferred = false;
+  if (careerOutcome) {
+    const actor = Number(careerOutcome.characterID), observed = careerOutcome.event;
+    if (actor !== normalized.characterID || observed?.kind !== "combat-effect" ||
+        typeof observed.id !== "string" || !observed.id || observed.id.length > 512 ||
+        !["shield-repair", "armor-repair"].includes(observed.effect) ||
+        !Number.isFinite(observed.amount) || Math.floor(observed.amount * 1000 + 1e-7) < 1 ||
+        !Number.isSafeInteger(Math.floor(observed.amount * 1000 + 1e-7)) || observed.durationMs !== undefined ||
+        observed.atMs !== normalized.atMs || Math.abs(observed.amount - normalized.amount) > 1e-6)
+      return { success: false, handled: true, errorMsg: "INCURSION_CAREER_OUTCOME_INVALID" };
+    const careerKey = careerCombatOutcomeKey(actor, observed.id), careerLedger = plan.items[CAREER_COMBAT_OUTCOMES_KEY] || {};
+    const previous = careerLedger[careerKey];
+    if (previous && !isDeepStrictEqual(previous.event, observed))
+      return { success: false, handled: true, errorMsg: "COMBAT_OUTCOME_CONFLICT" };
+    if (!previous && Object.keys(careerLedger).length >= 65536) careerDeferred = true;
+    else {
+      plan.items[CAREER_COMBAT_OUTCOMES_KEY] = { ...careerLedger, [careerKey]: previous || {
+        version: 1, characterID: actor, event: cloneValue(observed), acknowledged: false,
+        atMs: Math.max(1, Math.trunc(Number(observed.atMs) || Date.now())),
+      } };
+      changedPaths.push(`/${CAREER_COMBAT_OUTCOMES_KEY}/${careerKey}`);
+    }
+  }
+  const receipt = { version: 1, event: cloneValue(normalized), acknowledged: false, ...(careerDeferred ? { careerDeferred: true } : {}),
+    conditionState: cloneValue(plan.items[String(normalized.targetEntityID)].conditionState) };
+  plan.items[INCURSION_COMBAT_OUTCOMES_KEY] = { ...ledger, [key]: receipt };
+  if (!plan.commit({ indexDelta: { upsertedIDs: touched }, knownChangedPaths: changedPaths }))
+    return { success: false, handled: true, errorMsg: "INCURSION_COMBAT_WRITE_FAILED" };
+  const flushed = flushCareerCombatOutcomes();
+  return { success: true, handled: true, accepted: true, duplicate: false, durable: flushed?.success === true,
+    pending: flushed?.success !== true, careerDeferred, receipt: cloneValue(receipt) };
+}
+
+// Environmental logistics cannot mint player contribution. Its bounded receipt
+// shares the hull HP mutation and survives the hull's later removal.
+function commitIncursionLogisticsRepair(request, calculate) {
+  let accepted = false, held = false;
+  const presentation = require("../incursion/incursionRepairPresentation");
+  try {
+    ensureMigrated();
+    const support = require("../incursion/incursionLogisticsSupport"), scope = support.validateRequest(request);
+    if (scope.pulse.domain !== "player") throw new Error("INCURSION_SUPPORT_HEALTH_DOMAIN_INVALID");
+    const plan = createItemRowMutationPlan(), ledgerKey = "__evejsIncursionLogisticsHealth", ledger = plan.items[ledgerKey] || {};
+    const current = normalizeInventoryItem(plan.items[String(request.targetID)]);
+    const result = support.healthCommit(request, ledger[request.sourceKey], snapshot => {
+      if (!current || Number(current.conditionState?.damage) >= 1 || current.categoryID !== SHIP_CATEGORY_ID || current.singleton !== 1 || current.ownerID !== snapshot.ownerID ||
+          current.typeID !== snapshot.typeID || current.locationID !== scope.instance.solarSystemID || current.flagID !== 0 ||
+          current.inventoryCustodyRevision !== snapshot.inventoryCustodyRevision || repo.isTransientPath(ITEMS_TABLE, `/${request.targetID}`)) return { skipped: true };
+      return calculate(current);
+    });
+    if (result.skipped) return { success: true, durable: true, skipped: true };
+    if (!result.duplicate) {
+      presentation.hold(request, scope.target, result.receipt.before); held = true;
+      plan.items[String(request.targetID)] = { ...current, conditionState: normalizeShipConditionState(result.receipt.after) };
+      plan.items[ledgerKey] = { ...ledger, [request.sourceKey]: result.state };
+      if (!plan.commit({ indexDelta: { upsertedIDs: [request.targetID] }, knownChangedPaths: [`/${ledgerKey}/${request.sourceKey}`] }))
+        throw new Error("INCURSION_SUPPORT_HEALTH_WRITE_FAILED");
+    }
+    accepted = true;
+    const flushed = repo.flushTableSync(ITEMS_TABLE);
+    if (flushed.success) presentation.release(request);
+    return { success: true, accepted, duplicate: result.duplicate, durable: flushed.success === true, pending: flushed.success !== true, receipt: result.receipt };
+  } catch (error) { return { success: accepted, accepted, pending: accepted, errorMsg: error.message }; }
+  finally { if (held && !accepted) presentation.release(request); }
+}
+
+function acknowledgeIncursionCombatOutcome(eventID) {
+  const key = require("./incursionCombatOutcomes").storageKey(eventID), plan = createItemRowMutationPlan();
+  const ledger = plan.items[INCURSION_COMBAT_OUTCOMES_KEY] || {}, receipt = ledger[key];
+  if (!receipt || receipt.event?.eventID !== eventID) return { success: false, errorMsg: "INCURSION_COMBAT_OUTCOME_NOT_FOUND" };
+  if (receipt.acknowledged !== true) {
+    plan.items[INCURSION_COMBAT_OUTCOMES_KEY] = { ...ledger, [key]: { ...receipt, acknowledged: true } };
+    if (!plan.commit({ indexDelta: { upsertedIDs: [] }, knownChangedPaths: [`/${INCURSION_COMBAT_OUTCOMES_KEY}/${key}`] }))
+      return { success: false, errorMsg: "INCURSION_COMBAT_ACK_FAILED" };
+  }
+  return flushCareerCombatOutcomes();
+}
+
+function getIncursionFactoryWithdrawal(productionKey) {
+  const { LEDGER } = require("./incursionFactoryCustody");
+  if (!/^incursion-mtac:[1-9][0-9]*:[1-9][0-9]*$/.test(productionKey || "")) return { success: false, errorMsg: "INCURSION_FACTORY_RECEIPT_KEY_INVALID" };
+  ensureMigrated();
+  const cached = readItems()[LEDGER]?.[productionKey] || null, flushed = repo.flushTableSync(ITEMS_TABLE);
+  if (!flushed?.success) return flushed;
+  const persisted = database.readPersisted(ITEMS_TABLE, `/${LEDGER}/${productionKey}`);
+  if (!persisted.success && persisted.errorMsg !== "ENTRY_NOT_FOUND") return persisted;
+  const durable = persisted.data || null;
+  if (!isDeepStrictEqual(cached, durable)) return { success: false, errorMsg: "INCURSION_FACTORY_WITHDRAWAL_AMBIGUOUS" };
+  return { success: true, durable: true, found: Boolean(durable), data: cloneValue(durable) };
+}
+
 module.exports = {
+  cloneDockedShipForCharacter,
+  getIncursionFactoryWithdrawal,
+  commitIncursionLogisticsRepair,
+  commitIncursionCombatOutcome,
+  acknowledgeIncursionCombatOutcome,
   getCareerCombatOutcome,
   commitCareerCombatOutcome,
   listPendingCareerCombatOutcomes,
@@ -8526,6 +9140,7 @@ module.exports = {
   findCharacterShipByType,
   isCapsuleTypeID,
   isStackableInventoryItem,
+  hasCharacterBoundContents,
   isBlueprintCopyInventoryItem,
   ensureCharacterActiveShipItem,
   getActiveShipItem,
@@ -8537,6 +9152,7 @@ module.exports = {
   grantItemsToOwnerLocationIdempotent,
   getIdempotentGrantReceipt,
   pruneIdempotentGrantReceipts,
+  retireIdempotentGrantReceipts,
   grantItemToCharacterStationHangar,
   grantItemsToCharacterStationHangar,
   createSpaceItemForCharacter,
@@ -8546,9 +9162,12 @@ module.exports = {
   takeItemTypeFromOwnerLocation,
   spawnShipInStationHangar,
   updateInventoryItem,
+  updateInventoryItemSuccessOnly,
   setPlasticWrapVolumeDurably,
   updateInventoryItemsAtomic,
   consumeInventoryItemStacksAtomic,
+  commitNativeSpawnItems,
+  listPendingNativeSpawnCompletions,
   restoreInventoryItemChangesAtomic,
   trashInventoryItemsMany,
   removeInventoryItem,

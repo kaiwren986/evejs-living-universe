@@ -29,8 +29,13 @@ function ensureSite(session, operationID) {
   const stored = current.encounter.sites?.[operationID];
   const result = ok(service().spawnTemplateForSession(session, template(operationID).templateID, {
     operationKey: `air:${current.runID}:encounter:${operationID}`, broadcast: false, spawnEncounters: false,
-    markCurrentDungeonRoom: false, position: stored?.position,
-    spawnOffsetMeters: (operationID === 2423 ? 3 : 4) * AU,
+    // On the pilot's own lane (operationSiteRuntime.pilotLanePosition). The fight site lies 1 AU
+    // from the rescue site in -x: a ship faces the way it warped, and the combat site's anomaly
+    // lies in -x from its entry (74 km), so the pilot lands facing it, as on TQ. At +4 AU the warp
+    // ran +x and the pilot landed with the anomaly behind.
+    markCurrentDungeonRoom: false,
+    position: stored?.position || require("../dungeon/operationSiteRuntime").pilotLanePosition(session, (operationID === 2423 ? 3 : 2) * AU),
+    spawnOffsetMeters: (operationID === 2423 ? 3 : 2) * AU,
   }));
   const site = result.data.instance;
   if (stored && stored.instanceID !== site.instanceID) throw graphError("AIR_ENCOUNTER_INSTANCE_STALE");
@@ -127,7 +132,7 @@ async function ensure(session, current, phase, root = null) {
     jobs.update(characterID, () => cloneValue(current));
   }
   current = jobs.state(characterID);
-  if (phase.graphID === 686 && current.encounter.combat?.deaths?.pod?.status === "complete") { await jobs.resume(characterID); return current; }
+  if (phase.graphID === 686 && current.encounter.combat?.deaths?.pod?.status === "complete") { await jobs.resume(characterID); await require("./airCombatRuntime").resumeAfterPodDeath(session); return current; }
   if (current.encounter.entry.status !== "complete") {
     if (!session._space) ok(require("../../space/transitions").undockSession(session));
     const scene = space().getSceneForSession(session), site = ensureSite(session, 2423);
@@ -159,17 +164,36 @@ async function ensure(session, current, phase, root = null) {
     }
     for (const [key, job] of Object.entries(current.encounter.jobs || {})) if (job.status === "complete" && key.startsWith("arrival:")) {
       const spec = companionSpecs().find(spec => spec.key === key.slice(8));
-      if (spec) ports().actors(scene, site, [phase.graphID === 686 ? { ...spec, positionOffset: template(2433).airEncounter.entryOffset } : spec]);
+      if (spec && !require("./airFleetBattle").hasCompletedDeparture(current, site.instanceID, spec.key)) {
+        ports().actors(scene, site, [phase.graphID === 686 ? { ...spec, positionOffset: template(2433).airEncounter.entryOffset } : spec]);
+      }
     }
   }
   if (phase.graphID === 685) handleBoarding(session);
-  if (phase.graphID === 686 && session._space) require("./airCombatRuntime").restore(session);
+  if (phase.graphID === 686 && session._space) {
+    require("./airCombatRuntime").restore(session);
+    ok(require("../career/careerExplorationSources").recordTutorialCombatArrival(session));
+  }
   await jobs.resume(characterID);
   return jobs.state(characterID);
 }
 function companionSpecs() {
   const content = template(2423).airEncounter;
   return [content.balin, ...content.escorts.map((spec, index) => ({ ...spec, key: `escort:${index}` }))];
+}
+function restoreEscort(session) {
+  const characterID = resolveSessionCharacterID(session), current = jobs.state(characterID);
+  if (current?.status !== "active" || current.phaseGraphID !== 686 || current.encounter?.fleetTransition?.status !== "complete" || current.encounter.combat?.deaths) return false;
+  let scope;
+  try { scope = scoped(session, 2433); } catch { return false; }
+  const { scene, site, entity } = scope;
+  if (entity.itemID !== current.encounter.boardingHullID || current.encounter.fleetTransition.destinationInstanceID !== site.instanceID) return false;
+  const balin = actor(scene, site, "balin");
+  if (!balin || balin.nativeNpc !== true || balin.airNpeOwnerCharacterID !== characterID || balin.airNpeInstanceID !== site.instanceID || balin.mode === "WARP" || scene.hasQueuedWarpOrder(balin)) return false;
+  const order = require("../../space/npc/npcService").getControllerByEntityID(balin.itemID)?.manualOrder;
+  if (order?.type === "follow" && Number(order.targetID) === entity.itemID && Number(order.followRangeMeters) === BALIN_ESCORT_RANGE_METERS && order.allowWeapons === false) return true;
+  ports().follow(scene, balin, entity, BALIN_ESCORT_RANGE_METERS);
+  return true;
 }
 function handleBoarding(session) {
   const characterID = resolveSessionCharacterID(session), current = jobs.state(characterID);
@@ -199,10 +223,17 @@ function evidence(session, task) {
     const current = jobs.state(characterID), hull = current.encounter.boardingHullID;
     if (["board_ship", "ship_hud"].includes(task)) return ship.itemID === hull;
     if (task === "start_repairing") {
-      const condition = inventory.getShipConditionState(ship);
-      return ship.itemID === hull && current.encounter.repairStarted && condition.armorDamage <= 0 && actor(scene, site, "balin")?.mode !== "WARP";
+      // Native graph 748 acknowledges approaching Balin once, while repairs
+      // are still running. Graph 749 owns the subsequent full-armour gate.
+      // Rejecting that one-shot acknowledgement strands the client in 748.
+      return ship.itemID === hull && current.encounter.repairStarted && actor(scene, site, "balin")?.mode !== "WARP";
     }
-    if (task === "balin_warping") return ship.itemID === hull && Boolean(current.encounter.repairStarted && actor(scene, site, "balin")) && companionSpecs().every(spec => current.encounter.jobs[`arrival:${spec.key}`]?.status === "complete" && actor(scene, site, spec.key)?.mode !== "WARP" && !scene.hasQueuedWarpOrder(actor(scene, site, spec.key)));
+    if (task === "balin_warping") {
+      // ShipHealth (client atom 172) rounds the armour fraction to a whole
+      // percentage. Shields are not part of graph 749's departure condition.
+      const armorPercent = Number((1 - inventory.getShipConditionState(ship).armorDamage).toFixed(2)) * 100;
+      return ship.itemID === hull && armorPercent === 100 && Boolean(current.encounter.repairStarted && actor(scene, site, "balin")) && companionSpecs().every(spec => current.encounter.jobs[`arrival:${spec.key}`]?.status === "complete" && actor(scene, site, spec.key)?.mode !== "WARP" && !scene.hasQueuedWarpOrder(actor(scene, site, spec.key)));
+    }
   } catch { return false; }
   return false;
 }
@@ -264,15 +295,33 @@ async function handleJob(session, key, job) {
     ports().fleetWarp(scene, session, companions, point, destination);
     jobs.update(characterID, value => { value.encounter.fleetTransition.status = "warping"; return value; });
     await jobs.enqueue(characterID, "fleet-arrival", 1000, { ...job, operationID: 2433, instanceID: destination.instanceID });
+    // Scene 1.2 starts now, while the fleet is in warp, not after landing. Its client graph
+    // switches off full stop / warp (command set 6) when it starts and switches them on again
+    // on "Dungeon Entered" for the combat site (9105); its first step waits for the warp to
+    // finish. Started after landing, the pilot is already in 9105: the switch-on runs before
+    // the switch-off and Stop stays disabled for the whole scene.
+    ok(characters.updateCharacterRecord(characterID, record => ({ ...record, serverNodeGraphCheckpoints: { ...record.serverNodeGraphCheckpoints, 49: 16 } })));
+    ok(require("../../gameStore").flushTableSync("characters"));
+    await callbacks.ensureForSession(session);
     return { success: true };
   }
   if (key === "fleet-arrival") {
     const point = offset(site.position, template(2433).airEncounter.entryOffset);
     if (entity.mode === "WARP" || scene.hasQueuedWarpOrder(entity) || entity.dungeonCurrentInstanceID !== site.instanceID || Math.hypot(entity.position.x - point.x, entity.position.y - point.y, entity.position.z - point.z) > 100000) return { success: true, retry: true };
     ports().scopeShip(entity, site, 2433);
+    // As on TQ, Balin moves with the pilot after landing, about 13 km off, well inside his
+    // repair range, so the frigate lesson, which waits for the pilot within 20 km of him,
+    // starts where the pilot is.
+    // He lands a tick after the pilot (fleetWarp); a follow order in warp would cut it short.
+    const balin = actor(scene, site, "balin");
+    if (balin && (balin.mode === "WARP" || scene.hasQueuedWarpOrder(balin))) return { success: true, retry: true };
+    if (balin) ports().follow(scene, balin, entity, BALIN_ESCORT_RANGE_METERS);
+    // As on TQ, some of the fleet lands burning (airFleetBattle).
+    require("./airFleetBattle").scar(scene, site);
     jobs.update(characterID, value => { value.encounter.fleetTransition.status = "complete"; return value; });
     ok(characters.updateCharacterRecord(characterID, record => ({ ...record, serverNodeGraphCheckpoints: { ...record.serverNodeGraphCheckpoints, 49: 16 } })));
     ok(require("../../gameStore").flushTableSync("characters"));
+    ok(require("../career/careerExplorationSources").recordTutorialCombatArrival(session));
     await callbacks.ensureForSession(session); return { success: true };
   }
   throw graphError("AIR_ENCOUNTER_JOB_UNKNOWN", key);
@@ -281,12 +330,43 @@ async function handleJob(session, key, job) {
 // Dungeon sites' fleetWarp passes no jitter, so the pilot's own warp goes
 // first, with warpJitter: null; fleetWarp then skips the ship already warping
 // and warps the companions.
+const BALIN_ESCORT_RANGE_METERS = 13000;
 function warpPilot(scene, session, point, destination) {
   const ship = scene.getShipEntityForSession(session);
   if (!ship || ship.mode === "WARP" || scene.hasQueuedWarpOrder(ship) ||
       Math.hypot(ship.position.x - point.x, ship.position.y - point.y, ship.position.z - point.z) <= 100000) return;
   const result = scene.warpToPoint(session, point, { destinationStaticInstanceID: destination.instanceID, destinationDungeonSiteID: destination.spawnState.siteID, stopDistance: 0, warpJitter: null });
   if (!result?.success) throw graphError("AIR_PLAYER_WARP_FAILED", result?.errorMsg);
+}
+// The pilot woke at the home station after the pod death: the rescue and combat sites and their
+// ships are done with, and go (the tutorial's jobs and state stay).
+function retireSites(characterID) {
+  const current = jobs.state(characterID);
+  if (!current?.encounter) return;
+  const scene = space().scenes.get(current.encounter.entry.systemID);
+  const instanceIDs = Object.values(current.encounter.sites || {}).map(site => site.instanceID);
+  if (scene) {
+    // What the fight left there goes with the sites: the NPCs' wrecks and the pilot's own wreck
+    // and corpse (each carries its site's scope). Left behind, a later pilot's site on the freed
+    // lane showed them.
+    for (const entity of scene.getDynamicEntities()) {
+      if (![186, 14].includes(Number(entity.groupID)) || ![entity.dungeonSiteInstanceID, entity.airNpeInstanceID].some(id => instanceIDs.includes(Number(id)))) continue;
+      const nativeWreck = require("../../space/npc/nativeNpcWreckService");
+      if (require("../../space/npc/nativeNpcStore").getNativeWreck(entity.itemID)) ok(nativeWreck.destroyNativeWreck(entity.itemID, { broadcast: true }));
+      else {
+        scene.removeDynamicEntity(entity.itemID, { allowSessionOwned: true, broadcast: true });
+        if (inventory.findItemById(entity.itemID)) ok(inventory.removeInventoryItem(entity.itemID, { removeContents: true }));
+      }
+    }
+    ports().retire(scene, characterID, instanceIDs);
+  }
+  ok(require("../../gameStore").flushTableSync("items"));
+  for (const operationID of [2423, 2433]) {
+    const site = siteFor(characterID, operationID);
+    if (site) ok(service().purgePrivateOperationForCharacter(characterID, site.instanceID, site.metadata.operationKey));
+    require("../dungeon/operationSiteRuntime").removeOperationSpawnpointRecord(characterID, operationID);
+  }
+  ok(require("../../gameStore").flushTableSync("dungeonRuntimeState"));
 }
 async function cleanup(characterID) {
   await jobs.cancel(characterID);
@@ -304,8 +384,8 @@ async function cleanup(characterID) {
   ok(require("../../gameStore").flushTableSync("dungeonRuntimeState"));
 }
 jobs.registerHandler(handleJob);
-module.exports = { ensure, prepareForSelection, blackboard, evidence, authorizeCommand, message, cleanup, siteFor, companionSpecs, handleBoarding,
-  scoped,
+module.exports = { ensure, prepareForSelection, blackboard, evidence, authorizeCommand, message, cleanup, retireSites, siteFor, companionSpecs, handleBoarding,
+  scoped, restoreEscort,
   async resumePending(session) {
     const characterID = resolveSessionCharacterID(session), current = jobs.state(characterID);
     await ensure(session, current, { graphID: 685 });

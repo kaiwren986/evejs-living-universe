@@ -1036,7 +1036,7 @@ function getAffiliationForCharacter(record, characterID) {
   if (!record || !numericCharacterID) {
     return "member";
   }
-  if (record.ownerCharacterID === numericCharacterID) {
+  if (record.ownerCharacterID === numericCharacterID || (record.ownerCharacterIDs || []).includes(numericCharacterID)) {
     return "owner";
   }
   if ((record.adminCharacterIDs || []).includes(numericCharacterID)) {
@@ -1048,7 +1048,17 @@ function getAffiliationForCharacter(record, characterID) {
   if (Object.prototype.hasOwnProperty.call(record.bannedCharacters || {}, String(numericCharacterID))) {
     return "outcast";
   }
-  return "member";
+  const session = sessionRegistry.findSessionByCharacterID(numericCharacterID) || { characterID: numericCharacterID };
+  return record.membersByDefault !== false || chatRuntime.isExplicitChannelMember(session, record) ? "member" : "none";
+}
+
+function getRoleForCharacter(record, characterID) {
+  if (!record) return "participant";
+  const session = sessionRegistry.findSessionByCharacterID(characterID) || { characterID };
+  if (record.mutedCharacters && record.mutedCharacters[String(characterID)]) return "visitor";
+  if (chatRuntime.isChannelAdmin(session, record)) return "moderator";
+  return record.membersByDefault === false && !chatRuntime.isExplicitChannelMember(session, record)
+    ? "visitor" : "participant";
 }
 
 function extractAdminItems(xml) {
@@ -1163,9 +1173,11 @@ function buildRoomConfigResultXml(client, roomJid, requestId, record) {
     "<field var='FORM_TYPE' type='hidden'><value>http://jabber.org/protocol/muc#roomconfig</value></field>",
     `<field var='muc#roomconfig_roomname'><value>${escapeXml(sanitizeRoomLabel(effectiveRecord && effectiveRecord.displayName, effectiveRecord && effectiveRecord.roomName || ""))}</value></field>`,
     `<field var='muc#roomconfig_roomdesc'><value>${escapeXml(effectiveRecord && effectiveRecord.topic || "")}</value></field>`,
-    `<field var='muc#roomconfig_passwordprotectedroom'><value>${passwordProtected ? "1" : "0"}</value></field>`,
+    `<field var='muc#roomconfig_passwordprotectedroom' type='boolean'><value>${passwordProtected ? "1" : "0"}</value></field>`,
     `<field var='muc#roomconfig_roomsecret'><value>${escapeXml(roomSecret)}</value></field>`,
-    `<field var='muc#roomconfig_membersonly'><value>${effectiveRecord && effectiveRecord.inviteOnly ? "1" : "0"}</value></field>`,
+    `<field var='muc#roomconfig_membersonly' type='boolean'><value>${effectiveRecord && effectiveRecord.inviteOnly ? "1" : "0"}</value></field>`,
+    `<field var='members_by_default' type='boolean'><value>${effectiveRecord && effectiveRecord.membersByDefault === false ? "0" : "1"}</value></field>`,
+    `<field var='muc#roomconfig_allowinvites' type='boolean'><value>${effectiveRecord && effectiveRecord.allowInvites === false ? "0" : "1"}</value></field>`,
     "<field var='muc#roomconfig_persistentroom'><value>1</value></field>",
     "</x>",
     "</query>",
@@ -1445,7 +1457,8 @@ function buildRoomPresenceXml(roomJid, charId, recipient, options = {}) {
   const nick = String(charId || "").trim() || "capsuleer";
   const userJid = buildXmppUserJid(nick);
   const requestId = nextMessageId();
-  const itemRole = available ? "participant" : "none";
+  const record = chatRuntime.getChannel(String(roomJid).split("@")[0]);
+  const itemRole = available ? getRoleForCharacter(record, charId) : "none";
   const affiliation = options.affiliation || "member";
   const presenceType = available ? "" : " type='unavailable'";
   const userDataXml = buildEveUserDataElement(userData);
@@ -1725,7 +1738,7 @@ function handleConferenceDiscoInfoIq(client, xml) {
   );
 }
 
-function buildRoomAdminResultXml(client, roomJid, requestId, requestedAffiliation = "") {
+function buildRoomAdminResultXml(client, roomJid, requestId, requestedAffiliation = "", requestedRole = "") {
   const normalizedRoomJid = normalizeRoomJid(roomJid, client);
   const descriptor = getRoomDescriptor(normalizedRoomJid, client);
   const session = findSessionForClient(client);
@@ -1735,14 +1748,26 @@ function buildRoomAdminResultXml(client, roomJid, requestId, requestedAffiliatio
     .toLowerCase();
   const items = [];
 
-  if (record) {
+  if (record && requestedRole) {
+    const candidates = dedupePositiveCharacterIDs([
+      ...chatRuntime.getActiveCharacterIDsForRoom(record.roomName),
+      ...Object.keys(record.mutedCharacters || {}),
+      record.ownerCharacterID, ...(record.ownerCharacterIDs || []),
+      ...(record.adminCharacterIDs || []), ...(record.operatorCharacterIDs || []),
+    ]);
+    for (const characterID of candidates) {
+      if (getRoleForCharacter(record, characterID) === requestedRole) {
+        items.push(`<item role='${escapeXml(requestedRole)}' jid='${escapeXml(buildXmppUserJid(characterID))}' nick='${characterID}'/>`);
+      }
+    }
+  } else if (record) {
     if (
-      record.ownerCharacterID &&
+      (record.ownerCharacterID || (record.ownerCharacterIDs || []).length) &&
       (!normalizedAffiliation || normalizedAffiliation === "owner")
     ) {
-      items.push(
-        `<item affiliation='owner' jid='${escapeXml(buildXmppUserJid(record.ownerCharacterID))}' nick='${escapeXml(record.ownerCharacterID)}'/>`,
-      );
+      for (const ownerID of dedupePositiveCharacterIDs([record.ownerCharacterID, ...(record.ownerCharacterIDs || [])])) {
+        items.push(`<item affiliation='owner' jid='${escapeXml(buildXmppUserJid(ownerID))}' nick='${ownerID}'/>`);
+      }
     }
     if (!normalizedAffiliation || normalizedAffiliation === "admin") {
       for (const adminCharacterID of dedupePositiveCharacterIDs([
@@ -1762,6 +1787,8 @@ function buildRoomAdminResultXml(client, roomJid, requestId, requestedAffiliatio
       for (const memberCharacterID of dedupePositiveCharacterIDs([
         ...(record.invitedCharacters || []),
         ...(record.allowCharacterIDs || []),
+        ...(record.allowCorporationIDs || []),
+        ...(record.allowAllianceIDs || []),
         ...(record.allowedParticipantCharacterIDs || []),
       ])) {
         items.push(
@@ -1771,7 +1798,7 @@ function buildRoomAdminResultXml(client, roomJid, requestId, requestedAffiliatio
     }
     if (!normalizedAffiliation || normalizedAffiliation === "outcast") {
       for (const characterID of dedupePositiveCharacterIDs(
-        Object.keys(record.bannedCharacters || {}),
+        [...Object.keys(record.bannedCharacters || {}), ...(record.denyCorporationIDs || []), ...(record.denyAllianceIDs || [])],
       )) {
         items.push(
           `<item affiliation='outcast' jid='${escapeXml(buildXmppUserJid(characterID))}' nick='${escapeXml(characterID)}'/>`,
@@ -2660,7 +2687,7 @@ function handleJoinPresence(client, xml) {
 
   sendXml(
     client,
-    `<presence from='${escapeXml(descriptor.normalizedRoomJid)}/${escapeXml(client.nick)}' to='${escapeXml(client.boundJid)}' id='${escapeXml(requestId)}'>${buildEveUserDataElement(userData)}<x xmlns='http://jabber.org/protocol/muc#user'><item affiliation='${escapeXml(getAffiliationForCharacter(roomRecord, charId))}' role='participant' jid='${escapeXml(client.boundJid)}'/><status code='110'/></x></presence>`,
+    `<presence from='${escapeXml(descriptor.normalizedRoomJid)}/${escapeXml(client.nick)}' to='${escapeXml(client.boundJid)}' id='${escapeXml(requestId)}'>${buildEveUserDataElement(userData)}<x xmlns='http://jabber.org/protocol/muc#user'><item affiliation='${escapeXml(getAffiliationForCharacter(roomRecord, charId))}' role='${escapeXml(getRoleForCharacter(roomRecord, charId))}' jid='${escapeXml(client.boundJid)}'/><status code='110'/></x></presence>`,
   );
 
   if (!descriptor.suppressPresenceBroadcast && charId) {
@@ -2818,6 +2845,7 @@ function handleGroupMessage(client, xml) {
   }
 
   if (inviteTargetJid && session && roomRecord) {
+    if (roomRecord.allowInvites === false && !chatRuntime.isChannelAdmin(session, roomRecord)) return;
     const targetCharacterId = parseCharacterId(inviteTargetJid.split("@")[0]);
     if (targetCharacterId) {
       chatRuntime.inviteCharacterToChannel(roomRecord.roomName, targetCharacterId);
@@ -2831,7 +2859,7 @@ function handleGroupMessage(client, xml) {
     return;
   }
 
-  if (subject && !body) {
+  if (/<subject\b/i.test(xml) && !body) {
     if (!session || !roomRecord || !chatRuntime.isChannelAdmin(session, roomRecord)) {
       sendSystemMessageToClient(
         client,
@@ -2965,15 +2993,71 @@ function handleRoomAdminIq(client, xml) {
       continue;
     }
 
+    // SetAffiliation's reason identifies a corporation/alliance ACL entry.
+    const groupKind = ["corporation", "alliance"].includes(item.reason) ? item.reason : "";
+    if (groupKind && ["member", "outcast", "none"].includes(item.affiliation)) {
+      const suffix = groupKind === "corporation" ? "CorporationIDs" : "AllianceIDs";
+      chatRuntime.updateChannel(record.roomName, (current) => ({ ...current,
+        [`allow${suffix}`]: dedupePositiveCharacterIDs([
+          ...(current[`allow${suffix}`] || []).filter((id) => id !== targetCharacterID),
+          ...(item.affiliation === "member" ? [targetCharacterID] : []),
+        ]),
+        [`deny${suffix}`]: dedupePositiveCharacterIDs([
+          ...(current[`deny${suffix}`] || []).filter((id) => id !== targetCharacterID),
+          ...(item.affiliation === "outcast" ? [targetCharacterID] : []),
+        ]),
+      }));
+      if (item.affiliation === "outcast") {
+        for (const roomClient of [...(roomMembers.get(roomJid) || [])]) {
+          const memberSession = findSessionForClient(roomClient);
+          const groupID = memberSession && (groupKind === "corporation"
+            ? memberSession.corporationID || memberSession.corpid : memberSession.allianceID || memberSession.allianceid);
+          if (Number(groupID) === targetCharacterID) {
+            removeClientFromRoom(roomJid, roomClient, { notifySelf: true, session: memberSession, charId: getClientCharacterId(roomClient) });
+          }
+        }
+      }
+      continue;
+    }
+
+    if (["owner", "admin"].includes(item.affiliation) && !chatRuntime.isChannelOwner(session, record)) {
+      sendXml(client, buildIqErrorXml(client, roomJid, requestId));
+      return;
+    }
+    if (chatRuntime.isChannelAdmin({ characterID: targetCharacterID }, record) &&
+        !chatRuntime.isChannelOwner(session, record)) {
+      sendXml(client, buildIqErrorXml(client, roomJid, requestId));
+      return;
+    }
+    const owners = dedupePositiveCharacterIDs([record.ownerCharacterID, ...(record.ownerCharacterIDs || [])]);
+    if (item.affiliation && item.affiliation !== "owner" && owners.includes(targetCharacterID)) {
+      if (owners.length === 1) {
+        sendXml(client, buildIqErrorXml(client, roomJid, requestId));
+        return;
+      }
+      chatRuntime.updateChannel(record.roomName, (current) => ({ ...current,
+        ownerCharacterID: current.ownerCharacterID === targetCharacterID ? owners.find((id) => id !== targetCharacterID) : current.ownerCharacterID,
+        ownerCharacterIDs: owners.filter((id) => id !== targetCharacterID),
+      }));
+    }
     if (item.affiliation === "owner") {
-      chatRuntime.setChannelOwner(record.roomName, targetCharacterID);
-      chatRuntime.grantChannelAdmin(record.roomName, targetCharacterID);
+      chatRuntime.updateChannel(record.roomName, (current) => ({ ...current,
+        ownerCharacterIDs: dedupePositiveCharacterIDs([...(current.ownerCharacterIDs || []), targetCharacterID]),
+      }));
     } else if (item.affiliation === "admin") {
       chatRuntime.grantChannelAdmin(record.roomName, targetCharacterID);
     } else if (item.affiliation === "member") {
+      chatRuntime.updateChannel(record.roomName, (current) => ({ ...current,
+        adminCharacterIDs: current.adminCharacterIDs.filter((id) => id !== targetCharacterID),
+        operatorCharacterIDs: current.operatorCharacterIDs.filter((id) => id !== targetCharacterID),
+      }));
       chatRuntime.inviteCharacterToChannel(record.roomName, targetCharacterID);
       chatRuntime.unbanChannelCharacter(record.roomName, targetCharacterID);
     } else if (item.affiliation === "outcast") {
+      chatRuntime.updateChannel(record.roomName, (current) => ({ ...current,
+        adminCharacterIDs: current.adminCharacterIDs.filter((id) => id !== targetCharacterID),
+        operatorCharacterIDs: current.operatorCharacterIDs.filter((id) => id !== targetCharacterID),
+      }));
       chatRuntime.banChannelCharacter(
         record.roomName,
         targetCharacterID,
@@ -2999,9 +3083,13 @@ function handleRoomAdminIq(client, xml) {
         const bannedCharacters = {
           ...(currentRecord.bannedCharacters || {}),
         };
-        delete bannedCharacters[String(targetCharacterID)];
+        if (!(bannedCharacters[String(targetCharacterID)] && bannedCharacters[String(targetCharacterID)].untilMs > Date.now())) {
+          delete bannedCharacters[String(targetCharacterID)];
+        }
         return {
           ...currentRecord,
+          ownerCharacterID: currentRecord.ownerCharacterID === targetCharacterID ? 0 : currentRecord.ownerCharacterID,
+          ownerCharacterIDs: (currentRecord.ownerCharacterIDs || []).filter((candidate) => candidate !== targetCharacterID),
           adminCharacterIDs: (currentRecord.adminCharacterIDs || []).filter(
             (candidate) => candidate !== targetCharacterID,
           ),
@@ -3023,6 +3111,11 @@ function handleRoomAdminIq(client, xml) {
       });
     }
 
+    if (item.role === "visitor") {
+      chatRuntime.muteChannelCharacter(record.roomName, targetCharacterID, 0, item.reason, actorCharacterID);
+    } else if (item.role === "participant") {
+      chatRuntime.unmuteChannelCharacter(record.roomName, targetCharacterID);
+    }
     if (item.role === "none") {
       for (const roomClient of connectedClients) {
         if (getClientCharacterId(roomClient) !== targetCharacterID) {
@@ -3062,6 +3155,11 @@ function handleRoomOwnerIq(client, xml) {
     return;
   }
 
+  if (!session || !(chatRuntime.isChannelOwner(session, record) ||
+      (record.type === "corp" && chatRuntime.isChannelAdmin(session, record)))) {
+    sendXml(client, buildIqErrorXml(client, roomJid, requestId));
+    return;
+  }
   const isSet = /\btype=['"]set['"]/i.test(xml);
   if (!isSet) {
     sendXml(client, buildRoomConfigResultXml(client, roomJid, requestId, record));
@@ -3139,16 +3237,58 @@ function handleRoomOwnerIq(client, xml) {
     ),
     passwordRequired: passwordProtected,
     password: nextPassword,
+    membersByDefault: parseBooleanFieldValue(fieldMap, "members_by_default", currentRecord.membersByDefault !== false),
+    allowInvites: parseBooleanFieldValue(fieldMap, "muc#roomconfig_allowinvites", currentRecord.allowInvites !== false),
   }));
 
   if (updatedRecord && updatedRecord.motd) {
     deliverRoomSubject(roomJid, updatedRecord.motd);
   }
 
+  for (const characterID of chatRuntime.getActiveCharacterIDsForRoom(record.roomName)) {
+    const memberSession = sessionRegistry.findSessionByCharacterID(characterID);
+    if (memberSession) refreshSessionChatRolePresence(memberSession);
+  }
+
   sendXml(client, `<iq type='result' id='${escapeXml(requestId)}' from='${escapeXml(roomJid)}' to='${escapeXml(client.boundJid)}'/>`);
 }
 
+function handleExpiringRestrictionIq(client, xml) {
+  const requestId = extractId(xml);
+  const roomJid = normalizeRoomJid(extractAttr(xml, "room"), client);
+  const session = findSessionForClient(client);
+  const record = getDescriptorRecord(getRoomDescriptor(roomJid, client), session);
+  const category = extractAttr(xml, "category");
+  const fromJid = getXmppDomain();
+  if (!record || !session || !chatRuntime.isChannelAdmin(session, record) || !["mute", "ban"].includes(category)) {
+    sendXml(client, buildIqErrorXml(client, fromJid, requestId));
+    return;
+  }
+  const characterID = parseCharacterId(extractAttr(xml, "jid").split("@")[0]);
+  const action = extractAttr(xml, "action");
+  const duration = Number(extractAttr(xml, "duration"));
+  if (!characterID || !["set", "delete"].includes(action) ||
+      (action === "set" && (!Number.isFinite(duration) || duration <= 0)) ||
+      (!chatRuntime.isChannelOwner(session, record) && chatRuntime.isChannelAdmin({ characterID }, record))) {
+    sendXml(client, buildIqErrorXml(client, fromJid, requestId));
+    return;
+  }
+  if (action === "set") {
+    const apply = category === "mute" ? chatRuntime.muteChannelCharacter : chatRuntime.banChannelCharacter;
+    const previous = (category === "mute" ? record.mutedCharacters : record.bannedCharacters)[String(characterID)];
+    apply(record.roomName, characterID, duration * 1000, previous && previous.reason || "", getCharacterIDForSession(session));
+  } else {
+    const remove = category === "mute" ? chatRuntime.unmuteChannelCharacter : chatRuntime.unbanChannelCharacter;
+    remove(record.roomName, characterID);
+  }
+  sendXml(client, `<iq type='result' id='${escapeXml(requestId)}' from='${escapeXml(fromJid)}' to='${escapeXml(client.boundJid)}'/>`);
+}
+
 function handleReadyIq(client, xml) {
+  if (xml.includes("xmlns='urn:xmpp:expiring_record'") || xml.includes('xmlns="urn:xmpp:expiring_record"')) {
+    handleExpiringRestrictionIq(client, xml);
+    return;
+  }
   if (xml.includes("urn:xmpp:ping")) {
     sendXml(client, `<iq type='result' id='${escapeXml(extractId(xml))}'/>`);
     return;
@@ -3181,6 +3321,7 @@ function handleReadyIq(client, xml) {
         extractAttr(xml, "to"),
         extractId(xml),
         extractRequestedAdminAffiliation(xml),
+        (extractAdminItems(xml)[0] || {}).role || "",
       ),
     );
     return;

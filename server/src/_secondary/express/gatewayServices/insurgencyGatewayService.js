@@ -46,15 +46,25 @@ function getPublicSuppressionSystemInfo(_systemID = 0) {
   return buildSystemInfo(0);
 }
 
+// The client counts a system as fully corrupted when its stage reaches
+// len(thresholds) - 1 (corruptionSuppressionSvc.IsCurrentSystemFullyCorrupted),
+// and a fully corrupted highsec system has no CONCORD response
+// (corruptionsuppression/systemEffects.DoesConcordReact). An empty list made
+// every system "fully corrupted" at stage 0, so attacking a player's Customs
+// Office in 0.95 Perimeter gave no criminal flag (real client, 2026-11-07).
+// TQ has five stages (stage 5 is max corruption; station.py divides by at least
+// five); no capture gives the exact fractions, so they are equal fifths.
+const STAGE_THRESHOLDS = [1, 2, 3, 4, 5].map((stage) => buildFraction(stage, 5));
+
 function getPublicCorruptionStageThresholds() {
   return {
-    thresholds: [],
+    thresholds: STAGE_THRESHOLDS.map((fraction) => ({ ...fraction })),
   };
 }
 
 function getPublicSuppressionStageThresholds() {
   return {
-    thresholds: [],
+    thresholds: STAGE_THRESHOLDS.map((fraction) => ({ ...fraction })),
   };
 }
 

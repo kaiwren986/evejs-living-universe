@@ -1,5 +1,7 @@
 "use strict";
 
+const { WARP_TRANSMISSION_RECEIPT } = require("../../destiny/commands/warpTransmissionReceipt");
+
 // The scene's Evolve (three passes, two slots): the evolve phase of every
 // Destiny tick (runtime/destinyTick.js).
 // The engine is destiny/simulation/evolve.js; this table hands it the scene's
@@ -170,6 +172,8 @@ evolveDestinyTick(frame) {
     park.onWarpActivated = (ball) => this.handleWarpActivated(ball, frame);
     park.onWarpDropped = (ball, details) => this.handleWarpDropped(ball, frame, details);
     const result = evolveEngine.evolve(park);
+    this.startPendingCompanionWarps();
+    this.sendDueMidWarpTransmissions(park.balls, now);
     // A ship Evolve moved is saved at most once an interval, until it has
     // been saved at rest. One that has not moved since is not rewritten (main
     // saved from its tick only a ship whose movement changed).
@@ -191,6 +195,21 @@ evolveDestinyTick(frame) {
       }
     }
     return result;
+  },
+
+// A pilot's message armed for the middle of its warp into a dungeon room
+// (handleWarpActivated), once that time has come.
+sendDueMidWarpTransmissions(balls, now) {
+    let tracking = null;
+    for (const entity of balls) {
+      if (entity.kind !== "ship" || !entity.session) continue;
+      try {
+        tracking = tracking || lazyRequire("../services/dungeon/dungeonTrackingRuntime");
+        if (tracking.hasPendingMidWarpTransmission(entity)) tracking.sendDueMidWarpTransmission(entity, now);
+      } catch (error) {
+        log.warn(`[SpaceRuntime] Dungeon mid-warp message failed for system=${this.systemID}: ${error.message}`);
+      }
+    }
   },
 
 // BringOutTheDeads: every Ball that went moribund inside Evolve and whose
@@ -398,6 +417,32 @@ removeMissileWithoutHit(missileBall, details = {}, nowMs) {
     });
   },
 
+// After an Evolve: a ship that enters warp in the next tick (aligned, by the slot that tick
+// reads) takes the companions told to warp with it (the AIR rescue fleet) along: they get
+// their warp orders for that tick, aligned, and enter warp in the same tick on the same curve.
+startPendingCompanionWarps() {
+    if (!(this.pendingCompanionWarpShips instanceof Set)) {
+      return;
+    }
+    for (const entity of [...this.pendingCompanionWarpShips]) {
+      if (!entity.pendingCompanionWarp || this.getEntityByID(entity.itemID) !== entity) {
+        this.pendingCompanionWarpShips.delete(entity);
+        continue;
+      }
+      if (!evolveEngine.isAlignedForWarp(entity)) {
+        continue;
+      }
+      this.pendingCompanionWarpShips.delete(entity);
+      const pending = entity.pendingCompanionWarp;
+      delete entity.pendingCompanionWarp;
+      try {
+        lazyRequire("../services/dungeon/dungeonUniverseSiteService").airEncounterPorts.warpCompanionsAligned(this, entity, pending);
+      } catch (error) {
+        log.warn(`[SpaceRuntime] Companion warp failed for system=${this.systemID}: ${error.message}`);
+      }
+    }
+  },
+
 // A ship entered warp in this tick's Evolve.
 handleWarpActivated(entity, frame) {
     const now = toFiniteNumber(frame && frame.simTimeMs, this.getCurrentSimTimeMs());
@@ -416,6 +461,27 @@ handleWarpActivated(entity, frame) {
       }
     } catch (error) {
       log.warn(`[SpaceRuntime] Hacking warp-start cleanup failed for system=${this.systemID}: ${error.message}`);
+    }
+    if (entity.session) {
+      try {
+        // The middle of this warp: half its flight time (Ballpark::SetupWarpConstants).
+        const warp = evolveEngine.setupWarpConstants(entity.warpFactor, entity.warpDistance);
+        const midWarpAtMs = now + ((warp.accelTime + Math.max(0, warp.cruiseTime) + warp.decelTime) * 500);
+        lazyRequire("../services/dungeon/dungeonTrackingRuntime").armMidWarpTransmission(this, entity, destination, midWarpAtMs);
+      } catch (error) {
+        log.warn(`[SpaceRuntime] Dungeon mid-warp message failed for system=${this.systemID}: ${error.message}`);
+      }
+    }
+    // Companions told to warp with this ship (the AIR rescue fleet) normally entered warp in the
+    // same tick (startPendingCompanionWarps); one still pending warps in now, a tick behind.
+    if (entity.pendingCompanionWarp) {
+      const pending = entity.pendingCompanionWarp;
+      delete entity.pendingCompanionWarp;
+      try {
+        lazyRequire("../services/dungeon/dungeonUniverseSiteService").airEncounterPorts.warpCompanions(this, entity, pending);
+      } catch (error) {
+        log.warn(`[SpaceRuntime] Companion warp failed for system=${this.systemID}: ${error.message}`);
+      }
     }
     // Nothing is sent here: the warp is the WarpTo every Observer already
     // has, and its effects.Warping went with the order (TQ sends one per
@@ -436,6 +502,7 @@ commitWarpLandingDungeonContext(entity, destination, nowMs) {
         destinationStaticInstanceID: destination.destinationStaticInstanceID ?? null,
         destinationDungeonRoomKey: destination.destinationDungeonRoomKey || null,
         destinationDungeonSiteID: destination.destinationDungeonSiteID ?? null,
+        [WARP_TRANSMISSION_RECEIPT]: destination[WARP_TRANSMISSION_RECEIPT],
         nowMs,
         roomPosition: entity.position,
       });
@@ -453,6 +520,9 @@ handleWarpDropped(entity, frame, details = {}) {
     const output = this.getDestinyTickOutput();
     const destination = readWarpDestination(entity);
     entity.warpDestination = null;
+    // Native NPC initial ingress has a landing fallback for cold recovery;
+    // once the Ball lands, subsequent AI warps must persist their own pose.
+    delete entity.nativeNpcInitialWarpLanding;
     // INTERIM: until Collision handling in Evolve. Every
     // INTERIM: client's Destiny makes the ship massive at its drop
     // INTERIM: (carbon-destiny v2.1.1 Ballpark.cpp L4334, L4359), and
@@ -468,6 +538,12 @@ handleWarpDropped(entity, frame, details = {}) {
     }
     require("../destinyMovementEngine").recordCharacterWarpCompleted(entity.session);
     if (entity.session && isReadyForDestiny(entity.session)) {
+      // A warp too short for its mid-warp message's tick: it goes before the landing's.
+      try {
+        lazyRequire("../services/dungeon/dungeonTrackingRuntime").sendDueMidWarpTransmission(entity, now, { landing: true });
+      } catch (error) {
+        log.warn(`[SpaceRuntime] Dungeon mid-warp message failed for system=${this.systemID}: ${error.message}`);
+      }
       this.commitWarpLandingDungeonContext(entity, destination, now);
       output.beltRatArrivalEvents.push({
         session: entity.session,

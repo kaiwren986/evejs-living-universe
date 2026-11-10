@@ -53,6 +53,17 @@ function resolveDirectWorldTransportDestination(locationID, dependencies = {}) {
           structure.solarSystemID,
         )
         : null;
+    const label =
+      (pointAnchor && pointAnchor.label) ||
+      structure.itemName ||
+      structure.name ||
+      `structure ${numericLocationID}`;
+    // A structure nobody docks at (a Sovereignty Hub, a FLEX structure) is a
+    // place in space: docking a session there left the client with a
+    // structureid and no ballpark (real client, WUZ-WM, 2026-11-07).
+    if (structure.dockable === false && pointAnchor) {
+      return { ...pointAnchor, label };
+    }
     return {
       ...(pointAnchor || {}),
       kind: "structure",

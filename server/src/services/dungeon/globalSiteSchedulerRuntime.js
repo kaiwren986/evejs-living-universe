@@ -58,6 +58,36 @@ function normalizeBoundary(boundary) {
   return { boundaryAtMs, instanceID, phase };
 }
 
+function lifecycleBoundaryStateKey(instance) {
+  if (!isUniversePersistentInstance(instance)) return null;
+  const lifecycle = String(instance.lifecycleState || "").toLowerCase();
+  const timers = instance.timers || {};
+  const active = ["seeded", "active", "paused"].includes(lifecycle);
+  const delayedRespawn = !active &&
+    String(instance.siteOrigin || "").toLowerCase() === "generatedmining" &&
+    String(instance.lifecycleReason || "").toLowerCase() === "depleted";
+  const phase = active ? "expiry" : delayedRespawn ? "respawn" : "rotation";
+  const transitionAtMs = lifecycle === "completed" ? timers.completedAtMs
+    : lifecycle === "failed" ? timers.failedAtMs : timers.despawnAtMs;
+  const boundaryAtMs = active ? timers.expiresAtMs : delayedRespawn
+    ? timers.expiresAtMs || timers.completedAtMs || timers.lastUpdatedAtMs || timers.createdAtMs
+    : transitionAtMs || timers.lastUpdatedAtMs || timers.createdAtMs;
+  return JSON.stringify([
+    toInt(instance.instanceID, 0), toInt(instance.solarSystemID, 0), phase, toInt(boundaryAtMs, 0),
+  ]);
+}
+
+function earliestBoundary(boundaries) {
+  let earliest = null;
+  for (const boundary of boundaries) {
+    const candidate = normalizeBoundary(boundary);
+    if (candidate && (!earliest || candidate.boundaryAtMs < earliest.boundaryAtMs || (
+      candidate.boundaryAtMs === earliest.boundaryAtMs && candidate.instanceID < earliest.instanceID
+    ))) earliest = candidate;
+  }
+  return earliest;
+}
+
 function buildJobFromBoundary(boundary) {
   const normalized = normalizeBoundary(boundary);
   if (!normalized) {
@@ -93,6 +123,8 @@ function createGlobalSiteSchedulerRuntime(options = {}) {
   let instanceChangeReconciliationScheduled = false;
   let instanceChangeReconciliationImmediate = null;
   let instanceChangeReconciliationInFlight = null;
+  let boundariesBySystem = null;
+  const dirtyBoundarySystemIDs = new Set();
   const activeJobIDs = new Set();
 
   function flushOwnerState() {
@@ -104,9 +136,43 @@ function createGlobalSiteSchedulerRuntime(options = {}) {
   }
 
   function getCurrentBoundary(nowMs = Date.now(), options = {}) {
-    return normalizeBoundary(
-      dungeonUniverseRuntime.getUniversePersistentLifecycleBoundary(nowMs, options),
-    );
+    const readBoundaries = dungeonUniverseRuntime.getUniversePersistentLifecycleBoundariesBySystem;
+    if (typeof readBoundaries !== "function") {
+      return normalizeBoundary(dungeonUniverseRuntime.getUniversePersistentLifecycleBoundary(nowMs, options));
+    }
+    if (Array.isArray(options.systemIDs)) {
+      return earliestBoundary(readBoundaries.call(dungeonUniverseRuntime, nowMs, options));
+    }
+    // Initialize once from scalar owner projections. Later changes refresh only
+    // their systems; reducing this dictionary never copies an instance payload.
+    const dirtySystems = [...dirtyBoundarySystemIDs];
+    for (const systemID of dirtySystems) dirtyBoundarySystemIDs.delete(systemID);
+    try {
+      if (!boundariesBySystem) {
+        const entries = readBoundaries.call(dungeonUniverseRuntime, nowMs);
+        boundariesBySystem = new Map(entries.map((entry) => [Number(entry.solarSystemID), entry]));
+      } else if (dirtySystems.length > 0) {
+        const entries = readBoundaries.call(dungeonUniverseRuntime, nowMs, { systemIDs: dirtySystems });
+        for (const systemID of dirtySystems) boundariesBySystem.delete(systemID);
+        for (const entry of entries) boundariesBySystem.set(Number(entry.solarSystemID), entry);
+      }
+    } catch (error) {
+      for (const systemID of dirtySystems) dirtyBoundarySystemIDs.add(systemID);
+      throw error;
+    }
+    return earliestBoundary(boundariesBySystem.values());
+  }
+
+  function invalidateBoundarySystems(systemIDs) {
+    if (!Array.isArray(systemIDs)) {
+      boundariesBySystem = null;
+      dirtyBoundarySystemIDs.clear();
+      return;
+    }
+    for (const systemID of systemIDs) {
+      const numericSystemID = Math.max(0, toInt(systemID, 0));
+      if (numericSystemID > 0) dirtyBoundarySystemIDs.add(numericSystemID);
+    }
   }
 
   function buildDurableGlobalSiteLifecycleJob(nowMs = Date.now()) {
@@ -118,12 +184,15 @@ function createGlobalSiteSchedulerRuntime(options = {}) {
     if (!scheduler) {
       return { scheduled: 0 };
     }
+    const generation = durableSchedulerGeneration;
+    const isCurrent = () => scheduler === durableScheduler && generation === durableSchedulerGeneration;
     const nowMs = Math.max(0, toInt(options.nowMs, Date.now()));
     const runningJobID = String(options.runningJobID || "");
     const nextJob = buildDurableGlobalSiteLifecycleJob(nowMs);
     let existingJobs = [];
     if (options.scanExisting === true && typeof scheduler.list === "function") {
       const listed = await scheduler.list();
+      if (!isCurrent()) return { scheduled: 0, stale: true };
       existingJobs = Array.isArray(listed)
         ? listed.filter((job) => job && job.type === DURABLE_LIFECYCLE_JOB_TYPE)
         : [];
@@ -143,6 +212,7 @@ function createGlobalSiteSchedulerRuntime(options = {}) {
           !activeJobIDs.has(jobID)
         ) {
           await scheduler.cancel(jobID);
+          if (!isCurrent()) return { scheduled: 0, stale: true };
         }
       }
       return { scheduled: 0 };
@@ -180,6 +250,7 @@ function createGlobalSiteSchedulerRuntime(options = {}) {
       )
     ) {
       await scheduler.schedule(nextJob);
+      if (!isCurrent()) return { scheduled: 0, stale: true };
     }
     currentJobID = nextJob.jobID;
 
@@ -195,6 +266,7 @@ function createGlobalSiteSchedulerRuntime(options = {}) {
         !activeJobIDs.has(jobID)
       ) {
         await scheduler.cancel(jobID);
+        if (!isCurrent()) return { scheduled: 0, stale: true };
       }
     }
     return {
@@ -215,6 +287,13 @@ function createGlobalSiteSchedulerRuntime(options = {}) {
   function queueDurableGlobalSiteReconciliation(options = {}) {
     if (!durableScheduler) {
       return Promise.resolve({ scheduled: 0 });
+    }
+    if (Array.isArray(options.systemIDs)) {
+      // An explicit empty scope adds no dirty systems; it never means all.
+      invalidateBoundarySystems(options.systemIDs);
+    } else if (options.absorbInstanceChanges !== false || options.scanExisting === true) {
+      // Unscoped explicit/startup reconciliation also rechecks scene grid holds.
+      invalidateBoundarySystems();
     }
     if (options.absorbInstanceChanges !== false) {
       absorbPendingInstanceChangeReconciliation();
@@ -296,12 +375,14 @@ function createGlobalSiteSchedulerRuntime(options = {}) {
   }
 
   function handleInstanceChange(change) {
-    if (!(
-      isUniversePersistentInstance(change && change.before) ||
-      isUniversePersistentInstance(change && change.after)
-    )) {
+    const before = change && change.before;
+    const after = change && change.after;
+    if (lifecycleBoundaryStateKey(before) === lifecycleBoundaryStateKey(after)) {
       return;
     }
+    const systemIDs = [before && before.solarSystemID, after && after.solarSystemID]
+      .map((systemID) => Math.max(0, toInt(systemID, 0))).filter(Boolean);
+    invalidateBoundarySystems(systemIDs.length > 0 ? systemIDs : undefined);
     queueInstanceChangeReconciliation();
   }
 
@@ -325,6 +406,7 @@ function createGlobalSiteSchedulerRuntime(options = {}) {
     currentJobID = null;
     reconciliationLane = Promise.resolve();
     resetInstanceChangeReconciliation();
+    invalidateBoundarySystems();
     activeJobIDs.clear();
     registeredInstanceChangeListener = handleInstanceChange;
     dungeonRuntime.registerInstanceChangeListener(
@@ -348,6 +430,7 @@ function createGlobalSiteSchedulerRuntime(options = {}) {
     currentJobID = null;
     reconciliationLane = Promise.resolve();
     resetInstanceChangeReconciliation();
+    invalidateBoundarySystems();
     activeJobIDs.clear();
     return true;
   }
@@ -363,6 +446,7 @@ function createGlobalSiteSchedulerRuntime(options = {}) {
     if (!durableScheduler) {
       throw new Error("global-site scheduler is not bound");
     }
+    const generation = durableSchedulerGeneration;
     const jobID = String(job && job.jobID || "");
     const expectedJob = buildJobFromBoundary(job && job.payload);
     if (!jobID || !expectedJob || expectedJob.jobID !== jobID) {
@@ -411,6 +495,7 @@ function createGlobalSiteSchedulerRuntime(options = {}) {
         nowMs,
         runningJobID: jobID,
         scanExisting: false,
+        systemIDs: [boundarySystemID],
       });
 
       const remainingBoundary = getCurrentBoundary(nowMs, {
@@ -433,7 +518,7 @@ function createGlobalSiteSchedulerRuntime(options = {}) {
         stale: false,
       };
     } finally {
-      activeJobIDs.delete(jobID);
+      if (generation === durableSchedulerGeneration) activeJobIDs.delete(jobID);
     }
   }
 

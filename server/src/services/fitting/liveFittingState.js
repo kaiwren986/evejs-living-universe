@@ -19,6 +19,7 @@ const {
 } = require(path.join(__dirname, "../inventory/itemStore"));
 const {
   listContainerItems,
+  findItemById,
 } = require(path.join(__dirname, "../inventory/simulationInventoryProjection"));
 const {
   getCachedCharacterSkillMap,
@@ -49,6 +50,7 @@ const {
 } = require(path.join(__dirname, "hullBonusSkillAuthority"));
 
 const CHARGE_CATEGORY_ID = 8;
+const SHIP_CATEGORY_ID = 6;
 const STRUCTURE_CATEGORY_ID = 65;
 const STRUCTURE_MODULE_CATEGORY_ID = 66;
 const FIGHTER_CATEGORY_ID = 87;
@@ -108,6 +110,7 @@ const DEFAULT_MODULE_STATE = Object.freeze({
   incapacitated: false,
 });
 const DYNAMIC_ITEM_CUSTOM_INFO_KEY = "evejsDynamicItem";
+const { getAttributeOverrides: getGmDogmaOverrides, hasItemOverrides } = require("../dogma/gmDogmaOverrides");
 
 let cachedDogmaLookups = null;
 let cachedNormalizedTypeAttributeMaps = null;
@@ -596,6 +599,16 @@ function readShipBaseAttributes(shipTypeID) {
   return getTypeDogmaAttributes(numericTypeID);
 }
 
+function readShipFittingBaseAttributes(shipTypeID, shipID) {
+  const attributes = readShipBaseAttributes(shipTypeID);
+  // Ordinary fitting reads retain the static-map fast path. Only a ship with
+  // a live staff edit needs an inventory identity check and a detached map.
+  if (!hasItemOverrides(shipID)) return attributes;
+  const item = findItemById(shipID);
+  if (!item || toInt(item.typeID, 0) !== toInt(shipTypeID, 0)) return attributes;
+  return { ...attributes, ...getGmDogmaOverrides(item) };
+}
+
 function getShipBaseAttributeValue(shipTypeID, ...names) {
   const attributes = readShipBaseAttributes(shipTypeID);
   for (const name of names) {
@@ -614,7 +627,7 @@ function getShipBaseAttributeValue(shipTypeID, ...names) {
 }
 
 function getShipSlotCounts(shipTypeID, fittedItems = [], shipID = 0) {
-  const attributes = readShipBaseAttributes(shipTypeID);
+  const attributes = readShipFittingBaseAttributes(shipTypeID, shipID);
   const lowSlotsID = getAttributeIDByNames("lowSlots");
   const medSlotsID = getAttributeIDByNames("medSlots");
   const hiSlotsID = getAttributeIDByNames("hiSlots");
@@ -652,6 +665,11 @@ function getShipSlotCounts(shipTypeID, fittedItems = [], shipID = 0) {
   };
 }
 
+function getShipRigSlotCapacity(shipTypeID, shipID = 0) {
+  const attributes = readShipFittingBaseAttributes(shipTypeID, shipID);
+  return Math.max(0, toInt(attributes[1154] ?? attributes[1137], 0));
+}
+
 function getSlotFlagsForFamily(
   family,
   shipTypeID = null,
@@ -673,10 +691,23 @@ function getSlotFlagsForFamily(
 
   const slotCounts = getShipSlotCounts(shipTypeID, fittedItems, shipID);
   const limit = toInt(slotCounts[family], 0);
-  if (isStrategicCruiserType(shipTypeID)) {
-    return baseFlags.slice(0, Math.max(0, limit));
+  if (limit > 0) {
+    return baseFlags.slice(0, limit);
   }
-  return limit > 0 ? baseFlags.slice(0, limit) : [...baseFlags];
+  if (isStrategicCruiserType(shipTypeID)) {
+    return [];
+  }
+  if (family === "rig") {
+    return [];
+  }
+  if (family === "high" || family === "med" || family === "low") {
+    const categoryID = resolveItemByTypeID(shipTypeID)?.categoryID;
+    if (categoryID === SHIP_CATEGORY_ID || categoryID === STRUCTURE_CATEGORY_ID) {
+      return [];
+    }
+  }
+  // NPC entity types can omit rack counts and still have authored loadouts.
+  return [...baseFlags];
 }
 
 function sortFittedItems(left, right) {
@@ -1016,6 +1047,21 @@ function countMatchingFittedItems(fittedItems, predicate, excludeItemID = null) 
   }).length;
 }
 
+// Native fitting.py subtracts the module's "slots" attribute, including for
+// offline modules. This is independent of CPU, powergrid and calibration.
+function getItemEffectSlotUsage(item, effectName) {
+  return item && typeHasEffectName(item.typeID, effectName)
+    ? Math.max(0, toInt(getEffectiveItemAttributeValue(item, "slots"), 1)) : 0;
+}
+
+function getFittedEffectSlotsUsed(fittedItems, effectName, excludeItemID = 0) {
+  return (Array.isArray(fittedItems) ? fittedItems : []).reduce((used, item) =>
+    item && isFittedModuleItem(item) && toInt(item.itemID, 0) !== excludeItemID &&
+      typeHasEffectName(item.typeID, effectName)
+      ? used + getItemEffectSlotUsage(item, effectName)
+      : used, 0);
+}
+
 const ATTRIBUTE_CPU_OUTPUT = getAttributeIDByNames("cpuOutput") || 48;
 const ATTRIBUTE_POWER_OUTPUT = getAttributeIDByNames("powerOutput") || 11;
 const ATTRIBUTE_CPU_LOAD = getAttributeIDByNames("cpuLoad") || 49;
@@ -1038,7 +1084,6 @@ const ATTRIBUTE_MAX_LOCKED_TARGETS =
 const ATTRIBUTE_SIGNATURE_RADIUS = getAttributeIDByNames("signatureRadius") || 552;
 const ATTRIBUTE_CLOAKING_TARGETING_DELAY =
   getAttributeIDByNames("cloakingTargetingDelay") || 560;
-const PROPULSION_SKILL_ACCELERATION_CONTROL = 3452;
 const PROPULSION_EFFECT_AFTERBURNER = "modulebonusafterburner";
 const PROPULSION_EFFECT_MICROWARPDRIVE = "modulebonusmicrowarpdrive";
 const ATTRIBUTE_SCAN_RESOLUTION =
@@ -1150,12 +1195,13 @@ function getAttributeTypeRecord(attributeID) {
 
 function getShipHardpointCounts(shipTypeID, fittedItems = [], shipID = 0) {
   const numericShipTypeID = toInt(shipTypeID, 0);
+  const attributes = readShipFittingBaseAttributes(numericShipTypeID, shipID);
   let turret = toInt(
-    getShipBaseAttributeValue(numericShipTypeID, "turretSlotsLeft"),
+    attributes[ATTRIBUTE_TURRET_SLOTS_LEFT],
     0,
   );
   let launcher = toInt(
-    getShipBaseAttributeValue(numericShipTypeID, "launcherSlotsLeft"),
+    attributes[ATTRIBUTE_LAUNCHER_SLOTS_LEFT],
     0,
   );
   if (isStrategicCruiserType(numericShipTypeID)) {
@@ -1238,13 +1284,13 @@ function getStrategicCruiserUseStatus(charID, shipItem, fittedItems = []) {
     fittedItems,
     shipID,
   );
-  const usedTurrets = countMatchingFittedItems(
+  const usedTurrets = getFittedEffectSlotsUsed(
     fittedItems,
-    itemConsumesTurretHardpoint,
+    "turretFitted",
   );
-  const usedLaunchers = countMatchingFittedItems(
+  const usedLaunchers = getFittedEffectSlotsUsed(
     fittedItems,
-    itemConsumesLauncherHardpoint,
+    "launcherFitted",
   );
   const resourceState = buildShipResourceState(charID, shipItem, {
     fittedItems,
@@ -2659,7 +2705,7 @@ function buildEffectiveFittedModuleAttributeMap(
       modifierEntries,
       buildPassiveModuleAttributeMap(shipItem, sourceItem, skillMap, options),
       passiveSourceEffects,
-      "fittedModule",
+      toInt(sourceItem.categoryID, 0) === 32 ? "subsystem" : "fittedModule",
       moduleItem,
     );
   }
@@ -2877,7 +2923,7 @@ function collectPassiveShipAttributeModifiers(fittedItems = [], options = {}) {
           locationModifierEntries,
           locationSourceAttributes(source),
           source.effectRecords,
-          "fittedModule",
+          toInt(source.item.categoryID, 0) === 32 ? "subsystem" : "fittedModule",
           item,
         );
       }
@@ -2894,7 +2940,7 @@ function collectPassiveShipAttributeModifiers(fittedItems = [], options = {}) {
         )
         : sourceAttributes,
       passiveSourceEffects,
-      "fittedModule",
+      toInt(item.categoryID, 0) === 32 ? "subsystem" : "fittedModule",
       // Honour a fitted module's charID-domain effect on an allow-listed
       // attribute (droneControlDistance 458): drone-control-range modules and
       // rigs raise the pilot's drone control range through charID, exactly like
@@ -2906,24 +2952,7 @@ function collectPassiveShipAttributeModifiers(fittedItems = [], options = {}) {
   return modifiers;
 }
 
-function getSkillLevel(skillMap, skillTypeID) {
-  const skill = skillMap instanceof Map ? skillMap.get(toInt(skillTypeID, 0)) : null;
-  if (!skill) {
-    return 0;
-  }
-
-  return Math.max(
-    0,
-    toInt(
-      skill.effectiveSkillLevel ??
-        skill.trainedSkillLevel ??
-        skill.skillLevel,
-      0,
-    ),
-  );
-}
-
-function resolveAssumedActivePropulsionEffectState(moduleItem, skillMap = new Map()) {
+function resolveAssumedActivePropulsionEffectState(moduleItem, skillMap = new Map(), options = {}) {
   if (!moduleItem || !isEffectivelyOnlineModule(moduleItem)) {
     return null;
   }
@@ -2937,17 +2966,17 @@ function resolveAssumedActivePropulsionEffectState(moduleItem, skillMap = new Ma
     return null;
   }
 
-  const accelerationControlLevel = getSkillLevel(
+  const moduleAttributes = buildEffectiveFittedModuleAttributeMap(
+    options.shipItem,
+    moduleItem,
     skillMap,
-    PROPULSION_SKILL_ACCELERATION_CONTROL,
+    options.fittedItems,
+    options,
   );
-  const moduleAttributes = buildEffectiveItemAttributeMap(moduleItem);
-  const speedFactorBase = toFiniteNumber(
+  const speedFactor = toFiniteNumber(
     moduleAttributes[ATTRIBUTE_SPEED_FACTOR],
     0,
   );
-  const speedFactor =
-    speedFactorBase * (1 + ((5 * accelerationControlLevel) / 100));
   const speedBoostFactor = toFiniteNumber(
     moduleAttributes[ATTRIBUTE_SPEED_BOOST_FACTOR],
     0,
@@ -2969,7 +2998,32 @@ function resolveAssumedActivePropulsionEffectState(moduleItem, skillMap = new Ma
   };
 }
 
-function applyAssumedActivePropulsionEffect(attributes, effectState) {
+function buildPropulsionSignatureModifier(effectState) {
+  return {
+    modifiedAttributeID: ATTRIBUTE_SIGNATURE_RADIUS,
+    operation: DOGMA_OP_POST_PERCENT,
+    value: toFiniteNumber(effectState && effectState.signatureRadiusBonus, 0),
+    stackingPenalized: shouldApplyStackingPenalty(ATTRIBUTE_SIGNATURE_RADIUS, true),
+  };
+}
+
+function resolveShipSignatureRadius(resourceState, additionalModifierEntries = [], fallbackSignatureRadius = 0) {
+  const calculation = resourceState && resourceState.signatureRadiusCalculation;
+  const attributes = {
+    [ATTRIBUTE_SIGNATURE_RADIUS]: calculation
+      ? calculation.baseValue
+      : toFiniteNumber(resourceState && resourceState.signatureRadius, fallbackSignatureRadius),
+  };
+  // Re-run the entire signature chain from its base. Multiplying an MWD onto
+  // an already stacked result gives rigs and painters the wrong penalty rank.
+  applyModifierGroups(attributes, [
+    ...(calculation ? calculation.modifierEntries : []),
+    ...additionalModifierEntries,
+  ]);
+  return attributes[ATTRIBUTE_SIGNATURE_RADIUS];
+}
+
+function applyAssumedActivePropulsionEffect(attributes, effectState, signatureRadiusCalculation) {
   if (!attributes || !effectState) {
     return;
   }
@@ -2995,16 +3049,10 @@ function applyAssumedActivePropulsionEffect(attributes, effectState) {
   );
 
   if (effectState.effectName === PROPULSION_EFFECT_MICROWARPDRIVE) {
-    const passiveSignatureRadius = toFiniteNumber(
-      attributes[ATTRIBUTE_SIGNATURE_RADIUS],
-      NaN,
+    attributes[ATTRIBUTE_SIGNATURE_RADIUS] = resolveShipSignatureRadius(
+      { signatureRadiusCalculation, signatureRadius: attributes[ATTRIBUTE_SIGNATURE_RADIUS] },
+      [buildPropulsionSignatureModifier(effectState)],
     );
-    if (Number.isFinite(passiveSignatureRadius)) {
-      attributes[ATTRIBUTE_SIGNATURE_RADIUS] = round6(
-        passiveSignatureRadius *
-          (1 + (toFiniteNumber(effectState.signatureRadiusBonus, 0) / 100)),
-      );
-    }
   }
 }
 
@@ -3012,9 +3060,10 @@ function applyAssumedActiveShipModuleEffects(
   attributes,
   fittedItems = [],
   skillMap = new Map(),
+  options = {},
 ) {
   const candidateModules = (Array.isArray(fittedItems) ? fittedItems : [])
-    .filter((item) => resolveAssumedActivePropulsionEffectState(item, skillMap))
+    .filter((item) => resolveAssumedActivePropulsionEffectState(item, skillMap, options))
     .sort((left, right) => {
       const flagDiff = toInt(left && left.flagID, 0) - toInt(right && right.flagID, 0);
       if (flagDiff !== 0) {
@@ -3030,7 +3079,8 @@ function applyAssumedActiveShipModuleEffects(
 
   applyAssumedActivePropulsionEffect(
     attributes,
-    resolveAssumedActivePropulsionEffectState(propulsionModule, skillMap),
+    resolveAssumedActivePropulsionEffectState(propulsionModule, skillMap, options),
+    options.signatureRadiusCalculation,
   );
 }
 
@@ -3114,7 +3164,33 @@ function resolveModifierBaseValue(currentValue, attributeID, operationFallback) 
   return Number.isFinite(defaultValue) ? defaultValue : operationFallback;
 }
 
+let cachedBoundedAttributeIDs = null;
+function clampDogmaAttributes(attributes) {
+  const definitions = getTypeDogmaRoot().attributeTypesByID || {};
+  const resolving = new Set();
+  const resolved = new Set();
+  function bounded(id) {
+    if (resolved.has(id) || resolving.has(id)) return attributes[id] ?? getDogmaAttributeDefaultValue(id);
+    resolving.add(id);
+    const definition = definitions[id] || {};
+    let value = attributes[id] ?? getDogmaAttributeDefaultValue(id);
+    if (definition.minAttributeID) value = Math.max(value, bounded(String(definition.minAttributeID)));
+    if (definition.maxAttributeID) value = Math.min(value, bounded(String(definition.maxAttributeID)));
+    if (Object.hasOwn(attributes, id)) attributes[id] = value;
+    resolving.delete(id);
+    resolved.add(id);
+    return value;
+  }
+  cachedBoundedAttributeIDs ||= Object.keys(definitions).filter((id) =>
+    definitions[id].minAttributeID || definitions[id].maxAttributeID);
+  for (const id of cachedBoundedAttributeIDs) {
+    if (Object.hasOwn(attributes, id)) bounded(id);
+  }
+  return attributes;
+}
+
 function applyModifierGroups(attributes, modifierEntries = []) {
+  clampDogmaAttributes(attributes);
   const groups = new Map();
   const modifiedAttributeIDs = new Set();
   for (const modifierEntry of modifierEntries) {
@@ -3250,6 +3326,8 @@ function applyModifierGroups(attributes, modifierEntries = []) {
       }
     }
   }
+
+  clampDogmaAttributes(attributes);
 
   // DELIBERATE — repo owner's decision, 2026-08-10. Every operation in
   // `operationOrder` has now run, so each attribute's chain is finished and this
@@ -3623,7 +3701,7 @@ function buildShipResourceState(charID, shipItem, options = {}) {
   // bases. Apply those bases before all Dogma modifiers so hostile effects
   // reduce them normally instead of being erased by a post-refresh floor.
   const baseAttributeOverrides = normalizeNumericAttributeMap(
-    options.baseAttributeOverrides,
+    { ...options.baseAttributeOverrides, ...getGmDogmaOverrides(shipItem) },
   );
   for (const [attributeID, value] of Object.entries(baseAttributeOverrides)) {
     derivedAttributes[attributeID] = value;
@@ -3719,6 +3797,12 @@ function buildShipResourceState(charID, shipItem, options = {}) {
     ...passiveAttributeModifierEntries,
     ...additionalAttributeModifierEntries,
   ];
+  const signatureRadiusCalculation = {
+    baseValue: toFiniteNumber(derivedAttributes[ATTRIBUTE_SIGNATURE_RADIUS], 0),
+    modifierEntries: combinedShipAttributeModifierEntries.filter(
+      (entry) => toInt(entry && entry.modifiedAttributeID, 0) === ATTRIBUTE_SIGNATURE_RADIUS,
+    ),
+  };
   applyPassiveShipAttributeModifiers(
     derivedAttributes,
     combinedShipAttributeModifierEntries,
@@ -3728,6 +3812,14 @@ function buildShipResourceState(charID, shipItem, options = {}) {
       derivedAttributes,
       dogmaFittedItems,
       skillMap,
+      {
+        shipItem,
+        fittedItems: dogmaFittedItems,
+        hiddenModifierItems,
+        additionalLocationModifierSources,
+        passiveAttributeMemo,
+        signatureRadiusCalculation,
+      },
     );
   }
   const hardpointCounts = getShipHardpointCounts(
@@ -3788,13 +3880,13 @@ function buildShipResourceState(charID, shipItem, options = {}) {
       upgradeLoad,
     };
   }
-  const usedTurrets = countMatchingFittedItems(
+  const usedTurrets = getFittedEffectSlotsUsed(
     dogmaFittedItems,
-    itemConsumesTurretHardpoint,
+    "turretFitted",
   );
-  const usedLaunchers = countMatchingFittedItems(
+  const usedLaunchers = getFittedEffectSlotsUsed(
     dogmaFittedItems,
-    itemConsumesLauncherHardpoint,
+    "launcherFitted",
   );
 
   derivedAttributes[ATTRIBUTE_CPU_LOAD] = round6(cpuLoad);
@@ -3813,11 +3905,14 @@ function buildShipResourceState(charID, shipItem, options = {}) {
     0,
     launcherHardpoints - usedLaunchers,
   );
+  derivedAttributes[1154] = Math.max(0,
+    getShipRigSlotCapacity(shipTypeID, numericShipID) - getFittedEffectSlotsUsed(dogmaFittedItems, "rigSlot"));
 
   const resourceState = {
     fittedItems,
     skillMap,
     attributes: derivedAttributes,
+    signatureRadiusCalculation,
     cpuLoad: round6(cpuLoad),
     powerLoad: round6(powerLoad),
     upgradeLoad: round6(upgradeLoad),
@@ -3844,6 +3939,11 @@ function calculateShipDerivedAttributes(charID, shipItem, options = {}) {
     },
     resourceState,
   };
+}
+
+// Low (11-18), medium (19-26) and high (27-34) slots.
+function isModuleSlotFlag(flagID) {
+  return flagID >= 11 && flagID <= 34;
 }
 
 function validateFitForShip(charID, shipItem, item, targetFlagID, fittedItems = null) {
@@ -3884,6 +3984,9 @@ function validateFitForShip(charID, shipItem, item, targetFlagID, fittedItems = 
     currentFittedItems,
     toInt(shipItem && shipItem.itemID, 0),
   );
+  if (candidateFlags.length === 0) {
+    return { success: false, errorMsg: "NO_FITTING_SLOTS_FOR_FAMILY", data: { family } };
+  }
   if (!candidateFlags.includes(numericTargetFlagID)) {
     return { success: false, errorMsg: "INVALID_FIT_SLOT" };
   }
@@ -3922,7 +4025,14 @@ function validateFitForShip(charID, shipItem, item, targetFlagID, fittedItems = 
 
   // Every one of the type's own required skills the pilot has not at the level
   // (baseDogmaLocation.GetMissingSkills): the client's refusal names them all.
-  const missingSkills = getMissingRequiredSkills(numericCharID, item.typeID);
+  // A module in a high, medium or low slot fits without them and stays offline:
+  // the skill check is the online effect's (dogma online.py OnlineEffect.Start:
+  // OnlineHasSkillPrerequisites; the client checks fitting skills only for
+  // charges, tryFit.py). The AIR tutorial's 1.5.02 relies on it: fit the
+  // Civilian Mining Laser Upgrade, then fail to online it.
+  const missingSkills = isModuleSlotFlag(numericTargetFlagID)
+    ? []
+    : getMissingRequiredSkills(numericCharID, item.typeID);
   if (missingSkills.length > 0) {
     return {
       success: false,
@@ -3999,6 +4109,11 @@ function validateFitForShip(charID, shipItem, item, targetFlagID, fittedItems = 
   }
 
   if (family === "rig") {
+    const usedRigSlots = getFittedEffectSlotsUsed(currentFittedItems, "rigSlot", toInt(item.itemID, 0));
+    if (usedRigSlots + getItemEffectSlotUsage(item, "rigSlot") >
+        getShipRigSlotCapacity(shipTypeID, toInt(shipItem.itemID, 0))) {
+      return { success: false, errorMsg: "NO_FITTING_SLOTS_FOR_FAMILY", data: { family: "rig" } };
+    }
     const shipRigSize = toInt(getShipBaseAttributeValue(shipTypeID, "rigSize"), 0);
     const moduleRigSize = toInt(getTypeAttributeValue(item.typeID, "rigSize"), 0);
     if (shipRigSize > 0 && moduleRigSize > 0 && shipRigSize !== moduleRigSize) {
@@ -4010,7 +4125,7 @@ function validateFitForShip(charID, shipItem, item, targetFlagID, fittedItems = 
     }
 
     const shipUpgradeCapacity = toFiniteNumber(
-      getShipBaseAttributeValue(shipTypeID, "upgradeCapacity"),
+      getGmDogmaOverrides(shipItem)[ATTRIBUTE_UPGRADE_CAPACITY] ?? getShipBaseAttributeValue(shipTypeID, "upgradeCapacity"),
       0,
     );
     const currentUpgradeLoad = currentFittedItems
@@ -4042,12 +4157,12 @@ function validateFitForShip(charID, shipItem, item, targetFlagID, fittedItems = 
   );
   if (itemConsumesTurretHardpoint(item)) {
     const turretHardpoints = hardpointCounts.turret;
-    const usedTurrets = countMatchingFittedItems(
+    const usedTurrets = getFittedEffectSlotsUsed(
       currentFittedItems,
-      itemConsumesTurretHardpoint,
+      "turretFitted",
       toInt(item.itemID, 0),
     );
-    if (usedTurrets >= turretHardpoints) {
+    if (usedTurrets + getItemEffectSlotUsage(item, "turretFitted") > turretHardpoints) {
       return {
         success: false,
         errorMsg: "NO_TURRET_HARDPOINTS",
@@ -4058,12 +4173,12 @@ function validateFitForShip(charID, shipItem, item, targetFlagID, fittedItems = 
 
   if (itemConsumesLauncherHardpoint(item)) {
     const launcherHardpoints = hardpointCounts.launcher;
-    const usedLaunchers = countMatchingFittedItems(
+    const usedLaunchers = getFittedEffectSlotsUsed(
       currentFittedItems,
-      itemConsumesLauncherHardpoint,
+      "launcherFitted",
       toInt(item.itemID, 0),
     );
-    if (usedLaunchers >= launcherHardpoints) {
+    if (usedLaunchers + getItemEffectSlotUsage(item, "launcherFitted") > launcherHardpoints) {
       return {
         success: false,
         errorMsg: "NO_LAUNCHER_HARDPOINTS",
@@ -4102,6 +4217,11 @@ function moduleParticipatesInOnlineState(item) {
 function resolveFitOnlineState(charID, shipItem, moduleItem, fittedItems, options = {}) {
   if (!moduleParticipatesInOnlineState(moduleItem)) {
     return { applies: false };
+  }
+
+  // Fitted without its skills: offline until they are trained.
+  if (getMissingRequiredSkills(toInt(charID, 0), moduleItem && moduleItem.typeID).length > 0) {
+    return { applies: true, online: false, reason: "SKILL_REQUIRED" };
   }
 
   const moduleID = toInt(moduleItem && moduleItem.itemID, 0);
@@ -4310,6 +4430,8 @@ module.exports = {
   getRequiredSkillRequirements,
   getMissingRequiredSkills,
   getShipSlotCounts,
+  getFittedEffectSlotsUsed,
+  getItemEffectSlotUsage,
   getSlotFlagsForFamily,
   getShipHardpointCounts,
   getStrategicCruiserUseStatus,
@@ -4353,6 +4475,8 @@ module.exports = {
   getEffectiveModuleResourceLoad,
   applyOtherItemModifiersToAttributes,
   applyModifierGroups,
+  buildPropulsionSignatureModifier,
+  resolveShipSignatureRadius,
   shouldApplyStackingPenalty,
   synchronizeShipResourceStateSummary,
   buildShipResourceState,

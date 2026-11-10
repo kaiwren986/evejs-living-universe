@@ -1022,8 +1022,8 @@ function startServer(runtimeContext, options = {}) {
   });
 
   app.use(express.json({ limit: "1mb" }));
-  // Play checks every indexed resource before launch. A runtime cache miss must
-  // fail locally, never turn into a CDN download from this process.
+  // A runtime cache miss must fail locally, never turn into a CDN download
+  // from this process.
   app.use("/resfiles", (req, res) => {
     req.resume();
     res.status(404).type("text").send("Resource missing from the offline cache. Restore it from your complete client backup and run Play again.");

@@ -3,6 +3,8 @@
 // Read facts from their existing durable owners. In particular, client supplied
 // legacy achievement counters are not evidence for a career reward.
 const authority = require("../achievement/achievementAuthority");
+const { readDurablePath } = require("./careerOwnerReads");
+const EPIC_ARC_ACHIEVEMENT = "8739d8d8-4e1e-5bca-b870-8f1357fa1dc7";
 
 function count(value) {
   return Number.isSafeInteger(value) && value >= 0 ? value : 0;
@@ -33,6 +35,24 @@ function createContext(characterID) {
   let nativeState;
   return { getNativeState() { return nativeState ||= require("../achievement/achievementState").getCharacterState(characterID); } };
 }
+function durableEpicArcProgress(characterID, context) {
+  const character = readDurablePath("missionRuntimeState", `/charactersByID/${characterID}`,
+    context, "CAREER_EPIC_COMPLETION_UNAVAILABLE");
+  if (Number(character?.characterID) !== Number(characterID)) return { progress: 0, updatedAtMs: 0 };
+  let progress = 0, updatedAtMs = 0;
+  for (const [key, completion] of Object.entries(character.epicArcProgress?.completedArcsByID || {})) {
+    if (!Number.isSafeInteger(Number(key)) || Number(key) <= 0 || Number(completion?.epicArcID) !== Number(key) ||
+        !Number.isSafeInteger(Number(completion.completedMissionID)) || Number(completion.completedMissionID) <= 0 ||
+        !Number.isSafeInteger(Number(completion.agentID)) || Number(completion.agentID) <= 0 ||
+        !Number.isSafeInteger(Number(completion.missionSequence)) || Number(completion.missionSequence) <= 0 ||
+        typeof completion.completedAtFileTime !== "string" || !/^\d{1,20}$/.test(completion.completedAtFileTime)) continue;
+    const completedAtMs = Number(BigInt(completion.completedAtFileTime) / 10000n - 11644473600000n);
+    if (!Number.isSafeInteger(completedAtMs) || completedAtMs <= 0) continue;
+    progress += 1;
+    updatedAtMs = Math.max(updatedAtMs, completedAtMs);
+  }
+  return { progress, updatedAtMs };
+}
 function tutorialSource(characterID, record) {
   const state = record?.authoredAirTutorial, completion = state?.completion;
   if (record?.airNpeState !== 2 || !completion ||
@@ -62,6 +82,14 @@ function observe(characterID, record, definition, context = createContext(charac
     updatedAtMs = Math.max(updatedAtMs, count(native.updatedAtMs));
   }
   if (source.metric === "unique") progress = values.size;
+  if (source.metric === "progress" && ids.length === 1 && ids[0] === EPIC_ARC_ACHIEVEMENT) {
+    // The mission owner commits its terminal arc record before the achievement
+    // hook runs. Recover that fact if the later projection was refused or lost.
+    // Keep the achievement namespace so old progress and claims stay compatible.
+    const durable = durableEpicArcProgress(characterID, context);
+    progress = Math.max(progress, durable.progress);
+    updatedAtMs = Math.max(updatedAtMs, durable.updatedAtMs);
+  }
   if (!Number.isSafeInteger(progress) || progress <= 0) return null;
   return { kind: source.kind,
     id: `${characterID}:achievement:${ids.join(",")}:${source.metric}:${source.valueType || ""}`,

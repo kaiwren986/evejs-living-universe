@@ -1,0 +1,1484 @@
+{
+  "schema": "evejs.visions-caldari-native.v1",
+  "source": {
+    "clientBuild": 3396210,
+    "generator": "scripts/DataSync/generate-visions-native-contract.js",
+    "resources": {
+      "dungeonobjectives": {
+        "resource": "res:/staticdata/dungeonobjectives.fsdbinary",
+        "resourceHash": "e8e24242326975c22021ae0f95dd9458",
+        "resourceSha256": "438e833d3a6784b13998c588f02e9df12ca19f837d0c9c177d5e4e2d5b2a4abc",
+        "loaderSha256": "e4f2fe232aebebe2f3e74d0ae5e5ba2e8d3d5f4cafda832cb54c13f8ae4954ce",
+        "outputSha256": "a9f7916b57bd6bcbab78a7cf8a03578cdb81e3c636cb8a141d8a9ddea82c543a",
+        "loaderModule": "dungeonObjectivesLoader",
+        "selectedKeys": [
+          88
+        ]
+      },
+      "dungeons": {
+        "resource": "res:/staticdata/dungeons.fsdbinary",
+        "resourceHash": "2fce585e94a2625c0988626ccfe83d29",
+        "resourceSha256": "46ce6c8b6c8331a1a5ed779151d616e4e7cbfbfef74978590c465667dddd3f5d",
+        "loaderSha256": "21d45e3284770e90fed8349f862cbf89aa66bc406327104ff10457ec07e036b9",
+        "outputSha256": "5a4876954508b35e29253d6bdcba9a3cff07381a2d48523a84ccf7a3584029ad",
+        "loaderModule": "dungeonsLoader",
+        "selectedKeys": [
+          14098
+        ]
+      },
+      "epicarcs": {
+        "resource": "res:/staticdata/epicarcs.fsdbinary",
+        "resourceHash": "1bec9e426ed0bdd89876c0e88f7c28ce",
+        "resourceSha256": "3d97ba03fea70eb5e524ce38ca921d235082eadfc7105ecc8cb77394e950cae6",
+        "loaderSha256": "0c9e2fd236106a446ec2ac227f3b35057d55c8055ac8ae6ea377520dab63e712",
+        "outputSha256": "5f74f6dce93ca7d28733632e0772c5cbc93c878f33fa8b7a96262c486b33dc2b",
+        "loaderModule": "epicArcsLoader",
+        "selectedKeys": [
+          132
+        ]
+      },
+      "missions": {
+        "resource": "res:/staticdata/missions.fsdbinary",
+        "resourceHash": "c34c5f4d0e34a5b330ef22e011cd5cd3",
+        "resourceSha256": "b3731c0bbe16ffb5074060b3d093ecc35ae90443863bb8b05b5310ddbb5ab7cf",
+        "loaderSha256": "9c1b22e57aa947a2202ebf1078de1b606feb477f2766f53e8e79525d18aeaa20",
+        "outputSha256": "485ff980e787f6628c6c0e7d6a60e1fc44d227c1a42dcaa4a92cea2ce7ea677f",
+        "loaderModule": "missionsLoader",
+        "selectedKeys": [
+          17183,
+          17184,
+          17185,
+          17186,
+          17187,
+          17188,
+          17189,
+          17190
+        ]
+      },
+      "nodegraphs": {
+        "resource": "res:/staticdata/nodegraphs.fsdbinary",
+        "resourceHash": "e4387021e9c17831ee957984e6742543",
+        "resourceSha256": "496283114f5c9f19efa941e50b293b021ff227fd1f62acfcf3f3abd31c8055ea",
+        "loaderSha256": "a79b9c7b85106b1c447a16265ddd4d438c3cec9f15240f3c579fe71003c326c0",
+        "outputSha256": "949dec4d47a6d9f4cad4e68cbd5cd660f05c24f6320c1c24115e6c0cfa5c1110",
+        "loaderModule": "nodeGraphsLoader",
+        "selectedKeys": [
+          1018,
+          1023,
+          1027,
+          1048
+        ]
+      },
+      "objectivechains": {
+        "resource": "res:/staticdata/objectivechains.fsdbinary",
+        "resourceHash": "b0bdbeb11eaa3539100cd599e248d198",
+        "resourceSha256": "4ed2d3ba3b534411535a189ce4ac5ec2a894ac77ab5818f30c52c2440bedb26b",
+        "loaderSha256": "76a790caa43b056ce36161a6b2d914c1ab071ac7593c20f3651180bb585a84ff",
+        "outputSha256": "33c8631447c01b79608b34276381c9d435e083cc463da6c8ec22745a66dbcf21",
+        "loaderModule": "objectiveChainsLoader",
+        "selectedKeys": [
+          133,
+          137
+        ]
+      }
+    },
+    "fullReferenceNodeGraphsOutputSha256": "ac546e817a25577dc41130533a6e206fd531e461fad0096a51e5eb6637698234",
+    "normalization": "Native BlackboardWrite literals become typed JSON; reviewed native client keys are lowercased. Other uppercase writes remain external hook signals. Branch guards, native Once gates and decrement semantics are retained, not executed by this catalog."
+  },
+  "ids": {
+    "epicArcID": 132,
+    "missionID": 17184,
+    "travelMissionID": 17188,
+    "sourceAgentID": 3020235,
+    "rootAgentID": 3020233,
+    "dungeonID": 14098,
+    "dungeonObjectivesID": 88,
+    "missionGraphID": 1018,
+    "serverGraphID": 1023,
+    "clientGraphID": 1027,
+    "travelGraphID": 1048,
+    "missionObjectiveChainID": 133,
+    "dungeonObjectiveChainID": 137,
+    "sharedClientGraphID": 669
+  },
+  "roomIDs": {
+    "lobby": 33216,
+    "rescue": 33217,
+    "protect": 33253
+  },
+  "clientDefaults": {
+    "always_show_conversations": 1,
+    "event_conversations": [],
+    "r2_room_id": 33253,
+    "complete_remove_objective_delay": 0,
+    "r1_room_id": 33217,
+    "lobby_room_id": 33216,
+    "enter_conversations": {
+      "Lobby": 4107,
+      "Complete": 4103
+    },
+    "enemy_fleet_type_ids": [
+      93944,
+      93947
+    ],
+    "civilian_type_id": 93937
+  },
+  "objectiveParameters": [
+    {
+      "key": "timer",
+      "type": "unionDictType",
+      "required": false
+    },
+    {
+      "key": "civilians_escaped",
+      "type": "integerType",
+      "required": false
+    },
+    {
+      "key": "civilians_escaped_max",
+      "type": "integerType",
+      "required": false
+    },
+    {
+      "key": "civilians_destroyed",
+      "type": "integerType",
+      "required": false
+    },
+    {
+      "key": "civilians_destroyed_max",
+      "type": "integerType",
+      "required": false
+    },
+    {
+      "key": "enemy_fleet_type_ids",
+      "type": "integerListType",
+      "required": false,
+      "defaultValue": [
+        93944,
+        93947
+      ]
+    },
+    {
+      "key": "bonus_progress",
+      "type": "integerType",
+      "required": false
+    },
+    {
+      "key": "bonus_progress_max",
+      "type": "integerType",
+      "required": false
+    },
+    {
+      "key": "civilians_destroyed_max_bonus",
+      "type": "integerType",
+      "required": false
+    },
+    {
+      "key": "civilian_type_id",
+      "type": "integerType",
+      "required": false,
+      "defaultValue": 93937
+    }
+  ],
+  "objectives": [
+    {
+      "key": "warping",
+      "objectiveType": 3,
+      "startActive": false,
+      "inputParametersMap": {}
+    },
+    {
+      "key": "lobby",
+      "objectiveType": 10,
+      "startActive": false,
+      "inputParametersMap": {}
+    },
+    {
+      "key": "next_room",
+      "objectiveType": 10,
+      "startActive": false,
+      "inputParametersMap": {}
+    },
+    {
+      "key": "wait",
+      "objectiveType": 3,
+      "startActive": false,
+      "inputParametersMap": {}
+    },
+    {
+      "key": "rescue_civilians",
+      "objectiveType": 4,
+      "startActive": false,
+      "inputParametersMap": {
+        "current_value": "civilians_escaped",
+        "goal_value": "civilians_escaped_max"
+      }
+    },
+    {
+      "key": "protect_civilians",
+      "objectiveType": 125,
+      "startActive": false,
+      "inputParametersMap": {
+        "target_type_ids": "civilian_type_id",
+        "timer": "timer"
+      }
+    },
+    {
+      "key": "destroy_hostiles",
+      "objectiveType": 70,
+      "startActive": false,
+      "inputParametersMap": {
+        "type_ids": "enemy_fleet_type_ids"
+      }
+    },
+    {
+      "key": "bonus_progress",
+      "objectiveType": 4,
+      "startActive": false,
+      "inputParametersMap": {
+        "current_value": "bonus_progress",
+        "goal_value": "bonus_progress_max"
+      }
+    },
+    {
+      "key": "rescue_civilians_bonus",
+      "objectiveType": 32,
+      "startActive": false,
+      "inputParametersMap": {
+        "timer": "timer"
+      }
+    },
+    {
+      "key": "protect_civilians_bonus",
+      "objectiveType": 4,
+      "startActive": false,
+      "inputParametersMap": {
+        "current_value": "civilians_destroyed",
+        "goal_value": "civilians_destroyed_max_bonus"
+      }
+    },
+    {
+      "key": "destroy_hostiles_bonus",
+      "objectiveType": 32,
+      "startActive": false,
+      "inputParametersMap": {
+        "timer": "timer"
+      }
+    }
+  ],
+  "sharedClientReadKeys": [
+    "always_show_conversations",
+    "complete_remove_objective_delay",
+    "conversation_dialog",
+    "dungeon_room_id",
+    "dungeon_state",
+    "enter_conversations",
+    "event_conversations",
+    "lobby_objectives",
+    "lobby_room_id",
+    "persistent_dungeon_states"
+  ],
+  "thresholds": {
+    "fleetDestroyed": 10,
+    "protectDestroyedStop": 5,
+    "scoreHighestTier": 3,
+    "scoreMiddleTier": 2,
+    "fleetDialogueMilestones": [
+      3,
+      7
+    ]
+  },
+  "delaysMs": {
+    "rescueLead": 59000,
+    "enterRoom2Lead": 14000,
+    "protectLead": 50000,
+    "destroyLead": 65000,
+    "completionLead": 38000
+  },
+  "cuesByEvent": {
+    "fleetDestroyed": [
+      {
+        "offsetMs": 0,
+        "values": {
+          "conversation_dialog": 4173
+        },
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10,
+            "negate": true
+          },
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 7,
+            "negate": true
+          },
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 3
+          }
+        ],
+        "onceKeys": [
+          "54986da5-37a5-4ff1-aa58-932f01e67b6d"
+        ]
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "conversation_dialog": 4174
+        },
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10,
+            "negate": true
+          },
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 7
+          }
+        ],
+        "onceKeys": [
+          "9cde05ea-991f-47ee-8f54-5eab08bd7ff9"
+        ]
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "music_play": 0
+        },
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ]
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "dungeon_state": "Wait"
+        },
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ]
+      },
+      {
+        "offsetMs": 0,
+        "values": {},
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ],
+        "signals": {
+          "CIVILAINS_WARP": 1
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "conversation_dialog": 4175
+        },
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          },
+          {
+            "key": "bonus_active",
+            "operator": "equalTo",
+            "value": 1,
+            "negate": true
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ]
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "conversation_dialog": 4177
+        },
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          },
+          {
+            "key": "bonus_active",
+            "operator": "equalTo",
+            "value": 1
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ]
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "bonus_active": 0
+        },
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          },
+          {
+            "key": "bonus_active",
+            "operator": "equalTo",
+            "value": 1
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ]
+      },
+      {
+        "offsetMs": 0,
+        "values": {},
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          },
+          {
+            "key": "bonus_active",
+            "operator": "equalTo",
+            "value": 1
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ],
+        "signals": {
+          "TIMER_CANCEL": 1
+        }
+      },
+      {
+        "offsetMs": 14000,
+        "values": {
+          "conversation_dialog": 4121
+        },
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ]
+      },
+      {
+        "offsetMs": 27000,
+        "values": {
+          "conversation_dialog": 4157
+        },
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ]
+      },
+      {
+        "offsetMs": 38000,
+        "values": {
+          "dungeon_state": "Complete"
+        },
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ]
+      },
+      {
+        "offsetMs": 38000,
+        "values": {},
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ],
+        "signals": {
+          "MISSION_COMPLETE": 1
+        }
+      },
+      {
+        "offsetMs": 38000,
+        "values": {},
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          },
+          {
+            "key": "score",
+            "operator": "greaterThanOrEqual",
+            "value": 3,
+            "negate": true,
+            "atMs": 38000
+          },
+          {
+            "key": "score",
+            "operator": "equalTo",
+            "value": 2,
+            "negate": true,
+            "atMs": 38000
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ],
+        "signals": {
+          "GRANT_REWARD": 1
+        }
+      },
+      {
+        "offsetMs": 38000,
+        "values": {
+          "conversation_dialog": 4160
+        },
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          },
+          {
+            "key": "score",
+            "operator": "greaterThanOrEqual",
+            "value": 3,
+            "negate": true,
+            "atMs": 38000
+          },
+          {
+            "key": "score",
+            "operator": "equalTo",
+            "value": 2,
+            "negate": true,
+            "atMs": 38000
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ]
+      },
+      {
+        "offsetMs": 38000,
+        "values": {},
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          },
+          {
+            "key": "score",
+            "operator": "greaterThanOrEqual",
+            "value": 3,
+            "negate": true,
+            "atMs": 38000
+          },
+          {
+            "key": "score",
+            "operator": "equalTo",
+            "value": 2,
+            "atMs": 38000
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ],
+        "signals": {
+          "GRANT_REWARD": 2
+        }
+      },
+      {
+        "offsetMs": 38000,
+        "values": {
+          "conversation_dialog": 4159
+        },
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          },
+          {
+            "key": "score",
+            "operator": "greaterThanOrEqual",
+            "value": 3,
+            "negate": true,
+            "atMs": 38000
+          },
+          {
+            "key": "score",
+            "operator": "equalTo",
+            "value": 2,
+            "atMs": 38000
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ]
+      },
+      {
+        "offsetMs": 38000,
+        "values": {},
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          },
+          {
+            "key": "score",
+            "operator": "greaterThanOrEqual",
+            "value": 3,
+            "atMs": 38000
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ],
+        "signals": {
+          "GRANT_REWARD": 3
+        }
+      },
+      {
+        "offsetMs": 38000,
+        "values": {
+          "conversation_dialog": 4158
+        },
+        "when": [
+          {
+            "key": "enemy_fleet_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 10
+          },
+          {
+            "key": "score",
+            "operator": "greaterThanOrEqual",
+            "value": 3,
+            "atMs": 38000
+          }
+        ],
+        "onceKeys": [
+          "e80f0951-99a0-47ff-b50e-c18e9b0c4c2d"
+        ]
+      }
+    ],
+    "protectBonusFailed": [
+      {
+        "offsetMs": 0,
+        "values": {
+          "bonus_active": 0
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {},
+        "scoreDelta": -1
+      }
+    ],
+    "destroyBonusExpired": [
+      {
+        "offsetMs": 0,
+        "values": {
+          "bonus_active": 0
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {},
+        "scoreDelta": -1
+      }
+    ],
+    "room2Entered": [
+      {
+        "offsetMs": 0,
+        "values": {
+          "dungeon_state": "Wait"
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "conversation_dialog": 4153
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "camera_moment": "carrier_intro"
+        }
+      },
+      {
+        "offsetMs": 15000,
+        "values": {
+          "conversation_dialog": 4154
+        }
+      },
+      {
+        "offsetMs": 22000,
+        "values": {
+          "conversation_dialog": 4155
+        }
+      },
+      {
+        "offsetMs": 22000,
+        "values": {},
+        "signals": {
+          "SPAWN_ACTORS_GALLENTE": 1
+        }
+      },
+      {
+        "offsetMs": 32000,
+        "values": {
+          "conversation_dialog": 4156
+        }
+      },
+      {
+        "offsetMs": 32000,
+        "values": {},
+        "signals": {
+          "SPAWN_ENEMY_FLEET": 1
+        }
+      },
+      {
+        "offsetMs": 32000,
+        "values": {
+          "civilians_destroyed": 0
+        }
+      },
+      {
+        "offsetMs": 50000,
+        "values": {
+          "conversation_dialog": 4126
+        }
+      },
+      {
+        "offsetMs": 50000,
+        "values": {
+          "dungeon_state": "ProtectCivilains"
+        }
+      },
+      {
+        "offsetMs": 50000,
+        "values": {},
+        "signals": {
+          "TIMER_START_PROTECT_CIVILIANS": 1
+        }
+      },
+      {
+        "offsetMs": 50000,
+        "values": {
+          "music_play": 1
+        }
+      },
+      {
+        "offsetMs": 50000,
+        "values": {
+          "music_switch": 2
+        }
+      },
+      {
+        "offsetMs": 50000,
+        "values": {
+          "bonus_active": 1
+        }
+      },
+      {
+        "offsetMs": 50000,
+        "values": {},
+        "signals": {
+          "CIVILAINS_VULNERABLE": 1
+        }
+      },
+      {
+        "offsetMs": 62000,
+        "values": {
+          "conversation_dialog": 4161
+        },
+        "when": [
+          {
+            "key": "dungeon_state",
+            "operator": "equalTo",
+            "value": "ProtectCivilains",
+            "atMs": 62000
+          }
+        ]
+      },
+      {
+        "offsetMs": 78000,
+        "values": {
+          "conversation_dialog": 4162
+        },
+        "when": [
+          {
+            "key": "dungeon_state",
+            "operator": "equalTo",
+            "value": "ProtectCivilains",
+            "atMs": 62000
+          },
+          {
+            "key": "dungeon_state",
+            "operator": "equalTo",
+            "value": "ProtectCivilains",
+            "atMs": 78000
+          }
+        ]
+      },
+      {
+        "offsetMs": 94000,
+        "values": {
+          "conversation_dialog": 4163
+        },
+        "when": [
+          {
+            "key": "dungeon_state",
+            "operator": "equalTo",
+            "value": "ProtectCivilains",
+            "atMs": 62000
+          },
+          {
+            "key": "dungeon_state",
+            "operator": "equalTo",
+            "value": "ProtectCivilains",
+            "atMs": 78000
+          },
+          {
+            "key": "dungeon_state",
+            "operator": "equalTo",
+            "value": "ProtectCivilains",
+            "atMs": 94000
+          }
+        ]
+      },
+      {
+        "offsetMs": 102000,
+        "values": {
+          "conversation_dialog": 4164
+        },
+        "when": [
+          {
+            "key": "dungeon_state",
+            "operator": "equalTo",
+            "value": "ProtectCivilains",
+            "atMs": 62000
+          },
+          {
+            "key": "dungeon_state",
+            "operator": "equalTo",
+            "value": "ProtectCivilains",
+            "atMs": 78000
+          },
+          {
+            "key": "dungeon_state",
+            "operator": "equalTo",
+            "value": "ProtectCivilains",
+            "atMs": 94000
+          },
+          {
+            "key": "dungeon_state",
+            "operator": "equalTo",
+            "value": "ProtectCivilains",
+            "atMs": 102000
+          }
+        ]
+      }
+    ],
+    "protectComplete": [
+      {
+        "offsetMs": 0,
+        "values": {
+          "bonus_active": 0
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {},
+        "signals": {
+          "CIVILAINS_VULNERABLE": 0
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "music_play": 0
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "conversation_dialog": 4166
+        },
+        "when": [
+          {
+            "key": "civilians_destroyed",
+            "operator": "lessThanOrEqual",
+            "value": 0,
+            "negate": true
+          },
+          {
+            "key": "civilians_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 5,
+            "negate": true
+          }
+        ]
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "conversation_dialog": 4165
+        },
+        "when": [
+          {
+            "key": "civilians_destroyed",
+            "operator": "lessThanOrEqual",
+            "value": 0,
+            "negate": true
+          },
+          {
+            "key": "civilians_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 5
+          }
+        ]
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "conversation_dialog": 4167
+        },
+        "when": [
+          {
+            "key": "civilians_destroyed",
+            "operator": "lessThanOrEqual",
+            "value": 0
+          }
+        ]
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "dungeon_state": "Wait"
+        }
+      },
+      {
+        "offsetMs": 18000,
+        "values": {
+          "conversation_dialog": 4168
+        }
+      },
+      {
+        "offsetMs": 18000,
+        "values": {
+          "camera_moment": "carrier_warp"
+        }
+      },
+      {
+        "offsetMs": 25000,
+        "values": {},
+        "signals": {
+          "WARP_CHIMERA": 1
+        }
+      },
+      {
+        "offsetMs": 30000,
+        "values": {
+          "conversation_dialog": 4169
+        }
+      },
+      {
+        "offsetMs": 41000,
+        "values": {
+          "conversation_dialog": 4170
+        }
+      },
+      {
+        "offsetMs": 44000,
+        "values": {},
+        "signals": {
+          "WARP_ACTORS_GALLENTE": 1
+        }
+      },
+      {
+        "offsetMs": 52000,
+        "values": {
+          "conversation_dialog": 4171
+        }
+      },
+      {
+        "offsetMs": 65000,
+        "values": {
+          "conversation_dialog": 4127
+        }
+      },
+      {
+        "offsetMs": 65000,
+        "values": {
+          "dungeon_state": "DestroyHostiles"
+        }
+      },
+      {
+        "offsetMs": 65000,
+        "values": {},
+        "signals": {
+          "ENEMY_FLEET_VULNERABLE": 1
+        }
+      },
+      {
+        "offsetMs": 65000,
+        "values": {},
+        "signals": {
+          "TIMER_START_DESTROY_HOSTILES": 1
+        }
+      },
+      {
+        "offsetMs": 65000,
+        "values": {
+          "music_play": 1
+        }
+      },
+      {
+        "offsetMs": 65000,
+        "values": {
+          "music_switch": 3
+        }
+      },
+      {
+        "offsetMs": 65000,
+        "values": {
+          "bonus_active": 1
+        }
+      }
+    ],
+    "rescueBonusExpired": [
+      {
+        "offsetMs": 0,
+        "values": {
+          "bonus_active": 0
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {},
+        "scoreDelta": -1
+      }
+    ],
+    "protectDestroyedStop": [
+      {
+        "offsetMs": 0,
+        "values": {},
+        "signals": {
+          "TIMER_CANCEL": 1
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {},
+        "signals": {
+          "CIVILAINS_VULNERABLE": 0
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "music_play": 0
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "conversation_dialog": 4166
+        },
+        "when": [
+          {
+            "key": "civilians_destroyed",
+            "operator": "lessThanOrEqual",
+            "value": 0,
+            "negate": true
+          },
+          {
+            "key": "civilians_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 5,
+            "negate": true
+          }
+        ]
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "conversation_dialog": 4165
+        },
+        "when": [
+          {
+            "key": "civilians_destroyed",
+            "operator": "lessThanOrEqual",
+            "value": 0,
+            "negate": true
+          },
+          {
+            "key": "civilians_destroyed",
+            "operator": "greaterThanOrEqual",
+            "value": 5
+          }
+        ]
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "conversation_dialog": 4167
+        },
+        "when": [
+          {
+            "key": "civilians_destroyed",
+            "operator": "lessThanOrEqual",
+            "value": 0
+          }
+        ]
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "dungeon_state": "Wait"
+        }
+      },
+      {
+        "offsetMs": 18000,
+        "values": {
+          "conversation_dialog": 4168
+        }
+      },
+      {
+        "offsetMs": 18000,
+        "values": {
+          "camera_moment": "carrier_warp"
+        }
+      },
+      {
+        "offsetMs": 25000,
+        "values": {},
+        "signals": {
+          "WARP_CHIMERA": 1
+        }
+      },
+      {
+        "offsetMs": 30000,
+        "values": {
+          "conversation_dialog": 4169
+        }
+      },
+      {
+        "offsetMs": 41000,
+        "values": {
+          "conversation_dialog": 4170
+        }
+      },
+      {
+        "offsetMs": 44000,
+        "values": {},
+        "signals": {
+          "WARP_ACTORS_GALLENTE": 1
+        }
+      },
+      {
+        "offsetMs": 52000,
+        "values": {
+          "conversation_dialog": 4171
+        }
+      },
+      {
+        "offsetMs": 65000,
+        "values": {
+          "conversation_dialog": 4127
+        }
+      },
+      {
+        "offsetMs": 65000,
+        "values": {
+          "dungeon_state": "DestroyHostiles"
+        }
+      },
+      {
+        "offsetMs": 65000,
+        "values": {},
+        "signals": {
+          "ENEMY_FLEET_VULNERABLE": 1
+        }
+      },
+      {
+        "offsetMs": 65000,
+        "values": {},
+        "signals": {
+          "TIMER_START_DESTROY_HOSTILES": 1
+        }
+      },
+      {
+        "offsetMs": 65000,
+        "values": {
+          "music_play": 1
+        }
+      },
+      {
+        "offsetMs": 65000,
+        "values": {
+          "music_switch": 3
+        }
+      },
+      {
+        "offsetMs": 65000,
+        "values": {
+          "bonus_active": 1
+        }
+      }
+    ],
+    "civiliansEscaped": [
+      {
+        "offsetMs": 0,
+        "values": {
+          "dungeon_state": "Wait"
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "bonus_active": 0
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {},
+        "signals": {
+          "TIMER_CANCEL": 1
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "music_play": 0
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "conversation_dialog": 4125
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {},
+        "signals": {
+          "SPAWN_ACTORS_CALDARI": 1
+        }
+      },
+      {
+        "offsetMs": 14000,
+        "values": {
+          "conversation_dialog": 4152
+        }
+      },
+      {
+        "offsetMs": 14000,
+        "values": {
+          "dungeon_state": "EnterR2"
+        }
+      },
+      {
+        "offsetMs": 14000,
+        "values": {},
+        "signals": {
+          "UNLOCK_GATE_R1": 1
+        }
+      }
+    ],
+    "room1Entered": [
+      {
+        "offsetMs": 0,
+        "values": {
+          "dungeon_state": "Wait"
+        }
+      },
+      {
+        "offsetMs": 0,
+        "values": {
+          "conversation_dialog": 4109
+        }
+      },
+      {
+        "offsetMs": 18000,
+        "values": {
+          "conversation_dialog": 4147
+        }
+      },
+      {
+        "offsetMs": 18000,
+        "values": {
+          "camera_moment": "civilian_intro"
+        }
+      },
+      {
+        "offsetMs": 34000,
+        "values": {},
+        "signals": {
+          "SPAWN_ENEMY_POINT": 1
+        }
+      },
+      {
+        "offsetMs": 44000,
+        "values": {
+          "conversation_dialog": 4148
+        }
+      },
+      {
+        "offsetMs": 44000,
+        "values": {
+          "camera_moment": "point_intro"
+        }
+      },
+      {
+        "offsetMs": 59000,
+        "values": {
+          "conversation_dialog": 4149
+        }
+      },
+      {
+        "offsetMs": 59000,
+        "values": {
+          "dungeon_state": "RescueCivilains"
+        }
+      },
+      {
+        "offsetMs": 59000,
+        "values": {
+          "music_play": 1
+        }
+      },
+      {
+        "offsetMs": 59000,
+        "values": {
+          "music_switch": 1
+        }
+      },
+      {
+        "offsetMs": 59000,
+        "values": {},
+        "signals": {
+          "TIMER_START_RESCUE_CIVILIANS": 1
+        }
+      },
+      {
+        "offsetMs": 59000,
+        "values": {
+          "bonus_active": 1
+        }
+      }
+    ]
+  },
+  "guardsByEvent": {
+    "fleetDestroyed": [],
+    "protectBonusFailed": [
+      {
+        "key": "civilians_destroyed",
+        "operator": "greaterThanOrEqual",
+        "valueFromKey": "civilians_destroyed_max_bonus"
+      }
+    ],
+    "destroyBonusExpired": [
+      {
+        "key": "dungeon_state",
+        "operator": "equalTo",
+        "value": "DestroyHostiles"
+      }
+    ],
+    "room2Entered": [],
+    "protectComplete": [
+      {
+        "key": "dungeon_state",
+        "operator": "equalTo",
+        "value": "ProtectCivilains"
+      }
+    ],
+    "rescueBonusExpired": [
+      {
+        "key": "dungeon_state",
+        "operator": "equalTo",
+        "value": "RescueCivilains"
+      }
+    ],
+    "protectDestroyedStop": [
+      {
+        "key": "dungeon_state",
+        "operator": "equalTo",
+        "value": "ProtectCivilains"
+      },
+      {
+        "key": "civilians_destroyed",
+        "operator": "greaterThanOrEqual",
+        "value": 5
+      }
+    ],
+    "civiliansEscaped": [
+      {
+        "key": "civilians_escaped",
+        "operator": "greaterThanOrEqual",
+        "valueFromKey": "civilians_escaped_max"
+      }
+    ],
+    "room1Entered": []
+  },
+  "boundaries": {
+    "native": "Narrative cue delays, dialogue IDs, state spellings, room IDs, objective defaults, comparisons and score-decrement semantics come from matching3396210 resources/loaders.",
+    "policy": "Initial score, civilian cohort maxima, bonus/protection durations, timer clock advancement, actor spawn/movement/loss rules and reward recipes require explicit emulator world-hook policy. They are not recovered by this graph.",
+    "cues": "when conditions retain their native relative evaluation offset in atMs. Once gates apply to a queued branch, not independently to each later cue. scoreDelta is evidence of a native decrement; a consumer must fence it once and avoid also subtracting the same bonus failure separately.",
+    "timings": "Narrative delay sums are not bonus timer durations. Existing captured scene geometry, rewards and item custody remain under their existing owners."
+  }
+}

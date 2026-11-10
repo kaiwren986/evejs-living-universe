@@ -459,7 +459,7 @@ function scheduleBoosterExpiryNotification(characterID) {
     scheduleBoosterExpiryNotification(numericCharacterID);
     try {
       const { syncCharacterDogmaState } = require("../../dogma/brain/characterBrainRuntime");
-      session.sendNotification("OnServerBoostersChanged", "clientID", []);
+      session.sendNotification("OnServerBoostersChanged", "charid", []);
       syncCharacterDogmaState(session, numericCharacterID, { refreshLiveShip: true });
     } catch (error) {
       const log = require("../../../utils/logger");
@@ -498,14 +498,21 @@ function validateBoosterItem(characterID, itemID, locationID = null, options = {
     return { success: false, errorMsg: "ITEM_LOCATION_MISMATCH" };
   }
 
+  const nowMs = Number.isFinite(Number(options.nowMs)) ? Number(options.nowMs) : getNowMs();
   const typeInfo = getBoosterTypeInfo(item.typeID);
+  const nativeLimit = typeInfo?.lastInjectionLimitMs;
+  const injectionLimitMs = nativeLimit != null && nowMs > nativeLimit &&
+    require("../../seasons/gallenteCrateRewards").ignoresInjectionDeadline(item.typeID) ? null : nativeLimit;
+  const validation = validateBoosterType(characterID, typeInfo, nowMs, injectionLimitMs);
+  return validation.success ? { ...validation, item } : validation;
+}
+
+function validateBoosterType(characterID, typeInfo, nowMs, injectionLimitMs) {
   if (!typeInfo) {
     return { success: false, errorMsg: "NOT_A_CONSUMABLE_BOOSTER" };
   }
 
-  const nowMs = Number.isFinite(Number(options.nowMs)) ? Number(options.nowMs) : getNowMs();
-  if (typeInfo.lastInjectionLimitMs !== null && nowMs > typeInfo.lastInjectionLimitMs &&
-      !require("../../seasons/gallenteCrateRewards").ignoresInjectionDeadline(item.typeID)) {
+  if (injectionLimitMs != null && nowMs > injectionLimitMs) {
     return { success: false, errorMsg: "BOOSTER_EXPIRED" };
   }
 
@@ -524,31 +531,16 @@ function validateBoosterItem(characterID, itemID, locationID = null, options = {
 
   return {
     success: true,
-    item,
     typeInfo,
     characterRecord,
   };
 }
 
-function useBoosterItem(characterID, itemID, locationID = null, options = {}) {
-  const numericCharacterID = toInt(characterID, 0);
-  const numericItemID = toInt(itemID, 0);
-  if (numericCharacterID <= 0 || numericItemID <= 0) {
-    return { success: false, errorMsg: "ITEM_NOT_FOUND" };
-  }
-
-  const nowMs = Number.isFinite(Number(options.nowMs)) ? Number(options.nowMs) : getNowMs();
-  const validation = validateBoosterItem(numericCharacterID, numericItemID, locationID, {
-    nowMs,
-  });
-  if (!validation.success) {
-    return validation;
-  }
-
+function prepareBoosterActivation(characterID, itemID, validation, nowMs, options = {}) {
   const nowFileTime = msToFileTime(nowMs);
   const skillModifiedAttributes = applyBoosterSkillModifiersToAttributes(
     validation.typeInfo.attributes,
-    numericCharacterID,
+    characterID,
   );
   const effectiveAttributes = applyActiveImplantLocationModifiersToAttributes(
     skillModifiedAttributes,
@@ -556,40 +548,28 @@ function useBoosterItem(characterID, itemID, locationID = null, options = {}) {
       typeID: validation.typeInfo.typeID,
       groupID: BOOSTER_GROUP_ID,
     },
-    numericCharacterID,
+    characterID,
     { includeBoosters: false },
   );
   const boosterDurationMs = resolveBoosterDurationMs(
     validation.typeInfo,
-    validation.characterRecord || getCharacterRecord(numericCharacterID),
+    validation.characterRecord || getCharacterRecord(characterID),
     nowMs,
     effectiveAttributes,
   );
   if (boosterDurationMs <= 0) {
     return { success: false, errorMsg: "NOT_A_CONSUMABLE_BOOSTER" };
   }
-  const existingBoosters = getActiveBoostersForCharacter(numericCharacterID, { nowFileTime });
-  const occupiedSlot = existingBoosters.find((record) => (
-    validation.typeInfo.boosterness > 0 &&
-    Number(record.boosterness) === Number(validation.typeInfo.boosterness)
-  ));
-  if (occupiedSlot) {
+  if (boosterSlotOccupied(characterID, validation.typeInfo.boosterness, nowFileTime)) {
     return {
       success: false,
       errorMsg: "BOOSTER_SLOT_OCCUPIED",
     };
   }
 
-  const consumeResult = consumeInventoryItemQuantity(numericItemID, 1, {
-    removeContents: true,
-  });
-  if (!consumeResult.success) {
-    return consumeResult;
-  }
-
   const record = {
-    boosterID: numericItemID,
-    itemID: numericItemID,
+    boosterID: itemID,
+    itemID,
     typeID: validation.typeInfo.typeID,
     boosterTypeID: validation.typeInfo.typeID,
     boosterness: validation.typeInfo.boosterness,
@@ -602,6 +582,29 @@ function useBoosterItem(characterID, itemID, locationID = null, options = {}) {
       effectiveAttributes,
     }),
   };
+  return { success: true, data: record };
+}
+
+function boosterSlotOccupied(characterID, slot, nowFileTime) {
+  return slot > 0 && getActiveBoostersForCharacter(characterID, { nowFileTime })
+    .some(record => Number(record.boosterness) === Number(slot));
+}
+
+function useBoosterItem(characterID, itemID, locationID = null, options = {}) {
+  const numericCharacterID = toInt(characterID, 0);
+  const numericItemID = toInt(itemID, 0);
+  if (numericCharacterID <= 0 || numericItemID <= 0) {
+    return { success: false, errorMsg: "ITEM_NOT_FOUND" };
+  }
+  const nowMs = Number.isFinite(Number(options.nowMs)) ? Number(options.nowMs) : getNowMs();
+  const validation = validateBoosterItem(numericCharacterID, numericItemID, locationID, { nowMs });
+  if (!validation.success) return validation;
+  const plan = prepareBoosterActivation(numericCharacterID, numericItemID, validation, nowMs, options);
+  if (!plan.success) return plan;
+  const consumeResult = consumeInventoryItemQuantity(numericItemID, 1, { removeContents: true });
+  if (!consumeResult.success) return consumeResult;
+  const record = plan.data;
+  const nowFileTime = msToFileTime(nowMs);
 
   const updateResult = updateCharacterRecord(numericCharacterID, (charData) => {
     const active = normalizeActiveBoosters(charData.boosters, { nowFileTime });
@@ -626,6 +629,51 @@ function useBoosterItem(characterID, itemID, locationID = null, options = {}) {
   };
 }
 
+function prepareRedeemedBooster(characterID, tokenID, typeID, nowMs, injectionLimitMs) {
+  const validation = validateBoosterType(characterID, getBoosterTypeInfo(typeID), nowMs, injectionLimitMs);
+  return validation.success ? prepareBoosterActivation(characterID, tokenID, validation, nowMs) : validation;
+}
+
+function applyRedeemedBoosterOnce(characterID, receiptID, record) {
+  const database = require("../../../gameStore");
+  const character = getCharacterRecord(characterID);
+  if (!character) return { success: false, errorMsg: "CHARACTER_NOT_FOUND" };
+  const previous = character.boosterGrantReceipts?.[receiptID];
+  if (previous !== undefined) {
+    if (previous !== record.typeID) return { success: false, errorMsg: "BOOSTER_GRANT_CONFLICT" };
+    return database.flushTableSync("characters");
+  }
+  const nowFileTime = msToFileTime(getNowMs());
+  if (boosterSlotOccupied(characterID, record.boosterness, nowFileTime)) {
+    return { success: false, errorMsg: "BOOSTER_SLOT_OCCUPIED" };
+  }
+  // Preserve training earned at the old rate before changing the character's
+  // attributes. A retry with a character receipt never rebases it again.
+  const queue = require("../training/skillQueueRuntime");
+  const rebase = queue.prepareQueueForAttributeChange(characterID);
+  if (!rebase.success) return rebase;
+  for (const table of ["skills", "skillQueues"]) {
+    const flushed = database.flushTableSync(table);
+    if (!flushed.success) return flushed;
+  }
+  // An accepted but unapplied delivery starts at its first effect commit. A
+  // cold retry of an already applied booster keeps the stored duration.
+  const active = { ...record, startTime: String(nowFileTime),
+    expiryTime: String(nowFileTime + BigInt(record.boosterDuration) * 10000n) };
+  const updated = updateCharacterRecord(characterID, current => ({
+    ...current,
+    boosters: [...normalizeActiveBoosters(current.boosters, { nowFileTime }), active],
+    boosterGrantReceipts: { ...current.boosterGrantReceipts, [receiptID]: record.typeID },
+  }));
+  if (!updated.success) return updated;
+  return database.flushTableSync("characters");
+}
+
+function refreshRedeemedBooster(characterID) {
+  scheduleBoosterExpiryNotification(characterID);
+  require("../training/skillQueueRuntime").syncQueueAfterAttributeChange(characterID);
+}
+
 module.exports = {
   BOOSTER_CATEGORY_ID,
   BOOSTER_GROUP_ID,
@@ -635,6 +683,9 @@ module.exports = {
   getBoosterTypeInfo,
   normalizeActiveBoosters,
   useBoosterItem,
+  prepareRedeemedBooster,
+  applyRedeemedBoosterOnce,
+  refreshRedeemedBooster,
   _testing: {
     clearExpiryTimers,
     setNowMsOverride,

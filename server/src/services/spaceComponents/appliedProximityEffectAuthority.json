@@ -1,0 +1,22 @@
+{
+  "source": {
+    "clientBuild": 3396210,
+    "resourceSha256": "f221ba50cb4af4f56b82a535708c77d3e7927a6e9cb79b452d4a6fd013fb0818",
+    "selectedOutputSha256": "6ef42f8d8aee2f8b9139852a06e554a4a74c29417856ccc2a5c4fb13ae37b047",
+    "dbuffResourceSha256": "e46b450c0903b7a780b53407196b142f6455bae2685175cadced6d7d59360d1a",
+    "dbuffOutputSha256": "eaccaf7d03cd2991a74e9dd87020fb17a3d7f4531ba453a1f944b713c7dacfcf",
+    "typeResourceSha256": "392d6dc54b83b09f9c4b3bcc5f7b401d600e3cb691d2b52875f1e539da73f9b9",
+    "typeOutputSha256": "44efcae0c56f37b87a4f75a52f059b1032410adecf42f77a48b1eaa13169a1ff",
+    "selection": "AIR mining operation 2674; zero-delay native component; existing authored dungeon 9245"
+  },
+  "types": {
+    "62447": {
+      "delaySeconds": 0,
+      "radius": 500000,
+      "effects": { "2155": -90 },
+      "ballRadius": 1,
+      "binding": { "templateID": "evejs.air-tutorial:9245", "objectID": 1116373, "roomKey": "room:27922" },
+      "dbuff": { "collectionID": 2155, "aggregateMode": "Maximum", "operationName": "PostPercent", "locationRequiredSkillModifiers": [{ "dogmaAttributeID": 77, "skillID": 3386 }] }
+    }
+  }
+}

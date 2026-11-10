@@ -224,6 +224,12 @@ module.exports = function (serviceManager) {
     wormholeRuntime.startLifecycleScheduler();
     log.info("[Wormholes] Bounded lifecycle scheduler started after runtime warm");
   }
+  const locationWarmStartedAtMs = Date.now();
+  const locationRows = require(path.join(
+    __dirname,
+    "../../services/config/configService",
+  )).warmStaticLocationRows();
+  log.info(`[Startup] Location index warm: ${locationRows} rows in ${Date.now() - locationWarmStartedAtMs}ms`);
   log.info("[Startup] Starting space scene preload");
   spaceRuntime.preloadStartupSolarSystems({
     broadcast: false,

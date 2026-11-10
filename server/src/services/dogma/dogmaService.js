@@ -1158,16 +1158,17 @@ class DogmaService extends BaseService {
         ? activeEffectState.genericAttributeOverrides
         : null;
     if (!activeAttributeOverrides) {
-      return runtimeAttributes;
+      return require("../incursion/incursionSystemEffects").displayGenericAttributes(runtimeAttributes, item,
+        spaceRuntime.getSceneForSession(session)?.getEntityByID(Number(shipItem.itemID)));
     }
 
-    return {
+    return require("../incursion/incursionSystemEffects").displayGenericAttributes({
       ...runtimeAttributes,
       attributeOverrides: {
         ...(runtimeAttributes.attributeOverrides || {}),
         ...activeAttributeOverrides,
       },
-    };
+    }, item, spaceRuntime.getSceneForSession(session)?.getEntityByID(Number(shipItem.itemID)));
   }
   _buildScannerProbeLauncherRuntimeAttributeMap(item, session) {
     if (
@@ -1409,7 +1410,7 @@ class DogmaService extends BaseService {
     if (!shipItem) {
       return null;
     }
-    return buildWeaponDogmaAttributeOverrides({
+    const result = buildWeaponDogmaAttributeOverrides({
       characterID,
       shipItem,
       moduleItem,
@@ -1426,6 +1427,8 @@ class DogmaService extends BaseService {
         shipID,
       ),
     });
+    return require("../incursion/incursionSystemEffects").displayWeaponAttributes(result,
+      spaceRuntime.getSceneForSession(session)?.getEntityByID(shipID));
   }
   // The space runtime feeds `buildWeaponModuleSnapshot` the live active module
   // contexts, so a running Tracking Computer / Bastion / Missile Guidance
@@ -1527,7 +1530,7 @@ class DogmaService extends BaseService {
         shipData.securityRating ??
         0,
     );
-    const shipCondition = getShipConditionState(shipData);
+    const shipCondition = require("../incursion/incursionRepairPresentation").condition(shipData, getShipConditionState(shipData));
     const numericCharID = Number(charData.characterID ?? charData.charID ?? charData.charid ?? shipData.ownerID ?? 0) || 0;
     const fittingSnapshot = getShipFittingSnapshot(
       numericCharID,
@@ -1870,7 +1873,7 @@ class DogmaService extends BaseService {
       }
     }
     if (item && item.conditionState && typeof item.conditionState === "object") {
-      const conditionState = normalizeShipConditionState(item.conditionState);
+      const conditionState = normalizeShipConditionState(require("../incursion/incursionRepairPresentation").condition(item));
       const shieldCapacity = Number(
         item.shieldCapacity ??
           this._resolveDogmaAttributeNumber(attributes, ATTRIBUTE_SHIELD_CAPACITY, NaN),

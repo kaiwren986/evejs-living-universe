@@ -222,7 +222,7 @@ module.exports = {
     }
     this._syncInventoryChanges(session, result.data.inventoryChanges || []);
     if (session && typeof session.sendNotification === "function") {
-      session.sendNotification("OnServerBoostersChanged", "clientID", []);
+      session.sendNotification("OnServerBoostersChanged", "charid", []);
     }
     syncCharacterDogmaState(session, charID, { refreshLiveShip: true });
     this._syncQueueAfterAttributeChange(charID, "booster");

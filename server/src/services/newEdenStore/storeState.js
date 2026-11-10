@@ -190,6 +190,7 @@ function normalizeRedeemTokens(rawValue) {
         addedByContext: Math.trunc(toNumber(source.addedByContext, 0)),
         addedByExtra: source.addedByExtra === undefined ? null : cloneValue(source.addedByExtra),
         ...(source.campaignGrant ? { campaignGrant: cloneValue(source.campaignGrant) } : {}),
+        ...(source.projectDiscoveryGrant ? { projectDiscoveryGrant: cloneValue(source.projectDiscoveryGrant) } : {}),
       };
     })
     .filter(Boolean)
@@ -237,11 +238,15 @@ function normalizeRuntimeAccount(rawValue) {
     ),
     redeemTokens: normalizeRedeemTokens(source.redeemTokens),
     campaignTrailRewards: cloneValue(ensureObject(source.campaignTrailRewards)),
+    rewardTokenReceipts: cloneValue(ensureObject(source.rewardTokenReceipts)),
     dailyLoginCampaign: normalizeDailyLoginCampaign(source.dailyLoginCampaign),
     gallenteElectionLogin: cloneValue(ensureObject(source.gallenteElectionLogin)),
     loginCampaignProgress: cloneValue(ensureObject(source.loginCampaignProgress)),
     campaignRedemptions: cloneValue(ensureObject(source.campaignRedemptions)),
+    mctCertificateActivations: cloneValue(ensureObject(source.mctCertificateActivations)),
     careerProgramClaims: cloneValue(ensureObject(source.careerProgramClaims)),
+    careerCrateOpenings: cloneValue(ensureObject(source.careerCrateOpenings)),
+    visionsCrateOpenings: cloneValue(ensureObject(source.visionsCrateOpenings)),
     licenseLifecycle: source.licenseLifecycle == null ? null : cloneValue(source.licenseLifecycle),
     campaignTokenSequence: toPositiveInteger(source.campaignTokenSequence, 0),
     loginMilestone: normalizeLoginMilestone(source.loginMilestone),

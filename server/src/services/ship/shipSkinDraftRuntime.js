@@ -3,8 +3,7 @@
 const { randomBytes } = require("node:crypto");
 const state = require("./shipSkinState");
 const config = require("../../config");
-const { validateShipSkinLayout } = require("./shipSkinLayoutValidation");
-const { getShipSkinSlotConfiguration } = require("./shipSkinComponentAuthority");
+const { validateDesign } = require("./shipSkinDesignValidation");
 const { getCumulativeSkillPolicyValue } = require("./shipSkinSequencingAuthority");
 const { getCharacterSkillMap } = require("../skills/skillState");
 const TABLE_NAME = "shipSkinDraftRuntime";
@@ -26,39 +25,27 @@ function getShipSkinDraft(characterID, id) {
   return record?.characterID === characterID ? record : null;
 }
 function getShipSkinDesign(hex) {
-  return /^[a-f0-9]{64}$/.test(hex || "") ? require("./shipSkinStoreAuthority").getShipSkinStoreDesign(hex) || root().designs[hex] || null : null;
+  return /^[a-f0-9]{64}$/.test(hex || "") ? require("./shipSkinStoreAuthority").getShipSkinStoreDesign(hex)
+    || require("./shipSkinThirdPartyRuntime").getImportedShipSkinStoreDesign(hex) || root().designs[hex] || null : null;
+}
+function getShipSkinDesignShipTypes(hexes) {
+  const unique = [...new Set(hexes)].filter(hex => /^[a-f0-9]{64}$/.test(hex || ""));
+  const store = require("./shipSkinStoreAuthority");
+  const shipTypes = store.getShipSkinStoreShipTypes(unique);
+  const missing = unique.filter(hex => !shipTypes.has(hex));
+  if (missing.length) {
+    const imported = require("./shipSkinThirdPartyRuntime").getImportedShipSkinStoreDesigns(missing);
+    for (const hex of missing) {
+      const design = imported[hex] || state.readPath(TABLE_NAME, `/designs/${hex}`);
+      if (design) shipTypes.set(hex, Number(design.layout?.ship_type?.sequential));
+    }
+  }
+  return shipTypes;
 }
 function retainShipSkinDesign(design) {
   const next = root(), hex = state.fingerprint(design);
   if (!next.designs[hex]) { next.designs[hex] = state.cloneValue(design); state.write(TABLE_NAME, next); }
   return hex;
-}
-function validateDesign(characterID, request) {
-  const name = String(request.name || "");
-  const lineName = String(request.line_name || "");
-  if (!name.trim() || [...name].length > 20 || [...lineName].length > 50 || /[\p{Cc}\p{Cs}]/u.test(name + lineName)) return state.fail("INVALID_SKIN_NAME", 400);
-  const validated = validateShipSkinLayout(request.layout);
-  if (!validated.success) return validated;
-  const slotIDs = getShipSkinSlotConfiguration(validated.layout.ship_type.sequential).slotIDs;
-  const configurations = [];
-  const seen = new Set();
-  for (const entry of request.editor_configurations || []) {
-    const id = state.positive(entry.id?.sequential);
-    // The native Save and Save As buttons include both pattern editor slots,
-    // even when neither pattern is fitted (saveSkinButton.py). These describe
-    // editor state, so they need a valid hull slot rather than a fitted component.
-    if (!slotIDs.includes(id) || seen.has(id) || !entry.config) return state.fail("INVALID_EDITOR_CONFIGURATION", 400);
-    seen.add(id);
-    const config = {};
-    for (const field of ["offset_u_ratio", "offset_v_ratio", "yaw", "pitch", "roll", "scaling"]) {
-      const value = Number(entry.config[field] ?? 0);
-      if (!Number.isFinite(value) || Math.abs(value) > 1000000) return state.fail("INVALID_EDITOR_CONFIGURATION", 400);
-      config[field] = Object.is(value, -0) ? 0 : value;
-    }
-    configurations.push({ id: { sequential: id }, config });
-  }
-  const design = { version: 1, characterID, name, lineName, layout: validated.layout, tier: validated.tier };
-  return { success: true, design, hex: state.fingerprint(design), editorConfigurations: configurations.sort((a, b) => a.id.sequential - b.id.sequential) };
 }
 function mutate(characterID, action, id, request, requestID) {
   if (!state.positive(characterID) || !state.requestKey(requestID)) return state.fail("INVALID_DRAFT_REQUEST", 400);
@@ -99,7 +86,7 @@ function mutate(characterID, action, id, request, requestID) {
   state.write(TABLE_NAME, next);
   return { success: true, ...state.cloneValue(result) };
 }
-module.exports = { TABLE_NAME, uuid, getShipSkinDraftSaveCapacity, getOwnedShipSkinDrafts, getShipSkinDraft, getShipSkinDesign, retainShipSkinDesign,
+module.exports = { TABLE_NAME, uuid, getShipSkinDraftSaveCapacity, getOwnedShipSkinDrafts, getShipSkinDraft, getShipSkinDesign, getShipSkinDesignShipTypes, retainShipSkinDesign,
   saveShipSkinDraft: (actor, request, key) => mutate(actor, "save", null, request, key),
   updateShipSkinDraft: (actor, id, request, key) => mutate(actor, "update", id, request, key),
   deleteShipSkinDraft: (actor, id, key) => mutate(actor, "delete", id, {}, key), validateDesign };

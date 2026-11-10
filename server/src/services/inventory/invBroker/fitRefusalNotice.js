@@ -21,6 +21,7 @@ function describeFitRefusal(failure, nameOf) {
     }
     case "INSUFFICIENT_CALIBRATION":
       return `needs more calibration than the ship has (${number(data.upgradeLoad)} of ${number(data.upgradeCapacity)})`;
+    case "NO_FITTING_SLOTS_FOR_FAMILY":
     case "INVALID_FIT_SLOT":
       return "has no compatible slot on this ship";
     case "SLOT_OCCUPIED":

@@ -99,6 +99,7 @@ function overrideRandomSource(source) {
 module.exports = {
   createRng,
   getRandomSeed,
+  hashSeed,
   mulberry32,
   overrideRandomSource,
   random,

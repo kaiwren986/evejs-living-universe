@@ -4,12 +4,14 @@ const path = require("path");
 
 const BaseService = require(path.join(__dirname, "../baseService"));
 const log = require(path.join(__dirname, "../../utils/logger"));
+const { resolveSessionCharacterID } = require("../_shared/sessionIdentity");
 const characterEnergyState = require(path.join(
   __dirname,
   "characterEnergyState",
 ));
 const {
   buildFiletimeLong,
+  buildMarshalReal,
   buildObjectEx1,
   currentFileTime,
   normalizeBigInt,
@@ -20,8 +22,8 @@ const CHARACTER_ENERGY_STATE_CLASS =
   "characterenergy.characterEnergyState.CharacterEnergyState";
 const DEFAULT_MIN_ENERGY_LEVEL = 0;
 const DEFAULT_QUIESCENT_ENERGY_LEVEL = 100;
-const DEFAULT_ENERGY_INCREASE_PER_RECHARGE_TICK = 1;
-const DEFAULT_RECHARGE_TICK_PERIOD_SECONDS = 792;
+const DEFAULT_ENERGY_INCREASE_PER_RECHARGE_TICK = 4.4;
+const DEFAULT_RECHARGE_TICK_PERIOD_SECONDS = 3600;
 const FILETIME_TICKS_PER_SECOND = 10_000_000n;
 let nowFileTimeOverride = null;
 
@@ -36,10 +38,7 @@ function currentCharacterEnergyFileTime() {
 }
 
 function resolveCharacterID(session) {
-  const numericValue = Number(
-    session && (session.charid || session.characterID || session.userid),
-  );
-  return Number.isInteger(numericValue) && numericValue > 0 ? numericValue : 0;
+  return resolveSessionCharacterID(session);
 }
 
 function normalizeTimestamp(value, fallback = currentCharacterEnergyFileTime()) {
@@ -103,12 +102,14 @@ function buildCharacterEnergyStatePayload(rawState = {}) {
   const state = normalizeCharacterEnergyState(rawState);
 
   return buildObjectEx1(CHARACTER_ENERGY_STATE_CLASS, [
-    state.energyLevel,
+    // The Python 2 client divides these fields directly for its gauge and
+    // recharge ticks. Whole values must remain floats on the wire too.
+    buildMarshalReal(state.energyLevel),
     buildFiletimeLong(state.lastRechargeTickTimestamp),
-    state.energyIncreasePerRechargeTick,
-    state.rechargeTickPeriod,
-    state.minEnergyLevel,
-    state.quiescentEnergyLevel,
+    buildMarshalReal(state.energyIncreasePerRechargeTick),
+    buildMarshalReal(state.rechargeTickPeriod),
+    buildMarshalReal(state.minEnergyLevel),
+    buildMarshalReal(state.quiescentEnergyLevel),
   ]);
 }
 
@@ -194,7 +195,7 @@ function notifyCharacterEnergyChanged(session, characterID, state) {
   if (!session || typeof session.sendNotification !== "function" || characterID <= 0) {
     return false;
   }
-  session.sendNotification("OnCharacterEnergyChanged", "clientID", [
+  session.sendNotification("OnCharacterEnergyChanged", "charid", [
     characterID,
     buildCharacterEnergyStatePayload(state),
   ]);
@@ -212,6 +213,54 @@ function getCharacterEnergyStateNow(session, options = {}) {
     rawState,
     options.filetime || currentCharacterEnergyFileTime(),
   );
+}
+
+function publishCharacterEnergyState(session, state) {
+  const characterID = resolveCharacterID(session);
+  setRuntimeStateForCharacter(ensureSessionStateStore(session), characterID, state);
+  return notifyCharacterEnergyChanged(session, characterID, state);
+}
+
+function setCharacterEnergyLevel(session, energyLevel) {
+  const characterID = resolveCharacterID(session);
+  if (!characterID) return { success: false, errorMsg: "CHARACTER_NOT_FOUND" };
+  if (!Number.isFinite(energyLevel) || energyLevel < 0 || energyLevel > 100) {
+    return { success: false, errorMsg: "INVALID_CHARACTER_ENERGY_LEVEL" };
+  }
+
+  // A delayed link-payment rollback must settle before a refill, or it could
+  // overwrite the GM's change. Recovery can also invalidate the session cache.
+  let recovery;
+  try { recovery = require("../ship/mobileAnalysisBeaconRuntime").recoverPendingLinkPayments(); }
+  catch (error) { return { success: false, errorMsg: error.message }; }
+  if (!recovery.success) return recovery;
+  const read = characterEnergyState.readCharacterEnergyState(characterID);
+  if (!read.success) return read;
+  const previous = read.data;
+  const current = normalizeCharacterEnergyState(previous || {});
+  if (energyLevel < current.minEnergyLevel || energyLevel > current.quiescentEnergyLevel) {
+    return { success: false, errorMsg: "INVALID_CHARACTER_ENERGY_LEVEL" };
+  }
+  const state = { ...current, energyLevel, lastRechargeTickTimestamp: currentCharacterEnergyFileTime() };
+  let result;
+  try {
+    result = characterEnergyState.writeCharacterEnergyState(characterID, state);
+    if (result.success) result = characterEnergyState.flushCharacterEnergyState();
+  } catch (error) {
+    result = { success: false, errorMsg: error.message };
+  }
+  if (!result?.success) {
+    try {
+      const restored = characterEnergyState.restoreCharacterEnergyState(characterID, previous);
+      if (!restored.success) log.warn(`[CharacterEnergyMgr] CEQ rollback failed char=${characterID}: ${restored.errorMsg}`);
+    } catch (error) {
+      log.warn(`[CharacterEnergyMgr] CEQ rollback failed char=${characterID}: ${error.message}`);
+    }
+    return { success: false, errorMsg: result?.errorMsg || "CHARACTER_ENERGY_STORAGE_FAILED" };
+  }
+  try { publishCharacterEnergyState(session, state); }
+  catch (error) { log.warn(`[CharacterEnergyMgr] CEQ notification failed char=${characterID}: ${error.message}`); }
+  return { success: true, data: { characterID, state } };
 }
 
 function spendCharacterEnergy(session, rawAmount, options = {}) {
@@ -261,9 +310,7 @@ function spendCharacterEnergy(session, rawAmount, options = {}) {
     };
   }
 
-  const store = ensureSessionStateStore(session);
-  setRuntimeStateForCharacter(store, characterID, nextState);
-  notifyCharacterEnergyChanged(session, characterID, nextState);
+  if (options.publish !== false) publishCharacterEnergyState(session, nextState);
   log.debug(
     `[CharacterEnergyMgr] Spent ${amount} CEQ for char=${characterID}; energy=${nextState.energyLevel}/${nextState.quiescentEnergyLevel}`,
   );
@@ -329,5 +376,7 @@ CharacterEnergyMgrService._testing = {
 CharacterEnergyMgrService.getCharacterEnergyStateNow = getCharacterEnergyStateNow;
 CharacterEnergyMgrService.spendCharacterEnergy = spendCharacterEnergy;
 CharacterEnergyMgrService.notifyCharacterEnergyChanged = notifyCharacterEnergyChanged;
+CharacterEnergyMgrService.publishCharacterEnergyState = publishCharacterEnergyState;
+CharacterEnergyMgrService.setCharacterEnergyLevel = setCharacterEnergyLevel;
 
 module.exports = CharacterEnergyMgrService;

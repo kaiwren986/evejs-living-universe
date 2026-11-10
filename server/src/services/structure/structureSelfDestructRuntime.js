@@ -26,6 +26,24 @@ function check(result) {
   return result.data;
 }
 function failure(errorMsg) { return { success: false, errorMsg }; }
+// The owner alliance's SovStructureSelfDestruct notices (167 requested, 168
+// cancelled, 169 finished). They are keyed by the countdown's generation, so a
+// replayed command or job sends each once; a failed notice never fails the
+// command.
+function notify(kind, record, extra = {}) {
+  try {
+    const notices = require("../sovereignty/sovCampaignNotifications");
+    const send = { requested: notices.notifySovSelfDestructRequested,
+      cancelled: notices.notifySovSelfDestructCancelled, finished: notices.notifySovSelfDestructFinished }[kind];
+    const result = send({ structureTypeID: record.typeID, solarSystemID: record.solarSystemID,
+      allianceID: record.allianceID, corporationID: record.ownerCorpID, eventKey: record.generation, ...extra });
+    if (!result || result.success !== true)
+      log.warn(`[StructureSelfDestruct] ${kind} notice structure=${record.structureID}: ${result && result.errorMsg || "failed"}`);
+  } catch (error) {
+    log.warn(`[StructureSelfDestruct] ${kind} notice structure=${record.structureID}: ${error.message}`);
+  }
+}
+function filetime(ms) { return (BigInt(Math.trunc(ms)) * 10000n + 116444736000000000n).toString(); }
 function active(record) { return record && ["countdown", "prepared", "destroyed"].includes(record.state); }
 function jobID(record) { return `structure-self-destruct:${record.structureID}:${record.generation}`; }
 function getRecord(id) { return structures().getStructureSelfDestructRecord(id); }
@@ -99,6 +117,7 @@ function startStructureSelfDestruct(session, structureID) {
     solarSystemID: structure.solarSystemID, sceneKey: scene.sceneKey, characterID,
     startedAtMs: nowMs, expiresAtMs: nowMs + SELF_DESTRUCT_DURATION_MS });
   queueRecord(record);
+  notify("requested", record, { characterID, destructTime: filetime(record.expiresAtMs) });
   return { success: true, data: record };
 }
 function abortStructureSelfDestruct(session, structureID) {
@@ -110,7 +129,19 @@ function abortStructureSelfDestruct(session, structureID) {
     return failure("STRUCTURE_SELF_DESTRUCT_TOO_LATE");
   const cancelled = save({ ...record, state: "aborted", reason: "pilot-abort", resolvedAtMs: getWallclockNowMs() });
   queueRecord(cancelled);
+  notify("cancelled", cancelled, { characterID: result.data.characterID });
   return { success: true, data: cancelled };
+}
+// GM time skip (owner ruling 2026-11-07, hybrid with time forwarding): make a
+// running countdown end in `seconds`. The record and the structure's
+// selfDestructAt move together, and the job is rescheduled to the new deadline.
+function adminSetSelfDestructRemaining(structureID, seconds) {
+  const record = getRecord(Number(structureID));
+  if (!record || record.state !== "countdown") return failure("STRUCTURE_SELF_DESTRUCT_NOT_RUNNING");
+  const expiresAtMs = getWallclockNowMs() + Math.max(0, Number(seconds) || 0) * 1000;
+  const moved = save({ ...record, expiresAtMs });
+  queueRecord(moved);
+  return { success: true, data: moved };
 }
 function sameStructure(record, structure) {
   return structure && !structure.destroyedAt && !structure.unanchoring &&
@@ -152,6 +183,7 @@ function complete(record) {
     }
   }
   structures().createStructureDestroyedNotifications(record.structure, { idempotencyKey: jobID(record) });
+  notify("finished", record);
   check(require("../../gameStore").flushTablesSync(["structures", "items", "sovereignty", "notifications"]));
   const completed = save({ ...record, state: "completed", sovereignLoss: loss, lastError: null, resolvedAtMs: getWallclockNowMs() });
   queueRecord(completed);
@@ -190,6 +222,6 @@ async function reconcileDurableSelfDestructs() {
 async function idle() {
   while (pending.size || lanes.size) await Promise.all([...pending, ...lanes.values()].map(work => work.catch(() => null)));
 }
-module.exports = { SELF_DESTRUCT_DURATION_MS, MAX_CONFIGURE_DISTANCE_METERS, DURABLE_SELF_DESTRUCT_JOB_TYPE,
+module.exports = { adminSetSelfDestructRemaining, SELF_DESTRUCT_DURATION_MS, MAX_CONFIGURE_DISTANCE_METERS, DURABLE_SELF_DESTRUCT_JOB_TYPE,
   startStructureSelfDestruct, abortStructureSelfDestruct, handleDurableSelfDestruct, reconcileDurableSelfDestructs,
   bindDurableScheduler: binding.bind, unbindDurableScheduler: binding.unbind, getRecord, listRecords, queueRecord, idle };

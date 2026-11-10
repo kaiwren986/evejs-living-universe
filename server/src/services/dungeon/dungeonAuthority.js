@@ -5,6 +5,8 @@ const {
 } = require("../../common/numbers");
 
 const path = require("path");
+const securityBindings = require("../../contentPacks/securityMissionBinding");
+const { buildLegacyTemplate } = require("./capturedSecurityLegacyScenes");
 
 const {
   applyDungeonContentPacks,
@@ -252,6 +254,7 @@ function buildCache() {
     ),
   );
   const templatesByID = new Map();
+  const securityMissionBindingsByID = new Map();
   const templatesBySourceDungeonID = new Map();
   const templatesBySource = new Map();
   const templatesByFamily = new Map();
@@ -270,6 +273,29 @@ function buildCache() {
     if (isBannedDungeonTemplateRecord(template, templateID)) {
       continue;
     }
+    const isSecurityAlias = securityBindings.isSecurityMissionAlias(template, templateID);
+    if (isSecurityAlias) {
+      const receipts = payload.meta && payload.meta.installedContentPacks || [];
+      if (!securityBindings.isInstalledSecurityMissionBinding(template) || !receipts.some((receipt) =>
+        ["id", "version", "packSha256", "payloadSha256"].every((key) => receipt[key] === template._contentPack[key]))) continue;
+      securityBindings.validateSecurityMissionBinding(template, templateID);
+      const mission = template.securityMission;
+      if (securityMissionBindingsByID.has(mission.missionID)) throw new Error(`CONTENT_PACK_INVALID: duplicate Security mission ${mission.missionID}`);
+      securityMissionBindingsByID.set(mission.missionID, freezeDeep(clone({
+        templateID, missionID: mission.missionID, dungeonID: mission.dungeonID,
+        agentLevel: mission.agentLevel,
+        factionID: mission.nativeMission.factionID || 0,
+        corporationID: mission.nativeMission.corporationID || 0,
+        agentTypeID: mission.nativeMission.agentTypeID || 0,
+        nativeKillMission: mission.nativeMission.killMission,
+        rewards: mission.rewards, standings: mission.standings,
+        baselineEvidence: mission.validationTODOs.filter((todo) =>
+          /^\/securityMission\/(rewards|standings)\/[^/]+$/.test(todo.fieldPath) &&
+          todo.value === mission[todo.fieldPath.split("/")[2]]?.[todo.fieldPath.split("/")[3]])
+          .map(({ fieldPath, evidenceClass }) => ({ fieldPath, evidenceClass })),
+        _contentPack: template._contentPack,
+      })));
+    }
     const normalizedTemplate = {
       ...template,
       templateID,
@@ -285,10 +311,15 @@ function buildCache() {
           : null,
     };
     templatesByID.set(templateID, normalizedTemplate);
+    if (isSecurityAlias) {
+      // Runtime lookup only. Legacy scenes cannot enter admission/selection indexes.
+      const legacy = buildLegacyTemplate(normalizedTemplate);
+      if (legacy) templatesByID.set(legacy.templateID, legacy);
+    }
     const selectionDescriptor = buildTemplateSelectionDescriptor(normalizedTemplate);
     templateSelectionDescriptorsByID.set(templateID, selectionDescriptor);
 
-    if (normalizedTemplate.sourceDungeonID && normalizedTemplate.sourceDungeonID > 0) {
+    if (!isSecurityAlias && normalizedTemplate.sourceDungeonID && normalizedTemplate.sourceDungeonID > 0) {
       templatesBySourceDungeonID.set(normalizedTemplate.sourceDungeonID, normalizedTemplate);
     }
 
@@ -405,6 +436,7 @@ function buildCache() {
   return {
     payload,
     templatesByID,
+    securityMissionBindingsByID,
     templatesBySourceDungeonID,
     templatesBySource,
     templatesByFamily,
@@ -468,6 +500,16 @@ function getTemplateByID(templateID) {
   }
   const template = ensureCache().templatesByID.get(String(templateID || "").trim());
   return template ? clone(template) : null;
+}
+
+// These small immutable descriptors belong to this authority generation. They
+// neither clone room graphs on offers nor outlive a content-cache rebuild.
+function getSecurityMissionBinding(missionID) {
+  return ensureCache().securityMissionBindingsByID.get(toInt(missionID, 0)) || null;
+}
+
+function listSecurityMissionBindings() {
+  return [...ensureCache().securityMissionBindingsByID.values()];
 }
 
 function getTemplateByIDReadOnly(templateID) {
@@ -592,6 +634,8 @@ function getCoverage() {
 
 module.exports = {
   _testing: { projectEditorCatalog },
+  getSecurityMissionBinding,
+  listSecurityMissionBindings,
   clearCache,
   getCoverage,
   getArchetypeByID,

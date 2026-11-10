@@ -51,6 +51,8 @@ const TYPE_TRITANIUM = 34;
 const TYPE_GURISTAS_PRODUCTION_STRONG_BOX = 43697;
 const TYPE_HARVESTER_MINING_DRONE_BLUEPRINT = 43934;
 const electionCrates = require("../seasons/gallenteCrateRewards");
+const airCareerCrates = require("../career/airCareerCrates");
+const visionsCrates = require("../agent/visionsCrates");
 const {
   ensureGrantedBlueprintCopyState,
   isBlueprintCopyRewardType,
@@ -430,6 +432,16 @@ function buildLootResponseItems(items = []) {
     .filter(([itemID, typeID, quantity]) => itemID > 0 && typeID > 0 && quantity > 0);
 }
 
+// TQ tells the opener their loot has landed with OnCrateLootSpawned, idtype
+// charid and no arguments, during OpenCrate before the call returns (golden log
+// "Project Discovery - Cache redeem and opening"). The client's
+// neocomInventoryBadging.py:502 shows its "new items" highlight on it.
+function notifyCrateLootSpawned(session) {
+  if (session && typeof session.sendNotification === "function") {
+    session.sendNotification("OnCrateLootSpawned", "charid", []);
+  }
+}
+
 function syncInventoryChanges(session, changes = []) {
   for (const change of Array.isArray(changes) ? changes : []) {
     if (!change || !change.item) {
@@ -565,15 +577,11 @@ function applySkillBundleToCharacter(session, characterID, bundle) {
     freeSkillPoints: freeSkillPoints === null ? undefined : freeSkillPoints,
   });
   if (session && typeof session.sendNotification === "function") {
-    session.sendNotification("OnSkillBundleInjected", "clientID", [
+    session.sendNotification("OnSkillBundleInjected", "charid", [
       changedSkills.length,
       bundle.freeSkillPoints,
     ]);
   }
-  return {
-    changedSkillCount: changedSkills.length,
-    freeSkillPoints: bundle.freeSkillPoints,
-  };
 }
 
 function isPendingLootItem(item, session) {
@@ -727,6 +735,10 @@ class CrateService extends BaseService {
 
   Handle_GetCrateLocation(args, session) {
     const itemID = toPositiveInt(args && args[0], 0);
+    const visionsLocation = visionsCrates.location(getSessionCharacterID(session), itemID);
+    if (visionsLocation) return visionsLocation;
+    const airLocation = airCareerCrates.location(getSessionCharacterID(session), itemID);
+    if (airLocation) return airLocation;
     const { item } = validateOwnedCrate(itemID, session);
     return [
       toPositiveInt(item.locationID, 0),
@@ -736,8 +748,27 @@ class CrateService extends BaseService {
 
   Handle_OpenCrate(args, session) {
     const itemID = toPositiveInt(args && args[0], 0);
+    const activeCharacterID = getSessionCharacterID(session);
+    if (visionsCrates.location(activeCharacterID, itemID)) {
+      let opened;
+      try { opened = visionsCrates.open(activeCharacterID, itemID, session); }
+      catch (_error) { throwNotify("Dock with these simulation supplies in your item hangar to open them. An accepted opening can be retried safely."); }
+      notifyCrateLootSpawned(session);
+      return opened;
+    }
+    if (airCareerCrates.location(activeCharacterID, itemID)) {
+      let opened;
+      try { opened = airCareerCrates.open(activeCharacterID, itemID, session); }
+      catch (_error) { throwNotify("That AIR crate could not be opened. Its accepted opening can be retried safely."); }
+      notifyCrateLootSpawned(session);
+      return opened;
+    }
     const { characterID, item } = validateOwnedCrate(itemID, session);
-    if (electionCrates.getPool(item.typeID)) return openElectionCrates(item,characterID,1,session);
+    if (electionCrates.getPool(item.typeID)) {
+      const opened = openElectionCrates(item,characterID,1,session);
+      notifyCrateLootSpawned(session);
+      return opened;
+    }
     const destinationID = toPositiveInt(item.locationID, 0);
     const destinationFlagID = toInt(item.flagID, ITEM_FLAGS.HANGAR);
     if (!destinationID) {
@@ -772,12 +803,18 @@ class CrateService extends BaseService {
       destinationID,
       destinationFlagID,
     });
+    notifyCrateLootSpawned(session);
     return buildLootResponseItems(pendingGrant.items || []);
   }
 
   Handle_PeekInsideFixedCrate(args, session) {
     const itemID = toPositiveInt(args && args[0], 0);
-    const { item } = validateOwnedCrate(itemID, session);
+    const { characterID, item } = validateOwnedCrate(itemID, session);
+    if (visionsCrates.isSupplyCrate(item.typeID)) return visionsCrates.preview(item);
+    if (airCareerCrates.isAirCrate(item.typeID)) {
+      try { return airCareerCrates.preview(characterID, item); }
+      catch (_error) { throwNotify("The contents of this AIR crate are not available yet. The crate has not been consumed."); }
+    }
     // A random crate has possible outcomes, not a guaranteed preview roll.
     const pool=electionCrates.getPool(item.typeID);
     if(pool) return pool.map(entry=>[entry.typeID,1,""]);
@@ -790,6 +827,8 @@ class CrateService extends BaseService {
 
   Handle_ClaimLoot(args, session) {
     const itemID = toPositiveInt(args && args[0], 0);
+    if (visionsCrates.wasDelivered(getSessionCharacterID(session), itemID)) return null;
+    if (airCareerCrates.wasDelivered(getSessionCharacterID(session), itemID)) return null;
     const item = findItemById(itemID);
     const delivered=pendingLootByItemID.get(itemID);
     if(delivered?.delivered && delivered.characterID===getSessionCharacterID(session)) return null;
@@ -818,13 +857,47 @@ class CrateService extends BaseService {
     return null;
   }
 
+  // Opening part of a stack delivers straight to the hangar. No capture shows
+  // whether TQ sends OnCrateLootSpawned here too; it is sent as for OpenCrate
+  // because the same loot lands, once per call after the stack is consumed.
   Handle_ClaimLootFromCrateStack(args, session) {
+    const result = this._claimLootFromCrateStack(args, session);
+    notifyCrateLootSpawned(session);
+    return result;
+  }
+
+  _claimLootFromCrateStack(args, session) {
     const itemID = toPositiveInt(args && args[0], 0);
     const requestedQuantity = Math.min(
       MAX_MULTI_OPEN,
       Math.max(1, toInt(args && args[1], 1)),
     );
+    const activeCharacterID = getSessionCharacterID(session);
+    if (activeCharacterID && visionsCrates.previous(activeCharacterID, itemID, true)) {
+      try { visionsCrates.open(activeCharacterID, itemID, session); return [1, requestedQuantity]; }
+      catch (_error) { throwNotify("That accepted simulation supply opening can be retried safely."); }
+    }
+    // The last source unit can be gone after its consumption fence while its
+    // accepted output still awaits acknowledgement. Settle that unit before
+    // source validation. This response counts only the recovered unit; further
+    // source units need a later native action, avoiding an over-open on retry.
+    if (activeCharacterID && airCareerCrates.previous(activeCharacterID, itemID, true)) {
+      try { airCareerCrates.open(activeCharacterID, itemID, session); return [1, requestedQuantity]; }
+      catch (_error) { throwNotify("That accepted AIR crate opening could not be completed yet. It can be retried safely."); }
+    }
     const { characterID, item } = validateOwnedCrate(itemID, session);
+    if (visionsCrates.isSupplyCrate(item.typeID)) {
+      const count = Math.min(requestedQuantity, getStackQuantity(item));
+      try { for (let index = 0; index < count; index += 1) visionsCrates.open(characterID, itemID, session); }
+      catch (_error) { throwNotify("The simulation supplies could not be opened yet. Accepted openings can be retried safely."); }
+      return [count, requestedQuantity];
+    }
+    if (airCareerCrates.isAirCrate(item.typeID)) {
+      const count = Math.min(requestedQuantity, getStackQuantity(item));
+      try { for (let index = 0; index < count; index += 1) airCareerCrates.open(characterID, itemID, session); }
+      catch (_error) { throwNotify("The remaining AIR crates could not be opened. Accepted openings can be retried safely."); }
+      return [count, requestedQuantity];
+    }
     if (electionCrates.getPool(item.typeID)) {
       const count=Math.min(requestedQuantity,getStackQuantity(item));
       openElectionCrates(item,characterID,count,session);
@@ -870,7 +943,10 @@ class CrateService extends BaseService {
     if (!bundle) {
       return null;
     }
-    return applySkillBundleToCharacter(session, characterID, bundle);
+    applySkillBundleToCharacter(session, characterID, bundle);
+    // TQ answers None (golden log "Minmatar - Career missions part 2":
+    // crateService::ClaimSkillBundle retval=None); lootItem.py claim() ignores it.
+    return null;
   }
 
   Handle_ClaimFitting(args, session) {

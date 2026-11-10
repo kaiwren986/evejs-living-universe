@@ -30,7 +30,21 @@ const {
   createWarpJitter,
   pilotWarpStreamSeed,
 } = require("../simulation/warpJitter");
+const { WARP_TRANSMISSION_RECEIPT } = require("./warpTransmissionReceipt");
 const SAME_WARP_DESTINATION_TOLERANCE_METERS = 1;
+
+// Epic holograms are private, disposable free Balls. They share native warp
+// physics without acquiring ship inventory, health or NPC combat ownership.
+function isDungeonCinematicWarpBall(runtime, entity) {
+  return entity?.kind === "siteEnvironmentProp" &&
+    typeof entity.epicCinematicKey === "string" && entity.epicCinematicKey.length > 0 &&
+    entity.dungeonMaterializedSiteContent === true &&
+    Number.isSafeInteger(entity.dungeonSiteInstanceID) && entity.dungeonSiteInstanceID > 0 &&
+    entity.destinyForceFree === true && entity.transient === true &&
+    entity.persistSpaceState === false && entity.nativeNpc !== true &&
+    entity.shieldCapacity === 0 && entity.armorHP === 0 && entity.structureHP === 0 &&
+    runtime.getEntityByID(entity.itemID) === entity;
+}
 
 function vectorsNearlyEqual(left, right, tolerance = SAME_WARP_DESTINATION_TOLERANCE_METERS) {
   if (!left || !right || typeof left !== "object" || typeof right !== "object") {
@@ -450,6 +464,7 @@ function createMovementWarpCommands(deps = {}) {
       destinationDungeonSiteID: normalizePersistentEntityID(
         options.destinationDungeonSiteID,
       ),
+      [WARP_TRANSMISSION_RECEIPT]: options[WARP_TRANSMISSION_RECEIPT],
       nativeGoto: isNativeWarpDistanceTooShort(
         getRawWarpCommandDistance(entity, rawDestination),
       ),
@@ -476,6 +491,7 @@ function createMovementWarpCommands(deps = {}) {
         targetPoint: cloneVector(request.targetPoint),
         targetEntityID: request.targetEntityID,
         destinationStaticInstanceID: request.destinationStaticInstanceID,
+        [WARP_TRANSMISSION_RECEIPT]: request[WARP_TRANSMISSION_RECEIPT],
         destinationDungeonRoomKey: request.destinationDungeonRoomKey,
         destinationDungeonSiteID: request.destinationDungeonSiteID,
         warpSpeedAU: request.warpSpeedAU,
@@ -746,6 +762,7 @@ function createMovementWarpCommands(deps = {}) {
     }
     entity.speedFraction = 1;
     entity.warpDestination = {
+      [WARP_TRANSMISSION_RECEIPT]: request[WARP_TRANSMISSION_RECEIPT],
       rawDestination: cloneVector(request.rawDestination),
       stopDistance: request.stopDistance,
       targetPoint: cloneVector(request.targetPoint),
@@ -1042,13 +1059,28 @@ function createMovementWarpCommands(deps = {}) {
       // goes to the site's entry as the check gives it, jittered like every
       // warp.
       let warpPoint = point;
+      // ESS entrances apply to every ordinary pilot warp, including point,
+      // bookmark and fleet destinations. Only an admitted ESS gate transit
+      // can enter its bank pocket; the generic dungeon bypass is insufficient.
+      const essDecision = require("../../../services/dynamic/essAccessRuntime")
+        .evaluateEssDeadspaceWarp(runtime, entity, point, options);
+      if (essDecision.action === "block") {
+        return { success: false, errorMsg: essDecision.errorMsg };
+      }
+      if (essDecision.action === "clamp") {
+        warpPoint = essDecision.point;
+        destinationStaticInstanceID = null;
+        destinationDungeonRoomKey = null;
+        destinationDungeonSiteID = null;
+        effectiveWarpOptions = { ...options, stopDistance: 0, targetEntityID: essDecision.targetEntityID };
+      }
       if (
         config.deadspaceWarpRestrictionEnabled !== false &&
         options.dungeonGateTransit !== true &&
         options.ignoreDeadspaceWarpRestriction !== true
       ) {
         try {
-          const decision = evaluateDeadspaceWarp(entity, point, {
+          const decision = evaluateDeadspaceWarp(entity, warpPoint, {
             ...options,
             resolveDungeonEntryWarpTarget: (instance) => (
               resolveDungeonEntryWarpTarget(runtime, instance)
@@ -1437,12 +1469,13 @@ function createMovementWarpCommands(deps = {}) {
           destinationStaticInstanceID: destination.destinationStaticInstanceID,
           destinationDungeonRoomKey: destination.destinationDungeonRoomKey,
           destinationDungeonSiteID: destination.destinationDungeonSiteID,
+          [WARP_TRANSMISSION_RECEIPT]: destination[WARP_TRANSMISSION_RECEIPT],
         },
       );
       return issueEntityWarpIn(runtime, entity, request);
     },
 
-    // An NPC's warp: retail's EntityWarpIn, queued. The spheres refuse or
+    // An NPC or cosmetic dungeon Ball's warp: retail's EntityWarpIn, queued. The spheres refuse or
     // pull it as retail's NPCWarpTo does, when it is asked for and
     // again when it applies; a refusal changes nothing on the NPC. A refusal
     // when the queued order applies has no caller left to return to, so it
@@ -1452,7 +1485,7 @@ function createMovementWarpCommands(deps = {}) {
         typeof entityOrID === "object" && entityOrID !== null
           ? entityOrID
           : runtime.getEntityByID(entityOrID);
-      if (!entity || entity.kind !== "ship") {
+      if (!entity || entity.kind !== "ship" && !isDungeonCinematicWarpBall(runtime, entity)) {
         return {
           success: false,
           errorMsg: "SHIP_NOT_FOUND",

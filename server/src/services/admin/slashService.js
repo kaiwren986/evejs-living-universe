@@ -240,7 +240,8 @@ class SlashService extends BaseService {
           chatHub.sendSystemMessage(session, message, feedbackChannel);
           return message;
         }
-        return commandResult.message || null;
+        return Object.prototype.hasOwnProperty.call(commandResult, "returnValue")
+          ? commandResult.returnValue : commandResult.message || null;
       };
       if (result && typeof result.then === "function") {
         return result.then(settle).catch((error) => {

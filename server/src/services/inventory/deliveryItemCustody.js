@@ -136,6 +136,7 @@ function transferItem(command = {}) {
     reason,
     actor: toInt(command.actor, 0) || null,
     inventoryMoveBatch: command.inventoryMoveBatch,
+    options: { ownerTransferLootInfo: command.ownerTransferLootInfo },
     idempotencyKey:
       suppliedIdempotencyKey ||
       `${LEGACY_DEFAULT_KEY_PREFIX}${reason}:${itemID}:${sourceOwnerID}:` +

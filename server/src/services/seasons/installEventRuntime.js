@@ -3,6 +3,7 @@
 function install() {
   const trail = require("./campaignTrailRuntime");
   const missions = require("./gallenteMissionRuntime");
+  const warpath = require("./warpathMissionRuntime");
   require("./eventHooks").install({
     recovery: { async recoverPending() {
       // Homefront recovers its own pending payouts when the site service starts.
@@ -10,9 +11,13 @@ function install() {
     } },
     trail,
     missions: {
-      stageCompletion: missions.stageCompletion,
+      stageCompletion(characterState, characterID, agent, mission) {
+        missions.stageCompletion(characterState, characterID, agent, mission);
+        warpath.stageCompletion(characterState, agent, mission);
+      },
       reconcileCharacter(session) {
         missions.reconcileProgress(session, trail.getProgress(trail.getCharacterID(session)));
+        warpath.publishCompletion(session);
       },
     },
     depot: require("./gallenteDepotRuntime"),

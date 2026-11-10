@@ -63,18 +63,24 @@ class MissionTrackerMgrService extends BaseService {
   Handle_UpdateAllMissions(args, session) {
     const characterID = normalizePositiveInteger(session && session.characterID, 0);
     const agentIDs = normalizeAgentIDs(args && args[0]);
-    const updates = agentIDs.map((agentID) => buildDict([
-      ["info", buildMissionInfoList(
-        agentMissionRuntime.getMissionInfoItems(
-          characterID,
-          agentID,
-          buildTrackerOptions(session, agentID),
-        ),
-      )],
-      ["agentID", agentID],
-    ]));
+    const updates = [];
+    for (const agentID of agentIDs) {
+      const info = buildMissionInfoList(agentMissionRuntime.getMissionInfoItems(
+        characterID,
+        agentID,
+        buildTrackerOptions(session, agentID),
+      ));
+      const record = agentMissionRuntime.getMissionRecord(characterID, agentID);
+      if (agentMissionRuntime.requiresMissionTrackerStatePull(record, info)) {
+        if (typeof session?.sendNotification === "function") {
+          session.sendNotification("OnAgentMissionObjectivesCompleted", "charid", [agentID]);
+        }
+      } else {
+        updates.push(buildDict([["info", info], ["agentID", agentID]]));
+      }
+    }
 
-    if (typeof session?.sendNotification === "function") {
+    if (typeof session?.sendNotification === "function" && (updates.length || !agentIDs.length)) {
       session.sendNotification("OnMissionsUpdated", "charid", [updates]);
     }
     return null;

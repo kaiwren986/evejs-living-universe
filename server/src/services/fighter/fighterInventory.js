@@ -9,6 +9,7 @@ const {
 const {
   ITEM_FLAGS,
   FIGHTER_TUBE_FLAGS,
+  listItemsMatching,
 } = require(path.join(__dirname, "../inventory/itemStore"));
 const {
   getTypeAttributeValue,
@@ -240,7 +241,24 @@ function countFighterTubeBroadClasses(occupiedTubeItems = []) {
   return counts;
 }
 
-function canLoadFighterTypeIntoHostTube(
+function listHostFighterOccupancy(hostID, options = {}) {
+  const numericHostID = toPositiveInt(hostID);
+  if (!numericHostID) return [];
+  const excludeItemID = toPositiveInt(options.excludeItemID);
+  // Launching moves a squadron out of its tube's inventory location, but its
+  // persisted controller and tube still reserve capacity until it is detached.
+  // Read that durable state even when its scene is not currently materialized.
+  return listItemsMatching((item) => {
+    if (Number(item.itemID) === excludeItemID) return false;
+    const loaded = Number(item.locationID) === numericHostID && isFighterTubeFlag(item.flagID);
+    const launched = Number(item.flagID) === 0 && item.spaceState &&
+      Number(item.fighterState?.controllerID) === numericHostID &&
+      isFighterTubeFlag(item.fighterState?.tubeFlagID);
+    return Boolean((loaded || launched) && isFighterItemRecord(item));
+  });
+}
+
+function getFighterTubeLoadRestriction(
   hostTypeID,
   fighterTypeID,
   tubeFlagID,
@@ -249,28 +267,38 @@ function canLoadFighterTypeIntoHostTube(
   const tubeLimit = getFighterTubeLimitForHostTypeID(hostTypeID);
   const tubeOrdinal = getFighterTubeOrdinal(tubeFlagID);
   if (tubeLimit <= 0 || tubeOrdinal <= 0 || tubeOrdinal > tubeLimit) {
-    return false;
+    return { reason: "TUBE_UNAVAILABLE" };
   }
 
   const fighterClassID = getFighterClassForTypeID(fighterTypeID);
   const broadClassID = getFighterBroadClassForTypeID(fighterTypeID);
   if (!fighterClassID || !broadClassID) {
-    return false;
+    return { reason: "FIGHTER_CLASS_UNKNOWN" };
   }
 
   const classLimit = getFighterSlotLimitForClass(hostTypeID, fighterClassID);
   if (classLimit <= 0) {
-    return false;
+    return { reason: "FIGHTER_CLASS_UNSUPPORTED" };
   }
 
   const occupiedFighters = (Array.isArray(occupiedTubeItems) ? occupiedTubeItems : [])
     .filter((item) => item && isFighterItemRecord(item));
+  if (occupiedFighters.some((item) => Number(isFighterTubeFlag(item.flagID)
+    ? item.flagID : item.fighterState?.tubeFlagID) === Number(tubeFlagID))) {
+    return { reason: "TUBE_OCCUPIED" };
+  }
   if (occupiedFighters.length >= tubeLimit) {
-    return false;
+    return { reason: "TUBE_LIMIT" };
   }
 
   const broadClassCounts = countFighterTubeBroadClasses(occupiedFighters);
-  return (broadClassCounts[broadClassID] || 0) < classLimit;
+  return (broadClassCounts[broadClassID] || 0) >= classLimit
+    ? { reason: "FIGHTER_CLASS_LIMIT", broadClassID, limit: classLimit }
+    : null;
+}
+
+function canLoadFighterTypeIntoHostTube(...args) {
+  return getFighterTubeLoadRestriction(...args) === null;
 }
 
 function buildInventorySquadronSize(item) {
@@ -338,12 +366,14 @@ module.exports = {
   getFighterSlotLimitForClass,
   getFighterSquadronSizeForTypeID,
   getFighterTubeLimitForHostTypeID,
+  getFighterTubeLoadRestriction,
   getFighterTubeOrdinal,
   isDroneItemRecord,
   isFighterItemRecord,
   isDroneTypeID,
   isFighterTypeID,
   isFighterTubeFlag,
+  listHostFighterOccupancy,
   buildInventorySquadronSize,
   summarizePublishedTypesByCategory,
 };

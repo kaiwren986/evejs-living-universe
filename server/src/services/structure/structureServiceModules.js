@@ -777,6 +777,81 @@ function consumeStructureServiceModuleCycleFuel(structureID, moduleItem, options
   };
 }
 
+// Two years of hourly cycles; a bay that lasts longer reports this horizon.
+const FUEL_EXPIRY_HORIZON_CYCLES = 2 * 365 * 24;
+
+// When the fuel bay of a structure running ordinary service modules runs dry.
+// The client's structure browser shows fuelExpires - now
+// (ui/structure/structureBrowser/entries/structureEntryMyCorp.py:231). Each
+// online module pays its whole-block share of its effective hourly need at its
+// own next cycle (consumeStructureServiceModuleCycleFuel), carrying the
+// fraction forward, so the same charges are replayed here against the bay; the
+// first cycle the bay cannot pay is when the fuel runs out. FLEX and Metenox
+// built-ins keep their own fuelExpiresAt and are left out.
+function estimateStructureServiceFuelExpiresAt(structureID, nowMs = Date.now()) {
+  const numericStructureID = toPositiveInt(structureID, 0);
+  if (!numericStructureID) {
+    return null;
+  }
+  const structure = structureState.getStructureByID(numericStructureID, { refresh: false });
+  const flexBuiltIns = require("./structureFlexBuiltIns");
+  const cycles = listOnlineStructureServiceModules(numericStructureID)
+    .filter((moduleItem) => !getMetenoxDrillModule().isIntegratedDrill(structure, moduleItem))
+    .filter((moduleItem) => !flexBuiltIns.isIntegratedFlexModule(structure, moduleItem))
+    .map((moduleItem) => {
+      const moduleState = (moduleItem && moduleItem.moduleState) || {};
+      const nextCycleAt = toInt(moduleState.serviceFuelNextCycleAt, 0);
+      return {
+        need: getEffectiveStructureServiceModuleCycleFuelNeed(numericStructureID, moduleItem),
+        remainder: toFiniteNumber(moduleState.serviceFuelRemainder, 0),
+        nextCycleAt: nextCycleAt > 0 ? nextCycleAt : toInt(nowMs, Date.now()) + SERVICE_FUEL_CYCLE_MS,
+      };
+    })
+    .filter((cycle) => cycle.need > 0);
+  if (cycles.length === 0) {
+    return null;
+  }
+  let fuel = getStructureFuelCandidateItems(numericStructureID)
+    .reduce((sum, item) => sum + getStackQuantity(item), 0);
+  for (let step = 0; step < FUEL_EXPIRY_HORIZON_CYCLES * cycles.length; step += 1) {
+    const cycle = cycles.reduce((earliest, entry) => (
+      entry.nextCycleAt < earliest.nextCycleAt ? entry : earliest
+    ));
+    const charge = resolveWholeServiceFuelCharge(cycle.need, cycle.remainder);
+    if (fuel < charge.wholeQuantity) {
+      return cycle.nextCycleAt;
+    }
+    fuel -= charge.wholeQuantity;
+    cycle.remainder = charge.nextRemainder;
+    cycle.nextCycleAt += SERVICE_FUEL_CYCLE_MS;
+  }
+  return Math.min(...cycles.map((cycle) => cycle.nextCycleAt));
+}
+
+// Whether the fuel bay holds less than a day of the online modules' hourly
+// need, and what it holds as [[quantity, typeID], ...]. FLEX and Metenox
+// built-ins have their own fuel and reagent alerts.
+function resolveLowFuelState(structureID, structure, onlineModules) {
+  const flexBuiltIns = require("./structureFlexBuiltIns");
+  const hourlyNeed = (Array.isArray(onlineModules) ? onlineModules : [])
+    .filter((moduleItem) => !getMetenoxDrillModule().isIntegratedDrill(structure, moduleItem))
+    .filter((moduleItem) => !flexBuiltIns.isIntegratedFlexModule(structure, moduleItem))
+    .reduce((sum, moduleItem) => sum + getEffectiveStructureServiceModuleCycleFuelNeed(structureID, moduleItem), 0);
+  const quantityByTypeID = new Map();
+  for (const item of getStructureFuelCandidateItems(structureID)) {
+    const typeID = toPositiveInt(item.typeID, 0);
+    quantityByTypeID.set(typeID, (quantityByTypeID.get(typeID) || 0) + getStackQuantity(item));
+  }
+  const total = [...quantityByTypeID.values()].reduce((sum, quantity) => sum + quantity, 0);
+  return {
+    below: hourlyNeed > 0 && total < hourlyNeed * 24,
+    present: [...quantityByTypeID.entries()]
+      .filter(([, quantity]) => quantity > 0)
+      .sort(([left], [right]) => left - right)
+      .map(([typeID, quantity]) => [quantity, typeID]),
+  };
+}
+
 function resolveStructureUpkeepAfterServiceSync(currentUpkeepState, hasOnlineServiceModule) {
   if (hasOnlineServiceModule) {
     return STRUCTURE_UPKEEP_STATE.FULL_POWER;
@@ -858,6 +933,14 @@ function syncStructureServiceModuleState(structureID, options = {}) {
     }
   }
 
+  // StructureFuelAlert (181) warns while fuel is still in the bay: "there are
+  // not enough fuel blocks present to support one full day of service module
+  // activity ... Types and quantities present" (client localization,
+  // Notifications/Structures/bodyStructureFuelAlert). It is sent once when the
+  // bay falls under a day of the online modules' hourly need, and re-armed when
+  // the bay is back above a day.
+  const lowFuel = resolveLowFuelState(numericStructureID, beforeStructure, onlineModules);
+  let sendLowFuelAlert = false;
   const updateResult = structureState.updateStructureRecord(numericStructureID, (current) => {
     const nextServiceStates = {
       ...(current.serviceStates || {}),
@@ -897,6 +980,11 @@ function syncStructureServiceModuleState(structureID, options = {}) {
       abandonmentWarningAbandonAt = null;
       abandonmentWarningRecipients = [];
     }
+    const previousLowFuelAlertAt = toPositiveInt(current.lowFuelAlertAt, 0) || null;
+    sendLowFuelAlert = lowFuel.below && !previousLowFuelAlertAt;
+    const lowFuelAlertAt = lowFuel.below
+      ? (previousLowFuelAlertAt || toInt(options.nowMs, Date.now()))
+      : null;
     return {
       ...current,
       serviceStates: nextServiceStates,
@@ -904,8 +992,12 @@ function syncStructureServiceModuleState(structureID, options = {}) {
       abandonAt,
       abandonmentWarningAbandonAt,
       abandonmentWarningRecipients,
+      lowFuelAlertAt,
     };
   });
+  if (updateResult && updateResult.success === true && sendLowFuelAlert && lowFuel.present.length > 0) {
+    structureState.createStructureFuelAlertNotifications(updateResult.data, lowFuel.present);
+  }
   if (updateResult && updateResult.success === true && fuelAlertTypesByTypeID.size > 0) {
     structureState.createStructureFuelAlertNotifications(
       updateResult.data,
@@ -938,6 +1030,7 @@ module.exports = {
   consumeStructureServiceFuelQuantity,
   consumeStructureServiceModuleCycleFuel,
   consumeStructureServiceModuleOnlineFuel,
+  estimateStructureServiceFuelExpiresAt,
   getStructureFuelCandidateItems,
   buildStructureServiceModuleEffectiveAttributeMap,
   getStructureServiceIDsForModuleType,

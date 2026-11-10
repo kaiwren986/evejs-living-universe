@@ -22,7 +22,7 @@
   },
   "characters": {
     "characterDeletionDelayMinutes": 1,
-    "newCharacterExperienceMode": "disabled"
+    "newCharacterExperienceMode": "tutorial"
   },
   "skills": {
     "skillTrainingSpeed": 1,
@@ -44,6 +44,7 @@
   },
   "missions": {
     "missionRewardMultiplier": 1,
+    "missionStandingGainMultiplier": 1,
     "factionStandingLossOnKillEnabled": true,
     "missionDeclinePenaltyEnabled": true
   },

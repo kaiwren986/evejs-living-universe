@@ -283,6 +283,8 @@ const SQLITE_TABLES = new Set([
   "freelanceProjects",
   "dailyGoals",
   "homefrontReplay",
+  "incursionReplay",
+  "incursionLifecycle",
   "evermarkEntitlements",
   "evermarkPurchases",
   "lpStorePurchases",
@@ -297,6 +299,7 @@ const SQLITE_TABLES = new Set([
   "newEdenStore",
   "newEdenStorePurchaseSettlements",
   "newEdenStoreRuntime",
+  "projectDiscoveryState",
   "npcControlState",
   "npcRuntimeState",
   "npcSpawnSites",
@@ -741,6 +744,7 @@ function isSqliteTable(table) {
 const cache = {};            // table name → parsed JS object
 const dirty = new Set();     // tables that need flushing
 const flushTimers = {};      // table name → pending setTimeout id
+const tableFlushHolds = new Map();
 const transientPaths = {};   // table name → Set of cache paths excluded from disk flush
 const flushBaselines = {};   // sqlite table → Map(key → last-persisted JSON string)
 const inFlightFlushes = new Map(); // sqlite table → exact unacknowledged operation
@@ -1230,6 +1234,15 @@ function loadSqliteTable(table) {
     }
     sqliteStore.markMigrated(table, ownerFence);
   }
+  if (maySeed && table === "dungeonRuntimeState") {
+    // Existing migrated installations also need the selective career index.
+    // Pay its one-time backfill during owner preload, before gameplay traffic.
+    sqliteStore.ensureDungeonReadIndexes(requirePersistenceOwnerFence());
+  }
+  if (maySeed && ["killmails", "industryJobs", "items"].includes(table)) {
+    sqliteStore.ensureCareerReadIndex(table, requirePersistenceOwnerFence());
+  }
+  if (maySeed) sqliteStore.ensureCareerRowStorage(table, requirePersistenceOwnerFence());
   // Build the cache (assembled) and the flush baseline (one entry per stored
   // row) from the raw rows, so the baseline keys line up with what
   // flushSqliteTable diffs — including per-entity rows for wrapper tables.
@@ -1708,27 +1721,58 @@ function markRowDirty(table, segments) {
 // back to a full diff. Owner modules that already have a complete mutation
 // change-set may provide exact paths and retain root-write cache semantics while
 // still localizing the durable rows. An empty/invalid hint is never trusted.
-function markRootWriteDirty(table, knownChangedPaths) {
+function getKnownRootWriteSegments(knownChangedPaths) {
   if (!Array.isArray(knownChangedPaths) || knownChangedPaths.length === 0) {
-    markRowDirty(table, []);
-    return;
+    return null;
   }
 
+  const changedSegments = [];
   for (const pathKey of knownChangedPaths) {
     if (typeof pathKey !== "string" || !pathKey.startsWith("/")) {
-      markRowDirty(table, []);
-      return;
+      return null;
     }
     const segments = getSegments(pathKey);
     if (segments.length === 0) {
-      markRowDirty(table, []);
-      return;
+      return null;
     }
+    changedSegments.push(segments);
+  }
+  return changedSegments;
+}
+
+function markRootWriteDirty(table, changedSegments) {
+  if (!changedSegments) {
+    markRowDirty(table, []);
+    return;
+  }
+  for (const segments of changedSegments) {
     markRowDirty(table, segments);
     if (fullDirty.has(table)) {
       return;
     }
   }
+}
+
+// A failed multi-row compensation must not leak a partial preimage through a
+// debounce, explicit fence or shutdown. The owning service retains its release
+// handle until every compensation row has been staged coherently.
+function holdTableFlush(table) {
+  persistenceRoles.assertRoleMayMutateTable(PROCESS_ROLE, table, "hold flush");
+  assertPersistenceOwnerHealthy();
+  tableFlushHolds.set(table, (tableFlushHolds.get(table) || 0) + 1);
+  if (flushTimers[table]) clearTimeout(flushTimers[table]);
+  delete flushTimers[table];
+  let active = true;
+  return () => {
+    if (!active) return;
+    active = false;
+    const remaining = tableFlushHolds.get(table) - 1;
+    if (remaining > 0) tableFlushHolds.set(table, remaining);
+    else {
+      tableFlushHolds.delete(table);
+      if (dirty.has(table)) scheduleFlush(table);
+    }
+  };
 }
 
 function scheduleFlush(table) {
@@ -1737,6 +1781,10 @@ function scheduleFlush(table) {
   if (flushTimers[table]) {
     clearTimeout(flushTimers[table]);
   }
+  if (tableFlushHolds.has(table)) {
+    delete flushTimers[table];
+    return;
+  }
 
   flushTimers[table] = setTimeout(() => {
     flushTable(table);
@@ -1744,6 +1792,7 @@ function scheduleFlush(table) {
 }
 
 function flushTable(table) {
+  if (tableFlushHolds.has(table)) return;
   if (!dirty.has(table)) return;
   dirty.delete(table);
   if (flushTimers[table]) {
@@ -1796,6 +1845,9 @@ function reconcileInFlightFlush(table) {
 function flushTableSync(table, options = {}) {
   persistenceRoles.assertRoleMayMutateTable(PROCESS_ROLE, table, "flush");
   assertPersistenceOwnerHealthy();
+  if (tableFlushHolds.has(table)) {
+    return { success: false, errorMsg: "TABLE_FLUSH_HELD", flushed: false };
+  }
   if (!ensureCached(table)) {
     log.warn(`[DATABASE] database table: '${table}' not found!`);
     return { success: false, errorMsg: "TABLE_NOT_FOUND" };
@@ -2177,24 +2229,17 @@ function readPersisted(table, pth) {
   try {
     ensureSqliteReady();
     const segments = getSegments(pth);
-    let current = sqliteStore.loadExistingTableObject(table);
-    for (const segment of segments) {
-      if (
-        current === null ||
-        typeof current !== "object" ||
-        !(segment in current)
-      ) {
-        return { success: false, errorMsg: "ENTRY_NOT_FOUND", data: null };
-      }
-      current = current[segment];
-    }
+    const selected = segments.length
+      ? sqliteStore.loadExistingTablePath(table, segments)
+      : { exists: true, value: sqliteStore.loadExistingTableObject(table) };
+    if (!selected.exists) return { success: false, errorMsg: "ENTRY_NOT_FOUND", data: null };
     return {
       success: true,
       errorMsg: null,
-      // loadExistingTableObject parses fresh JSON rows on every call, so the
+      // Durable selection parses fresh JSON rows on every call, so the
       // selected value is already isolated from the cache and other readers.
       // Serializing it again would impose a per-string limit on whole tables.
-      data: current,
+      data: selected.value,
     };
   } catch (error) {
     log.error(`[DATABASE DURABLE READ ERROR] ${error.message}`);
@@ -2205,6 +2250,37 @@ function readPersisted(table, pth) {
         : "READ_ERROR",
       data: null,
     };
+  }
+}
+
+function readPersistedAbyssalInstances(characterID = 0) {
+  try {
+    ensureSqliteReady();
+    return { success: true, errorMsg: null, data: sqliteStore.loadExistingAbyssalInstances(characterID) };
+  } catch (error) {
+    log.error(`[DATABASE DURABLE ABYSSAL READ ERROR] ${error.message}`);
+    return { success: false, errorMsg: error?.code === "SQLITE_TABLE_NOT_FOUND" ? error.code : "READ_ERROR", data: null };
+  }
+}
+
+function readPersistedIncursionPending(table, instanceID) {
+  try {
+    ensureSqliteReady();
+    return { success: true, errorMsg: null, data: sqliteStore.loadExistingIncursionPending(table, instanceID) };
+  } catch (error) {
+    if (error?.code === "SQLITE_TABLE_NOT_FOUND") return { success: true, errorMsg: null, data: [] };
+    log.error(`[DATABASE DURABLE INCURSION READ ERROR] ${error.message}`);
+    return { success: false, errorMsg: "READ_ERROR", data: null };
+  }
+}
+
+function readPersistedCareerRows(table, characterID) {
+  try {
+    ensureSqliteReady();
+    return { success: true, errorMsg: null, data: sqliteStore.loadExistingCareerRows(table, characterID) };
+  } catch (error) {
+    log.error(`[DATABASE DURABLE CAREER READ ERROR] ${error.message}`);
+    return { success: false, errorMsg: error?.code === "SQLITE_TABLE_NOT_FOUND" ? error.code : "READ_ERROR", data: null };
   }
 }
 
@@ -2231,18 +2307,20 @@ function write(table, pth, data, options = {}) {
     if (segments.length === 0) {
       // Full table overwrite
       const sameReference = cache[table] === data;
-      const unchanged = sameReference ? false : isSameValue(cache[table], data);
+      const changedSegments = getKnownRootWriteSegments(options.knownChangedPaths);
+      const unchanged = !sameReference && !changedSegments && options.force !== true &&
+        isSameValue(cache[table], data);
       if (options.transient === true) {
         setTransientPath(table, "/", true);
       }
-      if (unchanged && options.force !== true) {
+      if (unchanged) {
         return { success: true, errorMsg: null };
       }
       if (!sameReference) {
         cache[table] = data;
       }
       if (!(options.transient === true && options.force !== true)) {
-        markRootWriteDirty(table, options.knownChangedPaths);
+        markRootWriteDirty(table, changedSegments);
         scheduleFlush(table);
       }
       return { success: true, errorMsg: null };
@@ -2336,6 +2414,12 @@ function remove(table, pth) {
 module.exports = {
   read,
   readPersisted,
+  readPersistedAbyssalInstances,
+  readPersistedIncursionPending,
+  readPersistedKillmailsForCharacter: characterID => readPersistedCareerRows("killmails", characterID),
+  readPersistedIndustryJobsForCharacter: characterID => readPersistedCareerRows("industryJobs", characterID),
+  readPersistedPendingCareerCombatOutcomes: characterID => readPersistedCareerRows("items", characterID),
+  holdTableFlush,
   write,
   remove,
   tableExists,

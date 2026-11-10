@@ -175,6 +175,18 @@ function buildLaserDamageMessagePayload({
     entries.push(["attackerID", attackerID]);
   }
 
+  // The stock logger needs a player identity when a firing fighter is gone.
+  // Bombs retain these explicit pilot fields in their immutable launch source.
+  const sourceCharacterID = toInt(attackerEntity && attackerEntity.characterID, 0);
+  const sourcePilotID = toInt(attackerEntity && attackerEntity.pilotCharacterID, 0);
+  if (
+    attackerEntity && attackerEntity.kind === "fighter" &&
+    sourceCharacterID > 0 && sourceCharacterID === sourcePilotID &&
+    lazyRequire("../services/character/characterState").peekCharacterRecord(sourceCharacterID)
+  ) {
+    entries.push(["sourceCharID", sourceCharacterID]);
+  }
+
   return buildMarshalDict(entries);
 }
 

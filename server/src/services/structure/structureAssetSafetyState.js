@@ -2738,11 +2738,14 @@ function handleStructureDestroyed(structure, options = {}) {
       continue;
     }
     const ownerKind = getOwnerKindForAssetSafety(ownerID);
+    // Only hangar assets go to asset safety. The structure's own fittings
+    // (service modules, fuel, core, rigs) are not assets: the destruction loot
+    // drops them in the wreck or destroys them.
     const wrapResult = createWrapFromItems(
       ownerKind,
       ownerID,
       structure,
-      listTopLevelStructureItems(ownerID, structure.structureID),
+      listTopLevelStructureHangarItems(ownerID, structure.structureID),
       {
         nowMs: options.nowMs,
       },
@@ -3041,6 +3044,8 @@ function resetStructureAssetSafetyStateForTests() {
 
 module.exports = {
   STRUCTURE_ASSET_SAFETY_TABLE,
+  isStructureAttachedItemForUnanchor,
+  isStructureRigSlotItem,
   ASSET_SAFETY_FLAG_ID,
   ASSET_SAFETY_WRAP_TYPE_ID,
   DAYS_UNTIL_CAN_DELIVER,

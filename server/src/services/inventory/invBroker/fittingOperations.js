@@ -18,6 +18,8 @@ const {
   listFittedItems,
   resolveFitOnlineState,
   SLOT_FAMILY_FLAGS,
+  getFittedModuleByFlag,
+  getLoadedChargeByFlag,
 } = require(path.join(__dirname, "../../fitting/liveFittingState"));
 const {
   ITEM_FLAGS,
@@ -25,6 +27,7 @@ const {
   findItemById,
   findShipItemById,
   removeInventoryItem,
+  restoreInventoryItemChangesAtomic,
   updateInventoryItem,
 } = require(path.join(__dirname, "../itemStore"));
 const {
@@ -71,6 +74,58 @@ const FIT_FITTING_SHIP_WIDE_LIMIT_ERRORS = new Set([
 ]);
 
 module.exports = {
+  Handle_ClearCharges(args, session) {
+    // Both the native ammo macro and menu_charge.py clear a bound ship slot
+    // before issuing /fit me <charge> <count> flag=<slot>.
+    if (!require("../../account/accountRoleProfiles").hasStaffAccountRole(session)) return null;
+    const bound = this._getBoundContext(session);
+    const ship = this._getShipInventoryRecord(session, bound);
+    const charID = this._getCharacterId(session);
+    const flagID = this._normalizeInventoryId(args && args[0], 0);
+    if (bound?.kind !== "shipInventory" || !ship || Number(ship.ownerID) !== charID) return null;
+    const moduleItem = getFittedModuleByFlag(charID, ship.itemID, flagID);
+    if (!moduleItem) return null;
+    const DogmaService = require("../../dogma/dogmaService");
+    const dogma = new DogmaService();
+    const slots = [];
+    for (const itemID of dogma._expandGroupedModuleIDs(ship.itemID, [moduleItem.itemID])) {
+      const member = findItemById(itemID);
+      if (!member || Number(member.ownerID) !== charID || Number(member.locationID) !== Number(ship.itemID)) return null;
+      // Preflight the whole bank before removing even its first charge row.
+      if (dogma._getPendingModuleReload(member.itemID) || runtime.getActiveModuleEffect(session, member.itemID)) {
+        throwWrappedUserError("CustomNotify", { notify: "Stop the module and finish its reload before clearing charges." });
+      }
+      const charge = getLoadedChargeByFlag(charID, ship.itemID, member.flagID);
+      if (charge) slots.push({ charID, shipID: ship.itemID, flagID: Number(member.flagID), moduleItem: member,
+        previousChargeState: { typeID: charge.typeID, quantity: Number(charge.stacksize ?? charge.quantity) },
+        previousChargeItem: charge });
+    }
+    const changes = [];
+    let committed = false;
+    try {
+      for (const slot of slots) {
+        const result = removeInventoryItem(slot.previousChargeItem.itemID, { removeContents: false });
+        if (!result.success) throw new Error(result.errorMsg || "CHARGE_CLEAR_FAILED");
+        changes.push(...result.data.changes);
+      }
+      committed = true;
+      slots.forEach((slot, index) => this._emitFittedChargeLoadChanges(session, index === 0 ? changes : [], slot));
+    } catch (error) {
+      let message = `${committed ? "Charges were cleared, but client refresh failed" : "Unable to clear charges"}: ${error.message}.`;
+      if (!committed && changes.length) {
+        try {
+          const rollback = restoreInventoryItemChangesAtomic(changes);
+          if (!rollback.success) message += ` Rollback failed: ${rollback.errorMsg}.`;
+          else this._emitFittedChargeLoadChanges(session, rollback.data.changes);
+        } catch (rollbackError) {
+          message += ` Rollback failed: ${rollbackError.message}.`;
+        }
+      }
+      throwWrappedUserError("CustomNotify", { notify: message });
+    }
+    return null;
+  },
+
   _extractFitFittingEntryPairs(value) {
     if (!value || typeof value !== "object") {
       return null;

@@ -11,6 +11,7 @@
  */
 
 const path = require("path");
+const { assertGamePayloadLength, frameGamePayload } = require("./gameFrame");
 const { resolveDataRootPath } = require(path.join(__dirname, "../config/dataRoot"));
 const log = require(path.join(__dirname, "../utils/logger"));
 const rotatingLog = require(path.join(__dirname, "../utils/rotatingLog"));
@@ -668,30 +669,18 @@ class ClientSession {
       this.socket &&
       typeof this.socket.writePayload === "function"
     ) {
+      assertGamePayloadLength(payload.length);
       return this.socket.writePayload(payload);
     }
-    if (this.encrypted && this._encryptFn) {
-      // Encrypt, then frame
-      const encrypted = this._encryptFn(payload);
-      const header = Buffer.alloc(4);
-      header.writeUInt32LE(encrypted.length, 0);
-      const framed = Buffer.concat([header, encrypted]);
-      return {
-        bodyBytes: encrypted.length,
-        framedBytes: framed.length,
-        writeAccepted: this.socket.write(framed) !== false,
-      };
-    } else {
-      // Frame without encryption
-      const header = Buffer.alloc(4);
-      header.writeUInt32LE(payload.length, 0);
-      const framed = Buffer.concat([header, payload]);
-      return {
-        bodyBytes: payload.length,
-        framedBytes: framed.length,
-        writeAccepted: this.socket.write(framed) !== false,
-      };
-    }
+    const body = this.encrypted && this._encryptFn
+      ? this._encryptFn(payload)
+      : payload;
+    const framed = frameGamePayload(body);
+    return {
+      bodyBytes: body.length,
+      framedBytes: framed.length,
+      writeAccepted: this.socket.write(framed) !== false,
+    };
   }
 
   /**

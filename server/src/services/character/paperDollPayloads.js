@@ -365,6 +365,15 @@ function normalizePortraitDataForClient(value) {
   return portraitData;
 }
 
+function isEmptyPlainObject(value) {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.keys(value).length === 0
+  );
+}
+
 function getStoredAppearanceInfo(record = {}) {
   if (!record || typeof record !== "object") {
     return null;
@@ -376,7 +385,11 @@ function getStoredAppearanceInfo(record = {}) {
     record.paperDollData ??
     null;
 
-  return clonePaperDollPayload(appearanceInfo);
+  const stored = clonePaperDollPayload(appearanceInfo);
+  // A character created with an empty doll stores {}. The client reads None as
+  // "no DNA", and a bare {} cannot be marshalled, which would lose the whole
+  // GetPaperDollDataBatch reply for every character in the batch.
+  return isEmptyPlainObject(stored) ? null : stored;
 }
 
 function getStoredPortraitInfo(record = {}) {

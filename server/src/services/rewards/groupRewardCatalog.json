@@ -1,0 +1,2665 @@
+{
+  "schema": "evejs.group-reward-catalog.v1",
+  "version": 1,
+  "source": {
+    "supportedBuild": 3396210,
+    "comparisonBuild": 3475087,
+    "generator": "scripts/DataSync/generate-group-reward-catalog.js",
+    "extractor": "scripts/DataSync/extract-native-loader-data.py",
+    "selectedGroupRewardIDs": [
+      1,
+      2,
+      3,
+      8,
+      10
+    ],
+    "resource": "res:/staticdata/grouprewards.fsdbinary",
+    "resourceMd5": "66bc99d39f7ec6c24adc59865fc03edb",
+    "resourceSha256": "393a04772f7cb21e296368e986c2c0d373a1b87a4c50c16555b183412e18be1c",
+    "selectedOutputSha256": "ac4d698d951e8866881e045cca8a0bbb7d6f3914c8d74c1077ffbfd8898331a9",
+    "supportedLoaderSha256": "435f29d9ff151763777490339958461685d0f4cb49c821be5622bf34c89d3567",
+    "comparisonLoaderSha256": "41c7f26e3c0c81a8d1bbf0e204b12336e18a39e746cbd7fff2f09e90cc921652",
+    "selectedRowsIdentical": true,
+    "enumConsumer": "grouprewards/__init__.py",
+    "evaluationConsumer": "grouprewards/data.py:get_reward_for_player_count",
+    "scope": "Five selected native incursion reward groups. Tables establish reward curves, not encounter rosters, qualification, competition or delayed-release events."
+  },
+  "groups": [
+    {
+      "groupRewardID": 1,
+      "damageContributionMultiplier": 1,
+      "description": "Vanguard dungeon loot table",
+      "lpLogTypeNameID": 545502,
+      "rewardingNpcCorporationID": 1000125,
+      "repairContributionMultiplier": 1,
+      "minimumContribution": 1,
+      "name": "Vanguard Rewards",
+      "tables": [
+        {
+          "rewardType": 2,
+          "securityCriteria": 1,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 3143448,
+              "playerCount": 1
+            },
+            {
+              "quantity": 5239080,
+              "playerCount": 2
+            },
+            {
+              "quantity": 8316000,
+              "playerCount": 3
+            },
+            {
+              "quantity": 9355500,
+              "playerCount": 4
+            },
+            {
+              "quantity": 10395000,
+              "playerCount": 5
+            },
+            {
+              "quantity": 9615375,
+              "playerCount": 11
+            },
+            {
+              "quantity": 8783775,
+              "playerCount": 12
+            },
+            {
+              "quantity": 7900200,
+              "playerCount": 13
+            },
+            {
+              "quantity": 6964650,
+              "playerCount": 14
+            },
+            {
+              "quantity": 5977125,
+              "playerCount": 15
+            },
+            {
+              "quantity": 4937625,
+              "playerCount": 16
+            },
+            {
+              "quantity": 3846150,
+              "playerCount": 17
+            },
+            {
+              "quantity": 2702700,
+              "playerCount": 18
+            },
+            {
+              "quantity": 1507275,
+              "playerCount": 19
+            },
+            {
+              "quantity": 259875,
+              "playerCount": 20
+            },
+            {
+              "quantity": 0,
+              "playerCount": 21
+            }
+          ],
+          "delayed": false,
+          "description": "High Sec Vanguard Isk table"
+        },
+        {
+          "rewardType": 2,
+          "securityCriteria": 2,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 4536000,
+              "playerCount": 1
+            },
+            {
+              "quantity": 7560000,
+              "playerCount": 2
+            },
+            {
+              "quantity": 10800000,
+              "playerCount": 3
+            },
+            {
+              "quantity": 13500000,
+              "playerCount": 4
+            },
+            {
+              "quantity": 15000000,
+              "playerCount": 5
+            },
+            {
+              "quantity": 13875000,
+              "playerCount": 16
+            },
+            {
+              "quantity": 12675000,
+              "playerCount": 17
+            },
+            {
+              "quantity": 11400000,
+              "playerCount": 18
+            },
+            {
+              "quantity": 10050000,
+              "playerCount": 19
+            },
+            {
+              "quantity": 8625000,
+              "playerCount": 20
+            },
+            {
+              "quantity": 7125000,
+              "playerCount": 21
+            },
+            {
+              "quantity": 5550000,
+              "playerCount": 22
+            },
+            {
+              "quantity": 3900000,
+              "playerCount": 23
+            },
+            {
+              "quantity": 2175000,
+              "playerCount": 24
+            },
+            {
+              "quantity": 375000,
+              "playerCount": 25
+            },
+            {
+              "quantity": 0,
+              "playerCount": 26
+            }
+          ],
+          "delayed": false,
+          "description": "Low Sec Vanguard Isk table"
+        },
+        {
+          "rewardType": 2,
+          "securityCriteria": 3,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 4536000,
+              "playerCount": 1
+            },
+            {
+              "quantity": 7560000,
+              "playerCount": 2
+            },
+            {
+              "quantity": 10800000,
+              "playerCount": 3
+            },
+            {
+              "quantity": 13500000,
+              "playerCount": 4
+            },
+            {
+              "quantity": 15000000,
+              "playerCount": 5
+            },
+            {
+              "quantity": 13875000,
+              "playerCount": 16
+            },
+            {
+              "quantity": 12675000,
+              "playerCount": 17
+            },
+            {
+              "quantity": 11400000,
+              "playerCount": 18
+            },
+            {
+              "quantity": 10050000,
+              "playerCount": 19
+            },
+            {
+              "quantity": 8625000,
+              "playerCount": 20
+            },
+            {
+              "quantity": 7125000,
+              "playerCount": 21
+            },
+            {
+              "quantity": 5550000,
+              "playerCount": 22
+            },
+            {
+              "quantity": 3900000,
+              "playerCount": 23
+            },
+            {
+              "quantity": 2175000,
+              "playerCount": 24
+            },
+            {
+              "quantity": 375000,
+              "playerCount": 25
+            },
+            {
+              "quantity": 0,
+              "playerCount": 26
+            }
+          ],
+          "delayed": false,
+          "description": "Null Sec Vanguard Isk table"
+        },
+        {
+          "rewardType": 1,
+          "securityCriteria": 1,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 423,
+              "playerCount": 1
+            },
+            {
+              "quantity": 706,
+              "playerCount": 2
+            },
+            {
+              "quantity": 1008,
+              "playerCount": 3
+            },
+            {
+              "quantity": 1260,
+              "playerCount": 4
+            },
+            {
+              "quantity": 1400,
+              "playerCount": 5
+            },
+            {
+              "quantity": 1295,
+              "playerCount": 11
+            },
+            {
+              "quantity": 1183,
+              "playerCount": 12
+            },
+            {
+              "quantity": 1064,
+              "playerCount": 13
+            },
+            {
+              "quantity": 938,
+              "playerCount": 14
+            },
+            {
+              "quantity": 805,
+              "playerCount": 15
+            },
+            {
+              "quantity": 665,
+              "playerCount": 16
+            },
+            {
+              "quantity": 518,
+              "playerCount": 17
+            },
+            {
+              "quantity": 364,
+              "playerCount": 18
+            },
+            {
+              "quantity": 203,
+              "playerCount": 19
+            },
+            {
+              "quantity": 35,
+              "playerCount": 20
+            },
+            {
+              "quantity": 0,
+              "playerCount": 21
+            }
+          ],
+          "delayed": true,
+          "description": "High Sec Vanguard LP table"
+        },
+        {
+          "rewardType": 1,
+          "securityCriteria": 2,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 605,
+              "playerCount": 1
+            },
+            {
+              "quantity": 1008,
+              "playerCount": 2
+            },
+            {
+              "quantity": 1440,
+              "playerCount": 3
+            },
+            {
+              "quantity": 1800,
+              "playerCount": 4
+            },
+            {
+              "quantity": 2000,
+              "playerCount": 5
+            },
+            {
+              "quantity": 1850,
+              "playerCount": 16
+            },
+            {
+              "quantity": 1690,
+              "playerCount": 17
+            },
+            {
+              "quantity": 1520,
+              "playerCount": 18
+            },
+            {
+              "quantity": 1340,
+              "playerCount": 19
+            },
+            {
+              "quantity": 1150,
+              "playerCount": 20
+            },
+            {
+              "quantity": 950,
+              "playerCount": 21
+            },
+            {
+              "quantity": 740,
+              "playerCount": 22
+            },
+            {
+              "quantity": 520,
+              "playerCount": 23
+            },
+            {
+              "quantity": 290,
+              "playerCount": 24
+            },
+            {
+              "quantity": 50,
+              "playerCount": 25
+            },
+            {
+              "quantity": 0,
+              "playerCount": 26
+            }
+          ],
+          "delayed": true,
+          "description": "Low Sec Vanguard LP table"
+        },
+        {
+          "rewardType": 1,
+          "securityCriteria": 3,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 605,
+              "playerCount": 1
+            },
+            {
+              "quantity": 1008,
+              "playerCount": 2
+            },
+            {
+              "quantity": 1440,
+              "playerCount": 3
+            },
+            {
+              "quantity": 1800,
+              "playerCount": 4
+            },
+            {
+              "quantity": 2000,
+              "playerCount": 5
+            },
+            {
+              "quantity": 1850,
+              "playerCount": 16
+            },
+            {
+              "quantity": 1690,
+              "playerCount": 17
+            },
+            {
+              "quantity": 1520,
+              "playerCount": 18
+            },
+            {
+              "quantity": 1340,
+              "playerCount": 19
+            },
+            {
+              "quantity": 1150,
+              "playerCount": 20
+            },
+            {
+              "quantity": 950,
+              "playerCount": 21
+            },
+            {
+              "quantity": 740,
+              "playerCount": 22
+            },
+            {
+              "quantity": 520,
+              "playerCount": 23
+            },
+            {
+              "quantity": 290,
+              "playerCount": 24
+            },
+            {
+              "quantity": 50,
+              "playerCount": 25
+            },
+            {
+              "quantity": 0,
+              "playerCount": 26
+            }
+          ],
+          "delayed": true,
+          "description": "Null Sec Vanguard LP table"
+        }
+      ]
+    },
+    {
+      "groupRewardID": 2,
+      "damageContributionMultiplier": 1,
+      "description": "Assault dungeon loot table",
+      "lpLogTypeNameID": 545503,
+      "rewardingNpcCorporationID": 1000125,
+      "repairContributionMultiplier": 1,
+      "minimumContribution": 1,
+      "name": "Assault Rewards",
+      "tables": [
+        {
+          "rewardType": 2,
+          "securityCriteria": 1,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 6604,
+              "playerCount": 1
+            },
+            {
+              "quantity": 66044,
+              "playerCount": 2
+            },
+            {
+              "quantity": 330221,
+              "playerCount": 3
+            },
+            {
+              "quantity": 1100736,
+              "playerCount": 4
+            },
+            {
+              "quantity": 2751840,
+              "playerCount": 5
+            },
+            {
+              "quantity": 5503680,
+              "playerCount": 6
+            },
+            {
+              "quantity": 9172800,
+              "playerCount": 7
+            },
+            {
+              "quantity": 13104000,
+              "playerCount": 8
+            },
+            {
+              "quantity": 16380000,
+              "playerCount": 9
+            },
+            {
+              "quantity": 18200000,
+              "playerCount": 10
+            },
+            {
+              "quantity": 16835000,
+              "playerCount": 21
+            },
+            {
+              "quantity": 15379000,
+              "playerCount": 22
+            },
+            {
+              "quantity": 13832000,
+              "playerCount": 23
+            },
+            {
+              "quantity": 12194000,
+              "playerCount": 24
+            },
+            {
+              "quantity": 10465000,
+              "playerCount": 25
+            },
+            {
+              "quantity": 8645000,
+              "playerCount": 26
+            },
+            {
+              "quantity": 6734000,
+              "playerCount": 27
+            },
+            {
+              "quantity": 4732000,
+              "playerCount": 28
+            },
+            {
+              "quantity": 2639000,
+              "playerCount": 29
+            },
+            {
+              "quantity": 455000,
+              "playerCount": 30
+            },
+            {
+              "quantity": 0,
+              "playerCount": 31
+            }
+          ],
+          "delayed": false,
+          "description": "High Sec Assault ISK Table"
+        },
+        {
+          "rewardType": 2,
+          "securityCriteria": 2,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 9435,
+              "playerCount": 1
+            },
+            {
+              "quantity": 94349,
+              "playerCount": 2
+            },
+            {
+              "quantity": 471744,
+              "playerCount": 3
+            },
+            {
+              "quantity": 1572480,
+              "playerCount": 4
+            },
+            {
+              "quantity": 3931200,
+              "playerCount": 5
+            },
+            {
+              "quantity": 7862400,
+              "playerCount": 6
+            },
+            {
+              "quantity": 13104000,
+              "playerCount": 7
+            },
+            {
+              "quantity": 18720000,
+              "playerCount": 8
+            },
+            {
+              "quantity": 23400000,
+              "playerCount": 9
+            },
+            {
+              "quantity": 26000000,
+              "playerCount": 10
+            },
+            {
+              "quantity": 24050000,
+              "playerCount": 31
+            },
+            {
+              "quantity": 21970000,
+              "playerCount": 32
+            },
+            {
+              "quantity": 19760000,
+              "playerCount": 33
+            },
+            {
+              "quantity": 17420000,
+              "playerCount": 34
+            },
+            {
+              "quantity": 14950000,
+              "playerCount": 35
+            },
+            {
+              "quantity": 12350000,
+              "playerCount": 36
+            },
+            {
+              "quantity": 9620000,
+              "playerCount": 37
+            },
+            {
+              "quantity": 6760000,
+              "playerCount": 38
+            },
+            {
+              "quantity": 3770000,
+              "playerCount": 39
+            },
+            {
+              "quantity": 650000,
+              "playerCount": 40
+            },
+            {
+              "quantity": 0,
+              "playerCount": 41
+            }
+          ],
+          "delayed": false,
+          "description": "Low Sec Assault ISK Table"
+        },
+        {
+          "rewardType": 2,
+          "securityCriteria": 3,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 9435,
+              "playerCount": 1
+            },
+            {
+              "quantity": 94349,
+              "playerCount": 2
+            },
+            {
+              "quantity": 471744,
+              "playerCount": 3
+            },
+            {
+              "quantity": 1572480,
+              "playerCount": 4
+            },
+            {
+              "quantity": 3931200,
+              "playerCount": 5
+            },
+            {
+              "quantity": 7862400,
+              "playerCount": 6
+            },
+            {
+              "quantity": 13104000,
+              "playerCount": 7
+            },
+            {
+              "quantity": 18720000,
+              "playerCount": 8
+            },
+            {
+              "quantity": 23400000,
+              "playerCount": 9
+            },
+            {
+              "quantity": 26000000,
+              "playerCount": 10
+            },
+            {
+              "quantity": 24050000,
+              "playerCount": 31
+            },
+            {
+              "quantity": 21970000,
+              "playerCount": 32
+            },
+            {
+              "quantity": 19760000,
+              "playerCount": 33
+            },
+            {
+              "quantity": 17420000,
+              "playerCount": 34
+            },
+            {
+              "quantity": 14950000,
+              "playerCount": 35
+            },
+            {
+              "quantity": 12350000,
+              "playerCount": 36
+            },
+            {
+              "quantity": 9620000,
+              "playerCount": 37
+            },
+            {
+              "quantity": 6760000,
+              "playerCount": 38
+            },
+            {
+              "quantity": 3770000,
+              "playerCount": 39
+            },
+            {
+              "quantity": 650000,
+              "playerCount": 40
+            },
+            {
+              "quantity": 0,
+              "playerCount": 41
+            }
+          ],
+          "delayed": false,
+          "description": "Null Sec Assault ISK Table"
+        },
+        {
+          "rewardType": 1,
+          "securityCriteria": 1,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 1,
+              "playerCount": 1
+            },
+            {
+              "quantity": 13,
+              "playerCount": 2
+            },
+            {
+              "quantity": 64,
+              "playerCount": 3
+            },
+            {
+              "quantity": 212,
+              "playerCount": 4
+            },
+            {
+              "quantity": 529,
+              "playerCount": 5
+            },
+            {
+              "quantity": 1058,
+              "playerCount": 6
+            },
+            {
+              "quantity": 1764,
+              "playerCount": 7
+            },
+            {
+              "quantity": 2520,
+              "playerCount": 8
+            },
+            {
+              "quantity": 3150,
+              "playerCount": 9
+            },
+            {
+              "quantity": 3500,
+              "playerCount": 10
+            },
+            {
+              "quantity": 3238,
+              "playerCount": 21
+            },
+            {
+              "quantity": 2958,
+              "playerCount": 22
+            },
+            {
+              "quantity": 2660,
+              "playerCount": 23
+            },
+            {
+              "quantity": 2345,
+              "playerCount": 24
+            },
+            {
+              "quantity": 2013,
+              "playerCount": 25
+            },
+            {
+              "quantity": 1663,
+              "playerCount": 26
+            },
+            {
+              "quantity": 1295,
+              "playerCount": 27
+            },
+            {
+              "quantity": 910,
+              "playerCount": 28
+            },
+            {
+              "quantity": 508,
+              "playerCount": 29
+            },
+            {
+              "quantity": 88,
+              "playerCount": 30
+            },
+            {
+              "quantity": 0,
+              "playerCount": 31
+            }
+          ],
+          "delayed": true,
+          "description": "High Sec Assault LP Table"
+        },
+        {
+          "rewardType": 1,
+          "securityCriteria": 2,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 2,
+              "playerCount": 1
+            },
+            {
+              "quantity": 18,
+              "playerCount": 2
+            },
+            {
+              "quantity": 91,
+              "playerCount": 3
+            },
+            {
+              "quantity": 302,
+              "playerCount": 4
+            },
+            {
+              "quantity": 756,
+              "playerCount": 5
+            },
+            {
+              "quantity": 1512,
+              "playerCount": 6
+            },
+            {
+              "quantity": 2520,
+              "playerCount": 7
+            },
+            {
+              "quantity": 3600,
+              "playerCount": 8
+            },
+            {
+              "quantity": 4500,
+              "playerCount": 9
+            },
+            {
+              "quantity": 5000,
+              "playerCount": 10
+            },
+            {
+              "quantity": 4625,
+              "playerCount": 31
+            },
+            {
+              "quantity": 4225,
+              "playerCount": 32
+            },
+            {
+              "quantity": 3800,
+              "playerCount": 33
+            },
+            {
+              "quantity": 3350,
+              "playerCount": 34
+            },
+            {
+              "quantity": 2875,
+              "playerCount": 35
+            },
+            {
+              "quantity": 2375,
+              "playerCount": 36
+            },
+            {
+              "quantity": 1850,
+              "playerCount": 37
+            },
+            {
+              "quantity": 1300,
+              "playerCount": 38
+            },
+            {
+              "quantity": 725,
+              "playerCount": 39
+            },
+            {
+              "quantity": 125,
+              "playerCount": 40
+            },
+            {
+              "quantity": 0,
+              "playerCount": 41
+            }
+          ],
+          "delayed": true,
+          "description": "Low Sec Assault LP Table"
+        },
+        {
+          "rewardType": 1,
+          "securityCriteria": 3,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 2,
+              "playerCount": 1
+            },
+            {
+              "quantity": 18,
+              "playerCount": 2
+            },
+            {
+              "quantity": 91,
+              "playerCount": 3
+            },
+            {
+              "quantity": 302,
+              "playerCount": 4
+            },
+            {
+              "quantity": 756,
+              "playerCount": 5
+            },
+            {
+              "quantity": 1512,
+              "playerCount": 6
+            },
+            {
+              "quantity": 2520,
+              "playerCount": 7
+            },
+            {
+              "quantity": 3600,
+              "playerCount": 8
+            },
+            {
+              "quantity": 4500,
+              "playerCount": 9
+            },
+            {
+              "quantity": 5000,
+              "playerCount": 10
+            },
+            {
+              "quantity": 4625,
+              "playerCount": 31
+            },
+            {
+              "quantity": 4225,
+              "playerCount": 32
+            },
+            {
+              "quantity": 3800,
+              "playerCount": 33
+            },
+            {
+              "quantity": 3350,
+              "playerCount": 34
+            },
+            {
+              "quantity": 2875,
+              "playerCount": 35
+            },
+            {
+              "quantity": 2375,
+              "playerCount": 36
+            },
+            {
+              "quantity": 1850,
+              "playerCount": 37
+            },
+            {
+              "quantity": 1300,
+              "playerCount": 38
+            },
+            {
+              "quantity": 725,
+              "playerCount": 39
+            },
+            {
+              "quantity": 125,
+              "playerCount": 40
+            },
+            {
+              "quantity": 0,
+              "playerCount": 41
+            }
+          ],
+          "delayed": true,
+          "description": "Null Sec Assault LP Table"
+        }
+      ]
+    },
+    {
+      "groupRewardID": 3,
+      "damageContributionMultiplier": 1,
+      "description": "HQ dungeon loot table",
+      "lpLogTypeNameID": 545504,
+      "rewardingNpcCorporationID": 1000125,
+      "repairContributionMultiplier": 1,
+      "minimumContribution": 1,
+      "name": "Headquarters Rewards",
+      "tables": [
+        {
+          "rewardType": 2,
+          "securityCriteria": 1,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 11431,
+              "playerCount": 11
+            },
+            {
+              "quantity": 114307,
+              "playerCount": 12
+            },
+            {
+              "quantity": 571536,
+              "playerCount": 13
+            },
+            {
+              "quantity": 1905120,
+              "playerCount": 14
+            },
+            {
+              "quantity": 4762800,
+              "playerCount": 15
+            },
+            {
+              "quantity": 9525600,
+              "playerCount": 16
+            },
+            {
+              "quantity": 15876000,
+              "playerCount": 17
+            },
+            {
+              "quantity": 22680000,
+              "playerCount": 18
+            },
+            {
+              "quantity": 28350000,
+              "playerCount": 19
+            },
+            {
+              "quantity": 31500000,
+              "playerCount": 20
+            },
+            {
+              "quantity": 29137500,
+              "playerCount": 41
+            },
+            {
+              "quantity": 26617500,
+              "playerCount": 42
+            },
+            {
+              "quantity": 23940000,
+              "playerCount": 43
+            },
+            {
+              "quantity": 21105000,
+              "playerCount": 44
+            },
+            {
+              "quantity": 18112500,
+              "playerCount": 45
+            },
+            {
+              "quantity": 14962500,
+              "playerCount": 46
+            },
+            {
+              "quantity": 11655000,
+              "playerCount": 47
+            },
+            {
+              "quantity": 8190000,
+              "playerCount": 48
+            },
+            {
+              "quantity": 4567500,
+              "playerCount": 49
+            },
+            {
+              "quantity": 787500,
+              "playerCount": 50
+            },
+            {
+              "quantity": 0,
+              "playerCount": 51
+            }
+          ],
+          "delayed": false,
+          "description": "High Sec HQ ISK Table"
+        },
+        {
+          "rewardType": 2,
+          "securityCriteria": 2,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 16330,
+              "playerCount": 11
+            },
+            {
+              "quantity": 163296,
+              "playerCount": 12
+            },
+            {
+              "quantity": 816480,
+              "playerCount": 13
+            },
+            {
+              "quantity": 2721600,
+              "playerCount": 14
+            },
+            {
+              "quantity": 6804000,
+              "playerCount": 15
+            },
+            {
+              "quantity": 13608000,
+              "playerCount": 16
+            },
+            {
+              "quantity": 22680000,
+              "playerCount": 17
+            },
+            {
+              "quantity": 32400000,
+              "playerCount": 18
+            },
+            {
+              "quantity": 40500000,
+              "playerCount": 19
+            },
+            {
+              "quantity": 45000000,
+              "playerCount": 20
+            },
+            {
+              "quantity": 41625000,
+              "playerCount": 61
+            },
+            {
+              "quantity": 38025000,
+              "playerCount": 62
+            },
+            {
+              "quantity": 34200000,
+              "playerCount": 63
+            },
+            {
+              "quantity": 30150000,
+              "playerCount": 64
+            },
+            {
+              "quantity": 25875000,
+              "playerCount": 65
+            },
+            {
+              "quantity": 21375000,
+              "playerCount": 66
+            },
+            {
+              "quantity": 16650000,
+              "playerCount": 67
+            },
+            {
+              "quantity": 11700000,
+              "playerCount": 68
+            },
+            {
+              "quantity": 6525000,
+              "playerCount": 69
+            },
+            {
+              "quantity": 1125000,
+              "playerCount": 70
+            },
+            {
+              "quantity": 0,
+              "playerCount": 71
+            }
+          ],
+          "delayed": false,
+          "description": "Low Sec HQ ISK Table"
+        },
+        {
+          "rewardType": 2,
+          "securityCriteria": 3,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 16330,
+              "playerCount": 11
+            },
+            {
+              "quantity": 163296,
+              "playerCount": 12
+            },
+            {
+              "quantity": 816480,
+              "playerCount": 13
+            },
+            {
+              "quantity": 2721600,
+              "playerCount": 14
+            },
+            {
+              "quantity": 6804000,
+              "playerCount": 15
+            },
+            {
+              "quantity": 13608000,
+              "playerCount": 16
+            },
+            {
+              "quantity": 22680000,
+              "playerCount": 17
+            },
+            {
+              "quantity": 32400000,
+              "playerCount": 18
+            },
+            {
+              "quantity": 40500000,
+              "playerCount": 19
+            },
+            {
+              "quantity": 45000000,
+              "playerCount": 20
+            },
+            {
+              "quantity": 41625000,
+              "playerCount": 61
+            },
+            {
+              "quantity": 38025000,
+              "playerCount": 62
+            },
+            {
+              "quantity": 34200000,
+              "playerCount": 63
+            },
+            {
+              "quantity": 30150000,
+              "playerCount": 64
+            },
+            {
+              "quantity": 25875000,
+              "playerCount": 65
+            },
+            {
+              "quantity": 21375000,
+              "playerCount": 66
+            },
+            {
+              "quantity": 16650000,
+              "playerCount": 67
+            },
+            {
+              "quantity": 11700000,
+              "playerCount": 68
+            },
+            {
+              "quantity": 6525000,
+              "playerCount": 69
+            },
+            {
+              "quantity": 1125000,
+              "playerCount": 70
+            },
+            {
+              "quantity": 0,
+              "playerCount": 71
+            }
+          ],
+          "delayed": false,
+          "description": "Null Sec HQ ISK Table"
+        },
+        {
+          "rewardType": 1,
+          "securityCriteria": 1,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 3,
+              "playerCount": 11
+            },
+            {
+              "quantity": 25,
+              "playerCount": 12
+            },
+            {
+              "quantity": 127,
+              "playerCount": 13
+            },
+            {
+              "quantity": 423,
+              "playerCount": 14
+            },
+            {
+              "quantity": 1058,
+              "playerCount": 15
+            },
+            {
+              "quantity": 2117,
+              "playerCount": 16
+            },
+            {
+              "quantity": 3528,
+              "playerCount": 17
+            },
+            {
+              "quantity": 5040,
+              "playerCount": 18
+            },
+            {
+              "quantity": 6300,
+              "playerCount": 19
+            },
+            {
+              "quantity": 7000,
+              "playerCount": 20
+            },
+            {
+              "quantity": 6475,
+              "playerCount": 41
+            },
+            {
+              "quantity": 5915,
+              "playerCount": 42
+            },
+            {
+              "quantity": 5320,
+              "playerCount": 43
+            },
+            {
+              "quantity": 4690,
+              "playerCount": 44
+            },
+            {
+              "quantity": 4025,
+              "playerCount": 45
+            },
+            {
+              "quantity": 3325,
+              "playerCount": 46
+            },
+            {
+              "quantity": 2590,
+              "playerCount": 47
+            },
+            {
+              "quantity": 1820,
+              "playerCount": 48
+            },
+            {
+              "quantity": 1015,
+              "playerCount": 49
+            },
+            {
+              "quantity": 175,
+              "playerCount": 50
+            },
+            {
+              "quantity": 0,
+              "playerCount": 51
+            }
+          ],
+          "delayed": true,
+          "description": "High Sec HQ LP Table"
+        },
+        {
+          "rewardType": 1,
+          "securityCriteria": 2,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 4,
+              "playerCount": 11
+            },
+            {
+              "quantity": 36,
+              "playerCount": 12
+            },
+            {
+              "quantity": 181,
+              "playerCount": 13
+            },
+            {
+              "quantity": 605,
+              "playerCount": 14
+            },
+            {
+              "quantity": 1512,
+              "playerCount": 15
+            },
+            {
+              "quantity": 3024,
+              "playerCount": 16
+            },
+            {
+              "quantity": 5040,
+              "playerCount": 17
+            },
+            {
+              "quantity": 7200,
+              "playerCount": 18
+            },
+            {
+              "quantity": 9000,
+              "playerCount": 19
+            },
+            {
+              "quantity": 10000,
+              "playerCount": 20
+            },
+            {
+              "quantity": 9250,
+              "playerCount": 61
+            },
+            {
+              "quantity": 8450,
+              "playerCount": 62
+            },
+            {
+              "quantity": 7600,
+              "playerCount": 63
+            },
+            {
+              "quantity": 6700,
+              "playerCount": 64
+            },
+            {
+              "quantity": 5750,
+              "playerCount": 65
+            },
+            {
+              "quantity": 4750,
+              "playerCount": 66
+            },
+            {
+              "quantity": 3700,
+              "playerCount": 67
+            },
+            {
+              "quantity": 2600,
+              "playerCount": 68
+            },
+            {
+              "quantity": 1450,
+              "playerCount": 69
+            },
+            {
+              "quantity": 250,
+              "playerCount": 70
+            },
+            {
+              "quantity": 0,
+              "playerCount": 71
+            }
+          ],
+          "delayed": true,
+          "description": "Low Sec HQ LP Table"
+        },
+        {
+          "rewardType": 1,
+          "securityCriteria": 3,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 4,
+              "playerCount": 11
+            },
+            {
+              "quantity": 36,
+              "playerCount": 12
+            },
+            {
+              "quantity": 181,
+              "playerCount": 13
+            },
+            {
+              "quantity": 605,
+              "playerCount": 14
+            },
+            {
+              "quantity": 1512,
+              "playerCount": 15
+            },
+            {
+              "quantity": 3024,
+              "playerCount": 16
+            },
+            {
+              "quantity": 5040,
+              "playerCount": 17
+            },
+            {
+              "quantity": 7200,
+              "playerCount": 18
+            },
+            {
+              "quantity": 9000,
+              "playerCount": 19
+            },
+            {
+              "quantity": 10000,
+              "playerCount": 20
+            },
+            {
+              "quantity": 9250,
+              "playerCount": 61
+            },
+            {
+              "quantity": 8450,
+              "playerCount": 62
+            },
+            {
+              "quantity": 7600,
+              "playerCount": 63
+            },
+            {
+              "quantity": 6700,
+              "playerCount": 64
+            },
+            {
+              "quantity": 5750,
+              "playerCount": 65
+            },
+            {
+              "quantity": 4750,
+              "playerCount": 66
+            },
+            {
+              "quantity": 3700,
+              "playerCount": 67
+            },
+            {
+              "quantity": 2600,
+              "playerCount": 68
+            },
+            {
+              "quantity": 1450,
+              "playerCount": 69
+            },
+            {
+              "quantity": 250,
+              "playerCount": 70
+            },
+            {
+              "quantity": 0,
+              "playerCount": 71
+            }
+          ],
+          "delayed": true,
+          "description": "Null Sec HQ LP Table"
+        }
+      ]
+    },
+    {
+      "groupRewardID": 8,
+      "damageContributionMultiplier": 1,
+      "description": "Scout site rewards",
+      "lpLogTypeNameID": 545505,
+      "rewardingNpcCorporationID": 1000125,
+      "repairContributionMultiplier": 1,
+      "minimumContribution": 0,
+      "name": "Scout Rewards",
+      "tables": [
+        {
+          "rewardType": 2,
+          "securityCriteria": 0,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 1000000,
+              "playerCount": 1
+            },
+            {
+              "quantity": 2000000,
+              "playerCount": 2
+            },
+            {
+              "quantity": 3500000,
+              "playerCount": 3
+            },
+            {
+              "quantity": 0,
+              "playerCount": 6
+            }
+          ],
+          "delayed": false,
+          "description": "Global Scout ISK Table"
+        },
+        {
+          "rewardType": 1,
+          "securityCriteria": 0,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 50,
+              "playerCount": 1
+            },
+            {
+              "quantity": 200,
+              "playerCount": 2
+            },
+            {
+              "quantity": 400,
+              "playerCount": 3
+            },
+            {
+              "quantity": 0,
+              "playerCount": 6
+            }
+          ],
+          "delayed": true,
+          "description": "Global Scout LP Table"
+        }
+      ]
+    },
+    {
+      "groupRewardID": 10,
+      "damageContributionMultiplier": 1,
+      "description": "Advanced boss rewards table",
+      "lpLogTypeNameID": 545506,
+      "rewardingNpcCorporationID": 1000125,
+      "repairContributionMultiplier": 1,
+      "minimumContribution": 1,
+      "name": "Boss Rewards",
+      "tables": [
+        {
+          "rewardType": 2,
+          "securityCriteria": 1,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 1143072,
+              "playerCount": 33
+            },
+            {
+              "quantity": 3810240,
+              "playerCount": 34
+            },
+            {
+              "quantity": 9525600,
+              "playerCount": 35
+            },
+            {
+              "quantity": 19051200,
+              "playerCount": 36
+            },
+            {
+              "quantity": 31752000,
+              "playerCount": 37
+            },
+            {
+              "quantity": 45360000,
+              "playerCount": 38
+            },
+            {
+              "quantity": 56700000,
+              "playerCount": 39
+            },
+            {
+              "quantity": 63000000,
+              "playerCount": 40
+            },
+            {
+              "quantity": 61425000,
+              "playerCount": 81
+            },
+            {
+              "quantity": 59787000,
+              "playerCount": 82
+            },
+            {
+              "quantity": 58086000,
+              "playerCount": 83
+            },
+            {
+              "quantity": 56322000,
+              "playerCount": 84
+            },
+            {
+              "quantity": 54495000,
+              "playerCount": 85
+            },
+            {
+              "quantity": 52605000,
+              "playerCount": 86
+            },
+            {
+              "quantity": 50652000,
+              "playerCount": 87
+            },
+            {
+              "quantity": 48636000,
+              "playerCount": 88
+            },
+            {
+              "quantity": 46557000,
+              "playerCount": 89
+            },
+            {
+              "quantity": 44415000,
+              "playerCount": 90
+            },
+            {
+              "quantity": 42210000,
+              "playerCount": 91
+            },
+            {
+              "quantity": 39942000,
+              "playerCount": 92
+            },
+            {
+              "quantity": 37611000,
+              "playerCount": 93
+            },
+            {
+              "quantity": 35217000,
+              "playerCount": 94
+            },
+            {
+              "quantity": 32760000,
+              "playerCount": 95
+            },
+            {
+              "quantity": 30240000,
+              "playerCount": 96
+            },
+            {
+              "quantity": 27657000,
+              "playerCount": 97
+            },
+            {
+              "quantity": 25011000,
+              "playerCount": 98
+            },
+            {
+              "quantity": 22302000,
+              "playerCount": 99
+            },
+            {
+              "quantity": 19530000,
+              "playerCount": 100
+            },
+            {
+              "quantity": 16695000,
+              "playerCount": 101
+            },
+            {
+              "quantity": 13797000,
+              "playerCount": 102
+            },
+            {
+              "quantity": 10836000,
+              "playerCount": 103
+            },
+            {
+              "quantity": 7812000,
+              "playerCount": 104
+            },
+            {
+              "quantity": 4725000,
+              "playerCount": 105
+            },
+            {
+              "quantity": 1575000,
+              "playerCount": 106
+            },
+            {
+              "quantity": 0,
+              "playerCount": 107
+            }
+          ],
+          "delayed": false,
+          "description": "High Sec Boss ISK Table"
+        },
+        {
+          "rewardType": 2,
+          "securityCriteria": 2,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 1632960,
+              "playerCount": 33
+            },
+            {
+              "quantity": 5443200,
+              "playerCount": 34
+            },
+            {
+              "quantity": 13608000,
+              "playerCount": 35
+            },
+            {
+              "quantity": 27216000,
+              "playerCount": 36
+            },
+            {
+              "quantity": 45360000,
+              "playerCount": 37
+            },
+            {
+              "quantity": 64800000,
+              "playerCount": 38
+            },
+            {
+              "quantity": 81000000,
+              "playerCount": 39
+            },
+            {
+              "quantity": 90000000,
+              "playerCount": 40
+            },
+            {
+              "quantity": 87750000,
+              "playerCount": 121
+            },
+            {
+              "quantity": 85410000,
+              "playerCount": 122
+            },
+            {
+              "quantity": 82980000,
+              "playerCount": 123
+            },
+            {
+              "quantity": 80460000,
+              "playerCount": 124
+            },
+            {
+              "quantity": 77850000,
+              "playerCount": 125
+            },
+            {
+              "quantity": 75150000,
+              "playerCount": 126
+            },
+            {
+              "quantity": 72360000,
+              "playerCount": 127
+            },
+            {
+              "quantity": 69480000,
+              "playerCount": 128
+            },
+            {
+              "quantity": 66510000,
+              "playerCount": 129
+            },
+            {
+              "quantity": 63450000,
+              "playerCount": 130
+            },
+            {
+              "quantity": 60300000,
+              "playerCount": 131
+            },
+            {
+              "quantity": 57060000,
+              "playerCount": 132
+            },
+            {
+              "quantity": 53730000,
+              "playerCount": 133
+            },
+            {
+              "quantity": 50310000,
+              "playerCount": 134
+            },
+            {
+              "quantity": 46800000,
+              "playerCount": 135
+            },
+            {
+              "quantity": 43200000,
+              "playerCount": 136
+            },
+            {
+              "quantity": 39510000,
+              "playerCount": 137
+            },
+            {
+              "quantity": 35730000,
+              "playerCount": 138
+            },
+            {
+              "quantity": 31860000,
+              "playerCount": 139
+            },
+            {
+              "quantity": 27900000,
+              "playerCount": 140
+            },
+            {
+              "quantity": 23850000,
+              "playerCount": 141
+            },
+            {
+              "quantity": 19710000,
+              "playerCount": 142
+            },
+            {
+              "quantity": 15480000,
+              "playerCount": 143
+            },
+            {
+              "quantity": 11160000,
+              "playerCount": 144
+            },
+            {
+              "quantity": 6750000,
+              "playerCount": 145
+            },
+            {
+              "quantity": 2250000,
+              "playerCount": 146
+            },
+            {
+              "quantity": 0,
+              "playerCount": 147
+            }
+          ],
+          "delayed": false,
+          "description": "Low Sec Boss ISK Table"
+        },
+        {
+          "rewardType": 2,
+          "securityCriteria": 3,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 1632960,
+              "playerCount": 33
+            },
+            {
+              "quantity": 5443200,
+              "playerCount": 34
+            },
+            {
+              "quantity": 13608000,
+              "playerCount": 35
+            },
+            {
+              "quantity": 27216000,
+              "playerCount": 36
+            },
+            {
+              "quantity": 45360000,
+              "playerCount": 37
+            },
+            {
+              "quantity": 64800000,
+              "playerCount": 38
+            },
+            {
+              "quantity": 81000000,
+              "playerCount": 39
+            },
+            {
+              "quantity": 90000000,
+              "playerCount": 40
+            },
+            {
+              "quantity": 87750000,
+              "playerCount": 121
+            },
+            {
+              "quantity": 85410000,
+              "playerCount": 122
+            },
+            {
+              "quantity": 82980000,
+              "playerCount": 123
+            },
+            {
+              "quantity": 80460000,
+              "playerCount": 124
+            },
+            {
+              "quantity": 77850000,
+              "playerCount": 125
+            },
+            {
+              "quantity": 75150000,
+              "playerCount": 126
+            },
+            {
+              "quantity": 72360000,
+              "playerCount": 127
+            },
+            {
+              "quantity": 69480000,
+              "playerCount": 128
+            },
+            {
+              "quantity": 66510000,
+              "playerCount": 129
+            },
+            {
+              "quantity": 63450000,
+              "playerCount": 130
+            },
+            {
+              "quantity": 60300000,
+              "playerCount": 131
+            },
+            {
+              "quantity": 57060000,
+              "playerCount": 132
+            },
+            {
+              "quantity": 53730000,
+              "playerCount": 133
+            },
+            {
+              "quantity": 50310000,
+              "playerCount": 134
+            },
+            {
+              "quantity": 46800000,
+              "playerCount": 135
+            },
+            {
+              "quantity": 43200000,
+              "playerCount": 136
+            },
+            {
+              "quantity": 39510000,
+              "playerCount": 137
+            },
+            {
+              "quantity": 35730000,
+              "playerCount": 138
+            },
+            {
+              "quantity": 31860000,
+              "playerCount": 139
+            },
+            {
+              "quantity": 27900000,
+              "playerCount": 140
+            },
+            {
+              "quantity": 23850000,
+              "playerCount": 141
+            },
+            {
+              "quantity": 19710000,
+              "playerCount": 142
+            },
+            {
+              "quantity": 15480000,
+              "playerCount": 143
+            },
+            {
+              "quantity": 11160000,
+              "playerCount": 144
+            },
+            {
+              "quantity": 6750000,
+              "playerCount": 145
+            },
+            {
+              "quantity": 2250000,
+              "playerCount": 146
+            },
+            {
+              "quantity": 0,
+              "playerCount": 147
+            }
+          ],
+          "delayed": false,
+          "description": "Null Sec Boss ISK Table"
+        },
+        {
+          "rewardType": 1,
+          "securityCriteria": 1,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 254,
+              "playerCount": 33
+            },
+            {
+              "quantity": 847,
+              "playerCount": 34
+            },
+            {
+              "quantity": 2117,
+              "playerCount": 35
+            },
+            {
+              "quantity": 4234,
+              "playerCount": 36
+            },
+            {
+              "quantity": 7056,
+              "playerCount": 37
+            },
+            {
+              "quantity": 10080,
+              "playerCount": 38
+            },
+            {
+              "quantity": 12600,
+              "playerCount": 39
+            },
+            {
+              "quantity": 14000,
+              "playerCount": 40
+            },
+            {
+              "quantity": 13650,
+              "playerCount": 81
+            },
+            {
+              "quantity": 13286,
+              "playerCount": 82
+            },
+            {
+              "quantity": 12908,
+              "playerCount": 83
+            },
+            {
+              "quantity": 12516,
+              "playerCount": 84
+            },
+            {
+              "quantity": 12110,
+              "playerCount": 85
+            },
+            {
+              "quantity": 11690,
+              "playerCount": 86
+            },
+            {
+              "quantity": 11256,
+              "playerCount": 87
+            },
+            {
+              "quantity": 10808,
+              "playerCount": 88
+            },
+            {
+              "quantity": 10346,
+              "playerCount": 89
+            },
+            {
+              "quantity": 9870,
+              "playerCount": 90
+            },
+            {
+              "quantity": 9380,
+              "playerCount": 91
+            },
+            {
+              "quantity": 8876,
+              "playerCount": 92
+            },
+            {
+              "quantity": 8358,
+              "playerCount": 93
+            },
+            {
+              "quantity": 7826,
+              "playerCount": 94
+            },
+            {
+              "quantity": 7280,
+              "playerCount": 95
+            },
+            {
+              "quantity": 6720,
+              "playerCount": 96
+            },
+            {
+              "quantity": 6146,
+              "playerCount": 97
+            },
+            {
+              "quantity": 5558,
+              "playerCount": 98
+            },
+            {
+              "quantity": 4956,
+              "playerCount": 99
+            },
+            {
+              "quantity": 4340,
+              "playerCount": 100
+            },
+            {
+              "quantity": 3710,
+              "playerCount": 101
+            },
+            {
+              "quantity": 3066,
+              "playerCount": 102
+            },
+            {
+              "quantity": 2408,
+              "playerCount": 103
+            },
+            {
+              "quantity": 1736,
+              "playerCount": 104
+            },
+            {
+              "quantity": 1050,
+              "playerCount": 105
+            },
+            {
+              "quantity": 350,
+              "playerCount": 106
+            },
+            {
+              "quantity": 0,
+              "playerCount": 107
+            }
+          ],
+          "delayed": true,
+          "description": "High Sec Boss LP Table"
+        },
+        {
+          "rewardType": 1,
+          "securityCriteria": 2,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 363,
+              "playerCount": 33
+            },
+            {
+              "quantity": 1210,
+              "playerCount": 34
+            },
+            {
+              "quantity": 3024,
+              "playerCount": 35
+            },
+            {
+              "quantity": 6048,
+              "playerCount": 36
+            },
+            {
+              "quantity": 10080,
+              "playerCount": 37
+            },
+            {
+              "quantity": 14400,
+              "playerCount": 38
+            },
+            {
+              "quantity": 18000,
+              "playerCount": 39
+            },
+            {
+              "quantity": 20000,
+              "playerCount": 40
+            },
+            {
+              "quantity": 19500,
+              "playerCount": 121
+            },
+            {
+              "quantity": 18980,
+              "playerCount": 122
+            },
+            {
+              "quantity": 18440,
+              "playerCount": 123
+            },
+            {
+              "quantity": 17880,
+              "playerCount": 124
+            },
+            {
+              "quantity": 17300,
+              "playerCount": 125
+            },
+            {
+              "quantity": 16700,
+              "playerCount": 126
+            },
+            {
+              "quantity": 16080,
+              "playerCount": 127
+            },
+            {
+              "quantity": 15440,
+              "playerCount": 128
+            },
+            {
+              "quantity": 14780,
+              "playerCount": 129
+            },
+            {
+              "quantity": 14100,
+              "playerCount": 130
+            },
+            {
+              "quantity": 13400,
+              "playerCount": 131
+            },
+            {
+              "quantity": 12680,
+              "playerCount": 132
+            },
+            {
+              "quantity": 11940,
+              "playerCount": 133
+            },
+            {
+              "quantity": 11180,
+              "playerCount": 134
+            },
+            {
+              "quantity": 10400,
+              "playerCount": 135
+            },
+            {
+              "quantity": 9600,
+              "playerCount": 136
+            },
+            {
+              "quantity": 8780,
+              "playerCount": 137
+            },
+            {
+              "quantity": 7940,
+              "playerCount": 138
+            },
+            {
+              "quantity": 7080,
+              "playerCount": 139
+            },
+            {
+              "quantity": 6200,
+              "playerCount": 140
+            },
+            {
+              "quantity": 5300,
+              "playerCount": 141
+            },
+            {
+              "quantity": 4380,
+              "playerCount": 142
+            },
+            {
+              "quantity": 3440,
+              "playerCount": 143
+            },
+            {
+              "quantity": 2480,
+              "playerCount": 144
+            },
+            {
+              "quantity": 1500,
+              "playerCount": 145
+            },
+            {
+              "quantity": 500,
+              "playerCount": 146
+            },
+            {
+              "quantity": 0,
+              "playerCount": 147
+            }
+          ],
+          "delayed": true,
+          "description": "Low Sec Boss LP Table"
+        },
+        {
+          "rewardType": 1,
+          "securityCriteria": 3,
+          "entries": [
+            {
+              "quantity": 0,
+              "playerCount": 0
+            },
+            {
+              "quantity": 363,
+              "playerCount": 33
+            },
+            {
+              "quantity": 1210,
+              "playerCount": 34
+            },
+            {
+              "quantity": 3024,
+              "playerCount": 35
+            },
+            {
+              "quantity": 6048,
+              "playerCount": 36
+            },
+            {
+              "quantity": 10080,
+              "playerCount": 37
+            },
+            {
+              "quantity": 14400,
+              "playerCount": 38
+            },
+            {
+              "quantity": 18000,
+              "playerCount": 39
+            },
+            {
+              "quantity": 20000,
+              "playerCount": 40
+            },
+            {
+              "quantity": 19500,
+              "playerCount": 121
+            },
+            {
+              "quantity": 18980,
+              "playerCount": 122
+            },
+            {
+              "quantity": 18440,
+              "playerCount": 123
+            },
+            {
+              "quantity": 17880,
+              "playerCount": 124
+            },
+            {
+              "quantity": 17300,
+              "playerCount": 125
+            },
+            {
+              "quantity": 16700,
+              "playerCount": 126
+            },
+            {
+              "quantity": 16080,
+              "playerCount": 127
+            },
+            {
+              "quantity": 15440,
+              "playerCount": 128
+            },
+            {
+              "quantity": 14780,
+              "playerCount": 129
+            },
+            {
+              "quantity": 14100,
+              "playerCount": 130
+            },
+            {
+              "quantity": 13400,
+              "playerCount": 131
+            },
+            {
+              "quantity": 12680,
+              "playerCount": 132
+            },
+            {
+              "quantity": 11940,
+              "playerCount": 133
+            },
+            {
+              "quantity": 11180,
+              "playerCount": 134
+            },
+            {
+              "quantity": 10400,
+              "playerCount": 135
+            },
+            {
+              "quantity": 9600,
+              "playerCount": 136
+            },
+            {
+              "quantity": 8780,
+              "playerCount": 137
+            },
+            {
+              "quantity": 7940,
+              "playerCount": 138
+            },
+            {
+              "quantity": 7080,
+              "playerCount": 139
+            },
+            {
+              "quantity": 6200,
+              "playerCount": 140
+            },
+            {
+              "quantity": 5300,
+              "playerCount": 141
+            },
+            {
+              "quantity": 4380,
+              "playerCount": 142
+            },
+            {
+              "quantity": 3440,
+              "playerCount": 143
+            },
+            {
+              "quantity": 2480,
+              "playerCount": 144
+            },
+            {
+              "quantity": 1500,
+              "playerCount": 145
+            },
+            {
+              "quantity": 500,
+              "playerCount": 146
+            },
+            {
+              "quantity": 0,
+              "playerCount": 147
+            }
+          ],
+          "delayed": true,
+          "description": "Null Sec Boss LP Table"
+        }
+      ]
+    }
+  ]
+}

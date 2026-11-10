@@ -6,6 +6,7 @@ const sessionRegistry = require(path.join(__dirname, "../chat/sessionRegistry"))
 const {
   buildFiletimeLong,
   buildKeyVal,
+  buildList,
   normalizeNumber,
 } = require(path.join(__dirname, "../_shared/serviceHelpers"));
 
@@ -49,7 +50,7 @@ function sendMailSentNotification(characterID, message, statusMask, options = {}
       Number(message.messageID || 0) || 0,
       Number(message.senderID || 0) || 0,
       buildFiletimeLong(message.sentDate || "0"),
-      Array.isArray(message.toCharacterIDs) ? message.toCharacterIDs : [],
+      buildList(Array.isArray(message.toCharacterIDs) ? message.toCharacterIDs : []),
       message.toListID == null ? null : Number(message.toListID || 0) || null,
       message.toCorpOrAllianceID == null
         ? null

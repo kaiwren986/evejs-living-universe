@@ -505,6 +505,8 @@ function noteDamage(attackerEntity, targetEntity, appliedDamage, options = {}) {
   const whenMs = Number.isFinite(Number(options.whenMs)) ? Number(options.whenMs) : Date.now();
   const ledger = getOrCreateLedger(targetEntity, whenMs);
   if (targetEntity.airEncounterSlot?.startsWith("hostile:") && attackerEntity?.session) require("../../services/nodegraph/nodeGraphEvents").publish(attackerEntity.session, "air.weapon-damage", { target: targetEntity, damage: damageAmount });
+  // An AIR lesson hostile hit the pilot: Balin repairs it (airCombatRuntime).
+  if (attackerEntity?.airEncounterSlot?.startsWith("hostile:") && targetEntity.session) require("../../services/nodegraph/nodeGraphEvents").publish(targetEntity.session, "air.pilot-damaged", { source: attackerEntity, damage: damageAmount });
   return addDamageToLedger(ledger, attackerEntity, targetEntity, damageAmount, { ...options, whenMs });
 }
 

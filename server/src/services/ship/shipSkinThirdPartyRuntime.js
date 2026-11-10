@@ -1,6 +1,6 @@
 "use strict";
 const state = require("./shipSkinState");
-const { randomUUID } = require("node:crypto");
+const { randomUUID, createHash } = require("node:crypto");
 const { createDurableSchedulerBinding } = require("../_shared/durableSchedulerBinding");
 const catalogue = require("./shipSkinStoreAuthority");
 const TABLE_NAME = "shipSkinThirdPartyRuntime";
@@ -20,8 +20,74 @@ function grantShipSkinLicense(characterID, hex, quantity, receiptID) {
   state.write(TABLE_NAME, next);
   return { success: true, license: state.cloneValue(license) };
 }
+// Runs once per listing on a filtered market page, so it must not copy the market.
+function getImportedShipSkinStoreDesign(hex) {
+  return /^[a-f0-9]{64}$/.test(hex || "") ? state.readPath(TABLE_NAME, `/importedDesigns/${hex}`) : null;
+}
 function getOwnedShipSkinLicenses(characterID) { return Object.values(root().licenses).filter(row => row.characterID === characterID && (row.activated || row.unactivated > 0 || row.escrowed > 0)); }
 function getShipSkinLicense(characterID, hex) { return root().licenses[`${characterID}:${hex}`] || null; }
+function deleteShipSkinLicenses(characterID, selection, requestID) {
+  if (!state.positive(characterID) || !state.requestKey(requestID) ||
+    selection !== "all" && !/^[a-f0-9]{64}$/.test(selection || "")) return state.fail("INVALID_SKIN_DELETION", 400);
+  const next = root(), key = `${characterID}:${requestID}`, fingerprint = state.fingerprint(["delete-licenses", selection]);
+  const prior = next.mutations[key];
+  if (prior) return prior.fingerprint === fingerprint
+    ? { success: true, ...state.cloneValue(prior.result), duplicate: true } : state.fail("SKINR_REQUEST_CONFLICT");
+  const selected = Object.values(next.licenses).filter(row => row.characterID === characterID &&
+    (row.activated || row.unactivated > 0 || row.escrowed > 0) && (selection === "all" || row.hex === selection));
+  if (selection !== "all" && !selected.length) return state.fail("SKINR_LICENSE_NOT_FOUND", 404);
+  const hexes = new Set(selected.map(row => row.hex));
+  // Settlement can yield while charging a wallet. Do not remove its reserved
+  // stock or the recipient row that its next durable checkpoint will update.
+  if (selected.some(row => row.escrowed > 0) || Object.values(next.listings).some(listing =>
+    listing.characterID === characterID && hexes.has(listing.hex) && ["creating", "active"].includes(listing.state)) ||
+    Object.values(next.operations).some(op => !["completed", "refused"].includes(op.state) && hexes.has(op.hex) &&
+      (op.characterID === characterID || op.sellerID === characterID))) return state.fail("SKINR_LICENSE_MARKET_BUSY");
+  const inventory = require("../inventory/itemStore"), clearedShips = [];
+  const cosmetics = require("./shipCosmeticsState");
+  // Ship clears are durable before the license write, so every failure from here
+  // on must still report them. The caller publishes each cleared ship.
+  const failed = (errorMsg, error) => {
+    if (error) require("../../utils/logger").warn(`[SkinrLicense] deletion failed for ${characterID}: ${error.message}`);
+    return { ...state.fail(errorMsg), clearedShips };
+  };
+  for (const ship of inventory.getCharacterShipItems(characterID)) {
+    if (!hexes.has(ship.skinrApplication?.hex)) continue;
+    try {
+      // An interrupted replacement can leave the paint it superseded under the
+      // application, and removing the application would reveal it. As in apply
+      // replay, clear only that exact paint: a later conventional selection stays,
+      // and an application without a receipt proves nothing.
+      const application = ship.skinrApplication, paint = cosmetics.getAppliedSkinRecord(ship.itemID);
+      if (paint?.skinID && application.receiptKey) {
+        const receipt = inventory.getIdempotentGrantReceipt(application.receiptKey, { requireDurable: true });
+        if (receipt.ambiguous) throw new Error(receipt.errorMsg);
+        const metadata = receipt.success && receipt.found ? receipt.data.metadata || {} : {};
+        if (Object.hasOwn(metadata, "supersededConventionalSkin") &&
+          state.fingerprint(metadata.supersededConventionalSkin) === state.fingerprint(paint)) {
+          state.check(cosmetics.applySkinToShip(ship.itemID, null, { characterID, durable: true, preserveSkinrApplication: true }));
+        }
+      }
+      // Clear the durable application before removing the right. Otherwise
+      // reacquiring the same design could resurrect its old ship appearance.
+      const result = inventory.setShipSkinrApplicationIdempotent(ship.itemID, characterID, null, {
+        receiptKey: `skinr-app:${characterID}:delete:${state.fingerprint([requestID, ship.itemID])}`,
+        fingerprint: { characterID, requestID, shipID: ship.itemID, hex: ship.skinrApplication.hex, action: "delete-license" },
+        expectedHex: ship.skinrApplication.hex,
+      });
+      if (!result.success) return { ...result, errorMsg: "SKINR_LICENSE_UNAPPLY_FAILED", clearedShips };
+    } catch (error) { return failed("SKINR_LICENSE_UNAPPLY_FAILED", error); }
+    clearedShips.push(ship.itemID);
+  }
+  for (const hex of hexes) delete next.licenses[`${characterID}:${hex}`];
+  // Keep grant and activation receipts: replaying a completed job, purchase or
+  // activation must not restore deliberately deleted rights.
+  const result = { deleted: [...hexes], clearedShips };
+  next.mutations[key] = { fingerprint, result };
+  try { state.write(TABLE_NAME, next); }
+  catch (error) { return failed("SKINR_LICENSE_STORE_FAILED", error); }
+  return { success: true, ...result };
+}
 function activateShipSkinLicense(characterID, hex, requestID) {
   if (!state.requestKey(requestID) || !state.positive(characterID) || !/^[a-f0-9]{64}$/.test(hex || "")) return state.fail("INVALID_SKIN_ACTIVATION", 400);
   const next = root(), key = `${characterID}:${requestID}`, fingerprint = state.fingerprint(["activate", hex]);
@@ -151,6 +217,57 @@ function maintainCatalogue(next) {
     changed = true;
   }
   return changed;
+}
+function prepareShipSkinStoreDesign(next, request, { price, currency = "PLEX", quantity = 1, sourceListingID, source } = {}, catalogueIndex) {
+  const sellerID = catalogue.getShipSkinStoreSellerID();
+  const validated = require("./shipSkinDraftRuntime").validateDesign(sellerID, request);
+  if (!validated.success) return validated;
+  const policy = market().getShipSkinMarketPolicy();
+  const termsCheck = require("./shipSkinStoreTerms").validateStoreTerms({ price, currency, quantity, sourceListingID });
+  if (!termsCheck.success) return termsCheck;
+  const hex = validated.hex, id = sourceListingID
+    ? createHash("sha256").update(`skinr:everef-listing:v1:${sourceListingID}`).digest("hex").slice(0, 32)
+    : catalogue.getShipSkinStoreListingID(hex);
+  const spec = { price, currency, quantity, ...(sourceListingID ? { sourceListingID } : {}) };
+  const previous = next.listings[id];
+  if (previous) {
+    if (!previous.catalogue || previous.hex !== hex || !next.importedDesigns?.[hex] || state.fingerprint(previous.importSpec) !== state.fingerprint(spec)) {
+      return state.fail("SKINR_STORE_IMPORT_CONFLICT", 409);
+    }
+    return { success: true, duplicate: true, listing: state.cloneValue(previous) };
+  }
+  const durationSeconds = Math.max(...policy.listingDurations.map(row => row.seconds));
+  const index = catalogueIndex ?? catalogue.listShipSkinStoreSeedSpecs().length + Object.values(next.listings).filter(row => row.importSpec).length;
+  const createdMs = now();
+  (next.importedDesigns ||= {})[hex] ||= { ...validated.design, firstSequencedMs: createdMs };
+  const listing = { id, characterID: sellerID, hex, catalogue: true, catalogueIndex: index, importSpec: spec,
+    durationSeconds, currency, price, remaining: quantity, target: { kind: "public" }, branded: false,
+    taxPercent: 0, createdMs, expiresMs: createdMs + durationSeconds * 1000 - index, state: "active",
+    ...(sourceListingID ? { importSource: state.cloneValue(source || { listing_id: sourceListingID }) } : {}) };
+  next.listings[id] = listing;
+  return { success: true, duplicate: false, listing: state.cloneValue(listing) };
+}
+function importShipSkinStoreDesign(request, terms) {
+  const next = root(), result = prepareShipSkinStoreDesign(next, request, terms);
+  if (result.success && !result.duplicate) state.write(TABLE_NAME, next);
+  return result;
+}
+function importShipSkinStoreDesigns(entries) {
+  if (!Array.isArray(entries) || !entries.length || entries.length > 10000) return state.fail("INVALID_SKINR_STORE_BATCH", 400);
+  const next = root(), results = [];
+  let catalogueIndex = catalogue.listShipSkinStoreSeedSpecs().length + Object.values(next.listings).filter(row => row.importSpec).length;
+  let imported = 0;
+  for (const [index, entry] of entries.entries()) {
+    if (!entry?.request) return { ...state.fail("INVALID_SKINR_STORE_BATCH", 400), index };
+    const result = prepareShipSkinStoreDesign(next, entry.request, entry.terms, catalogueIndex);
+    if (!result.success) return { ...result, index };
+    if (!result.duplicate) { imported++; catalogueIndex++; }
+    results.push(result);
+  }
+  // One durable table write publishes every preview and listing together.
+  // A validation/conflict failure above discards the private working copy.
+  if (imported) state.write(TABLE_NAME, next);
+  return { success: true, imported, existing: entries.length - imported, results };
 }
 function maintainListings() {
   const next = root(), notices = []; let changed = maintainCatalogue(next);
@@ -376,7 +493,17 @@ async function reconcileMarket() {
     dueAtMs: Math.min(...active.map(row => row.expiresMs)) - catalogue.getShipSkinStoreRenewBeforeMs(), payload: { catalogue: true } });
   for (const op of Object.values(next.operations)) await scheduleOperation(op);
 }
-module.exports = { TABLE_NAME, JOB_TYPE, grantShipSkinLicense, getOwnedShipSkinLicenses, getShipSkinLicense,
+module.exports = { TABLE_NAME, JOB_TYPE, grantShipSkinLicense, getOwnedShipSkinLicenses, getShipSkinLicense, deleteShipSkinLicenses,
+  importShipSkinStoreDesign, getImportedShipSkinStoreDesign, importShipSkinStoreDesigns,
+  // Keep catalogue filtering on per-design reads instead of copying market history.
+  getImportedShipSkinStoreDesigns: hexes => {
+    const found = {};
+    for (const hex of hexes) {
+      const design = getImportedShipSkinStoreDesign(hex);
+      if (design) found[hex] = design;
+    }
+    return found;
+  },
   activateShipSkinLicense, applyShipSkinLicense, getAppliedShipSkin,
   unapplyShipSkinLicense: (actor, hex, ship, key) => applyShipSkinLicense(actor, hex, ship, key, true),
   initiateListing, initiatePurchase, initiateComponentPurchase, getComponentOffers, cancelListing, settleOperation, reconcile: reconcileMarket,

@@ -33,6 +33,7 @@ const {
   normalizeShipConditionState,
   removeInventoryItem,
   updateInventoryItem,
+  updateInventoryItemSuccessOnly,
 } = require(path.join(__dirname, "../inventory/itemStore"));
 const {
   findItemById,
@@ -96,6 +97,7 @@ const {
   ensureSceneMiningState,
   getMineableState,
   applyMiningDelta,
+  shouldPersistMineableState,
 } = require(path.join(__dirname, "../mining/miningRuntimeState"));
 const {
   entityIDsEqual,
@@ -127,6 +129,9 @@ const {
   __dirname,
   "../../space/destiny/authority/sceneRangeDecision",
 ));
+const {
+  isWarping,
+} = require(path.join(__dirname, "../../space/destiny/simulation/evolve.js"));
 
 const STATE_IDLE = 0;
 const STATE_COMBAT = 1;
@@ -1391,6 +1396,14 @@ function appendLaunchError(result, itemID, message) {
   return appendLaunchEntry(result, itemID, buildDroneErrorTuple(message));
 }
 
+function appendLaunchUserError(result, itemID, messageKey, entries = []) {
+  return appendLaunchEntry(
+    result,
+    itemID,
+    buildDroneUserErrorTuple(messageKey, entries),
+  );
+}
+
 function appendDroneErrorTuple(result, droneID, errorTuple) {
   const numericDroneID = toInt(droneID, 0);
   if (
@@ -1418,13 +1431,19 @@ function appendDroneError(result, droneID, message) {
   return appendDroneErrorTuple(result, droneID, buildDroneErrorTuple(message));
 }
 
-// The client re-raises a per-drone entry as UserError(key, args), so a refusal
-// that TQ names can travel as its own message key instead of a CustomNotify.
+// The client re-raises a per-drone or per-launch entry as UserError(key,
+// args), so a refusal that TQ names can travel as its own message key instead
+// of a CustomNotify.
+function buildDroneUserErrorTuple(messageKey, entries = []) {
+  return [String(messageKey || ""), buildMarshalDict(entries)];
+}
+
 function appendDroneUserError(result, droneID, messageKey, entries = []) {
-  return appendDroneErrorTuple(result, droneID, [
-    String(messageKey || ""),
-    buildMarshalDict(entries),
-  ]);
+  return appendDroneErrorTuple(
+    result,
+    droneID,
+    buildDroneUserErrorTuple(messageKey, entries),
+  );
 }
 
 function listifyRawValue(rawValue) {
@@ -3362,7 +3381,26 @@ function resolveDroneMovementProfile(droneEntity, controllerEntity = null) {
     itemRecord && itemRecord.typeID,
     toInt(droneEntity && droneEntity.typeID, 0),
   );
-  const baseAttributes = buildEffectiveItemAttributeMap(itemRecord || typeID);
+  // Restrict the fast path to the ordinary hydrated, unmutated drone. The
+  // operational resolver still runs on every call; custom items and incomplete
+  // or disconnected entities retain the original eager evaluation order.
+  const mayDeferBase = Boolean(
+    controllerEntity &&
+    isDroneEntity(droneEntity) &&
+    itemRecord && itemRecord !== droneEntity &&
+    toInt(droneEntity.itemID, 0) > 0 &&
+    toInt(itemRecord.itemID, 0) === toInt(droneEntity.itemID, 0) &&
+    toInt(droneEntity.typeID, 0) > 0 &&
+    toInt(itemRecord.typeID, 0) === toInt(droneEntity.typeID, 0) &&
+    (droneEntity.customInfo == null || droneEntity.customInfo === "") &&
+    (itemRecord.customInfo == null || itemRecord.customInfo === "") &&
+    droneEntity.passiveDerivedState &&
+    droneEntity.passiveDerivedState.attributes &&
+    typeof droneEntity.passiveDerivedState.attributes === "object"
+  );
+  const baseAttributes = mayDeferBase
+    ? null
+    : buildEffectiveItemAttributeMap(itemRecord || typeID);
   const operationalAttributes = controllerEntity
     ? resolveDroneOperationalAttributes(droneEntity, controllerEntity)
     : null;
@@ -3374,7 +3412,8 @@ function resolveDroneMovementProfile(droneEntity, controllerEntity = null) {
       ? droneEntity.passiveDerivedState.attributes
       : null;
   const attributes =
-    operationalAttributes || cachedOperationalAttributes || baseAttributes;
+    operationalAttributes || cachedOperationalAttributes ||
+    (mayDeferBase ? buildEffectiveItemAttributeMap(itemRecord || typeID) : baseAttributes);
   const itemAttributeOverrides = itemRecord
     ? getDynamicItemAttributeOverrides(itemRecord)
     : {};
@@ -3720,7 +3759,7 @@ function persistDroneEntityState(entity) {
   if (!isDroneEntity(entity)) {
     return false;
   }
-  const result = updateInventoryItem(entity.itemID, (currentItem) => ({
+  const result = updateInventoryItemSuccessOnly(entity.itemID, (currentItem) => ({
     ...currentItem,
     locationID: toInt(entity.systemID, toInt(currentItem.locationID, 0)),
     flagID: 0,
@@ -4852,6 +4891,19 @@ function launchDronesForSession(session, rawLaunchRequests) {
   }
 
   const { characterID, shipRecord, shipEntity, scene } = shipState;
+  // A ship in warp launches no drones: the client's ShipInWarp ("You cannot do
+  // that while warping."). Aligning to warp (mode WARP, the warp not yet
+  // begun) still launches. A drone launched in warp is left on the warp path,
+  // and one launched on a warp's last tick takes the room the ship is leaving.
+  if (isWarping(shipEntity)) {
+    for (const request of requests) {
+      appendLaunchUserError(response, request.itemID, "ShipInWarp");
+    }
+    return {
+      success: true,
+      response,
+    };
+  }
   if (
     getPlayerCompanionSecurityScope(shipEntity, {
       controller: true,
@@ -4903,10 +4955,12 @@ function launchDronesForSession(session, rawLaunchRequests) {
     // No derived value means the pilot has no Drones skill: no drones in space.
     toInt(shipAttributes[ATTRIBUTE_MAX_ACTIVE_DRONES], 0),
   );
-  const droneBandwidth = Math.max(
-    0,
-    toNumber(shipAttributes[ATTRIBUTE_DRONE_BANDWIDTH], 0),
-  );
+  const droneBandwidth = scene.getEntityByID(shipRecord.itemID)?.droneBandwidthSuppressed === true
+    ? 0
+    : Math.max(
+      0,
+      toNumber(shipAttributes[ATTRIBUTE_DRONE_BANDWIDTH], 0),
+    );
   let activeDroneEntities = listControlledDroneEntities(scene, shipRecord.itemID);
   let activeDroneCount = activeDroneEntities.length;
   const launchedDroneEntries = [];
@@ -7202,6 +7256,13 @@ function tickDroneMining(scene, droneEntity, controllerEntity, now) {
   );
   ensureSceneMiningState(scene);
   const targetEntity = targetID > 0 ? scene.getEntityByID(targetID) : null;
+  const missionSettlement = targetEntity?.dungeonMaterializedMiningRock === true
+    ? lazyRequire("../dungeon/missionMiningSettlement") : null;
+  const missionRock = missionSettlement?.isMissionRock(targetEntity) === true;
+  if (missionRock && !missionSettlement.reconcile(targetEntity.dungeonSiteInstanceID, { scene, nowMs: now }).success) {
+    resetDroneToIdle(droneEntity, controllerEntity, { scene, stopMovement: Boolean(controllerEntity) });
+    return;
+  }
   const mineableState = getMineableState(scene, targetID);
   if (
     !miningState ||
@@ -7359,14 +7420,33 @@ function tickDroneMining(scene, droneEntity, controllerEntity, now) {
   }
 
   const controllerSession = resolveDroneControllerSession(droneEntity, controllerEntity);
-  if (transferredQuantity > 0) {
-    const grantResult = grantItemToCharacterLocation(
-      destination.storageSnapshot.characterID,
-      destination.storageSnapshot.shipID,
-      destination.flagID,
-      yieldTypeRecord,
-      transferredQuantity,
-    );
+  let missionMiningDelta = null;
+  if (transferredQuantity > 0 || (!missionRock && shouldPersistMineableState(targetEntity))) {
+    let grantResult;
+    try {
+      grantResult = missionRock
+        ? missionSettlement.extract(scene, controllerEntity, targetEntity, mineableState, {
+          transferredQuantity, normalQuantity: miningResult.normalQuantity, wastedQuantity: miningResult.wastedQuantity,
+          criticalHitQuantity: 0, moduleID: droneEntity.itemID,
+          cycleBoundaryMs: Number(miningState.nextCycleAtMs), flagID: destination.flagID,
+        })
+        : shouldPersistMineableState(targetEntity)
+        ? require("../mining/miningCargoCommits").extractPlayer({ scene, entity: controllerEntity,
+            target: targetEntity, state: mineableState, moduleID: droneEntity.itemID,
+            cycleMs: Number(miningState.nextCycleAtMs), transferred: transferredQuantity,
+            mined: miningResult.normalQuantity, wasted: miningResult.wastedQuantity,
+            player: { characterID: destination.storageSnapshot.characterID, flagID: destination.flagID } })
+        : grantItemToCharacterLocation(
+          destination.storageSnapshot.characterID,
+          destination.storageSnapshot.shipID,
+          destination.flagID,
+          yieldTypeRecord,
+          transferredQuantity,
+        );
+    } catch (error) {
+      if (!missionRock) throw error;
+      grantResult = { success: false, errorMsg: error.message };
+    }
     if (!grantResult || grantResult.success !== true) {
       resetDroneToIdle(droneEntity, controllerEntity, {
         scene,
@@ -7374,6 +7454,12 @@ function tickDroneMining(scene, droneEntity, controllerEntity, now) {
       });
       return;
     }
+    if (grantResult.duplicate) {
+      beginDroneMiningCycle(miningState, snapshot, now);
+      persistDroneEntityState(droneEntity);
+      return;
+    }
+    missionMiningDelta = grantResult.data.committedMiningDelta || null;
     syncDroneInventoryChangesToSession(controllerSession, grantResult.data && grantResult.data.changes);
   }
 
@@ -7394,6 +7480,7 @@ function tickDroneMining(scene, droneEntity, controllerEntity, now) {
       moduleItemID: droneEntity.itemID,
       moduleTypeID: droneEntity.typeID,
       moduleGroupID: droneEntity.groupID,
+      committedCargoDelta: missionMiningDelta,
     },
   );
   if (!deltaResult || deltaResult.success !== true) {

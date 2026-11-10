@@ -2872,6 +2872,10 @@ function restoreSpaceSession(session) {
     return false;
   }
 
+  if (require("../services/activity/voidReplayAdmission").isVoidSystemID(Number(session._space?.systemID))) {
+    require("../services/activity/voidReplayRuntime").restoreRoom(session);
+  }
+
   const hydrationQueuedAtMs = Date.now();
   queuePostSpaceAttachFittingHydration(session, activeShip.itemID, {
     // Direct login-in-space issues one early ship-inventory List(flag=None)
@@ -3102,10 +3106,14 @@ function ejectSession(session, options = {}) {
       return applyResult;
     }
 
+    // The capsule launches beside the hull it left (TQ), never moved to a
+    // nearby station's perimeter by the login path's normalisation: that
+    // put it tens of km from the hull near a large station.
     const capsuleEntity = spaceRuntime.attachSession(session, capsuleMoveResult.data, {
       sceneDescriptor: scene.sceneDescriptor || currentSystemID,
       pendingUndockMovement: false,
       spawnStopped: true,
+      skipLegacyStationNormalization: true,
       broadcast: false,
       emitSimClockRebase: false,
       beyonceBound: preservedSpaceState.beyonceBound,
@@ -3494,6 +3502,7 @@ function boardSpaceShip(session, shipID) {
       {
         systemID: currentSystemID,
         pendingUndockMovement: false,
+        skipLegacyStationNormalization: true,
         broadcast: false,
         emitSimClockRebase: false,
         beyonceBound: preservedSpaceState.beyonceBound,
@@ -4638,6 +4647,14 @@ function jumpSessionToSolarSystem(session, solarSystemID, options = {}) {
   }
 
   const targetSolarSystemID = Number(solarSystemID || 0);
+  const { isVoidSystemID } = require("../services/activity/voidReplayAdmission");
+  const replayTransfer = isVoidSystemID(targetSolarSystemID) ||
+      isVoidSystemID(Number(session._space?.systemID || session.solarsystemid2))
+    ? require("../services/activity/voidReplayRuntime").authorizeTransfer(
+      session, targetSolarSystemID, options.voidReplayInstanceID,
+    )
+    : null;
+  if (replayTransfer === false) return { success: false, errorMsg: "VOID_REPLAY_DESTINATION_FORBIDDEN" };
   if (isAbyssalHostLocationID(targetSolarSystemID)) {
     return {
       success: false,
@@ -4757,7 +4774,7 @@ function jumpSessionToSolarSystem(session, solarSystemID, options = {}) {
       });
     }
 
-    const moveResult = moveShipToSpace(activeShip.itemID, targetSolarSystemID, {
+    const targetSpaceState = {
       position: spawnState.position,
       direction: spawnState.direction,
       velocity: { x: 0, y: 0, z: 0 },
@@ -4771,7 +4788,10 @@ function jumpSessionToSolarSystem(session, solarSystemID, options = {}) {
             },
           }
         : {}),
-    });
+    };
+    const moveResult = replayTransfer
+      ? moveShipToSpaceIdempotent(activeShip.itemID, targetSolarSystemID, targetSpaceState, replayTransfer)
+      : moveShipToSpace(activeShip.itemID, targetSolarSystemID, targetSpaceState);
     if (!moveResult.success) {
       return moveResult;
     }
@@ -4834,7 +4854,7 @@ function jumpSessionToSolarSystem(session, solarSystemID, options = {}) {
       return applyResult;
     }
 
-    spaceRuntime.attachSession(session, moveResult.data, {
+    const attachedShip = spaceRuntime.attachSession(session, moveResult.data, {
       systemID: targetSolarSystemID,
       beyonceBound: false,
       pendingUndockMovement: false,
@@ -4851,6 +4871,9 @@ function jumpSessionToSolarSystem(session, solarSystemID, options = {}) {
       deferUniverseSiteReconcile: true,
       universeSiteReconcileReason: "solar-jump",
     });
+    if (replayTransfer && (!attachedShip || !require("../gameStore").flushTableSync("characters").success)) {
+      return { success: false, errorMsg: "VOID_REPLAY_TRANSFER_PENDING" };
+    }
     presentCynosuralArrival(session, moveResult.data.itemID, options.cynosuralArrivalEffectGuid);
     if (options.gateArrivalID) {
       spaceRuntime.emitStargateArrivalObserverFx(session, options.gateArrivalID,

@@ -348,7 +348,8 @@ function executeTurretCycle(scene, attackerEntity, effectState, cycleBoundaryMs)
       targetEntity,
       shotResult.shotDamage,
       cycleBoundaryMs,
-      {fabricatorDamageKind:resolvedWeaponSnapshot.family === "vortonProjector" ? "vorton" : null},
+      {fabricatorDamageKind:resolvedWeaponSnapshot.family === "vortonProjector" ? "vorton" : null,
+        incursionWeaponKind: resolvedWeaponSnapshot.family === "vortonProjector" ? null : "turret"},
     );
     damageResult = weaponDamageResult.damageResult;
     destroyResult = weaponDamageResult.destroyResult;
@@ -900,14 +901,8 @@ function executeMissileCycle(
       chargeItem: primaryEntry.chargeItem,
       moduleItem: primaryEntry.moduleItem,
       launchModules: bankContext.launchModuleIDs,
-      // CCP parity: once a missile module is actively cycling, missiles are
-      // always launched regardless of current distance to target.  Range is
-      // validated once on initial Activate; after that the module keeps
-      // firing.  The missile flies toward the target and expires after its
-      // flightTime if it cannot reach.  Without this, an NPC orbiting at
-      // high speed can temporarily drift outside approxRange, causing
-      // launchMissile to fail with TARGET_OUT_OF_RANGE, which cascades to
-      // module deactivation — breaking the cycle prematurely.
+      // Flight time limits a missile's reach. Auto-targeting charges have
+      // their own target selection radius before they reach this launch.
       skipRangeCheck: true,
       broadcastOptions:
         options && options.deferUntilVisibilitySync === true

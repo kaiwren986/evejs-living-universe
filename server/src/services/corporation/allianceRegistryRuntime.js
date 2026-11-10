@@ -4,7 +4,7 @@ const path = require("path");
 
 const BaseService = require(path.join(__dirname, "../baseService"));
 const log = require(path.join(__dirname, "../../utils/logger"));
-const { requireOwnedWarHeadquarters } = require("./warHeadquartersAuthority");
+const { declareWar } = require("./warDeclarationState");
 const {
   resolveSessionCharacterID,
 } = require(path.join(__dirname, "../_shared/sessionIdentity"));
@@ -45,22 +45,17 @@ const {
   CORP_ROLE_ACCOUNTANT,
   CORP_ROLE_DIRECTOR,
   CORP_ROLE_JUNIOR_ACCOUNTANT,
-  createAllianceWithRuntime,
   ensureRuntimeInitialized,
   getAllianceRuntime,
   getCorporationWalletDivisionTakeRole,
-  normalizeFiletimeString,
   normalizeInteger,
   normalizePositiveInteger,
   normalizeText,
   updateAllianceRecord,
-  updateCorporationRuntime,
   updateAllianceRuntime,
 } = require(path.join(__dirname, "./corporationRuntimeState"));
 const { buildWarPayload } = require("./warPayloads");
 const {
-  createWarRecord,
-  handleCorporationJoinedAlliance,
   processDueWarBills,
 } = require(path.join(__dirname, "./warRuntimeState"));
 const {
@@ -73,7 +68,6 @@ const {
   buildAllianceMembersIndexRowset,
   getAllianceMembersOlderThan,
   getDaysInAlliance,
-  recordAllianceMemberJoin,
 } = require(path.join(__dirname, "./allianceViewState"));
 const {
   declareExecutorSupport,
@@ -84,9 +78,7 @@ const {
   settleAllianceDeparture,
 } = require(path.join(__dirname, "./allianceDepartureState"));
 const {
-  BILL_TYPE_WAR,
   BILL_TYPE_ALLIANCE_MAINTENANCE,
-  createBill,
   getBillRecord,
   listBillsForCreditor,
   listUnpaidBillsForDebtor,
@@ -123,12 +115,10 @@ const {
   buildAllianceApplicationSnapshot,
   buildAllianceMemberSnapshot,
   buildAllianceRelationshipSnapshot,
-  buildCorporationSnapshot,
   notifyAllianceApplicationChanged,
   notifyAllianceChanged,
   notifyAllianceMemberChanged,
   notifyAllianceRelationshipChanged,
-  notifyCorporationChanged,
   notifyOrganizationContactsUpdated,
 } = require(path.join(__dirname, "./corporationNotifications"));
 const {
@@ -186,9 +176,6 @@ const BULLETIN_DBROW_COLUMNS = [
   ["body", 0x82],
   ["sortOrder", 0x03],
 ];
-const CONCORD_CORPORATION_ID = 1000125;
-const WAR_BILL_AMOUNT = 100000000;
-const FILETIME_TICKS_PER_WEEK = 7n * 24n * 60n * 60n * 10000000n;
 const CORP_ROLE_DIPLOMAT = 17179869184n;
 
 function resolveAllianceIDFromArgs(args, session) {
@@ -1219,29 +1206,8 @@ class AllianceRegistryRuntimeService extends BaseService {
     return null;
   }
 
-  Handle_DeclareWarAgainst(args, session) {
-    const authority = requireAllianceExecutorDirector(session);
-    const allianceID = authority.allianceID;
-    const againstID = normalizePositiveInteger(args && args[0], null);
-    const warHQ = requireOwnedWarHeadquarters(authority, args && args[1]);
-    const bill = createBill({
-      billTypeID: BILL_TYPE_WAR,
-      amount: WAR_BILL_AMOUNT,
-      debtorID: allianceID,
-      creditorID: CONCORD_CORPORATION_ID,
-      externalID: againstID || -1,
-      externalID2: -1,
-      dueDateTime: String(currentFileTime() + FILETIME_TICKS_PER_WEEK),
-    });
-    const war = createWarRecord({
-      declaredByID: allianceID,
-      againstID,
-      warHQ,
-      mutual: false,
-      billID: bill ? bill.billID : null,
-      declaredByCharacterID: resolveSessionCharacterID(session),
-    });
-    return buildWarPayload(war);
+  async Handle_DeclareWarAgainst(args, session) {
+    return buildWarPayload(await declareWar(session, args && args[0], args && args[1], { allianceOnly: true }));
   }
 
   Handle_GetDaysInAlliance(args, session) {

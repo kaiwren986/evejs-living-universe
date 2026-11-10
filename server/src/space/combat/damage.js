@@ -141,6 +141,8 @@ function getEntityCurrentHealthLayers(entity, maxLayers = getEntityMaxHealthLaye
 }
 
 function hasDamageableHealth(entity) {
+  // Arming generated empire scenery must not make its visual hull destructible.
+  if (entity && entity.empireSentry === true) return false;
   const maxLayers = getEntityMaxHealthLayers(entity);
   return maxLayers.shield > 0 || maxLayers.armor > 0 || maxLayers.structure > 0;
 }
@@ -260,12 +262,14 @@ function getEntityHealthRatios(entity) {
 }
 
 function buildDamageState(entity, simFileTime = currentFileTime()) {
+  const conditionState = require("../../services/incursion/incursionRepairPresentation").condition(entity);
+  const view = conditionState === entity?.conditionState ? entity : { ...entity, conditionState };
   const {
     shieldRatio,
     armorRatio,
     structureRatio,
     shieldTau,
-  } = getEntityHealthRatios(entity);
+  } = getEntityHealthRatios(view);
   // Latest/eveInflight/damageStateValue.py:9-22 returns None for a non-tuple
   // shield entry; moonmining.py:931-941 renders that as Reinforced. A normal
   // positive-tau tuple would incorrectly animate recharge during invulnerability.
@@ -341,6 +345,16 @@ function applyDamageToEntity(entity, rawDamage, options = {}) {
     }
 
     const resonances = getLayerResonances(entity, layerName);
+    // Callers may supply an explicit encounter policy without mutating native
+    // dogma or the entity's derived attributes. Invalid/missing fields retain
+    // the native resonance independently for each layer and damage type.
+    const resonanceOverrides = options.layerResonanceOverrides?.[layerName];
+    if (resonanceOverrides && typeof resonanceOverrides === "object") {
+      for (const damageType of DAMAGE_TYPES) {
+        const value = resonanceOverrides[damageType];
+        if (typeof value === "number" && Number.isFinite(value) && value >= 0) resonances[damageType] = value;
+      }
+    }
     const effectiveRemaining = DAMAGE_TYPES.reduce(
       (sum, damageType) => sum + (rawRemaining[damageType] * resonances[damageType]),
       0,

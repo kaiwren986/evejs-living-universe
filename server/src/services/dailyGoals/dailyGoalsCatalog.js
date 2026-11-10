@@ -23,14 +23,13 @@ const CATEGORY = Object.freeze({
   MONTHLY_BONUS: 3,
 });
 
-// Career path identifiers (recovered from the client's
-// `characterdata.careerpathconst`). The daily-goal `career` field carries one of
-// these so the client groups/labels each goal by career path.
+// eve_public.career.Path protobuf values. The client converts these through
+// goals.common.goalConst.CAREER_PATH_IDS to the separate FSD career IDs4..7.
 const CAREER_PATH = Object.freeze({
   NONE: 0,
   EXPLORER: 1,
-  ENFORCER: 2,
-  INDUSTRIALIST: 3,
+  INDUSTRIALIST: 2,
+  ENFORCER: 3,
   SOLDIER_OF_FORTUNE: 4,
 });
 

@@ -211,6 +211,9 @@ function notifyShipHealthAttributesToSession(
   if (!session || !entity) {
     return false;
   }
+  // Passive updates can also reach this path while environmental repair HP
+  // awaits durability. Bootstrap and live health attributes share that hold.
+  if (require("../../services/incursion/incursionRepairPresentation").condition(entity) !== entity.conditionState) return false;
 
   const shipID = toInt(entity.itemID, 0);
   const snapshot = buildShipHealthAttributeSnapshotFromDamageResult(damageResult);
@@ -379,11 +382,13 @@ function broadcastDamageStateChange(scene, entity) {
   if (!scene || !entity) {
     return 0;
   }
-  const stamp = scene.nextDestinyStamp;
+  const terminal = entity.destructionState === "destroying" || entity.destroying === true;
   const updates = buildDamageStatePresentationUpdates({
-    stamp,
+    stamp: scene.nextDestinyStamp,
     entityID: entity.itemID,
     damageState: buildLiveDamageState(entity, scene.getCurrentFileTime()),
   });
-  return scene.queueBallHistory(entity, updates) === null ? 0 : 1;
+  // Capture the normal visibility destination before lethal removal. The scene
+  // retains owner/global scope and aligns a bubble event with its removal.
+  return scene.queueBallHistory(entity, updates, terminal ? { preserveTarget: true } : {}) === null ? 0 : 1;
 }

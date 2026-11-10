@@ -146,7 +146,6 @@ const {
   applyPrecursorTurretSpoolToSnapshot,
 } = require(path.join(runtimeEntryDirname, "./combat/precursorTurrets"));
 const {
-  estimateMissileEffectiveRange,
   estimateMissileClientImpactTimeMs,
   resolveMissileClientVisualProfile,
   estimateMissileFlightBudgetMs,
@@ -219,6 +218,7 @@ const {
 const {
   noteDroneAssistSuccessfulOffensiveCycle,
 } = require("../droneAssistOffensiveNotice");
+const { noteVisionsPaidEwarCycle } = require("../visionsEwarNotice");
 const {
   consumeEntityCapacitor,
   getEntityCapacitorAmount,
@@ -385,6 +385,7 @@ const {
   isEntityNormalCloaked,
   isPrototypeCloakingModule,
   isWarpSafeCloakingEffectDescriptor,
+  isWarpSafeModuleEffectDescriptor,
   resolveCloakModuleTargetingDelayMs,
   resolveCloakModuleUncloakRangeMeters,
   resolveCloakStabilizationDurationMs,
@@ -670,6 +671,10 @@ activatePropulsionModule(session, moduleItem, effectName, options = {}) {
       };
     }
 
+    if (isEntityActiveWarpInFlight(entity) &&
+        !isWarpSafeModuleEffectDescriptor(getEffectTypeRecord(getPropulsionEffectID(effectName)))) {
+      return { success: false, errorMsg: "CANNOT_ACTIVATE_IN_WARP" };
+    }
     const normalizedModuleID = toInt(moduleItem.itemID, 0);
     if (
       normalizedModuleID <= 0 ||
@@ -731,7 +736,8 @@ activatePropulsionModule(session, moduleItem, effectName, options = {}) {
     }
     if (
       effectName === PROPULSION_EFFECT_MICROWARPDRIVE &&
-      hostileModuleRuntime.isMicrowarpdriveBlocked(entity)
+      (hostileModuleRuntime.isMicrowarpdriveBlocked(entity) ||
+        require("../../../services/dynamic/essFieldRuntime").isEntityWarpBlocked(this, entity))
     ) {
       return {
         success: false,
@@ -1130,6 +1136,10 @@ deactivatePropulsionModule(session, moduleID, options = {}) {
       effectRecord,
     );
     const isCynosuralActivation = isCynosuralGenerationEffect(effectRecord);
+    const essRestriction = require("../../../services/dynamic/essFieldRuntime").resolveModuleRestriction(
+      this, entity, { ...effectRecord, cloaking: isCloakingActivation, cynosuralGeneration: isCynosuralActivation },
+    );
+    if (essRestriction) return { success: false, errorMsg: essRestriction };
     const abyssalCynosuralRestriction = isCynosuralActivation
       ? resolveAbyssalCynosuralActivationRestriction(session, entity, this)
       : null;
@@ -1361,6 +1371,10 @@ deactivatePropulsionModule(session, moduleID, options = {}) {
       effectRecord,
       chargeItem,
     );
+    if (isEntityActiveWarpInFlight(entity) &&
+        !isWarpSafeModuleEffectDescriptor(effectRecord)) {
+      return { success: false, errorMsg: "CANNOT_ACTIVATE_IN_WARP" };
+    }
     const weaponFamily = resolveWeaponFamily(moduleItem, chargeItem);
     const chargeOptionalTurretWeapon = isChargeOptionalTurretWeapon(
       moduleItem,
@@ -1472,38 +1486,33 @@ deactivatePropulsionModule(session, moduleID, options = {}) {
         };
       }
 
-      if (isMissileWeaponFamily(weaponSnapshot.family)) {
-      const effectiveMissileRangeMeters = autoTargetingMissileCharge
-        ? getAutoTargetingMissileRangeMeters(chargeItem)
-        : estimateMissileEffectiveRange(weaponSnapshot);
-      const missileRangeState = this.getEntitySurfaceState(entity, targetEntity);
-      if (!missileRangeState.available) {
-        return {
-          success: false,
-          errorMsg: "TARGET_NOT_FOUND",
-          data: {
-            positionSample: missileRangeState.positionSample,
-          },
+      // A locked target can be fired on even when the missile will expire
+      // before impact. Auto-targeting charges still have a search radius.
+      if (autoTargetingMissileCharge) {
+        const desiredRange = getAutoTargetingMissileRangeMeters(chargeItem);
+        const missileRangeState = this.getEntitySurfaceState(entity, targetEntity);
+        if (!missileRangeState.available) {
+          return {
+            success: false,
+            errorMsg: "TARGET_NOT_FOUND",
+            data: { positionSample: missileRangeState.positionSample },
+          };
+        }
+        const rangeDecision = {
+          desiredRange,
+          actualDistance: missileRangeState.surfaceDistance,
+          graceMeters: 1,
+          sampledAtSimTimeMs: now,
+          sourcePosition: { ...missileRangeState.sourceEntity.position },
+          targetPosition: { ...missileRangeState.targetEntity.position },
         };
-      }
-      const rangeDecision = {
-        desiredRange: effectiveMissileRangeMeters,
-        actualDistance: missileRangeState.surfaceDistance,
-        graceMeters: 1,
-        sampledAtSimTimeMs: now,
-        sourcePosition: { ...missileRangeState.sourceEntity.position },
-        targetPosition: { ...missileRangeState.targetEntity.position },
-      };
-      if (
-        missileRangeState.surfaceDistance >
-          effectiveMissileRangeMeters + rangeDecision.graceMeters
-      ) {
-        return {
-          success: false,
-          errorMsg: "TARGET_OUT_OF_RANGE",
-          data: { rangeDecision },
-        };
-      }
+        if (rangeDecision.actualDistance > desiredRange + rangeDecision.graceMeters) {
+          return {
+            success: false,
+            errorMsg: "TARGET_OUT_OF_RANGE",
+            data: { rangeDecision },
+          };
+        }
       }
     }
     // Effect 6063 is effectCategoryID 2 (activeTarget) with rangeAttributeID 54,
@@ -1565,6 +1574,14 @@ deactivatePropulsionModule(session, moduleID, options = {}) {
         };
       }
       targetEntity = scannerActivation.data.targetEntity;
+    }
+    // Effect 1738 (doHacking) is effectCategoryID 2 (activeTarget) and its FX guid is
+    // effects.TargetScan, a LocatorStretchEffect the client draws from the ship to the FX target
+    // (stretchEffect.py Prepare raises "no target ball found" without one). The dogma layer has
+    // already checked the container, its range and the analyzer kind; keep it as the target so the
+    // effect state and its OnSpecialFX name the container instead of 0.
+    if (!targetEntity && resolvedTargetID > 0 && String(effectRecord && effectRecord.name) === "doHacking") {
+      targetEntity = this.getEntityByID(resolvedTargetID) || null;
     }
     if (
       !weaponSnapshot &&
@@ -2391,8 +2408,9 @@ deactivatePropulsionModule(session, moduleID, options = {}) {
         };
       }
     }
+    let crimewatchCommit = null;
     if (offensiveActivation && targetEntity && !immutableGreenStructureOffense) {
-      const crimewatchCommit = recordCrimewatchOffensiveAggression(
+      crimewatchCommit = recordCrimewatchOffensiveAggression(
         this,
         entity,
         targetEntity,
@@ -2707,6 +2725,11 @@ deactivatePropulsionModule(session, moduleID, options = {}) {
       initializePrecursorTurretEffectState(effectState, weaponSnapshot, now);
     }
     entity.activeModuleEffects.set(normalizedModuleID, effectState);
+    if (offensiveActivation && targetEntity && !immutableGreenStructureOffense) {
+      lazyRequire("../services/security/crimewatchState").beginModuleCombatActivity(
+        this, entity, targetEntity, effectState, now, crimewatchCommit,
+      );
+    }
     // A Warp Disruption Field Generator switched on in sphere mode makes its
     // ship a sphere's source; the volume goes when the field does.
     if (
@@ -3092,6 +3115,7 @@ deactivatePropulsionModule(session, moduleID, options = {}) {
           "jammer",
           now,
         );
+        noteVisionsPaidEwarCycle(this, entity, effectState, initialJammerCycleResult, "jammer", now);
       }
     }
     if (effectState.jammerBurstEffect === true) {
@@ -3174,6 +3198,7 @@ deactivatePropulsionModule(session, moduleID, options = {}) {
           "hostile",
           now,
         );
+        noteVisionsPaidEwarCycle(this, entity, effectState, initialHostileCycleResult, "hostile", now);
       }
     }
     if (effectState.localCycleEffect === true) {
@@ -3341,6 +3366,16 @@ deactivatePropulsionModule(session, moduleID, options = {}) {
       } catch (error) {
         log.warn(`[SpaceRuntime] NPC aggression activation hook failed: ${error.message}`);
       }
+      if (targetEntity.dungeonSiteInstanceID) {
+        // Opening fire on a site's object or wave ship fires the waves that wait for it
+        // (encounter trigger "attacked"), a miss included.
+        try {
+          lazyRequire("../services/dungeon/dungeonUniverseSiteService")
+            .handleEncounterEntityAttacked(this, targetEntity, { nowMs: now });
+        } catch (error) {
+          log.warn(`[SpaceRuntime] Site attacked trigger failed: ${error.message}`);
+        }
+      }
     }
 
     if (isSnapshotWeaponFamily(effectState.weaponFamily)) {
@@ -3425,6 +3460,18 @@ deactivatePropulsionModule(session, moduleID, options = {}) {
           now,
           reloadCompletionAtMs,
         );
+        // The first volley emptied the launcher, so it reloads now, as at a
+        // cycle boundary (tick.js): it shows off for the reload and the tick
+        // starts it again when the reload completes. The client's cycle ring
+        // idles while the module reloads and returns only on that fresh start.
+        if (isMissileWeaponFamily(effectState.weaponFamily)) {
+          effectState.pendingReloadReactivation = true;
+          if (session && isReadyForDestiny(session)) {
+            notifyGenericModuleEffectState(session, entity, effectState, false, {
+              whenMs: now,
+            });
+          }
+        }
       } else if (
         initialCycleResult.data &&
         initialCycleResult.data.stopReason
@@ -3563,6 +3610,7 @@ finalizeGenericModuleDeactivation(session, moduleID, options = {}) {
     effectState.deactivationRequestedAtMs = 0;
     effectState.deactivateAtMs = 0;
     effectState.stopReason = stopReason;
+    lazyRequire("../services/security/crimewatchState").endModuleCombatActivity(effectState, stopTimeMs);
     clearJumpPortalBridgeModeForEffect(effectState);
     clearCynosuralFieldForEffect(this, session, effectState, {
       nowMs: stopTimeMs,
@@ -3669,10 +3717,12 @@ finalizeGenericModuleDeactivation(session, moduleID, options = {}) {
           notifyTargeting: true,
         });
       }
+      // Stopped mid-cycle, the icon stays until the cycle ends.
       const removedHudState = targetEntity
-        ? hudIconRuntime.removeHudIconState(
+        ? hudIconRuntime.releaseHudIconStateAtCycleEnd(
           targetEntity,
           buildAssistanceHudState(targetEntity, entity, effectState, stopTimeMs),
+          this.getCurrentSimTimeMs(),
         )
         : null;
       if (targetSession && isReadyForDestiny(targetSession) && removedHudState) {
@@ -3707,10 +3757,12 @@ finalizeGenericModuleDeactivation(session, moduleID, options = {}) {
           notifyTargeting: true,
         });
       }
+      // Stopped mid-cycle, the icon stays until the cycle ends.
       const removedHudState = targetEntity
-        ? hudIconRuntime.removeHudIconState(
+        ? hudIconRuntime.releaseHudIconStateAtCycleEnd(
           targetEntity,
           buildHostileHudState(targetEntity, entity, effectState, stopTimeMs),
+          this.getCurrentSimTimeMs(),
         )
         : null;
       if (targetSession && isReadyForDestiny(targetSession) && removedHudState) {

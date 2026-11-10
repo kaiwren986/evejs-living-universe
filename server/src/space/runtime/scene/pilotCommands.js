@@ -120,6 +120,8 @@ const {
   normalizeVector,
 } = require("../../../common/vector");
 
+const { WARP_TRANSMISSION_RECEIPT } = require(path.join(runtimeEntryDirname, "./destiny/commands/warpTransmissionReceipt"));
+
 module.exports = {
 
 cancelStargateJumpCloakAfterCommand(session, commandResult, reason) {
@@ -359,7 +361,11 @@ warpToPoint(session, point, options = {}) {
     return dispatchIndependentWarpWithFleetAssociationRetirement(
       entity,
       () => {
-        const result = dispatchWarpToPoint(this, session, point, options);
+        const result = dispatchWarpToPoint(this, session, point, {
+          ...options, [WARP_TRANSMISSION_RECEIPT]: {},
+        });
+        lazyRequire("../services/dungeon/dungeonTrackingRuntime")
+          .notifyAcceptedDungeonWarp(this, session, result);
         if (result && result.success === true) {
           this.breakUndockInvulnerabilityForPilotCommand(session);
         }
@@ -379,12 +385,14 @@ warpDynamicEntityToPoint(entityOrID, point, options = {}) {
         : this.getEntityByID(entityOrID);
     return dispatchIndependentWarpWithFleetAssociationRetirement(
       entity,
-      () => dispatchWarpDynamicEntityToPoint(
-        this,
-        entityOrID,
-        point,
-        options,
-      ),
+      () => {
+        const result = dispatchWarpDynamicEntityToPoint(this, entityOrID, point, {
+          ...options, [WARP_TRANSMISSION_RECEIPT]: {},
+        });
+        lazyRequire("../services/dungeon/dungeonTrackingRuntime")
+          .notifyAcceptedDungeonWarp(this, options.session || (entity && entity.session), result);
+        return result;
+      },
     );
   },
 
@@ -451,6 +459,19 @@ teleportDynamicEntityToPoint(entityOrID, point, options = {}) {
           entity,
         },
       };
+    }
+
+    // Movement queue admission is unchanged. At actual application, commit
+    // a durable native wreck's primary pose before changing or publishing its
+    // Ball. The inventory persister intentionally excludes native wrecks.
+    if (entity.nativeNpcWreck === true) {
+      const relocated = { position: cloneVector(entity.position), direction: cloneVector(entity.direction) };
+      applyTeleportRelocationMotionCommand(relocated, point,
+        options.direction ? options : { ...options, direction: entity.direction || { x: 1, y: 0, z: 0 } },
+        cloneVector, normalizeVector);
+      const saved = require("../../npc/nativeNpcStore").setNativeWreckPosition(
+        entity.itemID, relocated.position, { systemID: this.systemID, direction: relocated.direction });
+      if (!saved.success) return saved;
     }
 
     const now = this.getCurrentSimTimeMs();
@@ -533,6 +554,7 @@ isShipWarpScrambled(entity) {
       entity &&
       (
         hostileModuleRuntime.isEntityWarpScrambled(entity) ||
+        require("../../../services/dynamic/essFieldRuntime").isEntityWarpBlocked(this, entity) ||
         hasPostMicroJumpWarpScramble(entity, this.getCurrentSimTimeMs())
       ),
     );

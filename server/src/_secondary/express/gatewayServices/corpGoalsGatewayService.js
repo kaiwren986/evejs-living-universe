@@ -240,7 +240,7 @@ function createCorpGoalsGatewayService() {
         const created = createGoal(activeCharacterID, decoded);
         if (!created.success) {
           return {
-            statusCode: 403,
+            statusCode: created.statusCode ?? 403,
             statusMessage: created.errorMsg || "",
             responseTypeName: "eve_public.goal.api.CreateResponse",
             responsePayloadBuffer: Buffer.alloc(0),
@@ -280,7 +280,7 @@ function createCorpGoalsGatewayService() {
       if (requestTypeName === "eve_public.goal.api.GetAllRequest") {
         const decoded = decodePayload(types.goalGetAllRequest, requestEnvelope);
         const showOnlyState =
-          decoded && decoded.show_only_state !== undefined
+          Object.hasOwn(decoded, "show_only_state")
             ? Number(decoded.show_only_state || 0)
             : null;
         const goals = getGoalsForCorporation(corporationID).filter((goal) =>

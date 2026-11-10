@@ -205,7 +205,7 @@ $headerPanel.Add_Paint({
     $titleBrush.Dispose()
 
     $subBrush = New-Object System.Drawing.SolidBrush($c.TextSecondary)
-    $g.DrawString("Build standalone market databases for development and testing", $fonts.Subtitle, $subBrush, 32, 60)
+    $g.DrawString("v1: offline synthetic prices from static data; choose a station preset", $fonts.Subtitle, $subBrush, 32, 60)
     $subBrush.Dispose()
 })
 
@@ -455,7 +455,7 @@ $cardGap = 16
 $cardW = 340
 $sectionY = 118
 
-$form.Controls.Add((New-SectionHeader -Text "Build Targets" -X $margin -Y $sectionY))
+$form.Controls.Add((New-SectionHeader -Text "v1 Build Targets" -X $margin -Y $sectionY))
 
 $row1Y = $sectionY + 26
 

@@ -850,6 +850,13 @@ function executeMiningCycle(
     try { airSettlement.reconcile(targetEntity.dungeonSiteInstanceID, scene); }
     catch (error) { log.warn(`[AIR Mining] recovery refused: ${error.code || error.message}`); return { success: false, stopReason: "cargo" }; }
   }
+  const missionSettlement = targetEntity?.dungeonMaterializedMiningRock === true
+    ? lazyRequire("../dungeon/missionMiningSettlement") : null;
+  const missionRock = missionSettlement?.isMissionRock(targetEntity) === true;
+  if (missionRock) {
+    const recovered = missionSettlement.reconcile(targetEntity.dungeonSiteInstanceID, { scene });
+    if (!recovered.success) return { success: false, stopReason: "cargo", errorMsg: recovered.errorMsg };
+  }
   const mineableState = getMineableState(scene, targetID);
   if (
     !targetEntity ||
@@ -924,6 +931,9 @@ function executeMiningCycle(
     }
   }
 
+  // AIR's native proximity DBuff modifies the module snapshot through normal
+  // Dogma. Skill/module changes and leaving the field therefore affect yield
+  // normally; the AIR settlement still owns finite-stock custody and replay.
   const miningVolume = Math.max(0, snapshot.miningAmountM3);
   const effectiveMiningVolume = miningVolume * efficiency;
   const quantityVolumeAvailable = mineableState.remainingQuantity * mineableState.unitVolume;
@@ -981,6 +991,7 @@ function executeMiningCycle(
 
   let cargoCommit = null;
   let cargoCompensation = null;
+  let missionMiningDelta = null;
   if (isNativeNpcEntity(entity)) {
     const cargo = require("./npcMiningCargo");
     if (shouldPersistMineableState(targetEntity)) {
@@ -1003,8 +1014,20 @@ function executeMiningCycle(
   } else {
     let grantResult;
     try {
-      grantResult = airRock
+      grantResult = missionRock
+        ? missionSettlement.extract(scene, entity, targetEntity, mineableState, {
+          transferredQuantity, normalQuantity: miningResult.normalQuantity,
+          wastedQuantity: miningResult.wastedQuantity, criticalHitQuantity: miningResult.criticalHitQuantity,
+          moduleID: moduleItem.itemID, cycleBoundaryMs, flagID: destinationFlagID,
+        })
+        : airRock
         ? airSettlement.extract(scene, entity, targetEntity, mineableState, transferredQuantity, miningResult.normalQuantity + miningResult.wastedQuantity, destinationFlagID)
+        : shouldPersistMineableState(targetEntity)
+        ? require("./miningCargoCommits").extractPlayer({ scene, entity, target: targetEntity,
+            state: mineableState, moduleID: moduleItem.itemID, cycleMs: cycleBoundaryMs,
+            transferred: transferredQuantity, mined: miningResult.normalQuantity,
+            wasted: miningResult.wastedQuantity, critical: miningResult.criticalHitQuantity,
+            player: { characterID: resolveEntityCharacterID(entity), flagID: destinationFlagID } })
         : grantItemsToCharacterLocation(
       resolveEntityCharacterID(entity),
       toInt(entity.itemID, 0),
@@ -1015,13 +1038,20 @@ function executeMiningCycle(
       }],
       );
     } catch (error) {
-      if (!airRock) throw error;
-      log.warn(`[AIR Mining] extraction refused: ${error.code || error.message}`);
+      if (!airRock && !missionRock) throw error;
+      log.warn(`[Mission Mining] extraction refused: ${error.code || error.message}`);
       return { success: false, stopReason: "cargo" };
     }
     if (!grantResult.success || !grantResult.data) {
       return { success: false, stopReason: "cargo" };
     }
+    if (grantResult.duplicate) {
+      const intent = grantResult.data.intent;
+      return { success: true, data: { targetID, duplicate: true, transferredQuantity: intent.quantity ?? intent.transferred,
+        normalQuantity: intent.normalQuantity ?? intent.mined, wastedQuantity: intent.wastedQuantity ?? intent.wasted,
+        criticalHitQuantity: intent.criticalHitQuantity ?? intent.critical } };
+    }
+    missionMiningDelta = grantResult.data.committedMiningDelta || null;
     if (entity.session) {
       syncMinedOreChangesToSession(
         entity.session,
@@ -1045,7 +1075,7 @@ function executeMiningCycle(
       amountWasted: miningResult.wastedQuantity,
       amountCritBonus: miningResult.criticalHitQuantity,
       hasRewards: miningResult.rewardedQuantity > 0,
-      committedCargoDelta: cargoCommit?.data,
+      committedCargoDelta: cargoCommit?.data || missionMiningDelta,
     },
   );
   if (!deltaResult.success) {

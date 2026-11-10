@@ -23,7 +23,7 @@ const {
 } = require(path.join(__dirname, "./corporationState"));
 const {
   CORPORATION_RUNTIME_TABLE,
-  deleteCorporationWithRuntime,
+  closeCorporationWithRuntime,
   ensureCharacterMemberState,
   getCorporationRuntime,
   normalizeInteger,
@@ -322,7 +322,7 @@ function applyMembershipAndDeletion(settlement) {
   );
 
   if (getCorporationRecord(settlement.corporationID)) {
-    const deleteResult = deleteCorporationWithRuntime(
+    const deleteResult = closeCorporationWithRuntime(
       settlement.corporationID,
     );
     if (!deleteResult || deleteResult.success !== true) {

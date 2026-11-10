@@ -454,7 +454,7 @@ fn concurrent_order_maintenance_preserves_quantities_and_terminal_events() -> Re
                 )?;
             }
             2 => {
-                expire_due_orders_in_db(&fixture.0, &now_rfc3339())?;
+                expire_due_orders_in_db(&fixture.0, &now_rfc3339(), EXPIRY_SWEEP_BATCH_LIMIT)?;
             }
             3 => {
                 cancel_order_in_db(&fixture.0, 43)?;

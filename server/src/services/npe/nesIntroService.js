@@ -37,7 +37,7 @@ class NesIntroService extends BaseService {
       session &&
       typeof session.sendNotification === "function"
     ) {
-      session.sendNotification("OnNesIntroStateChanged", "clientID", [
+      session.sendNotification("OnNesIntroStateChanged", "charid", [
         charId,
         skipResult.snapshot.nesIntroState,
       ]);

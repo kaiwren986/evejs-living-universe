@@ -22,16 +22,18 @@ That gives you:
 
 ## The Normal User Path
 
-1. build a market seed with any of the three seeders
+1. build a market seed with any of the four seed types
 2. start this daemon with `StartMarketServer.bat`
 3. leave it running
 4. start the main server with `StartServer.bat`
 
-The three seeders all write the same kind of database for this daemon. Pick one:
+The root `BuildMarketSeed.bat` lists all four seed types and opens the chosen builder.
+They all write the same kind of database for this daemon:
 
-- v1 - `BuildMarketSeed.bat` in the repo root. Invented prices, many stations, fully offline.
+- v1 - `tools\market-seed\BuildMarketSeedGui.bat`. Invented prices, many stations, fully offline.
 - v2 - `tools\market-seederv2\BuildMarketSeedV2.bat`. The real Tranquility snapshot. Needs a download.
 - v3 - `tools\market-seederv3\BuildMarketSeedV3.bat`. A Jita 4-4 trade hub priced from build cost, over the real Tranquility NPC catalog.
+- v4 - `tools\market-seederv4\BuildMarketSeedV4.bat`. Iron Man: authentic NPC stock and buybacks only; BPOs, skillbooks, command centers and trade goods.
 
 If you skip the seed build, this server will not have a useful market database to serve.
 
@@ -63,7 +65,7 @@ Install Rust, then run `StartMarketServer.bat` again.
 Open:
 
 - [../../doc/MARKET_SETUP.md](../../doc/MARKET_SETUP.md)
-- [../../doc/MARKET_SEEDER.md](../../doc/MARKET_SEEDER.md) - all three seeders, side by side
+- [../../doc/MARKET_SEEDER.md](../../doc/MARKET_SEEDER.md) - all four seed types, side by side
 - [../../tools/market-seederv3/README.md](../../tools/market-seederv3/README.md) - the v3 seeder in full
 
 ## Useful Truth
@@ -71,6 +73,15 @@ Open:
 This daemon is optional.
 
 The main EvEJS server can still boot without it. You only need it if you want the separate standalone market experience.
+
+## Matching priority
+
+The merged order books use best price first (lowest ask or highest bid), then
+oldest issue time, matching the pinned client's quote priority. Timestamp offsets
+and fractions are compared chronologically. Station ID and order ID provide
+deterministic ties when issue times are equal; malformed dates follow valid dates
+at the same price. Seed rows use their existing `updated_at` value as issue time.
+Range, minimum volume, access and settlement checks still decide eligibility.
 
 ## Transaction Safety and Regression Tests
 
@@ -96,7 +107,7 @@ across a database query; writes in unrelated systems do not discard valid reads.
 From the repository root, run:
 
 ```powershell
-cargo test --locked --manifest-path externalservices/market-server/Cargo.toml
+cargo test --locked --manifest-path externalservices/market-server/Cargo.toml -- --test-threads=1
 ```
 
 The transaction regressions use disposable, uniquely named SQLite fixtures, never
@@ -104,5 +115,8 @@ the configured market database. They cover concurrent player/seed fills and pric
 history, duplicate requests, rollback/retry after summary errors, cached summaries,
 reads interleaved with invalidation, late cache publication, overfill rejection,
 bounded writer contention, and concurrent order maintenance.
+Order-book tests use in-memory SQLite and cover price/time priority on both
+sides, station and order-ID conflicts, mixed seed/player books, timestamp formats,
+deterministic ties, and exclusion of closed, depleted or out-of-scope orders.
 No database migration or market reseed is needed for this fix; rebuild and restart
 the market daemon when deploying it.

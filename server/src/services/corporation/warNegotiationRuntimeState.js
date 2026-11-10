@@ -3,6 +3,8 @@
 const path = require("path");
 
 const database = require(path.join(__dirname, "../../gameStore"));
+const { requireWarAuthority } = require("./warAuthority");
+const { throwWrappedUserError } = require("../../common/machoErrors");
 
 const {
   currentFileTime,
@@ -104,7 +106,7 @@ function listNegotiationsForOwner(ownerID) {
     .sort((left, right) => Number(right.warNegotiationID) - Number(left.warNegotiationID));
 }
 
-function createPeaceTreaty({ warID, ownerID, otherOwnerID, peaceReason = PEACE_REASON_UNDEFINED } = {}) {
+function createPeaceTreaty({ warID, ownerID, otherOwnerID, peaceReason = PEACE_REASON_UNDEFINED, createdAt = null } = {}) {
   const numericOwnerID = normalizePositiveInteger(ownerID, null);
   const numericOtherOwnerID = normalizePositiveInteger(otherOwnerID, null);
   const numericWarID = normalizePositiveInteger(warID, null);
@@ -129,7 +131,7 @@ function createPeaceTreaty({ warID, ownerID, otherOwnerID, peaceReason = PEACE_R
     ensureRuntimeRoots(runtimeTable);
     nextTreatyID = runtimeTable._meta.nextTreatyID;
     runtimeTable._meta.nextTreatyID += 1;
-    const now = currentFileTime();
+    const now = createdAt == null ? currentFileTime() : BigInt(String(createdAt));
     runtimeTable.peaceTreaties[String(nextTreatyID)] = {
       treatyID: nextTreatyID,
       warID: numericWarID,
@@ -237,17 +239,63 @@ function resolveSessionCharacterID(session) {
   return Number.isInteger(numeric) && numeric > 0 ? numeric : 0;
 }
 
-/** The alliance (when present) or corporation entitled to act in a war negotiation. */
-function resolveSessionWarEntityID(session) {
-  const numeric = Number(
-    session && (
-      session.allianceID ||
-      session.allianceid ||
-      session.corporationID ||
-      session.corpid
-    ),
-  );
-  return Number.isInteger(numeric) && numeric > 0 ? numeric : 0;
+function readOfferAmount(value) {
+  if (!["number", "string"].includes(typeof value) || value === "") return null;
+  const amount = Number(value);
+  const cents = Math.round(amount * 100);
+  return Number.isFinite(amount) && amount >= 0 && Number.isSafeInteger(cents) &&
+    Math.abs(amount * 100 - cents) <= 0.000001 ? cents / 100 : null;
+}
+
+function isEligibleOffer(war, ownerID, kind) {
+  if (!war || war.timeFinished || war.retracted) return false;
+  const parties = [Number(war.declaredByID), Number(war.againstID)];
+  if (kind === WAR_NEGOTIATION_TYPE_SURRENDER_OFFER) return parties.includes(ownerID);
+  if (kind !== WAR_NEGOTIATION_TYPE_ALLY_OFFER || Number(war.mutual) !== 0 ||
+      parties.includes(ownerID)) return false;
+  const ally = war.allies && war.allies[String(ownerID)];
+  if (!ally) return true;
+  try {
+    const finish = BigInt(String(ally.timeFinished || 0));
+    return finish > 0n && finish <= currentFileTime();
+  } catch (_) { return false; }
+}
+
+function requireWarOffer(session, warID, kind, amount, defenderID = null) {
+  const authority = requireWarAuthority(session);
+  const war = getWarRecord(warID);
+  const iskValue = readOfferAmount(amount);
+  if (!isEligibleOffer(war, authority.warEntityID, kind) || iskValue === null ||
+      defenderID != null && Number(defenderID) !== 0 && Number(defenderID) !== Number(war.againstID)) {
+    throwWrappedUserError("CrpAccessDenied");
+  }
+  return { authority, war, iskValue };
+}
+
+function canAcceptFreshOffer(negotiation) {
+  const war = getWarRecord(negotiation.warID);
+  const kind = Number(negotiation.warNegotiationTypeID);
+  const sender = Number(negotiation.ownerID1);
+  const recipient = Number(negotiation.ownerID2);
+  if (Number(negotiation.negotiationState) !== WAR_NEGOTIATION_STATE_NEW ||
+      !isEligibleOffer(war, sender, kind) || readOfferAmount(negotiation.iskValue) === null ||
+      Number(negotiation.declaredByID) !== Number(war.declaredByID) ||
+      Number(negotiation.againstID) !== Number(war.againstID)) return false;
+  if (kind === WAR_NEGOTIATION_TYPE_ALLY_OFFER) {
+    if (recipient !== Number(war.againstID)) return false;
+    // An unresolved payment reserves this ally's contract too: another offer
+    // must not charge the defender again while its first payment recovers.
+    const negotiations = ensureRuntimeRoots(ensureRuntimeInitialized()).warNegotiations;
+    if (Object.values(negotiations).some((entry) =>
+      Number(entry.warNegotiationID) !== Number(negotiation.warNegotiationID) &&
+      Number(entry.warID) === Number(negotiation.warID) &&
+      Number(entry.ownerID1) === sender && entry.walletSettlement?.kind === "ally")) return false;
+  } else if (sender === recipient ||
+      ![Number(war.declaredByID), Number(war.againstID)].includes(recipient)) return false;
+  try {
+    const created = BigInt(String(negotiation.createdDateTime));
+    return created > 0n && created + FILETIME_TICKS_PER_DAY > currentFileTime();
+  } catch (_) { return false; }
 }
 
 function resolveSessionAccountKey(session) {
@@ -264,7 +312,7 @@ function countExistingAllyContracts(war, currentTime) {
   return Object.values((war && war.allies) || {}).filter((ally) => {
     try {
       return BigInt(String(ally && ally.timeFinished ? ally.timeFinished : "0")) > currentTime;
-    } catch (error) {
+    } catch (_error) {
       // ignored: an unreadable finish time counts as an ended contract
       return false;
     }
@@ -495,12 +543,14 @@ function applySurrenderSettlementEffects(negotiation, settlement) {
       ownerID: negotiation.declaredByID,
       otherOwnerID: negotiation.againstID,
       peaceReason: PEACE_REASON_WAR_SURRENDER,
+      createdAt: settlement.acceptedAt,
     });
     createPeaceTreaty({
       warID: negotiation.warID,
       ownerID: negotiation.againstID,
       otherOwnerID: negotiation.declaredByID,
       peaceReason: PEACE_REASON_WAR_SURRENDER,
+      createdAt: settlement.acceptedAt,
     });
     updateWarNegotiation(negotiation.warNegotiationID, (record) => ({
       ...record,
@@ -588,6 +638,7 @@ function settlePendingWarNegotiation(warNegotiationID) {
 
 async function acceptAllyNegotiation(warNegotiationID, session = null) {
   const result = await runSettlementSerialized(warNegotiationID, async () => {
+    const authority = requireWarAuthority(session);
     const negotiation = getNegotiationRecord(warNegotiationID);
     if (
       !negotiation ||
@@ -600,10 +651,13 @@ async function acceptAllyNegotiation(warNegotiationID, session = null) {
     // mercenary in ownerID1 may read its outgoing offer, but cannot use that
     // to spend the defender's wallet and join the war by itself.
     if (
-      resolveSessionWarEntityID(session) !==
+      authority.warEntityID !==
       normalizePositiveInteger(negotiation.ownerID2, 0)
     ) {
       return { success: false, errorMsg: "NEGOTIATION_ACCESS_DENIED" };
+    }
+    if (!negotiation.walletSettlement && !canAcceptFreshOffer(negotiation)) {
+      return { success: false, errorMsg: "NEGOTIATION_NOT_PAYABLE" };
     }
     if (!prepareAllySettlement(negotiation, session)) {
       return { success: false, errorMsg: "NEGOTIATION_NOT_PAYABLE" };
@@ -618,6 +672,7 @@ async function acceptAllyNegotiation(warNegotiationID, session = null) {
 
 async function acceptSurrender(warNegotiationID, session = null) {
   const result = await runSettlementSerialized(warNegotiationID, async () => {
+    const authority = requireWarAuthority(session);
     const negotiation = getNegotiationRecord(warNegotiationID);
     if (
       !negotiation ||
@@ -630,10 +685,13 @@ async function acceptSurrender(warNegotiationID, session = null) {
     // outgoing negotiation, but it must not be able to accept its own offer
     // and unilaterally end the war.
     if (
-      resolveSessionWarEntityID(session) !==
+      authority.warEntityID !==
       normalizePositiveInteger(negotiation.ownerID2, 0)
     ) {
       return { success: false, errorMsg: "NEGOTIATION_ACCESS_DENIED" };
+    }
+    if (!negotiation.walletSettlement && !canAcceptFreshOffer(negotiation)) {
+      return { success: false, errorMsg: "NEGOTIATION_NOT_PAYABLE" };
     }
     if (!prepareSurrenderSettlement(negotiation, session)) {
       return { success: false, errorMsg: "NEGOTIATION_NOT_PAYABLE" };
@@ -776,6 +834,7 @@ module.exports = {
   listPendingWarNegotiationSettlements,
   listPeaceTreatiesForOwner,
   reconcileDurableWarNegotiations,
+  requireWarOffer,
   setMutualWarInviteBlocked,
   settlePendingWarNegotiation,
   unbindDurableScheduler,

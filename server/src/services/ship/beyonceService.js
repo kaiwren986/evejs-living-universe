@@ -4,7 +4,6 @@ const {
   toFiniteNumber,
 } = require("../../common/numbers");
 
-const crypto = require("crypto");
 const path = require("path");
 
 const BaseService = require(path.join(__dirname, "../baseService"));
@@ -27,6 +26,9 @@ const {
   throwWrappedUserError,
 } = require(path.join(__dirname, "../../common/machoErrors"));
 const spaceRuntime = require(path.join(__dirname, "../../space/runtime"));
+const {
+  throwWarpFailureUserError,
+} = require(path.join(__dirname, "./warpFailureUserError"));
 const {
   normalizePersistentEntityID,
 } = require(path.join(
@@ -92,10 +94,8 @@ const {
 } = require(path.join(__dirname, "../sovereignty/sovUpgradeSupport"));
 const fleetRuntime = require(path.join(__dirname, "../fleets/fleetRuntime"));
 const {
-  resolveFormationSettings,
-  computeFleetWarpPointLandingPoints,
-  computeFleetWarpFormationPoints,
-} = require(path.join(__dirname, "../fleets/fleetWarpFormation.js"));
+  warpFleetFollowers,
+} = require(path.join(__dirname, "../fleets/fleetWarpFollowers"));
 const structureState = require(path.join(__dirname, "../structure/structureState"));
 const {
   STRUCTURE_SERVICE_ID,
@@ -130,13 +130,17 @@ const dungeonRuntime = require(path.join(
   "../dungeon/dungeonRuntime",
 ));
 const {
-  canSessionAccessDungeonInstance,
   resolveDungeonInstanceVisibilityForSession,
-  isPrivateDungeonInstance,
   normalizeDungeonInstanceID,
 } = require(path.join(
   __dirname,
   "../dungeon/dungeonVisibilityPolicy",
+));
+const {
+  grantAcquiredMissionAccess,
+} = require(path.join(
+  __dirname,
+  "../dungeon/missionAccessGrants",
 ));
 const operationSiteRuntime = require(path.join(
   __dirname,
@@ -149,7 +153,6 @@ function getAbyssalMgrService() {
 const USER_ERROR_LOCALIZATION_LABEL = 101;
 const STARGATE_CLOSED_LABEL = "UI/GateIcons/GateClosed";
 const STARGATE_TOO_FAR_LABEL = "UI/Menusvc/MenuHints/NotWithingMaxJumpDist";
-const CRIMEWATCH_WARP_BLOCKED_MESSAGE = "Warp is disabled while the criminal timer is active.";
 const ABYSSAL_WARP_BLOCKED_MESSAGE = "You cannot warp out of Abyssal Deadspace.";
 const ABYSSAL_FLEET_MEMBER_WARP_BLOCKED_MESSAGE =
   "You cannot warp to a fleet member inside Abyssal Deadspace.";
@@ -157,8 +160,6 @@ const ABYSSAL_JUMP_BRIDGE_BLOCKED_MESSAGE =
   "You cannot use jump drives or jump bridges inside Abyssal Deadspace.";
 const ABYSSAL_BOOKMARK_BLOCKED_MESSAGE =
   "You cannot create or use bookmarks inside Abyssal Deadspace.";
-const SHIP_IMMOBILE_WARP_BLOCKED_MESSAGE =
-  "Your ship cannot warp while an active module is preventing movement.";
 const SHARED_BOOKMARK_DELAY_MS = 2 * 60 * 1000;
 const DUNGEON_INSTANCE_WARP_SUBJECTS = Object.freeze(new Set([
   "epinstance",
@@ -1918,6 +1919,7 @@ function resolveScanWarpTarget(session, targetID) {
 
   const site = signatureRuntime.resolveSiteByTargetID(systemID, targetID, {
     loadScene: true,
+    characterID: normalizeNumber(session && session.characterID, 0),
   });
   if (!site) {
     return null;
@@ -1963,40 +1965,6 @@ function resolveScanWarpTarget(session, targetID) {
   }
 
   return null;
-}
-
-function grantAcquiredMissionAccess(session, instanceID, source) {
-  const numericInstanceID = normalizeDungeonInstanceID(instanceID);
-  if (numericInstanceID === null) {
-    return true;
-  }
-  try {
-    const instance = dungeonRuntime.getInstance(numericInstanceID);
-    if (!instance || !isPrivateDungeonInstance(instance)) {
-      return Boolean(instance);
-    }
-    if (canSessionAccessDungeonInstance(session, instance)) {
-      return true;
-    }
-    const characterID = normalizeNumber(
-      session && (session.characterID || session.charID || session.charid),
-      0,
-    );
-    const updated = dungeonRuntime.grantCharacterMissionAccess(
-      numericInstanceID,
-      characterID,
-      { source },
-    );
-    return canSessionAccessDungeonInstance(session, updated);
-  } catch (error) {
-    log.warn(
-      `[Beyonce] Failed to grant acquired mission access char=${normalizeNumber(
-        session && session.characterID,
-        0,
-      )} instance=${numericInstanceID} source=${source}: ${error.message}`,
-    );
-    return false;
-  }
 }
 
 function resolveFleetMemberWarpTarget(session, targetCharacterID) {
@@ -2271,6 +2239,23 @@ function assertAbyssalBookmarkCreationAllowed(session) {
   });
 }
 
+
+// The player reads a link refusal as the client's own reason text
+// (UI/Inflight/SpaceComponents/LinkWithShip/Errors/*, the texts the link
+// tooltip uses), not the server's code: a Charon was refused with
+// "LINK_WITH_SHIP_INVALID_SHIP" (real client, 2026-11-07). Codes without a
+// client text keep the code.
+const LINK_REFUSAL_TEXT = Object.freeze({
+  LINK_WITH_SHIP_INVALID_SHIP: "Invalid ship type.",
+  LINK_WITH_SHIP_OMEGA_REQUIRED: "Clone state must be Omega.",
+  LINK_WITH_SHIP_ALREADY_LINKED: "Another link is currently active.",
+  LINK_WITH_SHIP_OUT_OF_RANGE: "You are too far away.",
+  LINK_WITH_SHIP_COMPONENT_BUSY: "Target can't be linked to in its current state.",
+  SKYHOOK_SILO_SHIELD_TOO_HIGH: "Target can't be linked to in its current state.",
+  SKYHOOK_NOT_RAID_VULNERABLE: "Target can't be linked to in its current state.",
+  SKYHOOK_SURPLUS_EMPTY: "Cannot steal from an empty silo",
+});
+
 class BeyonceService extends BaseService {
   _structureSelfDestruct(args, session, abort) {
     const owner = require("../structure/structureSelfDestructRuntime");
@@ -2420,48 +2405,7 @@ class BeyonceService extends BaseService {
   }
 
   _throwWarpFailureUserError(errorMsg = "") {
-    switch (String(errorMsg || "").trim()) {
-      case "CRIMINAL_TIMER_ACTIVE":
-        throwWrappedUserError("CustomInfo", {
-          info: CRIMEWATCH_WARP_BLOCKED_MESSAGE,
-        });
-        break;
-      case "WARP_DISRUPTED_BY_BUBBLE":
-        throwWrappedUserError("WarpDisrupted");
-        break;
-      case "WARP_SCRAMBLED":
-        throwWrappedUserError("CustomNotify", {
-          notify: "You cannot warp because you are warp scrambled.",
-        });
-        break;
-      case "WARP_BLOCKED_BY_CLOAK":
-        throwWrappedUserError("CustomNotify", {
-          notify: "You cannot warp while cloaked. Deactivate your cloaking device first.",
-        });
-        break;
-      case "SHIP_IMMOBILE":
-        throwWrappedUserError("CustomNotify", {
-          notify: SHIP_IMMOBILE_WARP_BLOCKED_MESSAGE,
-        });
-        break;
-      case "DUNGEON_INSTANCE_NOT_AUTHORIZED":
-        throwWrappedUserError("CustomNotify", {
-          notify: "You have not scanned that site down, so you cannot warp to it yet.",
-        });
-        break;
-      case "":
-        break;
-      default:
-        // Every reason spaceRuntime can refuse a warp for used to fall through
-        // here, which meant the ship simply did not move and the client was
-        // told nothing at all -- the reason went to the server log and nowhere
-        // else. A generic message is worse than a specific one and far better
-        // than silence.
-        throwWrappedUserError("CustomNotify", {
-          notify: "You cannot warp there right now.",
-        });
-        break;
-    }
+    throwWarpFailureUserError(errorMsg);
   }
 
   Handle_GetFormations(args, session) {
@@ -3133,7 +3077,9 @@ class BeyonceService extends BaseService {
     }
 
     if (componentName === "itemTrader" && methodName === "ProcessTrade") {
-      return require("../seasons/eventHooks").outreach.processTradeFromClient(session, itemID, {
+      const nativeTrader = require("../spaceComponents/nativeItemTraderRuntime");
+      const owner = nativeTrader.isSupportedTarget(session, itemID) ? nativeTrader : require("../seasons/eventHooks").outreach;
+      return owner.processTradeFromClient(session, itemID, {
         recipeID: unwrapMarshalValue(getKwargValue(kwargs, "recipeID")),
         multiplier: unwrapMarshalValue(getKwargValue(kwargs, "multiplier")),
         inputISK: unwrapMarshalValue(getKwargValue(kwargs, "inputISK")),
@@ -3148,6 +3094,15 @@ class BeyonceService extends BaseService {
       if (methodName === "ExtractReagentsToShip") {
         return skyhookRuntime.extractReagentsToShip(session, itemID, args[3], args[4]);
       }
+    }
+
+    if (componentName === "mercenaryDen" && methodName === "ExtractInfomorphsToShip") {
+      return require("./mercenaryDenRuntime").extractInfomorphsToShip(
+        session,
+        itemID,
+        normalizeNumber(unwrapMarshalValue(args && args[3]), 0),
+        normalizeNumber(unwrapMarshalValue(args && args[4]), 0),
+      );
     }
 
     if (
@@ -3183,7 +3138,9 @@ class BeyonceService extends BaseService {
           (pilot, options) => require("../sovereignty/skyhookRaidRuntime").startRaidLink(pilot, itemID, options));
         const result = links.initiateLink(scene, session, itemID,
           { quick: methodName === "InitiateLinkQuick" });
-        if (!result.success) throwWrappedUserError("CustomNotify", { notify: result.errorMsg });
+        if (!result.success) {
+          throwWrappedUserError("CustomNotify", { notify: LINK_REFUSAL_TEXT[result.errorMsg] || result.errorMsg });
+        }
         return null;
       }
       const result = mobileAnalysisBeaconRuntime.initiateMobileAnalysisBeaconLink(
@@ -3436,6 +3393,7 @@ class BeyonceService extends BaseService {
     }
 
     let result = null;
+    let airRetrievalSite = null;
     if (warpType === "scan" && rawTarget !== null && rawTarget !== undefined) {
       const scanTarget = resolveScanWarpTarget(session, rawTarget);
       // A site the pilot has scanned to 100% is one they are allowed into, and
@@ -3666,6 +3624,15 @@ class BeyonceService extends BaseService {
           errorMsg: "FLEET_MEMBER_WARP_TARGET_NOT_FOUND",
         };
       }
+    } else if ((warpType === "item" || !warpType) && numericTarget > 0 &&
+      (airRetrievalSite = require("../npe/airNpeRuntime").retrievalWarpTarget(session, numericTarget))) {
+      // AIR scene 1.4: the warp to the star goes into the private item-retrieval site.
+      result = spaceRuntime.warpToPoint(session, airRetrievalSite.point, {
+        minimumRange,
+        stopDistance: minimumRange,
+        destinationStaticInstanceID: airRetrievalSite.instanceID,
+        destinationDungeonSiteID: airRetrievalSite.siteID,
+      });
     } else if ((warpType === "item" || !warpType) && numericTarget > 0) {
       const scene = spaceRuntime.getSceneForSession(session);
       const entity =
@@ -3832,7 +3799,7 @@ class BeyonceService extends BaseService {
     } else {
       notifyDistributionDungeonForWarp(session, result);
       if (fleetWarpRequested) {
-        this._warpFleetFollowers(session, result, {
+        warpFleetFollowers(session, result, {
           minimumRange,
           formationSettings: getKwargValue(kwargs, "fleetFormationSettings"),
         });
@@ -3840,304 +3807,6 @@ class BeyonceService extends BaseService {
     }
 
     return null;
-  }
-
-  // Pull the issuing commander's fleet/wing/squad along on a fleet warp. The
-  // commander has already been warped through the normal path; this warps every
-  // subordinate member who is in the same solar system and accepts fleet warp to
-  // the same destination, each computing their own warp-in for their own ship.
-  _warpFleetFollowers(commanderSession, leaderResult, options = {}) {
-    const commanderCharID = normalizeNumber(
-      commanderSession &&
-        (commanderSession.characterID || commanderSession.charID),
-      0,
-    );
-    if (commanderCharID <= 0) {
-      return 0;
-    }
-
-    const leaderPendingWarp =
-      leaderResult && leaderResult.data && typeof leaderResult.data === "object"
-        ? leaderResult.data
-        : null;
-    // Form the fleet's requested landing plan before individual bubble and
-    // immunity checks. A caught commander must not redirect immune members.
-    const pendingWarp = leaderPendingWarp && leaderPendingWarp.requested &&
-      typeof leaderPendingWarp.requested === "object"
-      ? { ...leaderPendingWarp, ...leaderPendingWarp.requested }
-      : leaderPendingWarp;
-    const targetEntityID = pendingWarp
-      ? normalizeNumber(pendingWarp.targetEntityID, 0)
-      : 0;
-    const rawDestination =
-      pendingWarp &&
-      pendingWarp.rawDestination &&
-      typeof pendingWarp.rawDestination === "object"
-        ? pendingWarp.rawDestination
-        : null;
-    const stopDistance = pendingWarp
-      ? normalizeNumber(pendingWarp.stopDistance, 0)
-      : 0;
-    const destinationDungeonOptions = pendingWarp
-      ? {
-          ...(pendingWarp.destinationStaticInstanceID !== null &&
-          pendingWarp.destinationStaticInstanceID !== undefined
-            ? {
-                destinationStaticInstanceID:
-                  pendingWarp.destinationStaticInstanceID,
-              }
-            : {}),
-          ...(String(pendingWarp.destinationDungeonRoomKey || "").trim()
-            ? {
-                destinationDungeonRoomKey: String(
-                  pendingWarp.destinationDungeonRoomKey,
-                ).trim(),
-              }
-            : {}),
-          ...(pendingWarp.destinationDungeonSiteID !== null &&
-          pendingWarp.destinationDungeonSiteID !== undefined
-            ? {
-                destinationDungeonSiteID:
-                  pendingWarp.destinationDungeonSiteID,
-              }
-            : {}),
-        }
-      : {};
-    if (targetEntityID <= 0 && !rawDestination) {
-      return 0;
-    }
-
-    const minimumRange = normalizeNumber(options.minimumRange, 0);
-    const commanderSystemID = normalizeNumber(
-      commanderSession &&
-        (commanderSession.solarsystemid2 || commanderSession.solarsystemid),
-      0,
-    );
-
-    let followers = [];
-    try {
-      followers = fleetRuntime.collectFleetWarpFollowers(commanderCharID) || [];
-    } catch (error) {
-      log.warn(
-        `[Beyonce] Fleet warp follower lookup failed for char=${commanderCharID}: ${error.message}`,
-      );
-      return 0;
-    }
-
-    // This service's established command scope pulls eligible members in the
-    // commander's system; each follower still runs the normal warp checks.
-    const eligibleFollowers = followers.filter((follower) => {
-      const followerSession = follower && follower.session;
-      if (!followerSession) {
-        return false;
-      }
-      const followerSystemID = normalizeNumber(
-        followerSession.solarsystemid2 || followerSession.solarsystemid,
-        0,
-      );
-      return !(
-        commanderSystemID > 0 &&
-        followerSystemID > 0 &&
-        followerSystemID !== commanderSystemID
-      );
-    });
-
-    const commanderGeneration = commanderSession && commanderSession._space;
-    const associationToken =
-      leaderResult &&
-      leaderResult.success === true &&
-      leaderResult.redundant !== true
-        ? crypto.randomUUID()
-        : "";
-    const associationTokenPrefix = associationToken
-      ? associationToken.replace(/-/g, "").slice(0, 8)
-      : "";
-    const landingRotationFraction = associationTokenPrefix
-      ? Number.parseInt(associationTokenPrefix, 16) / 0x1_0000_0000
-      : 0;
-    const formationPoints = this._resolveFleetWarpFormationPoints(
-      commanderSession,
-      eligibleFollowers,
-      {
-        landingRotationFraction,
-        pendingWarp,
-        leaderWarpJitter: leaderResult && leaderResult.warpJitter,
-        formationSettings: options.formationSettings,
-      },
-    );
-
-    let warpedCount = 0;
-    for (const follower of eligibleFollowers) {
-      const followerSession = follower.session;
-      const followerGeneration = followerSession && followerSession._space;
-      const formationPoint = formationPoints.get(
-        normalizeNumber(follower.characterID, 0),
-      );
-
-      let followerResult = null;
-      if (formationPoint) {
-        // The leader already resolved the target geometry. Followers consume
-        // that command-scoped landing anchor (or an explicit formation slot)
-        // directly instead of independently resolving the target again.
-        followerResult = spaceRuntime.warpToPoint(followerSession, formationPoint, {
-          ...destinationDungeonOptions,
-          stopDistance: 0,
-          ...(targetEntityID > 0 ? { targetEntityID } : {}),
-        });
-      } else if (targetEntityID > 0) {
-        followerResult = spaceRuntime.warpToEntity(
-          followerSession,
-          targetEntityID,
-          { ...destinationDungeonOptions, minimumRange },
-        );
-      } else if (rawDestination) {
-        followerResult = spaceRuntime.warpToPoint(followerSession, rawDestination, {
-          ...destinationDungeonOptions,
-          minimumRange,
-          stopDistance,
-        });
-      }
-
-      if (followerResult && followerResult.success) {
-        warpedCount += 1;
-        if (associationToken && followerResult.redundant !== true) {
-          try {
-            spaceRuntime.associateSuccessfulFleetWarpFollower(
-              commanderSession,
-              followerSession,
-              associationToken,
-              {
-                leaderGeneration: commanderGeneration,
-                leaderResult,
-                followerGeneration,
-                followerResult,
-              },
-            );
-          } catch (error) {
-            log.warn(
-              `[Beyonce] Fleet warp association failed for char=${normalizeNumber(
-                follower && follower.characterID,
-                0,
-              )}: ${error.message}`,
-            );
-          }
-        }
-        this._notifyFleetWarpRemoteMessage(followerSession, targetEntityID);
-      }
-    }
-
-    if (warpedCount > 0) {
-      log.info(
-        `[Beyonce] Fleet warp pulled ${warpedCount} member(s) for commander char=${commanderCharID}` +
-          `${formationPoints.size > 0 ? ` with a shared landing plan` : ""}`,
-      );
-    }
-    return warpedCount;
-  }
-
-  // Resolve per-follower landing points around the commander's already-resolved
-  // landing anchor. Standard POINT/no-settings warps use a compact collision-
-  // aware cloud; explicit offset formations retain their requested geometry.
-  // The commander's landing is jittered like every warp; the anchor is that
-  // landing before its jitter (`context.leaderWarpJitter`, the offset its
-  // warpToPoint reports), since each member's own warp jitters again.
-  _resolveFleetWarpFormationPoints(commanderSession, followers, context = {}) {
-    const empty = new Map();
-    const settings = resolveFormationSettings(context.formationSettings);
-    const pendingWarp = context.pendingWarp || null;
-    const leaderWarpJitter = context.leaderWarpJitter || null;
-    const anchorPoint =
-      pendingWarp &&
-      pendingWarp.targetPoint &&
-      typeof pendingWarp.targetPoint === "object"
-        ? {
-            x: normalizeNumber(pendingWarp.targetPoint.x, 0) -
-              normalizeNumber(leaderWarpJitter && leaderWarpJitter.x, 0),
-            y: normalizeNumber(pendingWarp.targetPoint.y, 0) -
-              normalizeNumber(leaderWarpJitter && leaderWarpJitter.y, 0),
-            z: normalizeNumber(pendingWarp.targetPoint.z, 0) -
-              normalizeNumber(leaderWarpJitter && leaderWarpJitter.z, 0),
-          }
-        : null;
-    if (!anchorPoint || followers.length === 0) {
-      return empty;
-    }
-
-    const scene = spaceRuntime.getSceneForSession(commanderSession);
-    const getShipEntity =
-      scene && typeof scene.getShipEntityForSession === "function"
-        ? (targetSession) => scene.getShipEntityForSession(targetSession)
-        : null;
-
-    const commanderEntity = getShipEntity ? getShipEntity(commanderSession) : null;
-    const commanderPosition = commanderEntity && commanderEntity.position;
-    const warpDirection = commanderPosition
-      ? {
-          x: normalizeNumber(anchorPoint.x, 0) - normalizeNumber(commanderPosition.x, 0),
-          y: normalizeNumber(anchorPoint.y, 0) - normalizeNumber(commanderPosition.y, 0),
-          z: normalizeNumber(anchorPoint.z, 0) - normalizeNumber(commanderPosition.z, 0),
-        }
-      : null;
-
-    // Stable slot order so a member always lands in the same formation slot.
-    const orderedFollowers = followers
-      .map((follower) => {
-        const followerEntity = getShipEntity
-          ? getShipEntity(follower.session)
-          : null;
-        return {
-          characterID: normalizeNumber(follower.characterID, 0),
-          position: followerEntity && followerEntity.position,
-          radius: normalizeNumber(followerEntity && followerEntity.radius, 0),
-        };
-      })
-      .sort((left, right) => left.characterID - right.characterID);
-
-    if (!settings || settings.formationType === 0) {
-      return computeFleetWarpPointLandingPoints({
-        anchorPoint,
-        anchorRadius: normalizeNumber(commanderEntity && commanderEntity.radius, 0),
-        warpDirection,
-        followers: orderedFollowers,
-        rotationFraction: normalizeNumber(context.landingRotationFraction, 0),
-      });
-    }
-
-    return computeFleetWarpFormationPoints({
-      anchorPoint,
-      warpDirection,
-      anchorPosition: commanderPosition,
-      formationType: settings.formationType,
-      spacingMeters: settings.spacingMeters,
-      sizeMeters: settings.sizeMeters,
-      followers: orderedFollowers,
-    });
-  }
-
-  // Tell a pulled member's client a fleet warp is in progress so it cancels its
-  // local autopilot navigation and updates the warp-destination cache
-  // (spaceMgr/autopilot OnRemoteMessage('FleetWarp') handlers in the client).
-  _notifyFleetWarpRemoteMessage(session, celestialID) {
-    if (!session || typeof session.sendNotification !== "function") {
-      return;
-    }
-    const warpInfoDict = {
-      type: "dict",
-      entries:
-        normalizeNumber(celestialID, 0) > 0
-          ? [["celestialID", normalizeNumber(celestialID, 0)]]
-          : [],
-    };
-    try {
-      session.sendNotification("OnRemoteMessage", "clientID", [
-        "FleetWarp",
-        warpInfoDict,
-      ]);
-    } catch (error) {
-      log.warn(
-        `[Beyonce] Fleet warp remote message failed for char=${session && session.characterID}: ${error.message}`,
-      );
-    }
   }
 
   _notifyShipInWarpRemoteMessage(session) {

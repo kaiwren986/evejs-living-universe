@@ -610,7 +610,7 @@ function buildLocationModifiedAttributeMap(
       modifierEntries,
       buildEffectiveItemAttributeMap(fittedItem),
       getTypeEffectRecords(fittedItem.typeID),
-      "fittedModule",
+      toInt(fittedItem.categoryID, 0) === 32 ? "subsystem" : "fittedModule",
       targetItem,
       { allowedDomains: fittedModuleLocationModifierDomains },
     );
@@ -959,7 +959,7 @@ function collectShipModifierAttributes(
       modifierEntries,
       buildEffectiveItemAttributeMap(modifierSource),
       getPassiveModifierEffectRecords(modifierSource.typeID),
-      "fittedModule",
+      toInt(modifierSource.categoryID, 0) === 32 ? "subsystem" : "fittedModule",
       isStructureHost ? STRUCTURE_ITEM_MODIFIER_OPTIONS : SHIP_ITEM_MODIFIER_OPTIONS,
     );
   }
@@ -1504,7 +1504,7 @@ function buildWeaponModuleSnapshot({
       modifierEntries,
       buildEffectiveItemAttributeMap(fittedItem),
       getTypeEffectRecords(fittedItem.typeID),
-      "fittedModule",
+      toInt(fittedItem.categoryID, 0) === 32 ? "subsystem" : "fittedModule",
       effectiveModuleItem,
       { allowedDomains: locationModifierDomains },
     );

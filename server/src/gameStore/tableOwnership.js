@@ -47,6 +47,12 @@ const CONFIDENCE = Object.freeze({
 
 const TABLE_OWNERSHIP = {};
 
+TABLE_OWNERSHIP.projectDiscoveryState = {
+  table: "projectDiscoveryState", tier: TIERS.RUNTIME, domain: "service:character",
+  confidence: CONFIDENCE.INFERRED,
+  note: "Authored Project Discovery daily issuance budget and pending durable grants.",
+};
+
 TABLE_OWNERSHIP.freelanceProjects = {
   table: "freelanceProjects", tier: TIERS.RUNTIME, domain: "service:freelance",
   confidence: CONFIDENCE.INFERRED,
@@ -160,6 +166,18 @@ define(["homefrontReplay"], {
   domain: "service:homefront",
   confidence: CONFIDENCE.INFERRED,
   note: "Homefront encounter state, immutable reward receipts and settlement outbox.",
+});
+define(["incursionReplay"], {
+  tier: TIERS.RUNTIME,
+  domain: "service:incursion",
+  confidence: CONFIDENCE.INFERRED,
+  note: "Incursion encounter progress, frozen fleet reward receipts, delayed LP pools and settlement outboxes.",
+});
+define(["incursionLifecycle"], {
+  tier: TIERS.RUNTIME,
+  domain: "service:incursion",
+  confidence: CONFIDENCE.INFERRED,
+  note: "World-owned incursion identities, frozen lifecycle policies, deadlines, terminal tombstones and projection/slot intents.",
 });
 define(["achievements"], {
   tier: TIERS.RUNTIME, domain: "service:achievement", confidence: CONFIDENCE.SCANNER,

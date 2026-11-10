@@ -3,6 +3,7 @@
     "devAutoCreateAccounts": true,
     "devSkipPasswordValidation": true,
     "devBootstrapPublishedSkills": false,
+    "qaStarterSystemPicker": false,
     "playerConnectToken": ""
   },
   "presence": {

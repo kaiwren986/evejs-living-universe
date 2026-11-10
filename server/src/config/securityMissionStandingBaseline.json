@@ -1,0 +1,328 @@
+{
+  "schemaVersion": 1,
+  "completedByDungeonID": {
+    "229": {
+      "level": 1,
+      "agentRaw": 0.018179063778215425,
+      "corpRaw": 0.0015722927084925644,
+      "observationIDs": [
+        "2026-09-26_19-41-18_the-disgruntled-employee-unknown"
+      ],
+      "evidenceClass": "TODO_TQ_screenshot_inverse"
+    },
+    "316": {
+      "level": 1,
+      "agentRaw": 0.021207860043696507,
+      "corpRaw": 0.001808321909278007,
+      "observationIDs": [
+        "2026-09-26_20-14-23_the-hidden-stash-guristas-pirates",
+        "2026-10-02_18-13-54_the-hidden-stash-guristas-pirates"
+      ],
+      "evidenceClass": "TODO_TQ_screenshot_inverse"
+    },
+    "769": {
+      "level": 1,
+      "agentRaw": 0.01788079100149193,
+      "corpRaw": 0.0015095076785103826,
+      "observationIDs": [
+        "2026-09-27_13-13-53_pirate-aggression-sanshas-nation"
+      ],
+      "evidenceClass": "TODO_TQ_screenshot_inverse"
+    },
+    "840": {
+      "level": 1,
+      "agentRaw": 0.07978035028242854,
+      "corpRaw": 0.006871247792171182,
+      "observationIDs": [
+        "2026-09-26_22-02-59_worlds-collide-unknown"
+      ],
+      "evidenceClass": "TODO_TQ_screenshot_inverse"
+    },
+    "943": {
+      "level": 1,
+      "agentRaw": 0.04613587977758661,
+      "corpRaw": 0.003946191486749566,
+      "observationIDs": [
+        "2026-09-26_21-09-07_unauthorized-military-presence-guristas-pirates"
+      ],
+      "evidenceClass": "TODO_TQ_screenshot_inverse"
+    },
+    "968": {
+      "level": 1,
+      "agentRaw": 0.044950554390170816,
+      "corpRaw": 0.0038675325142559047,
+      "observationIDs": [
+        "2026-10-02_22-18-51_smuggler-interception-blood-raider-covenant"
+      ],
+      "evidenceClass": "TODO_TQ_screenshot_inverse"
+    },
+    "1940": {
+      "level": 1,
+      "agentRaw": 0.046000000000000006,
+      "corpRaw": 0.00391304347826087,
+      "observationIDs": [
+        "2026-09-26_17-22-46_the-blockade-guristas-pirates"
+      ],
+      "evidenceClass": "TODO_TQ_screenshot_inverse"
+    },
+    "2026": {
+      "level": 1,
+      "agentRaw": 0.03417093582516923,
+      "corpRaw": 0.0029284311980547185,
+      "observationIDs": [
+        "2026-10-02_21-29-26_break-their-will-guristas-pirates",
+        "2026-10-04_20-04-06_break-their-will-guristas-pirates"
+      ],
+      "evidenceClass": "TODO_TQ_screenshot_inverse"
+    },
+    "2543": {
+      "level": 1,
+      "agentRaw": 0.026929180377420713,
+      "corpRaw": 0.0023489553924336535,
+      "observationIDs": [
+        "2026-10-02_23-02-15_carrying-aimeds-unknown"
+      ],
+      "evidenceClass": "TODO_TQ_screenshot_inverse"
+    },
+    "4257": {
+      "level": 1,
+      "agentRaw": 0.05707435455103653,
+      "corpRaw": 0.004902222935272832,
+      "observationIDs": [
+        "2026-10-02_20-32-31_onslaught-unknown"
+      ],
+      "evidenceClass": "TODO_TQ_screenshot_inverse"
+    }
+  },
+  "completionCoefficientsPerBaseLP": {
+    "agentRaw": 0.00042745637174495664,
+    "corpRaw": 0.00003671387422703138
+  },
+  "completionObservations": [
+    {
+      "observationID": "2026-09-26_17-22-46_the-blockade-guristas-pirates",
+      "missionIDs": [
+        2925
+      ],
+      "dungeonID": 1940,
+      "agentPointDelta": 0.529,
+      "corporationPointDelta": 0.045,
+      "social": 3,
+      "agentScreenshot": "2026-09-26_17-22-46_the-blockade-guristas-pirates/048_p1-w5_standings.png",
+      "corporationScreenshot": "2026-09-26_17-22-46_the-blockade-guristas-pirates/047_p1-w5_standings.png",
+      "sessionFile": "2026-09-26_17-22-46_the-blockade-guristas-pirates/session.json",
+      "validationTODO": "TODO: Screenshot changes are rounded standing-point deltas, not raw percentage inputs. Inversion assumes a complete ordered history starting from zero. Social III is recorded in later sessions but inferred for the first. Confirm with raw completion notifications and initial standings; native mission-ID alternatives sharing a dungeon are not independently identified.",
+      "agentRaw": 0.046000000000000006,
+      "corpRaw": 0.00391304347826087,
+      "baseLP": 108.397365532382
+    },
+    {
+      "observationID": "2026-09-26_19-41-18_the-disgruntled-employee-unknown",
+      "missionIDs": [
+        921,
+        2211
+      ],
+      "dungeonID": 229,
+      "agentPointDelta": 0.198,
+      "corporationPointDelta": 0.018,
+      "social": 3,
+      "agentScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/014_p1-w1_standings.png",
+      "corporationScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/015_p1-w1_standings.png",
+      "sessionFile": "2026-09-26_19-41-18_the-disgruntled-employee-unknown/session.json",
+      "validationTODO": "TODO: Screenshot changes are rounded standing-point deltas, not raw percentage inputs. Inversion assumes a complete ordered history starting from zero. Social III is recorded in later sessions but inferred for the first. Confirm with raw completion notifications and initial standings; native mission-ID alternatives sharing a dungeon are not independently identified.",
+      "agentRaw": 0.018179063778215425,
+      "corpRaw": 0.0015722927084925644,
+      "baseLP": 42.53567508232711
+    },
+    {
+      "observationID": "2026-09-26_20-14-23_the-hidden-stash-guristas-pirates",
+      "missionIDs": [
+        1228
+      ],
+      "dungeonID": 316,
+      "agentPointDelta": 0.226,
+      "corporationPointDelta": 0.021,
+      "social": 3,
+      "agentScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/014_p1-w1_standings.png",
+      "corporationScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/015_p1-w1_standings.png",
+      "sessionFile": "2026-09-26_20-14-23_the-hidden-stash-guristas-pirates/session.json",
+      "validationTODO": "TODO: Screenshot changes are rounded standing-point deltas, not raw percentage inputs. Inversion assumes a complete ordered history starting from zero. Social III is recorded in later sessions but inferred for the first. Confirm with raw completion notifications and initial standings; native mission-ID alternatives sharing a dungeon are not independently identified.",
+      "agentRaw": 0.02119289756609887,
+      "corpRaw": 0.0018376642412415612,
+      "baseLP": 49.39626783754116
+    },
+    {
+      "observationID": "2026-09-26_21-09-07_unauthorized-military-presence-guristas-pirates",
+      "missionIDs": [
+        2389
+      ],
+      "dungeonID": 943,
+      "agentPointDelta": 0.48,
+      "corporationPointDelta": 0.045,
+      "social": 3,
+      "agentScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/014_p1-w1_standings.png",
+      "corporationScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/015_p1-w1_standings.png",
+      "sessionFile": "2026-09-26_21-09-07_unauthorized-military-presence-guristas-pirates/session.json",
+      "validationTODO": "TODO: Screenshot changes are rounded standing-point deltas, not raw percentage inputs. Inversion assumes a complete ordered history starting from zero. Social III is recorded in later sessions but inferred for the first. Confirm with raw completion notifications and initial standings; native mission-ID alternatives sharing a dungeon are not independently identified.",
+      "agentRaw": 0.04613587977758661,
+      "corpRaw": 0.003946191486749566,
+      "baseLP": 108.397365532382
+    },
+    {
+      "observationID": "2026-09-26_22-02-59_worlds-collide-unknown",
+      "missionIDs": [
+        2337
+      ],
+      "dungeonID": 840,
+      "agentPointDelta": 0.786,
+      "corporationPointDelta": 0.078,
+      "social": 3,
+      "agentScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/014_p1-w1_standings.png",
+      "corporationScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/015_p1-w1_standings.png",
+      "sessionFile": "2026-09-26_22-02-59_worlds-collide-unknown/session.json",
+      "validationTODO": "TODO: Screenshot changes are rounded standing-point deltas, not raw percentage inputs. Inversion assumes a complete ordered history starting from zero. Social III is recorded in later sessions but inferred for the first. Confirm with raw completion notifications and initial standings; native mission-ID alternatives sharing a dungeon are not independently identified.",
+      "agentRaw": 0.07978035028242854,
+      "corpRaw": 0.006871247792171182,
+      "baseLP": 186.60812294182216
+    },
+    {
+      "observationID": "2026-09-27_13-13-53_pirate-aggression-sanshas-nation",
+      "missionIDs": [
+        2235,
+        2237
+      ],
+      "dungeonID": 769,
+      "agentPointDelta": 0.16,
+      "corporationPointDelta": 0.017,
+      "social": 3,
+      "agentScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/014_p1-w1_standings.png",
+      "corporationScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/015_p1-w1_standings.png",
+      "sessionFile": "2026-09-27_13-13-53_pirate-aggression-sanshas-nation/session.json",
+      "validationTODO": "TODO: Screenshot changes are rounded standing-point deltas, not raw percentage inputs. Inversion assumes a complete ordered history starting from zero. Social III is recorded in later sessions but inferred for the first. Confirm with raw completion notifications and initial standings; native mission-ID alternatives sharing a dungeon are not independently identified.",
+      "agentRaw": 0.01788079100149193,
+      "corpRaw": 0.0015095076785103826,
+      "baseLP": 42.53567508232711
+    },
+    {
+      "observationID": "2026-10-02_18-13-54_the-hidden-stash-guristas-pirates",
+      "missionIDs": [
+        1228
+      ],
+      "dungeonID": 316,
+      "agentPointDelta": 0.186,
+      "corporationPointDelta": 0.02,
+      "social": 3,
+      "agentScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/014_p1-w1_standings.png",
+      "corporationScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/015_p1-w1_standings.png",
+      "sessionFile": "2026-10-02_18-13-54_the-hidden-stash-guristas-pirates/session.json",
+      "validationTODO": "TODO: Screenshot changes are rounded standing-point deltas, not raw percentage inputs. Inversion assumes a complete ordered history starting from zero. Social III is recorded in later sessions but inferred for the first. Confirm with raw completion notifications and initial standings; native mission-ID alternatives sharing a dungeon are not independently identified.",
+      "agentRaw": 0.02122282252129414,
+      "corpRaw": 0.0017789795773144527,
+      "baseLP": 49.39626783754116
+    },
+    {
+      "observationID": "2026-10-02_20-32-31_onslaught-unknown",
+      "missionIDs": [
+        15168,
+        15170
+      ],
+      "dungeonID": 4257,
+      "agentPointDelta": 0.488,
+      "corporationPointDelta": 0.055,
+      "social": 3,
+      "agentScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/014_p1-w1_standings.png",
+      "corporationScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/015_p1-w1_standings.png",
+      "sessionFile": "2026-10-02_20-32-31_onslaught-unknown/session.json",
+      "validationTODO": "TODO: Screenshot changes are rounded standing-point deltas, not raw percentage inputs. Inversion assumes a complete ordered history starting from zero. Social III is recorded in later sessions but inferred for the first. Confirm with raw completion notifications and initial standings; native mission-ID alternatives sharing a dungeon are not independently identified.",
+      "agentRaw": 0.05707435455103653,
+      "corpRaw": 0.004902222935272832,
+      "baseLP": 133.0954994511526
+    },
+    {
+      "observationID": "2026-10-02_21-29-26_break-their-will-guristas-pirates",
+      "missionIDs": [
+        3062
+      ],
+      "dungeonID": 2026,
+      "agentPointDelta": 0.273,
+      "corporationPointDelta": 0.033,
+      "social": 3,
+      "agentScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/014_p1-w1_standings.png",
+      "corporationScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/015_p1-w1_standings.png",
+      "sessionFile": "2026-10-02_21-29-26_break-their-will-guristas-pirates/session.json",
+      "validationTODO": "TODO: Screenshot changes are rounded standing-point deltas, not raw percentage inputs. Inversion assumes a complete ordered history starting from zero. Social III is recorded in later sessions but inferred for the first. Confirm with raw completion notifications and initial standings; native mission-ID alternatives sharing a dungeon are not independently identified.",
+      "agentRaw": 0.034171772613765104,
+      "corpRaw": 0.0029580097076500407,
+      "baseLP": 79.58287596048298
+    },
+    {
+      "observationID": "2026-10-02_22-18-51_smuggler-interception-blood-raider-covenant",
+      "missionIDs": [
+        2545
+      ],
+      "dungeonID": 968,
+      "agentPointDelta": 0.345,
+      "corporationPointDelta": 0.043,
+      "social": 3,
+      "agentScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/014_p1-w1_standings.png",
+      "corporationScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/015_p1-w1_standings.png",
+      "sessionFile": "2026-10-02_22-18-51_smuggler-interception-blood-raider-covenant/session.json",
+      "validationTODO": "TODO: Screenshot changes are rounded standing-point deltas, not raw percentage inputs. Inversion assumes a complete ordered history starting from zero. Social III is recorded in later sessions but inferred for the first. Confirm with raw completion notifications and initial standings; native mission-ID alternatives sharing a dungeon are not independently identified.",
+      "agentRaw": 0.044950554390170816,
+      "corpRaw": 0.0038675325142559047,
+      "baseLP": 105.65312843029638
+    },
+    {
+      "observationID": "2026-10-02_23-02-15_carrying-aimeds-unknown",
+      "missionIDs": [
+        4752
+      ],
+      "dungeonID": 2543,
+      "agentPointDelta": 0.196,
+      "corporationPointDelta": 0.026,
+      "social": 3,
+      "agentScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/014_p1-w1_standings.png",
+      "corporationScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/015_p1-w1_standings.png",
+      "sessionFile": "2026-10-02_23-02-15_carrying-aimeds-unknown/session.json",
+      "validationTODO": "TODO: Screenshot changes are rounded standing-point deltas, not raw percentage inputs. Inversion assumes a complete ordered history starting from zero. Social III is recorded in later sessions but inferred for the first. Confirm with raw completion notifications and initial standings; native mission-ID alternatives sharing a dungeon are not independently identified.",
+      "agentRaw": 0.026929180377420713,
+      "corpRaw": 0.0023489553924336535,
+      "baseLP": 63.11745334796927
+    },
+    {
+      "observationID": "2026-10-04_20-04-06_break-their-will-guristas-pirates",
+      "missionIDs": [
+        3062
+      ],
+      "dungeonID": 2026,
+      "agentPointDelta": 0.241,
+      "corporationPointDelta": 0.032,
+      "social": 3,
+      "agentScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/014_p1-w1_standings.png",
+      "corporationScreenshot": "2026-10-04_20-04-06_break-their-will-guristas-pirates/015_p1-w1_standings.png",
+      "sessionFile": "2026-10-04_20-04-06_break-their-will-guristas-pirates/session.json",
+      "validationTODO": "TODO: Screenshot changes are rounded standing-point deltas, not raw percentage inputs. Inversion assumes a complete ordered history starting from zero. Social III is recorded in later sessions but inferred for the first. Confirm with raw completion notifications and initial standings; native mission-ID alternatives sharing a dungeon are not independently identified.",
+      "agentRaw": 0.03417009903657336,
+      "corpRaw": 0.002898852688459396,
+      "baseLP": 79.58287596048298
+    }
+  ],
+  "summary": {
+    "completionObservations": 12
+  },
+  "validationTODO": "TODO: Completion fractions invert rounded TQ screenshot point deltas, assume the supplied initial standings/Social, and are provisional. Other agents, shared-dungeon variants and levels 2-5 use projected median fractions per normalized LP. Validate complete capture history, exact mission identity, skills, rounding and the live completion formula. No decline, quit/failure or NPC-kill losses are calibrated here.",
+  "inputs": [
+    {
+      "file": "securityCompletionStandings.json",
+      "sha256": "24399c5e02142355f2115c1ee02046087e8c5494bbe9cc6a9428334ead357fb7"
+    },
+    {
+      "file": "securityMissionRewardObservations.json",
+      "sha256": "46cb166f15a90f1f01e38a55c16c490b2d95a790d1c831e23c8d4436569ab2d8"
+    },
+    {
+      "file": "securityMissionRewardBaseline.json",
+      "sha256": "d15c2ce3105e9740ef7a711674175a2d47a82dbd27491af1083e3a474733e837"
+    }
+  ]
+}

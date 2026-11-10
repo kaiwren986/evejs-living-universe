@@ -6,6 +6,8 @@ const billRuntime = require(path.join(
   "../account/billRuntimeState",
 ));
 const essRuntime = require("../dynamic/essSettlementRuntime");
+const incursionRewardRuntime = require("../incursion/incursionRewardScheduler");
+const incursionLifecycleRuntime = require("../incursion/incursionLifecycleScheduler");
 const freelanceRuntime = require("../freelance/freelanceRuntime");
 const contractAuctionJobs = require("../contracts/contractAuctionJobs");
 const bountyRuntime = require(path.join(__dirname, "../bounty/bountyRuntime"));
@@ -21,6 +23,7 @@ const warNegotiationRuntime = require(path.join(
   __dirname,
   "../corporation/warNegotiationRuntimeState",
 ));
+const warDeclarationRuntime = require("../corporation/warDeclarationState");
 const dailyGoalsRuntime = require(path.join(
   __dirname,
   "../dailyGoals/dailyGoalsState",
@@ -35,7 +38,10 @@ const sovHubFuelRuntime = require("../sovereignty/sovHubFuelRuntime");
 const selfDestructRuntime = require("../ship/selfDestructRuntime");
 const shipSkinComponentRuntime = require("../ship/shipSkinComponentRuntime");
 const characterResculpt = require("../character/characterResculpt");
+const mctCertificateActivation = require("../user/mctCertificateActivation");
 const loginCampaignRedemption = require("../campaign/loginCampaignRedemption");
+const careerRewardSettlement = require("../career/careerRewardSettlement");
+const airCareerCrates = require("../career/airCareerCrates");
 const licenseLifecycleRuntime = require("../newEdenStore/licenseLifecycleRuntime");
 const shipSkinSequencingRuntime = require("../ship/shipSkinSequencingRuntime");
 const shipSkinMarketRuntime = require("../ship/shipSkinThirdPartyRuntime");
@@ -203,6 +209,8 @@ function createProductionSchedulerRuntime(options = {}) {
   );
   const billOwner = options.billRuntime || billRuntime;
   const essOwner = options.essRuntime || essRuntime;
+  const incursionRewardOwner = options.incursionRewardRuntime || incursionRewardRuntime;
+  const incursionLifecycleOwner = options.incursionLifecycleRuntime || incursionLifecycleRuntime;
   const freelanceOwner = options.freelanceRuntime || freelanceRuntime;
   const auctionOwner = options.contractAuctionJobs || contractAuctionJobs;
   const bountyOwner = options.bountyRuntime || bountyRuntime;
@@ -210,6 +218,7 @@ function createProductionSchedulerRuntime(options = {}) {
   const killRightOwner = options.killRightState || killRightState;
   const warNegotiationOwner =
     options.warNegotiationRuntime || warNegotiationRuntime;
+  const warDeclarationOwner = options.warDeclarationRuntime || warDeclarationRuntime;
   const dailyGoalsOwner = options.dailyGoalsRuntime || dailyGoalsRuntime;
   const contrabandPenaltyOwner =
     options.contrabandPenaltyRuntime || contrabandPenaltyRuntime;
@@ -219,7 +228,10 @@ function createProductionSchedulerRuntime(options = {}) {
   const selfDestructOwner = options.selfDestructRuntime || selfDestructRuntime;
   const skinComponentOwner = options.shipSkinComponentRuntime || shipSkinComponentRuntime;
   const resculptOwner = options.characterResculpt || characterResculpt;
+  const mctActivationOwner = options.mctCertificateActivation || mctCertificateActivation;
   const campaignRedemptionOwner = options.loginCampaignRedemption || loginCampaignRedemption;
+  const careerRewardOwner = options.careerRewardSettlement || careerRewardSettlement;
+  const airCrateOwner = options.airCareerCrates || airCareerCrates;
   const licenseLifecycleOwner = options.licenseLifecycleRuntime || licenseLifecycleRuntime;
   const skinSequencingOwner = options.shipSkinSequencingRuntime || shipSkinSequencingRuntime;
   const skinMarketOwner = options.shipSkinMarketRuntime || shipSkinMarketRuntime;
@@ -303,11 +315,14 @@ function createProductionSchedulerRuntime(options = {}) {
     billOwner.unbindDurableScheduler(scheduler);
     bountyOwner.detachDurableScheduler(scheduler);
     essOwner.unbindDurableScheduler(scheduler);
+    incursionRewardOwner.unbindDurableScheduler(scheduler);
+    incursionLifecycleOwner.unbindDurableScheduler(scheduler);
     freelanceOwner.unbindDurableScheduler(scheduler);
     auctionOwner.unbindDurableScheduler(scheduler);
     playerBountyOwner.unbindDurableScheduler(scheduler);
     killRightOwner.unbindDurableScheduler(scheduler);
     warNegotiationOwner.unbindDurableScheduler(scheduler);
+    warDeclarationOwner.unbindDurableScheduler(scheduler);
     dailyGoalsOwner.unbindDurableScheduler(scheduler);
     contrabandPenaltyOwner.unbindDurableScheduler(scheduler);
     customsInspectionOwner.unbindDurableScheduler(scheduler);
@@ -316,7 +331,10 @@ function createProductionSchedulerRuntime(options = {}) {
     selfDestructOwner.unbindDurableScheduler(scheduler);
     skinComponentOwner.unbindDurableScheduler(scheduler);
     resculptOwner.unbindDurableScheduler(scheduler);
+    mctActivationOwner.unbindDurableScheduler(scheduler);
     campaignRedemptionOwner.unbindDurableScheduler(scheduler);
+    careerRewardOwner.unbindDurableScheduler(scheduler);
+    airCrateOwner.unbindDurableScheduler(scheduler);
     licenseLifecycleOwner.unbindDurableScheduler(scheduler);
     skinSequencingOwner.unbindDurableScheduler(scheduler);
     skinMarketOwner.unbindDurableScheduler(scheduler);
@@ -371,13 +389,18 @@ function createProductionSchedulerRuntime(options = {}) {
     startPromise = (async () => {
       try {
         unregisterHandlers.push(scheduler.register(essOwner.JOB_TYPE, job => essOwner.handleJob(job)));
+        unregisterHandlers.push(scheduler.register(incursionRewardOwner.JOB_TYPE, job => incursionRewardOwner.handleJob(job)));
+        unregisterHandlers.push(scheduler.register(incursionLifecycleOwner.JOB_TYPE, job => incursionLifecycleOwner.handleJob(job)));
         unregisterHandlers.push(scheduler.register(freelanceOwner.JOB_TYPE, job => freelanceOwner.handleJob(job)));
         unregisterHandlers.push(scheduler.register(auctionOwner.JOB_TYPE, job => auctionOwner.handleJob(job)));
         unregisterHandlers.push(scheduler.register(nodeGraphOwner.JOB_TYPE, (job) => nodeGraphOwner.handleJob(job)));
         unregisterHandlers.push(scheduler.register(airEncounterOwner.JOB_TYPE, job => airEncounterOwner.handleJob(job)));
         unregisterHandlers.push(scheduler.register(skinComponentOwner.JOB_TYPE, job => skinComponentOwner.handleJob(job)));
         unregisterHandlers.push(scheduler.register(resculptOwner.JOB_TYPE, job => resculptOwner.handleJob(job)));
+        unregisterHandlers.push(scheduler.register(mctActivationOwner.JOB_TYPE, job => mctActivationOwner.handleJob(job)));
         unregisterHandlers.push(scheduler.register(campaignRedemptionOwner.JOB_TYPE, job => campaignRedemptionOwner.handleJob(job)));
+        unregisterHandlers.push(scheduler.register(careerRewardOwner.JOB_TYPE, job => careerRewardOwner.handleJob(job)));
+        unregisterHandlers.push(scheduler.register(airCrateOwner.JOB_TYPE, job => airCrateOwner.handleJob(job)));
         unregisterHandlers.push(scheduler.register(licenseLifecycleOwner.JOB_TYPE, job => licenseLifecycleOwner.handleJob(job)));
         unregisterHandlers.push(scheduler.register(skinSequencingOwner.JOB_TYPE, job => skinSequencingOwner.handleJob(job)));
         unregisterHandlers.push(scheduler.register(skinMarketOwner.JOB_TYPE, job => skinMarketOwner.handleJob(job)));
@@ -401,6 +424,10 @@ function createProductionSchedulerRuntime(options = {}) {
           warNegotiationOwner.DURABLE_SETTLEMENT_JOB_TYPE,
           (job) =>
             warNegotiationOwner.handleDurableWarNegotiationSettlement(job),
+        ));
+        unregisterHandlers.push(scheduler.register(
+          warDeclarationOwner.DURABLE_DECLARATION_JOB_TYPE,
+          (job) => warDeclarationOwner.handleDurableWarDeclaration(job),
         ));
         unregisterHandlers.push(scheduler.register(
           dailyGoalsOwner.DURABLE_REWARD_JOB_TYPE,
@@ -594,6 +621,8 @@ function createProductionSchedulerRuntime(options = {}) {
 
         billOwner.bindDurableScheduler(scheduler);
         essOwner.bindDurableScheduler(scheduler);
+        incursionRewardOwner.bindDurableScheduler(scheduler);
+        incursionLifecycleOwner.bindDurableScheduler(scheduler);
         freelanceOwner.bindDurableScheduler(scheduler);
         auctionOwner.bindDurableScheduler(scheduler);
         nodeGraphOwner.bindDurableScheduler(scheduler);
@@ -602,6 +631,7 @@ function createProductionSchedulerRuntime(options = {}) {
         playerBountyOwner.bindDurableScheduler(scheduler);
         killRightOwner.bindDurableScheduler(scheduler);
         warNegotiationOwner.bindDurableScheduler(scheduler);
+        warDeclarationOwner.bindDurableScheduler(scheduler);
         dailyGoalsOwner.bindDurableScheduler(scheduler);
         contrabandPenaltyOwner.bindDurableScheduler(scheduler);
         customsInspectionOwner.bindDurableScheduler(scheduler);
@@ -610,7 +640,10 @@ function createProductionSchedulerRuntime(options = {}) {
         selfDestructOwner.bindDurableScheduler(scheduler);
         skinComponentOwner.bindDurableScheduler(scheduler);
         resculptOwner.bindDurableScheduler(scheduler);
+        mctActivationOwner.bindDurableScheduler(scheduler);
         campaignRedemptionOwner.bindDurableScheduler(scheduler);
+        careerRewardOwner.bindDurableScheduler(scheduler);
+        airCrateOwner.bindDurableScheduler(scheduler);
         licenseLifecycleOwner.bindDurableScheduler(scheduler);
         skinSequencingOwner.bindDurableScheduler(scheduler);
         skinMarketOwner.bindDurableScheduler(scheduler);
@@ -659,15 +692,22 @@ function createProductionSchedulerRuntime(options = {}) {
         if (nodeGraphOwner === nodeGraphRuntime) require("../npe/airNpeRuntime");
         const miningCargoRecovery = (options.miningCargoCommits || require("../mining/miningCargoCommits")).reconcile();
         if (!miningCargoRecovery.success) throw new Error(`Mining cargo recovery refused: ${miningCargoRecovery.errorMsg}`);
+        const affiliationRecovery = (options.allianceAffiliationRuntime || require("../corporation/allianceAffiliationSettlement")).reconcile();
+        if (!affiliationRecovery.success) throw new Error(`Alliance affiliation recovery refused: ${affiliationRecovery.errorMsg}`);
         await scheduler.start();
         await airEncounterOwner.reconcile();
         await skinComponentOwner.reconcile();
         await resculptOwner.reconcile();
+        await mctActivationOwner.reconcile();
         await campaignRedemptionOwner.reconcile();
+        await careerRewardOwner.reconcile();
+        await airCrateOwner.reconcile();
         await licenseLifecycleOwner.reconcile();
         await skinSequencingOwner.reconcile();
         await skinMarketOwner.reconcile();
         await essOwner.reconcile();
+        const incursionRewardReconciliation = await incursionRewardOwner.reconcile();
+        const incursionLifecycleReconciliation = await incursionLifecycleOwner.reconcile({ startup: true });
         await freelanceOwner.reconcile();
         await auctionOwner.reconcile();
         require("../achievement/achievementRuntime").reconcileFactionWarfareKills();
@@ -710,6 +750,7 @@ function createProductionSchedulerRuntime(options = {}) {
           playerBountyReconciliation,
           killRightReconciliation,
           warNegotiationReconciliation,
+          warDeclarationReconciliation,
           dailyGoalsReconciliation,
           contrabandPenaltyReconciliation,
           reprocessingSettlementReconciliation,
@@ -748,6 +789,7 @@ function createProductionSchedulerRuntime(options = {}) {
           playerBountyOwner.reconcileDurablePayouts(),
           killRightOwner.reconcileDurableKillRightPurchases(),
           warNegotiationOwner.reconcileDurableWarNegotiations(),
+          warDeclarationOwner.reconcileDurableWarDeclarations(),
           dailyGoalsOwner.reconcileDurableRewardSettlements(),
           contrabandPenaltyOwner.reconcileDurableContrabandPenalties(),
           reprocessingSettlementOwner.reconcileDurableReprocessingSettlements({
@@ -790,6 +832,8 @@ function createProductionSchedulerRuntime(options = {}) {
           runReconciler(() => starbaseFuelOwner.reconcilePersistedControlTowerFuelStates()),
         ]);
         startResult = Object.freeze({
+          incursionRewardJobs: Number(incursionRewardReconciliation.scheduled) || 0,
+          incursionLifecycleJobs: Number(incursionLifecycleReconciliation.scheduled) || 0,
           customsInspectionJobs: Number(customsInspectionReconciliation.scheduled) || 0,
           skyhookRaidJobs: Number(skyhookRaidReconciliation.scheduled) || 0,
           sovHubFuelHubs: Number(sovHubFuelReconciliation?.hubs) || 0,
@@ -813,6 +857,7 @@ function createProductionSchedulerRuntime(options = {}) {
               warNegotiationReconciliation &&
                 warNegotiationReconciliation.scheduled,
             ) || 0,
+          warDeclarationJobs: Number(warDeclarationReconciliation.scheduled) || 0,
           dailyGoalRewardJobs:
             Number(dailyGoalsReconciliation && dailyGoalsReconciliation.scheduled) || 0,
           contrabandPenaltyJobs:
@@ -1015,6 +1060,8 @@ function createProductionSchedulerRuntime(options = {}) {
           });
       }
       if (typeof essOwner.drain === "function") await essOwner.drain();
+      await incursionRewardOwner.idle();
+      await incursionLifecycleOwner.idle();
       await freelanceOwner.drain();
       await skyhookRaidOwner.idle();
       await runReconciler(() => sovHubFuelOwner.shutdown()).catch((error) => {

@@ -617,8 +617,8 @@ sendAbyssalTraceActivationBundle(traceEntity, shipEntity, presentation = {}) {
     // session-mutating JumpToAbyss call. Its publication receipt is
     // validated above and its client leaves with that call, so the
     // activation counts as delivered to it, as main (417b46cfc) counted it:
-    // a refused activation fails the Abyssal entry. It misses the departure
-    // effect of its own ship; the rest of the bubble gets it as usual.
+    // a refused activation fails the Abyssal entry. It is sent its own copy
+    // below; the rest of the bubble gets it as usual.
     const actorHeldOutsideScene = Boolean(
       capturedProfile &&
       actorSession &&
@@ -641,6 +641,17 @@ sendAbyssalTraceActivationBundle(traceEntity, shipEntity, presentation = {}) {
     const queuedStamp = eligibleRecipientCount > 0 || actorHeldOutsideScene
       ? this.queueBallHistory(traceEntity, updates)
       : null;
+    // The held pilot still gets its own departure, as on TQ: one batch with the
+    // effect, Stop and the controller event on the activation's stamp
+    // (TQTranquilExotic1.txt:351). Main sent it directly too.
+    if (actorHeldOutsideScene && queuedStamp !== null) {
+      require(path.join(runtimeEntryDirname, "./destiny/dispatch/batchDelivery")).deliverDestinyBatches(this, [{
+        kind: "character",
+        sessions: [actorSession],
+        state: updates.map((update) => [update.stamp, update.payload]),
+        waitForBubble: false,
+      }], stamp);
+    }
     const recipientCount = queuedStamp === null ? 0 : eligibleRecipientCount;
     const rejectedRecipientCount = queuedStamp === null ? eligibleRecipientCount : 0;
     const actorDelivered = !capturedProfile ||

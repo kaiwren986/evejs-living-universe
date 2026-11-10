@@ -65,6 +65,6 @@
   },
   "belts": {
     "asteroidFieldsEnabled": true,
-    "asteroidBeltStartupReset": true
+    "asteroidBeltStartupReset": false
   }
 }

@@ -12,6 +12,7 @@ const {
   getAttributeIDByNames,
   getEffectTypeRecord,
   getFittedModuleItems,
+  applyModifierGroups,
 } = require(path.join(__dirname, "../fitting/liveFittingState"));
 const {
   getCachedCharacterSkillMap,
@@ -41,6 +42,7 @@ const {
 } = require(path.join(__dirname, "../dogma/implants/activeImplantModifiers"));
 
 const ATTRIBUTE_STRUCTURE_HP = getAttributeIDByNames("hp", "structureHP") || 9;
+const ATTRIBUTE_WARP_SCRAMBLE_STATUS = getAttributeIDByNames("warpScrambleStatus") || 104;
 const ATTRIBUTE_ARMOR_HP = getAttributeIDByNames("armorHP") || 265;
 const ATTRIBUTE_SHIELD_CAPACITY = getAttributeIDByNames("shieldCapacity") || 263;
 const STRUCTURE_CONTROLLER_SKILL_TYPE_IDS = new Set([
@@ -124,6 +126,8 @@ const ATTRIBUTE_EVASIVE_SIGNATURE_RADIUS_BONUS =
   getAttributeIDByNames("fighterAbilityEvasiveManeuversSignatureRadiusBonus") || 2225;
 const ATTRIBUTE_ECM_DURATION =
   getAttributeIDByNames("fighterAbilityECMDuration") || 2220;
+const ATTRIBUTE_WEB_SPEED_PENALTY =
+  getAttributeIDByNames("fighterAbilityStasisWebifierSpeedPenalty") || 2184;
 const ATTRIBUTE_ECM_RANGE_OPTIMAL =
   getAttributeIDByNames("fighterAbilityECMRangeOptimal") || 2221;
 const ATTRIBUTE_ECM_RANGE_FALLOFF =
@@ -142,6 +146,10 @@ const ATTRIBUTE_ECM_STRENGTH_MAGNETOMETRIC =
   getAttributeIDByNames("fighterAbilityECMStrengthMagnetometric") || 2248;
 const ATTRIBUTE_ECM_STRENGTH_RADAR =
   getAttributeIDByNames("fighterAbilityECMStrengthRadar") || 2249;
+const ATTRIBUTE_TACKLE_WEB_SPEED_PENALTY =
+  getAttributeIDByNames("fighterAbilityTackleWebSpeedPenalty") || 2242;
+const ATTRIBUTE_TACKLE_WARP_DISRUPTION_STRENGTH =
+  getAttributeIDByNames("fighterAbilityTackleWarpDisruptionPointStrength") || 2425;
 
 function firstPositiveInt(...values) {
   for (const value of values) {
@@ -537,7 +545,15 @@ function buildOperationalAttributes(fighterEntity, controllerEntity) {
 
 function resolveFighterOperationalAttributes(fighterEntity, controllerEntity) {
   const operational = buildOperationalAttributes(fighterEntity, controllerEntity);
-  return operational ? operational.attributes : null;
+  if (!operational) return null;
+  const projected = require("../../space/modules/hostileModuleRuntime")
+    .collectModifierEntriesForTarget(fighterEntity)
+    // Points are read directly from their live aggregate, not the motion cache.
+    .filter((entry) => entry.modifiedAttributeID !== ATTRIBUTE_WARP_SCRAMBLE_STATUS);
+  if (!projected.length) return operational.attributes;
+  const attributes = { ...operational.attributes };
+  applyModifierGroups(attributes, projected);
+  return attributes;
 }
 
 function buildDamageVector(attributes, idsByType, scale = 1) {
@@ -653,10 +669,12 @@ function resolveFighterAbilitySnapshot(fighterEntity, controllerEntity, slotID) 
   const jammerStrengthBySensorType =
     normalizedEffectFamily === "fighterabilityecm"
       ? Object.freeze({
-        gravimetric: round6(toFiniteNumber(attributes[ATTRIBUTE_ECM_STRENGTH_GRAVIMETRIC], 0)),
-        ladar: round6(toFiniteNumber(attributes[ATTRIBUTE_ECM_STRENGTH_LADAR], 0)),
-        magnetometric: round6(toFiniteNumber(attributes[ATTRIBUTE_ECM_STRENGTH_MAGNETOMETRIC], 0)),
-        radar: round6(toFiniteNumber(attributes[ATTRIBUTE_ECM_STRENGTH_RADAR], 0)),
+        // A squadron rolls once with the sum of its surviving members' effective
+        // strengths. Separate squadrons still make independent jammer cycles.
+        gravimetric: round6(toFiniteNumber(attributes[ATTRIBUTE_ECM_STRENGTH_GRAVIMETRIC], 0) * squadronSize),
+        ladar: round6(toFiniteNumber(attributes[ATTRIBUTE_ECM_STRENGTH_LADAR], 0) * squadronSize),
+        magnetometric: round6(toFiniteNumber(attributes[ATTRIBUTE_ECM_STRENGTH_MAGNETOMETRIC], 0) * squadronSize),
+        radar: round6(toFiniteNumber(attributes[ATTRIBUTE_ECM_STRENGTH_RADAR], 0) * squadronSize),
       })
       : null;
 
@@ -798,6 +816,17 @@ function resolveFighterAbilitySnapshot(fighterEntity, controllerEntity, slotID) 
     healthPerMember,
     speedBonusPercent,
     signatureRadiusBonusPercent,
+    // The pinned SDE labels 2242 per fighter, while 2425 is the squadron's
+    // separate point strength. Keep both components on one tackle record.
+    tackleWebSpeedPenalty: normalizedEffectFamily === "fighterabilitytackle"
+      ? Math.max(-100, round6(toFiniteNumber(attributes[ATTRIBUTE_TACKLE_WEB_SPEED_PENALTY], 0) * squadronSize)) : 0,
+    tackleWarpDisruptionStrength: normalizedEffectFamily === "fighterabilitytackle"
+      ? Math.max(0, toFiniteNumber(attributes[ATTRIBUTE_TACKLE_WARP_DISRUPTION_STRENGTH], 0)) : 0,
+    // Each squadron projects one web: sum its effective per-fighter penalties
+    // before the hostile runtime stacks that web with other sources.
+    webSpeedPenalty: normalizedEffectFamily === "fighterabilitystasiswebifier"
+      ? Math.max(-100, round6(toFiniteNumber(attributes[ATTRIBUTE_WEB_SPEED_PENALTY], 0) * squadronSize))
+      : 0,
     jammerStrengthBySensorType,
     jammerDurationMs:
       normalizedEffectFamily === "fighterabilityecm"
@@ -811,6 +840,11 @@ function resolveFighterAbilitySnapshot(fighterEntity, controllerEntity, slotID) 
       normalizedEffectFamily === "fighterabilityecm"
         ? Math.max(0, round6(toFiniteNumber(attributes[ATTRIBUTE_ECM_RANGE_FALLOFF], falloffMeters)))
         : 0,
+    targetResistanceAttributeID: normalizedEffectFamily === "fighterabilitymissiles"
+      ? toInt(attributes[2170], 0) : 0,
+    evasionShieldMultipliers: normalizedEffectFamily === "fighterabilityevasivemaneuvers"
+      ? { 271: toFiniteNumber(attributes[2118], 1), 274: toFiniteNumber(attributes[2119], 1),
+        273: toFiniteNumber(attributes[2120], 1), 272: toFiniteNumber(attributes[2121], 1) } : null,
     explosionRadius,
     explosionVelocity,
     damageReductionFactor,

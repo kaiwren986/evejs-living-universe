@@ -12,9 +12,15 @@ function toInt(value, fallback = 0) {
 const HUD_ICON_KIND_ASSISTANCE = "assistance";
 const HUD_ICON_KIND_COMMAND_BURST = "commandBurst";
 const HUD_ICON_KIND_HOSTILE = "hostile";
+const HUD_ICON_KIND_FIELD = "field";
 const HUD_ICON_KIND_GENERIC_FX = "genericFx";
 
 const DELIVERY_PROFILE_BY_KIND = Object.freeze({
+  [HUD_ICON_KIND_FIELD]: Object.freeze({
+    usesJamTimer: false,
+    usesTacticalEwar: true,
+    usesDbuffRefresh: false,
+  }),
   [HUD_ICON_KIND_ASSISTANCE]: Object.freeze({
     usesJamTimer: true,
     usesTacticalEwar: true,
@@ -170,6 +176,7 @@ function upsertHudIconState(entity, hudState) {
     return {
       changed: false,
       state: null,
+      previousState: null,
     };
   }
   const stateMap = getHudIconStateMap(entity, true);
@@ -181,6 +188,7 @@ function upsertHudIconState(entity, hudState) {
       previousState.startedAtMs !== hudState.startedAtMs ||
       previousState.expiresAtMs !== hudState.expiresAtMs,
     state: hudState,
+    previousState,
   };
 }
 
@@ -198,6 +206,33 @@ function removeHudIconState(entity, keyOrState) {
   }
   const existingState = stateMap.get(key) || null;
   if (!existingState) {
+    return null;
+  }
+  stateMap.delete(key);
+  return existingState;
+}
+
+// A module stopped before its cycle ends leaves the target's icon up until
+// that cycle's end: the state stays, and the expiry tick ends it then. Only a
+// state whose cycle is over is removed here and returned to be ended now.
+function releaseHudIconStateAtCycleEnd(entity, keyOrState, nowMs) {
+  const stateMap = getHudIconStateMap(entity, false);
+  if (!(stateMap instanceof Map) || stateMap.size <= 0) {
+    return null;
+  }
+  const key =
+    keyOrState && typeof keyOrState === "object"
+      ? String(keyOrState.key || "")
+      : String(keyOrState || "");
+  const existingState = key === "" ? null : stateMap.get(key) || null;
+  if (!existingState) {
+    return null;
+  }
+  if (
+    existingState.expiresAtMs !== null &&
+    existingState.expiresAtMs !== undefined &&
+    toFiniteNumber(existingState.expiresAtMs, 0) > toFiniteNumber(nowMs, Date.now())
+  ) {
     return null;
   }
   stateMap.delete(key);
@@ -258,6 +293,7 @@ module.exports = {
   HUD_ICON_KIND_ASSISTANCE,
   HUD_ICON_KIND_COMMAND_BURST,
   HUD_ICON_KIND_HOSTILE,
+  HUD_ICON_KIND_FIELD,
   DELIVERY_PROFILE_BY_KIND,
   buildHudIconState,
   buildAssistanceHudIconState,
@@ -266,6 +302,7 @@ module.exports = {
   buildJammerHudIconState,
   upsertHudIconState,
   removeHudIconState,
+  releaseHudIconStateAtCycleEnd,
   pruneExpiredHudIconStates,
   listActiveHudIconStates,
 };

@@ -9,10 +9,8 @@ const { throwWrappedUserError } = require(path.join(
   "../../common/machoErrors",
 ));
 const { buildList } = require(path.join(__dirname, "../_shared/serviceHelpers"));
-
-const VOID_SPACE_JUMP_ERROR = Object.freeze({
-  UNKNOWN_ERROR: 22,
-});
+const { VOID_SPACE_JUMP_ERROR, isVoidSystemID } = require("./voidReplayAdmission");
+const config = require("../../config");
 
 const auditEvents = [];
 
@@ -72,6 +70,12 @@ class VoidSpaceMgrService extends BaseService {
   }
 
   Handle_VoidSpacePlayerJump(args, session) {
+    if (config.voidReplayEnabled === true) {
+      return require("./voidReplayRuntime").startReplay(args?.[0], args?.[1], session).then((result) => {
+        if (result.errors.length) throwVoidSpaceJumpError(result.errors);
+        return result.boundResult ?? null;
+      });
+    }
     recordAuditEvent("void_space_player_jump_rejected", args, session);
     log.debug(
       "[VoidSpaceMgr] VoidSpacePlayerJump rejected: Void Space encounter runtime is not available",
@@ -80,6 +84,11 @@ class VoidSpaceMgrService extends BaseService {
   }
 
   Handle_VoidSpaceEndGateActivation(args, session) {
+    const gateID = args?.[0];
+    if (isVoidSystemID(Number(session?._space?.systemID)) && Number.isSafeInteger(gateID) && gateID > 0) {
+      const result = require("./voidReplayRuntime").exitReplay(gateID, session);
+      if (result) return result.data.boundResult;
+    }
     recordAuditEvent("void_space_end_gate_activation_rejected", args, session);
     log.debug(
       "[VoidSpaceMgr] VoidSpaceEndGateActivation rejected: no active Void Space origin state exists",
@@ -88,6 +97,9 @@ class VoidSpaceMgrService extends BaseService {
   }
 
   Handle_ClientIsReady(args, session) {
+    if (isVoidSystemID(Number(session?._space?.systemID))) {
+      return require("./voidReplayRuntime").clientIsReady(session);
+    }
     recordAuditEvent("client_is_ready_without_content", args, session);
     return null;
   }

@@ -198,20 +198,30 @@ function readSolarSystemInterferenceTable() {
   };
 }
 
-function getSolarSystemInterferenceState(solarSystemID) {
+function readSolarSystemInterferenceState(solarSystemID) {
   const normalizedSolarSystemID = normalizeSolarSystemID(solarSystemID);
   if (!normalizedSolarSystemID) {
-    return null;
+    return { success: false, errorMsg: "SOLAR_SYSTEM_NOT_FOUND" };
   }
 
   const result = repo.read(
     SOLAR_SYSTEM_INTERFERENCE_STATE_TABLE,
     systemPath(normalizedSolarSystemID),
   );
-  if (!result.success || !result.data || typeof result.data !== "object") {
-    return null;
+  if (!result.success) {
+    return result.errorMsg === "ENTRY_NOT_FOUND"
+      ? { success: true, data: null }
+      : { success: false, errorMsg: result.errorMsg || "READ_ERROR" };
   }
-  return cloneValue(result.data);
+  if (!result.data || typeof result.data !== "object" || Array.isArray(result.data)) {
+    return { success: false, errorMsg: "INVALID_SOLAR_SYSTEM_INTERFERENCE_STATE" };
+  }
+  return { success: true, data: cloneValue(result.data) };
+}
+
+function getSolarSystemInterferenceState(solarSystemID) {
+  const result = readSolarSystemInterferenceState(solarSystemID);
+  return result.success ? result.data : null;
 }
 
 function writeSolarSystemInterferenceState(solarSystemID, rawState) {
@@ -256,6 +266,50 @@ function writeSolarSystemInterferenceState(solarSystemID, rawState) {
   };
 }
 
+function getSolarSystemInterferenceStateNow(solarSystemID, filetime = currentFileTime()) {
+  return calculateInterferenceStateAtFileTime(
+    getSolarSystemInterferenceState(solarSystemID) || buildQuietInterferenceState(filetime),
+    filetime,
+  );
+}
+
+function addSolarSystemInterference(solarSystemID, amount, options = {}) {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { success: false, errorMsg: "INVALID_SOLAR_SYSTEM_INTERFERENCE_COST" };
+  }
+  const filetime = normalizeTimestamp(options.filetime);
+  const previousState = getSolarSystemInterferenceStateNow(solarSystemID, filetime);
+  if (filetime < previousState.lastDecayTickTimestamp) {
+    return { success: false, errorMsg: "INVALID_SOLAR_SYSTEM_INTERFERENCE_TIMESTAMP" };
+  }
+  if (previousState.interferenceLevel + amount > previousState.maxInterferenceLevel) {
+    return { success: false, errorMsg: "SOLAR_SYSTEM_INTERFERENCE_TOO_HIGH" };
+  }
+  // Starting from a quiet state must reset the decay clock too. Otherwise a
+  // newly added charge could immediately decay over the preceding quiet time.
+  const state = { ...previousState, interferenceLevel: previousState.interferenceLevel + amount,
+    lastDecayTickTimestamp: filetime };
+  const written = writeSolarSystemInterferenceState(solarSystemID, state);
+  return written.success ? { success: true, data: { previousState, state } } : written;
+}
+
+// Undo an interrupted CRAB payment using its exact preimage, including absence
+// and the old decay timestamp. The caller retains its durable intent until
+// both resource owners have restored and fenced their records.
+function restoreSolarSystemInterferenceState(solarSystemID, previous) {
+  const id = normalizeSolarSystemID(solarSystemID);
+  if (!id) return { success: false, errorMsg: "SOLAR_SYSTEM_NOT_FOUND" };
+  const restored = previous === null
+    ? repo.remove(SOLAR_SYSTEM_INTERFERENCE_STATE_TABLE, systemPath(id))
+    : repo.write(SOLAR_SYSTEM_INTERFERENCE_STATE_TABLE, systemPath(id), cloneValue(previous), { force: true });
+  if (!restored.success && restored.errorMsg !== "ENTRY_NOT_FOUND") return restored;
+  return repo.flushTableSync(SOLAR_SYSTEM_INTERFERENCE_STATE_TABLE);
+}
+
+function flushSolarSystemInterferenceState() {
+  return repo.flushTableSync(SOLAR_SYSTEM_INTERFERENCE_STATE_TABLE);
+}
+
 module.exports = {
   SOLAR_SYSTEM_INTERFERENCE_STATE_TABLE,
   DEFAULT_INTERFERENCE_DECREASE_PER_DECAY_TICK,
@@ -270,6 +324,11 @@ module.exports = {
   calculateInterferenceStateAtFileTime,
   getInterferenceBand,
   readSolarSystemInterferenceTable,
+  readSolarSystemInterferenceState,
   getSolarSystemInterferenceState,
   writeSolarSystemInterferenceState,
+  getSolarSystemInterferenceStateNow,
+  addSolarSystemInterference,
+  restoreSolarSystemInterferenceState,
+  flushSolarSystemInterferenceState,
 };

@@ -36,12 +36,22 @@ function recordCrimewatchOffensiveAggression(scene, attackerEntity, targetEntity
       crimewatchState &&
       typeof crimewatchState.recordHighSecCriminalAggression === "function"
     ) {
-      return crimewatchState.recordHighSecCriminalAggression(
+      const result = crimewatchState.recordHighSecCriminalAggression(
         scene,
         attackerEntity,
         targetEntity,
         nowMs,
       );
+      // Retaliation is downstream of the durable offense. A controller failure
+      // must not make a committed Crimewatch consequence appear rejected.
+      try {
+        require("../npc/empireSecurity/empireSentryRuntime").noteOffense(
+          scene, attackerEntity, result, nowMs, targetEntity,
+        );
+      } catch (error) {
+        log.warn(`[SpaceRuntime] Empire sentry response failed: ${error.message}`);
+      }
+      return result;
     }
   } catch (error) {
     log.warn(`[SpaceRuntime] Crimewatch activation hook failed: ${error.message}`);

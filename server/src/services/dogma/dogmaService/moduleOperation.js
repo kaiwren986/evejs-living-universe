@@ -59,6 +59,7 @@ const {
   getTypeAttributeValue,
   listFittedItemsForLocation,
   typeHasEffectName,
+  getMissingRequiredSkills,
 } = require(path.join(__dirname, "../../fitting/liveFittingState"));
 const {
   getShipFittingSnapshot,
@@ -2058,6 +2059,20 @@ module.exports = {
 
   _throwModuleOnlineUserError(errorMsg = "", moduleItem = null, data = null) {
     switch (String(errorMsg || "").trim()) {
+      // OnlineHasSkillPrerequisites: "Unable to bring {item} online. This action requires having learned the
+      // following skills: {requiredSkills}." Skills as UI/SkillQueue/Skills/SkillNameAndLevel ("{name} : Level n").
+      case "SKILL_REQUIRED": {
+        const names = (Array.isArray(data && data.missingSkills) ? data.missingSkills : []).map((requirement) => {
+          const skillTypeID = Number(requirement && requirement.skillTypeID) || 0;
+          const skillName = String((resolveItemByTypeID(skillTypeID) || {}).name || skillTypeID);
+          return `${skillName} : Level ${Number(requirement && requirement.requiredLevel) || 0}`;
+        });
+        throwWrappedUserError("OnlineHasSkillPrerequisites", {
+          item: Number(moduleItem && moduleItem.typeID) || 0,
+          requiredSkills: names.join(", "),
+        });
+        break;
+      }
       case "MODULE_NOT_FOUND":
       case "SHIP_NOT_FOUND":
       case "NOT_IN_SPACE":
@@ -2295,6 +2310,15 @@ module.exports = {
         break;
       case "ABYSSAL_CLOAK_RESTRICTED":
         this._throwCustomNotifyUserError("You cannot cloak inside Abyssal Deadspace.");
+        break;
+      case "ESS_CLOAK_RESTRICTED":
+        this._throwCustomNotifyUserError("Cloaking devices cannot be activated this close to the ESS.");
+        break;
+      case "ESS_PROPULSION_RESTRICTED":
+        this._throwCustomNotifyUserError("Microwarpdrives and micro jump drives cannot be used inside the ESS field.");
+        break;
+      case "ESS_CYNOSURAL_RESTRICTED":
+        this._throwCustomNotifyUserError("Cynosural fields cannot be lit inside the ESS field.");
         break;
       case "ANALYZER_TARGET_INVALID":
         this._throwCustomNotifyUserError("That target cannot be hacked with this analyzer.");
@@ -2611,6 +2635,16 @@ module.exports = {
         return {
           success: false,
           errorMsg: "MODULE_NOT_FOUND",
+        };
+      }
+      // A module fitted without its skills (liveFittingState.validateFitForShip) cannot come online: the online
+      // effect's own refusal (dogma online.py OnlineEffect.Start, OnlineHasSkillPrerequisites).
+      const missingSkills = getMissingRequiredSkills(charID, moduleItem.typeID);
+      if (missingSkills.length > 0) {
+        return {
+          success: false,
+          errorMsg: "SKILL_REQUIRED",
+          data: { missingSkills },
         };
       }
       // (With what the game's refusal says: the module's need, what the ship has left without it, and its whole

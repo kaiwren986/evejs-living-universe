@@ -63,43 +63,90 @@ function birthBlackboard(characterID, state) {
   return { birth_station_id: stationID, birth_system_id: Number(station?.solarSystemID || state?.encounter?.entry.systemID || 0) };
 }
 
+// Scene 1.4's item-retrieval site: one site per solar system, shared by every pilot in the step,
+// as on TQ (the scenes 1.1 and 1.2 sites stay each pilot's own).
+function retrievalSiteKey(systemID) { return `air:retrieval:${Number(systemID)}`; }
 function ownedSite(session, state = read(resolveSessionCharacterID(session))) {
   const site = state?.siteInstanceID && require("../dungeon/dungeonRuntime").getInstance(state.siteInstanceID);
-  if (!site || site.lifecycleState !== "active" || site.ownership?.characterID !== resolveSessionCharacterID(session) || site.solarSystemID !== Number(session.solarsystemid2 || session.solarsystemid || 0)) return null;
+  const systemID = Number(session.solarsystemid2 || session.solarsystemid || 0);
+  if (!site || site.lifecycleState !== "active" || site.solarSystemID !== systemID || site.metadata?.operationKey !== retrievalSiteKey(systemID)) return null;
   return site;
+}
+// Where a warp to the pilot's system's sun lands (warpInPointParity), or undefined without a sun.
+function sunWarpInPoint(session) {
+  const scene = require("../../space/runtime").getSceneForSession(session);
+  const sun = (scene?.staticEntities || []).find(entity => entity && (entity.kind === "sun" || Number(entity.groupID) === 6));
+  return sun ? require("../../space/destiny/simulation/warpInPointParity").getSunWarpInPoint(sun) : undefined;
 }
 function ensureRetrievalSite(session, state) {
   if (!session._space) return state;
-  if (state.siteInstanceID && !ownedSite(session, state)) throw graphError("AIR_OPERATION_SCENE_STALE");
-  const result = requireSuccess(require("../dungeon/dungeonUniverseSiteService").spawnTemplateForSession(session, "evejs.air-tutorial:10461", {
-    operationKey: `air:${state.runID}:retrieval`, broadcast: true, spawnEncounters: false,
-    // Keep the ordinary station outside the deadspace capture sphere so the
-    // native warp-out contract remains usable after retrieval.
-    markCurrentDungeonRoom: false, position: state.sitePosition || undefined, spawnOffsetMeters: 6000000000,
+  // A pilot's own site from an earlier release (one per pilot, at the same spot for everyone at
+  // the sun) gives way to the shared one.
+  const dungeonRuntime = require("../dungeon/dungeonRuntime"), sites = require("../dungeon/dungeonUniverseSiteService");
+  const own = state.siteInstanceID && dungeonRuntime.getInstance(state.siteInstanceID);
+  if (own && own.ownership?.characterID === state.characterID && own.metadata?.operationKey === `air:${state.runID}:retrieval`) {
+    requireSuccess(sites.purgePrivateOperationForCharacter(state.characterID, own.instanceID, `air:${state.runID}:retrieval`));
+  }
+  const result = requireSuccess(sites.spawnTemplateForSession(session, "evejs.air-tutorial:10461", {
+    sharedOperationKey: retrievalSiteKey(session.solarsystemid2 || session.solarsystemid), broadcast: true, spawnEncounters: false,
+    // On TQ the item-retrieval site is at the system's sun: the step's warp to the star lands in
+    // it, with the star filling the view. It stands at the star's own warp-in point, far from the
+    // station, whose deadspace capture sphere would otherwise break the native warp-out.
+    markCurrentDungeonRoom: false, position: sunWarpInPoint(session), spawnOffsetMeters: 6000000000,
   }));
   const site = result.data.instance;
   state.siteInstanceID = site.instanceID;
   state.sitePosition = site.position;
   state.siteSystemID = site.solarSystemID;
-  state.sourceItemIDs ||= [];
-  const scene = require("../../space/runtime").getSceneForSession(session);
-  for (const entity of scene?.getDynamicEntities() || []) {
-    if (entity.dungeonSiteInstanceID !== site.instanceID || !entity.dungeonMaterializedContainer) continue;
-    for (const item of inventory.listContainerItems(null, entity.itemID)) if (item.typeID === 78677 && !state.sourceItemIDs.includes(item.itemID)) state.sourceItemIDs.push(item.itemID);
-  }
+  delete state.sourceItemIDs;
   require("../dungeon/operationSiteRuntime").registerOperationSpawnpointRecord({ characterID: state.characterID, siteID: 2594, solarSystemID: site.solarSystemID, spawnID: site.instanceID, dungeonInstanceID: site.instanceID, position: site.position });
   save(state.characterID, state);
   requireSuccess(require("../../gameStore").flushTableSync("dungeonRuntimeState"));
   return state;
 }
+// The item the site's wrecks give, as the pack says (populationHints.containers[].itemOnOpen).
+function itemOnOpen(site, role = null) {
+  const containers = require("../dungeon/dungeonAuthority").getTemplateByID(site?.templateID)?.populationHints?.containers || [];
+  const spec = containers.find(entry => entry?.itemOnOpen && (role === null || entry.role === role));
+  const typeID = Number(spec?.itemOnOpen?.typeID) || 0;
+  return typeID > 0 ? { typeID, quantity: Math.max(1, Number(spec.itemOnOpen.quantity) || 1) } : null;
+}
+// The step is done once the pilot has the item (taken from any of the site's wrecks, theirs or
+// one another pilot left there) in the ship or at the station.
 function retrieved(session, state) {
-  if (!ownedSite(session, state)) return false;
+  const site = ownedSite(session, state), item = itemOnOpen(site);
+  if (!item) return false;
   const ship = characters.getActiveShipRecord(state.characterID);
   const record = characters.getCharacterRecord(state.characterID);
-  return state.sourceItemIDs?.some(id => {
-    const item = inventory.findItemById(id);
-    return item && item.ownerID === state.characterID && item.typeID === 78677 && Number(item.stacksize ?? item.quantity) > 0 && [ship?.itemID, record.stationID].includes(item.locationID);
-  }) || false;
+  return inventory.listOwnedItems(state.characterID).some(owned => owned.typeID === item.typeID && Number(owned.stacksize ?? owned.quantity) > 0 && [ship?.itemID, record.stationID].includes(owned.locationID));
+}
+// A pilot in step 1.4 opened one of the site's wrecks (invBroker GetInventoryFromId): on TQ the
+// item appears in whichever wreck is opened, when that wreck holds none. A pilot who already has
+// one anywhere (the ship, the station, a jettisoned can of theirs) gets none, so it cannot be
+// farmed; once theirs is gone for good, the next wreck they open has one again.
+function onRetrievalWreckOpened(session, container) {
+  const characterID = resolveSessionCharacterID(session), state = read(characterID);
+  if (!container || !state || state.status !== "active" || state.phaseGraphID !== 709) return;
+  const site = ownedSite(session, state);
+  if (!site || Number(container.dungeonSiteInstanceID) !== Number(site.instanceID)) return;
+  const item = itemOnOpen(site, container.dungeonSiteContentRole);
+  if (!item) return;
+  if (inventory.listContainerItems(null, container.itemID).some(held => held.typeID === item.typeID)) return;
+  if (inventory.listOwnedItems(characterID).some(owned => owned.typeID === item.typeID)) return;
+  requireSuccess(inventory.grantItemsToOwnerLocation(1, container.itemID, inventory.ITEM_FLAGS.CARGO_HOLD, [{ itemType: item.typeID, quantity: item.quantity }]));
+}
+// Scene 1.4 "warp to this system's sun": the client's step is a plain warp to the star. The
+// system's item-retrieval site stands at the star's warp-in point (ensureRetrievalSite). While
+// the step is active, a warp to the star goes into the site.
+function retrievalWarpTarget(session, targetEntityID) {
+  const characterID = resolveSessionCharacterID(session), state = read(characterID);
+  if (!state || state.status !== "active" || state.phaseGraphID !== 709 || !state.siteInstanceID || !session?._space) return null;
+  const root = activeRoot(session);
+  if (!root || root.stopped || root.graphID !== 709 || root.activeTask !== "1.4.01_item_retrieval") return null;
+  const target = require("../../space/runtime").getSceneForSession(session)?.getEntityByID(Number(targetEntityID));
+  if (!target || !(target.kind === "sun" || Number(target.groupID) === 6)) return null;
+  const site = ownedSite(session, state);
+  return site ? { point: site.position, instanceID: site.instanceID, siteID: site.spawnState?.siteID } : null;
 }
 function taskEvidence(session, root, task, state) {
   const ship = characters.getActiveShipRecord(root.characterID);
@@ -109,7 +156,7 @@ function taskEvidence(session, root, task, state) {
     case "board_ship": case "ship_hud": case "start_repairing": case "balin_warping": return encounter.evidence(session, task);
     case "2.3.01_system_navigation_introduction":
     case "2.4.01_agent_introduction": case "2.4.02_skill_plan_reminder": case "2.4.03_opportunities_mission_reminder": return require("./airGuidanceRuntime").atCareerStation(session);
-    case "2.5.01_acp_reward_reminder": case "2.5.02_help_section_introduction": case "2.5.03_handoff": return require("./airGuidanceRuntime").atCareerStation(session);
+    case "2.5.01_acp_reward_reminder": return require("./airGuidanceRuntime").acpRewardReminderDone(session);
     case "2.2.01_move_ore": case "2.2.02_market_introduction": case "2.2.03_wallet_introduction": case "2.2.04_acp_goal_introduction": case "2.2.05_undock": return economy.evidence(session, task, state);
     case "2.1.01_enter_mining_site": case "2.1.02_mine_asteroid_1": case "2.1.03_mine_asteroid_2": case "2.1.04_mine_asteroid_3": case "2.1.05_loot_wreck": case "2.1.06_back_to_station": return mining.evidence(session, task, state);
     case "1.3.04_board_corvette": return Boolean(ship && ship.ownerID === root.characterID && !inventory.isCapsuleTypeID(ship.typeID));
@@ -118,7 +165,9 @@ function taskEvidence(session, root, task, state) {
     case "1.5.02_online_module_attempt": return Boolean(ship && (fitting.getFittedModuleItems(root.characterID, ship.itemID).some(item => item.typeID === 78677) || state.fittingAttempt?.rootID === root.instanceID && state.fittingAttempt.shipID === ship.itemID));
     case "1.5.03_skill_introduction": return require("../skills/skillState").ensureCharacterSkills(root.characterID).some(skill => skill.typeID === 22578);
     case "1.5.06_online_module": return Boolean(ship && fitting.getFittedModuleItems(root.characterID, ship.itemID).some(item => item.typeID === 78677 && fitting.isEffectivelyOnlineModule(item)));
-    default: return ["1.3.01_wake-up", "1.3.02_acp_reward_introduction", "1.3.03_redeeming_introduction", "1.5.01_fitting_introduction", "1.5.04_skill_point_introduction", "1.5.05_skill_plan_introduction", "1.5.07_opportunities_mission_introduction"].includes(task);
+    // 2.5.02 (graph 684) and 2.5.03 (graph 705) are the Agency help page and the handoff
+    // conversation: client UI only, asked for wherever the pilot is.
+    default: return ["2.5.02_help_section_introduction", "2.5.03_handoff", "1.3.01_wake-up", "1.3.02_acp_reward_introduction", "1.3.03_redeeming_introduction", "1.5.01_fitting_introduction", "1.5.04_skill_point_introduction", "1.5.05_skill_plan_introduction", "1.5.07_opportunities_mission_introduction"].includes(task);
   }
 }
 function authorizeClientMessage(session, root, key, value) {
@@ -139,7 +188,17 @@ graphs.registerOwnerPolicy("air", {
     return graphID === 716 || graphs.isClientGraphDescendant(CLIENT_CHAPTERS[root.graphID], graphID);
   },
   authorizeClientMessage,
-  canPublish(session, root, event) { return event.type === "OnStopClientNodeGraph" || eligible(session); },
+  canPublish(session, root, event) {
+    if (event.type === "OnStopClientNodeGraph") return true;
+    if (!eligible(session)) return false;
+    // "server_warped_to_dungeon" carries the client's arrival beacon. The graph sends the site
+    // entity, which the client never sees from the warp-in point; send the site's asteroid.
+    if (root.graphID === 711 && event.type === "OnClientNodeGraphMessage" && event.args?.[1] === "server_warped_to_dungeon") {
+      const beacon = mining.beaconID(root.characterID);
+      if (beacon) event.args[2] = beacon;
+    }
+    return true;
+  },
   routeClientMessage(session, root, key, value) {
     if (!["client_complete_task", "client_task_complete"].includes(key)) return null;
     if (root.graphID === 686) return { messageKey: "client_complete_task" };
@@ -157,7 +216,13 @@ graphs.registerOwnerPolicy("air", {
   },
 });
 
-function ensureForSession(session) { return serialized(resolveSessionCharacterID(session), () => ensureNow(session)); }
+function ensureForSession(session) {
+  return serialized(resolveSessionCharacterID(session), async () => {
+    const result = await ensureNow(session);
+    require("./airOpportunityRuntime").restore(session);
+    return result;
+  });
+}
 function prepareForSelection(session) {
   const characterID = resolveSessionCharacterID(session);
   if (!characterID || !eligible(session) || activePhase(characterID)?.graphID !== 685) return;
@@ -177,6 +242,10 @@ async function ensureNow(session) {
   let root = activeRoot(session);
   if (root && !root.stopped) {
     if (!PHASES.some(entry => entry.graphID === root.graphID) || root.graphID !== phase?.graphID && !root.queue.length && !root.failure) throw graphError("AIR_GRAPH_PHASE_CONFLICT");
+    // Ordinary disconnect removes the pilot Ball and its pending companion warp.
+    // A durable active graph must resume that transition too, before this new
+    // attachment is remembered (so a refused resume remains retryable).
+    if (!alreadyAttached && [685, 686].includes(root.graphID) && encounter.waiting(characterID)) await encounter.resumePending(session);
     sessions.set(characterID, session);
     if ([685, 686].includes(root.graphID)) state = await encounter.ensure(session, state, phase, root);
     const birth = birthBlackboard(characterID, state);
@@ -184,9 +253,17 @@ async function ensureNow(session) {
       root = await graphs.updateRootBlackboard(session, root.instanceID, birth, { publicBlackboardKeys: Object.keys(birth), publishToClient: true, deferExecution: true });
     }
     if (phase?.graphID === 709) state = ensureRetrievalSite(session, state);
+    if (phase?.graphID === 712) state = economy.prepare(session, state);
     if (root.graphID === 711 && phase?.graphID === 711) {
       state = mining.ensureSite(session, state, root);
-      if (state.miningInstanceID && root.blackboard.entry_item_id_mining_dungeon !== mining.siteFor(characterID)?.spawnState.siteID) await graphs.updateRootBlackboard(session, root.instanceID, miningBlackboard(state, root));
+      // Also when only the wreck (re-created) or the beacon changed: the client's wreck signal
+      // and "stop the ship" sequence wait for the current wreck, and the beacon value is
+      // client-only memory, gone after a relog. The client master gets the root blackboard
+      // when it starts.
+      const updates = miningBlackboard(state, root);
+      if (state.miningInstanceID && ["entry_item_id_mining_dungeon", "wreck_item_id", "2.1._beacon_item_id"].some(key => (root.blackboard[key] ?? null) !== (updates[key] ?? null))) {
+        await graphs.updateRootBlackboard(session, root.instanceID, updates, { publishToClient: true });
+      }
     }
     // A final checkpoint can commit before its graph's terminal stop. Finish
     // that saved queue before selecting the next chapter, including CP 50.
@@ -198,7 +275,11 @@ async function ensureNow(session) {
     if (resumed.graphID === 686) await combat.queueProgress(session, resumed);
     return { success: true, active: true, root: resumed };
   }
-  if (encounter.waiting(characterID)) { await encounter.resumePending(session); return { success: true, active: true, pendingArrival: true }; }
+  if (encounter.waiting(characterID)) {
+    await encounter.resumePending(session);
+    // Scene 1.2 runs during the fleet warp (airEncounterRuntime "fleet-warp").
+    if (phase?.graphID !== 686) return { success: true, active: true, pendingArrival: true };
+  }
   if (!phase) return { success: false, errorMsg: "AIR_ENCOUNTER_GRAPH_UNSUPPORTED", checkpoint: checkpoint(characterID) };
   sessions.set(characterID, session);
   save(characterID, state);
@@ -228,7 +309,7 @@ function miningBlackboard(state, root = null) {
   // The operation owner can prepare a bookmark before warp. The graph must
   // still run its setup subgraph once: that edge arms its actor/state watchers.
   // Only the authored setup output publishes the spawn ID to the graph.
-  return { mining_dungeon_spawn_id: root?.blackboard.mining_dungeon_spawn_id || null, mining_solar_system_id: site?.solarSystemID || state.miningSystemID || null, entry_item_id_mining_dungeon: site?.spawnState.siteID || null, wreck_item_id: state.miningWreckID || null, entry_point_mining_dungeon: offset ? { x: site.position.x + offset.x, y: site.position.y + offset.y, z: site.position.z + offset.z } : null };
+  return { mining_dungeon_spawn_id: root?.blackboard.mining_dungeon_spawn_id || null, mining_solar_system_id: site?.solarSystemID || state.miningSystemID || null, entry_item_id_mining_dungeon: site?.spawnState.siteID || null, wreck_item_id: state.miningWreckID || null, "2.1._beacon_item_id": mining.beaconID(state.characterID) || root?.blackboard["2.1._beacon_item_id"] || null, entry_point_mining_dungeon: offset ? { x: site.position.x + offset.x, y: site.position.y + offset.y, z: site.position.z + offset.z } : null };
 }
 function cleanup(characterID) { return serialized(characterID, () => cleanupNow(characterID)); }
 async function cleanupNow(characterID) {
@@ -276,4 +357,10 @@ require("../nodegraph/nodeGraphEvents").subscribe((session, event, details) => {
   save(characterID, state);
 });
 encounter.configure({ ensureForSession });
-module.exports = { PHASES, prepareForSelection, ensureForSession, authorizeClientMessage, cleanup, handleSessionDisconnected, startSite };
+// The tutorial has the pilot queue skills (1.5.03 and later) and expects them to train. A second
+// character on an account whose training slot is in use could not; while its tutorial runs, its
+// client is told of a free slot (userService.getSessionTrainingSlots). A valid activation
+// pauses only enough other queues to fit the licensed slots; paused saves preserve them
+// (skillQueueRuntime.saveQueue).
+function isTutorialActive(characterID) { return read(characterID)?.status === "active"; }
+module.exports = { PHASES, prepareForSelection, ensureForSession, authorizeClientMessage, cleanup, handleSessionDisconnected, startSite, retrievalWarpTarget, onRetrievalWreckOpened, isTutorialActive };

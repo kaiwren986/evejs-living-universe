@@ -599,6 +599,41 @@ function buildOwnerNotePayload(noteID, label, noteText) {
   ]);
 }
 
+/**
+ * Retail echoes the pilot's own contact add/edit back to its sessions:
+ * OnPersonalContactsUpdated(contactIDs, standing, inWatchlist), idtype charid,
+ * args ([2124799711], 0, 0) right after charMgr::AddContact
+ * (Tutorial "more exploration.lsw"). addressbookService.OnPersonalContactsUpdated
+ * updates the cached contact and its online-status watch.
+ */
+function notifyPersonalContactsUpdated(characterID, contactIDs, relationshipID, inWatchlist) {
+  const numericCharacterID = normalizeInteger(characterID, 0);
+  const ids = (Array.isArray(contactIDs) ? contactIDs : [contactIDs])
+    .map((contactID) => normalizeInteger(contactID, 0))
+    .filter((contactID) => contactID > 0);
+  if (numericCharacterID <= 0 || ids.length === 0) {
+    return 0;
+  }
+  const sessionRegistry = require(path.join(__dirname, "../chat/sessionRegistry"));
+  let sent = 0;
+  for (const liveSession of sessionRegistry.getSessions()) {
+    if (
+      !liveSession ||
+      typeof liveSession.sendNotification !== "function" ||
+      sessionCharacterID(liveSession) !== numericCharacterID
+    ) {
+      continue;
+    }
+    liveSession.sendNotification("OnPersonalContactsUpdated", "charid", [
+      { type: "list", items: ids },
+      normalizeInteger(relationshipID, 0),
+      inWatchlist ? 1 : 0,
+    ]);
+    sent += 1;
+  }
+  return sent;
+}
+
 class CharMgrService extends BaseService {
   constructor() {
     super("charMgr");
@@ -1074,6 +1109,7 @@ class CharMgrService extends BaseService {
     if (result?.success === false) {
       throw new Error(result.errorMsg || "CONTACT_SAVE_FAILED");
     }
+    notifyPersonalContactsUpdated(characterID, [contactID], relationshipID, inWatchlist);
     if (
       sendNotification &&
       (!result || result.success !== false) &&

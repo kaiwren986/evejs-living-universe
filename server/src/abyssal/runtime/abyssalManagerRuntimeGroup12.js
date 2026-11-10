@@ -140,7 +140,8 @@ function buildManagerGroup12Binding7Part1(scope) {
 function buildDefaultDependenciesOperation(scope) {
   return {
     isShipSelfDestructing: shipID => require("../../services/ship/selfDestructRuntime").isShipSelfDestructing(shipID),
-    isEntityFilamentBlocked: entity => entity?.linkWithShipRestriction?.blocksFilament === true,
+    isEntityFilamentBlocked: entity => entity?.linkWithShipRestriction?.blocksFilament === true ||
+      require("../../services/dynamic/essFieldRuntime").isEntityFilamentBlocked(entity),
     ITEM_FLAGS: scope.ITEM_FLAGS,
     now: () => Date.now(),
     findItemById: scope.findItemById,

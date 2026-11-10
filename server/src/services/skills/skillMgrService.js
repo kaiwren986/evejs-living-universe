@@ -556,7 +556,7 @@ class SkillMgrService extends BaseService {
   Handle_GetFreeSkillPointsAppliedToQueue(args, session) {
     log.debug("[SkillMgr] GetFreeSkillPointsAppliedToQueue called");
     return buildPointsDict(
-      previewFreeSkillPointsApplication(this._getCharacterId(session)),
+      previewFreeSkillPointsApplication(this._getCharacterId(session), [], { fromClientSkillEntries: true }),
     );
   }
 
@@ -566,6 +566,7 @@ class SkillMgrService extends BaseService {
       previewFreeSkillPointsApplication(
         this._getCharacterId(session),
         normalizeSkillRequirements(args && args[0]),
+        { fromClientSkillEntries: true },
       ),
     );
   }

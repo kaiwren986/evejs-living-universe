@@ -163,7 +163,6 @@ function createStructureOfficeRentalBillNotifications(bill) {
       groupID: NOTIFICATION_GROUP.BILLS,
       processed: false,
       data,
-      emitLive: false,
     });
     if (!result || result.success !== true) {
       log.warn(

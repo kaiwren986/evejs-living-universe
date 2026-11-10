@@ -418,7 +418,8 @@ function buildMissileDynamicEntity(
       options.moduleItem,
       options,
     ),
-    missileSnapshot: weaponSnapshot,
+    missileSnapshot: { ...weaponSnapshot, incursionDamageMultiplier:
+      require("../../services/incursion/incursionSystemEffects").damageMultiplier(attackerEntity, "launcher", attackerEntity.systemID) },
     sourceModuleTypeID: toInt(options.moduleItem && options.moduleItem.typeID, 0),
     sourceModuleID: toInt(options.moduleItem && options.moduleItem.itemID, 0),
   };
@@ -562,6 +563,7 @@ function applyMissileHit(scene, missileEntity, targetEntity, options = {}) {
     targetEntity,
     impactResult.appliedDamage,
     nowMs,
+    { incursionWeaponKind: "launcher", incursionDamageMultiplier: missileEntity.missileSnapshot.incursionDamageMultiplier ?? 1 },
   );
   const appliedDamageAmount = getAppliedDamageAmount(weaponDamageResult.damageResult);
   if (appliedDamageAmount > 0) {

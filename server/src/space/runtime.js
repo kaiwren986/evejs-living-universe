@@ -1042,6 +1042,10 @@ class SpaceRuntime {
     if (!OWNS_WORLD_SIMULATION) {
       return;
     }
+    const beaconPayments = mobileAnalysisBeaconRuntime.recoverPendingLinkPayments();
+    if (!beaconPayments.success) {
+      log.warn(`[SpaceRuntime] CRAB payment recovery pending: ${beaconPayments.errorMsg}`);
+    }
     pruneExpiredSpaceItems(Date.now());
     warmSimulationInventoryProjection();
     this._tickHandle = setInterval(() => this.tick(), this._tickIntervalMs);

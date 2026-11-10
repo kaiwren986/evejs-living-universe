@@ -9,7 +9,7 @@ const {
 function notifyTicketsUpdated(sessions, raffleId, soldTicketCount) {
   const payload = buildTicketUpdatesValue(raffleId, soldTicketCount);
   for (const session of sessions) {
-    session.sendNotification("OnTicketsUpdatedServer", "clientID", [payload]);
+    session.sendNotification("OnTicketsUpdatedServer", "charid", [payload]);
   }
 }
 
@@ -24,7 +24,7 @@ function notifyRaffleUpdated(sessions, raffleId, raffleData) {
 
 function notifyRaffleFinished(sessions, raffleId, winningTicket) {
   for (const session of sessions) {
-    session.sendNotification("OnRaffleFinishedServer", "clientID", [
+    session.sendNotification("OnRaffleFinishedServer", "charid", [
       raffleId,
       winningTicket,
     ]);

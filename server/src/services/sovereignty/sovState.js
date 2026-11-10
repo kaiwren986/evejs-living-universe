@@ -48,6 +48,7 @@ const {
 const {
   broadcastSolarSystemDevIndexChanged,
   broadcastSolarSystemSovStructuresUpdated,
+  broadcastCapitalSystemChanged,
   broadcastSovereigntyAudioEvent,
   broadcastSovereigntyChanged,
   broadcastSovHubHacked,
@@ -659,6 +660,44 @@ function getSystemDefenseMultiplier(system = null, isCapital = false) {
   return Math.max(MIN_OCCUPANCY_BONUS, Math.min(MAX_OCCUPANCY_BONUS, totalBonus));
 }
 
+// Capital changes found while the table is being normalised or written are
+// sent once the current synchronous write has finished. Only the process that
+// owns the durable row reports them: a passive copy re-applies the same lazy
+// promotion on every reload.
+let pendingCapitalChanges = [];
+let capitalChangeFlushScheduled = false;
+
+function flushCapitalSystemChanges() {
+  capitalChangeFlushScheduled = false;
+  const changes = pendingCapitalChanges;
+  pendingCapitalChanges = [];
+  for (const change of changes) {
+    try {
+      broadcastCapitalSystemChanged(change.allianceID, change.oldSolarSystemID, change.newSolarSystemID);
+    } catch (error) {
+      // ignored: a failed notice must not affect the committed capital change
+    }
+  }
+}
+
+function queueCapitalSystemChange(allianceID, oldSolarSystemID, newSolarSystemID) {
+  const numericAllianceID = normalizePositiveInteger(allianceID, null);
+  const oldID = normalizePositiveInteger(oldSolarSystemID, null);
+  const newID = normalizePositiveInteger(newSolarSystemID, null);
+  if (!numericAllianceID || oldID === newID || !maySovereigntyPersist()) {
+    return;
+  }
+  pendingCapitalChanges.push({
+    allianceID: numericAllianceID,
+    oldSolarSystemID: oldID,
+    newSolarSystemID: newID,
+  });
+  if (!capitalChangeFlushScheduled) {
+    capitalChangeFlushScheduled = true;
+    setImmediate(flushCapitalSystemChanges);
+  }
+}
+
 function applyAllianceTimedTransitions(allianceState) {
   if (!allianceState || typeof allianceState !== "object") {
     return false;
@@ -693,8 +732,14 @@ function applyAllianceTimedTransitions(allianceState) {
     capitalValidAfter > 0n &&
     capitalValidAfter <= now
   ) {
+    const previousCapitalSystem = allianceState.capitalInfo.currentCapitalSystem;
     allianceState.capitalInfo.currentCapitalSystem = normalizePositiveInteger(
       allianceState.capitalInfo.newCapitalSystem,
+      allianceState.capitalInfo.currentCapitalSystem,
+    );
+    queueCapitalSystemChange(
+      allianceState.allianceID,
+      previousCapitalSystem,
       allianceState.capitalInfo.currentCapitalSystem,
     );
     allianceState.capitalInfo.newCapitalSystem = null;
@@ -1564,6 +1609,7 @@ function reconcileSingleSystemCapitals(allianceIDs) {
     ) {
       continue;
     }
+    queueCapitalSystemChange(allianceID, capitalInfo.currentCapitalSystem, owned[0]);
     capitalInfo.currentCapitalSystem = owned[0];
     capitalInfo.newCapitalSystem = null;
     capitalInfo.newCapitalSystemValidAfter = "0";

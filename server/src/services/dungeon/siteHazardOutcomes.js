@@ -3,13 +3,13 @@
 // The dungeon owns which hits happened. The ship/item owner commits health and
 // an idempotent receipt together; this outbox only acknowledges that result.
 const deliveringInstances = new Set();
-let indexedState;
-let pendingInstances = [];
 const records = instance => instance?.spawnState?.siteHazardDamageEventsByID || {};
 const runtime = () => require("./dungeonRuntime");
+const runtimeState = () => require("./dungeonRuntimeState");
 
 function hasPending(instance) {
-  return Object.values(records(instance)).some(event => event.status !== "delivered");
+  return Object.values(records(instance)).some(event => event.status !== "delivered") ||
+    Boolean(instance && require("./fracturedLegacySceneActions").pendingMineEvents(instance).length);
 }
 
 function prepareEvents(instance, events, options = {}) {
@@ -30,14 +30,18 @@ function prepareEvents(instance, events, options = {}) {
 
 function replayPendingSiteHazardDamage(instanceOrID, options = {}) {
   const instanceID = Number(instanceOrID?.instanceID || instanceOrID);
+  if (!runtimeState().peekPendingSiteHazardEntry(instanceID)) return { success: true, delivered: 0 };
   let instance = runtime().getInstance(instanceID);
-  if (!instance || !hasPending(instance)) return { success: true, delivered: 0 };
+  let pending = runtimeState().peekPendingSiteHazardEntry(instanceID);
+  if (!instance || !pending) return { success: true, delivered: 0 };
   if (deliveringInstances.has(instanceID)) return { success: false, errorMsg: "SITE_HAZARD_DELIVERY_IN_PROGRESS", delivered: 0 };
   deliveringInstances.add(instanceID);
   let delivered = 0;
   try {
-    for (const prepared of Object.values(records(instance))) {
-      if (prepared.status === "delivered") continue;
+    instance = require("./fracturedLegacySceneActions").reconcilePendingMineEvents(instance, options);
+    pending = runtimeState().peekPendingSiteHazardEntry(instanceID);
+    if (!pending) return { success: true, delivered };
+    for (const prepared of pending.pendingEvents) {
       const targetID = prepared.target.shipID;
       let scene = options.scene;
       let target = scene?.dynamicEntities?.get(targetID);
@@ -74,29 +78,20 @@ function replayPendingSiteHazardDamage(instanceOrID, options = {}) {
 }
 
 function recoverAll(options = {}) {
-  for (const instance of getPendingInstances()) {
-    const result = replayPendingSiteHazardDamage(instance, options);
+  for (const entry of runtimeState().peekPendingSiteHazardEntries()) {
+    const result = replayPendingSiteHazardDamage(entry.instanceID, options);
     if (!result.success) throw new Error(result.errorMsg);
   }
   return true;
 }
 
-function getPendingInstances() {
-  const state = require("./dungeonRuntimeState").peekState();
-  if (state !== indexedState) {
-    indexedState = state;
-    pendingInstances = Object.values(state.instancesByID || {}).filter(hasPending);
-  }
-  return pendingInstances;
-}
-
 function recoverForScene(scene) {
-  for (const instance of getPendingInstances()) {
-    const relevant = Object.values(records(instance)).some(event => event.status !== "delivered" &&
+  for (const entry of runtimeState().peekPendingSiteHazardEntries()) {
+    const relevant = entry.pendingEvents.some(event =>
       (Number(event.target.systemID) === Number(scene?.systemID) ||
         scene?.dynamicEntities?.has(event.target.shipID)));
     if (!relevant) continue;
-    const result = replayPendingSiteHazardDamage(instance, { scene });
+    const result = replayPendingSiteHazardDamage(entry.instanceID, { scene });
     if (!result.success) throw new Error(result.errorMsg);
   }
   return true;
@@ -109,13 +104,13 @@ function recoverForSession(session) {
   if (!characterID) return recoverAll();
   const shipID = Number(session?._space?.shipID || session?.shipID || session?.shipid);
   const systemID = Number(session?._space?.systemID || session?.solarsystemid2 || session?.solarsystemid);
-  for (const instance of getPendingInstances()) {
-    if (!Object.values(records(instance)).some(event => event.status !== "delivered" &&
+  for (const entry of runtimeState().peekPendingSiteHazardEntries()) {
+    if (!entry.pendingEvents.some(event =>
         (Number(event.target.shipID) === shipID || Number(event.target.systemID) === systemID ||
         [event.target.ownerID, event.target.pilotCharacterID,
           event.target.entity?.characterID, event.target.entity?.pilotCharacterID]
           .some(id => Number(id) === characterID)))) continue;
-    const result = replayPendingSiteHazardDamage(instance);
+    const result = replayPendingSiteHazardDamage(entry.instanceID);
     if (!result.success) throw new Error(result.errorMsg);
   }
   return true;

@@ -218,7 +218,13 @@ function getCorporationWalletDivision(corporationID, accountKey = CORPORATION_WA
 }
 
 function getCorporationWalletBalance(corporationID, accountKey = CORPORATION_WALLET_KEY_START) {
-  const division = getCorporationWalletDivision(corporationID, accountKey);
+  const normalizedKey = normalizeCorporationWalletKey(accountKey);
+  const projected = walletAuthorityProjection.getCorporationBalanceProjection(corporationID, normalizedKey);
+  if (projected) {
+    return normalizeMoney(projected.balance, 0);
+  }
+  const runtime = getCorporationRuntime(corporationID);
+  const division = runtime?.wallet?.divisions?.[String(normalizedKey)];
   return division ? normalizeMoney(division.balance, 0) : 0;
 }
 
@@ -486,9 +492,6 @@ function applyAdjustCorporationWalletDivisionBalance({
       }
       return { ...cloneValue(prior.result), duplicate: true };
     }
-    if (Object.keys(receipts).length >= 8192) {
-      return { success: false, errorMsg: "WALLET_RECEIPT_LIMIT" };
-    }
   }
   const currentBalance = getCorporationWalletBalance(
     normalizedCorporationID,
@@ -553,7 +556,7 @@ async function adjustCorporationWalletDivisionBalanceAsync(
     { corporationID, accountKey, delta, options },
     metadata,
   );
-  if (result?.success && metadata.source === "contract-settlement" && !isWalletAuthorityProcessEnabled()) {
+  if (result?.success && ["contract-settlement", "incursion-settlement"].includes(metadata.source) && !isWalletAuthorityProcessEnabled()) {
     const database = require("../../gameStore");
     const committed = database.flushTableSync("corporationRuntime");
     if (!committed?.success) return committed || { success: false, errorMsg: "CONTRACT_WALLET_FLUSH_FAILED" };

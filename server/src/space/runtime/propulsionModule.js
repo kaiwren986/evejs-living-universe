@@ -49,6 +49,8 @@ const {
   buildEffectiveItemAttributeMap,
   indexOverloadEffectRecordsByModuleID,
   buildProjectedModuleSourceAttributeMap,
+  buildPropulsionSignatureModifier,
+  resolveShipSignatureRadius,
 } = require(path.join(runtimeEntryDirname, "../services/fitting/liveFittingState"));
 const {
   getCachedCharacterSkillMap,
@@ -361,11 +363,6 @@ function applyPropulsionEffectStateToEntity(entity, effectState) {
       passiveState && passiveState.maxVelocity,
       toFiniteNumber(entity.maxVelocity, 0),
     );
-  const passiveSignatureRadius =
-    toFiniteNumber(
-      passiveState && passiveState.signatureRadius,
-      toFiniteNumber(entity.signatureRadius, 0),
-    );
   const massAfterAddition = passiveMass + toFiniteNumber(effectState.massAddition, 0);
   const speedMultiplier =
     1 +
@@ -383,10 +380,10 @@ function applyPropulsionEffectStateToEntity(entity, effectState) {
     ),
   );
   if (effectState.effectName === PROPULSION_EFFECT_MICROWARPDRIVE) {
-    entity.signatureRadius = roundNumber(
-      passiveSignatureRadius *
-        (1 + (toFiniteNumber(effectState.signatureRadiusBonus, 0) / 100)),
-      6,
+    entity.signatureRadius = resolveShipSignatureRadius(
+      passiveState || entity,
+      [buildPropulsionSignatureModifier(effectState)],
+      toFiniteNumber(entity.signatureRadius, 0),
     );
   }
   applyPropulsionMotionTimingCommand(

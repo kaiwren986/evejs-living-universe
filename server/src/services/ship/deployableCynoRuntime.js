@@ -699,8 +699,10 @@ function launchMobileCynoDeployableFromShip(session, itemID, options = {}) {
 
   const sourceTypeID = toInt(item.typeID, 0);
   const profile = getInternalMobileCynoDeployableProfile(sourceTypeID);
+  const spawnState = buildDeployableSpawnState(session, context);
   const transferResult = mobileItemCustody.deployFromShip({
     item,
+    position: spawnState.position,
     ownerID: context.ownerID,
     shipID: context.shipID,
     systemID: context.systemID,
@@ -742,7 +744,6 @@ function launchMobileCynoDeployableFromShip(session, itemID, options = {}) {
     active: false,
     deactivatedAtMs: 0,
   };
-  const spawnState = buildDeployableSpawnState(session, context);
   const updatedResult = updateInventoryItem(launchedItemID, (currentItem) => ({
     ...currentItem,
     ownerID: context.ownerID,

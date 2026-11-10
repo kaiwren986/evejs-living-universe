@@ -441,7 +441,8 @@ function getDestinyWarpMinimumRange(entity) {
   return toFiniteNumber(entity && entity.warpMinRange, 0);
 }
 
-function getDestinyWarpOwnerID(entity) {
+function getDestinyWarpFactor(entity) {
+  // WARP reuses the native mOwnerId slot for the speed factor (1000 per AU/s).
   return BigInt(getShipWarpFactor(entity));
 }
 
@@ -538,7 +539,7 @@ function encodeFreeBall(entity, options = {}) {
       pushInt32(chunks, toInt32(encodedEntity && encodedEntity.effectStamp, 0));
       pushDouble(chunks, toFiniteNumber(encodedEntity && encodedEntity.warpDistance, 0));
       pushDouble(chunks, getDestinyWarpMinimumRange(encodedEntity));
-      pushBigInt64(chunks, getDestinyWarpOwnerID(encodedEntity));
+      pushBigInt64(chunks, getDestinyWarpFactor(encodedEntity));
       break;
     }
     case BALL_MODE.ORBIT:
@@ -660,7 +661,6 @@ function buildFreeBallDebugSummary(entity) {
       totalDistance,
       minimumRange,
       stopDistance: minimumRange,
-      ownerID: getJSONSafeEntityID(getDestinyWarpOwnerID(entity)),
       warpFactor,
     };
   } else if (mode === BALL_MODE.ORBIT) {
@@ -722,7 +722,7 @@ module.exports = {
   getDestinyMushroomSpan,
   getDestinyOwnerBallID,
   getDestinyWarpMinimumRange,
-  getDestinyWarpOwnerID,
+  getDestinyWarpFactor,
   getEntityCloakMode,
   getEntityEffectStamp,
   getEntityFollowID,

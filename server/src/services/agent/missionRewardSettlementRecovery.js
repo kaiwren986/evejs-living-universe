@@ -135,6 +135,13 @@ function classifyMoneyLeg({ receipt, expectedAmount, label, receiptListSaturated
     }
     return { verdict: "unapplied", label };
   }
+  if (
+    receipt.commandType === "corporation.adjust-isk" &&
+    receipt.result?.success === false &&
+    receipt.result.errorMsg === "WALLET_RECEIPT_LIMIT"
+  ) {
+    return { verdict: "unapplied", label };
+  }
   const delta = receiptDelta(receipt);
   if (delta === null) {
     return {
@@ -170,44 +177,59 @@ function corporationReceipt(corporationID, commandID) {
   );
 }
 
-/**
- * Reconcile every leg of one settlement against the ledgers.
- *
- * Produces the checkpoint patch that should be written before the settlement is
- * handed back to the ordinary path, plus the list of legs that could not be
- * classified. It performs no writes and no authority calls.
- */
-function reconcileSettlementLegs(settlement) {
-  const patch = {};
-  const unresolved = [];
-  const healedLegs = [];
-  const inferences = [];
-  const characterID = toPositiveInt(settlement.characterID, 0);
+// A sharer's leg checkpointed as skipped failed for good on the live path: it
+// is neither reconciled nor replayed. The store owns what "skipped" means and
+// the legs' names.
+const { LEG_KEY_FIELDS, isLegSkipped } = settlementState;
 
-  for (const leg of settlementState.buildWalletPayoutLegs(settlement)) {
-    if (leg.gross > 0 && settlement[leg.appliedField] !== true) {
+/**
+ * Reconcile one recipient's money legs against the ledgers: the completing
+ * pilot's (the settlement's own fields, labelled as before shares existed) or
+ * a sharer's (settlement.shares[i], labelled share:<characterID>:<leg>). Each
+ * leg is read by its own key, from that recipient's receipts and their locked
+ * tax corporation's.
+ */
+function reconcileRecipientLegs(part, labelPrefix, patch, unresolved, healedLegs) {
+  const characterID = toPositiveInt(part.characterID, 0);
+  let characterPredecessorRetained = false;
+  let corporationPredecessorRetained = false;
+  let stoppedAtCapacityFailure = false;
+
+  for (const leg of settlementState.buildWalletPayoutLegs(part)) {
+    const walletReceipt = characterReceipt(characterID, leg.commandID);
+    const taxReceipt = corporationReceipt(leg.corporationID, leg.taxCommandID);
+    if (
+      leg.gross > 0 &&
+      part[leg.appliedField] !== true &&
+      !isLegSkipped(part, leg.legName)
+    ) {
       const verdict = classifyMoneyLeg({
-        receipt: characterReceipt(characterID, leg.commandID),
+        receipt: walletReceipt,
         expectedAmount: leg.net,
-        label: `isk:${leg.kind}`,
-        receiptListSaturated: walletAuthorityReceiptState.isOwnerReceiptListSaturated({
+        label: `${labelPrefix}isk:${leg.kind}`,
+        receiptListSaturated: !characterPredecessorRetained && !stoppedAtCapacityFailure && walletAuthorityReceiptState.isOwnerReceiptListSaturated({
           kind: "character",
           ownerID: characterID,
         }),
       });
       if (verdict.verdict === "applied") {
         patch[leg.appliedField] = true;
-        healedLegs.push(`isk:${leg.kind}`);
+        healedLegs.push(`${labelPrefix}isk:${leg.kind}`);
       } else if (verdict.verdict === "unresolved") {
         unresolved.push(verdict);
       }
     }
-    if (leg.tax > 0 && leg.corporationTaxable && settlement[leg.taxAppliedField] !== true) {
+    if (
+      leg.tax > 0 &&
+      leg.corporationTaxable &&
+      part[leg.taxAppliedField] !== true &&
+      !isLegSkipped(part, leg.taxLegName)
+    ) {
       const verdict = classifyMoneyLeg({
-        receipt: corporationReceipt(leg.corporationID, leg.taxCommandID),
+        receipt: taxReceipt,
         expectedAmount: leg.tax,
-        label: `corp-tax:${leg.kind}`,
-        receiptListSaturated: walletAuthorityReceiptState.isOwnerReceiptListSaturated({
+        label: `${labelPrefix}corp-tax:${leg.kind}`,
+        receiptListSaturated: !corporationPredecessorRetained && !stoppedAtCapacityFailure && walletAuthorityReceiptState.isOwnerReceiptListSaturated({
           kind: "corporation",
           ownerID: toPositiveInt(leg.corporationID, 0),
         }),
@@ -215,55 +237,104 @@ function reconcileSettlementLegs(settlement) {
       if (verdict.verdict === "applied") {
         patch[leg.taxAppliedField] = true;
         patch[leg.taxPaidField] = leg.tax;
-        healedLegs.push(`corp-tax:${leg.kind}`);
+        healedLegs.push(`${labelPrefix}corp-tax:${leg.kind}`);
       } else if (verdict.verdict === "unresolved") {
         unresolved.push(verdict);
       }
     }
+    characterPredecessorRetained = walletReceipt?.result?.success === true &&
+      walletReceipt.result.duplicate !== true &&
+      receiptDelta(walletReceipt) !== null && amountsAgree(receiptDelta(walletReceipt), leg.net);
+    corporationPredecessorRetained = taxReceipt?.result?.success === true &&
+      taxReceipt.result.duplicate !== true &&
+      receiptDelta(taxReceipt) !== null && amountsAgree(receiptDelta(taxReceipt), leg.tax);
+    stoppedAtCapacityFailure = stoppedAtCapacityFailure || (
+      taxReceipt?.commandType === "corporation.adjust-isk" &&
+      taxReceipt.result?.success === false &&
+      taxReceipt.result.errorMsg === "WALLET_RECEIPT_LIMIT"
+    );
   }
 
-  const loyaltyPoints = Math.max(0, Math.trunc(Number(settlement.loyaltyPoints) || 0));
+  const loyaltyPoints = Math.max(0, Math.trunc(Number(part.loyaltyPoints) || 0));
   // The member is credited the net of corporation LP tax. A record prepared
   // before LP was taxed has no net, and paid the full loyaltyPoints.
-  const loyaltyPointsNet = settlement.loyaltyPointsNet === undefined ||
-    settlement.loyaltyPointsNet === null
+  const loyaltyPointsNet = part.loyaltyPointsNet === undefined ||
+    part.loyaltyPointsNet === null
     ? loyaltyPoints
-    : Math.max(0, Math.trunc(Number(settlement.loyaltyPointsNet) || 0));
-  if (loyaltyPoints > 0 && settlement.lpApplied !== true) {
-    const receipt = lpWalletState.getOperationReceipt(settlement.lpKey);
+    : Math.max(0, Math.trunc(Number(part.loyaltyPointsNet) || 0));
+  if (
+    loyaltyPoints > 0 &&
+    part.lpApplied !== true &&
+    !isLegSkipped(part, LEG_KEY_FIELDS.lpKey)
+  ) {
+    const receipt = lpWalletState.getOperationReceipt(part.lpKey);
     const verdict = classifyMoneyLeg({
       receipt,
       expectedAmount: loyaltyPointsNet,
-      label: "lp",
+      label: `${labelPrefix}lp`,
     });
     if (verdict.verdict === "applied") {
       patch.lpApplied = true;
       patch.lpResult = (receipt.result && receipt.result.data) || null;
-      healedLegs.push("lp");
+      healedLegs.push(`${labelPrefix}lp`);
     } else if (verdict.verdict === "unresolved") {
       unresolved.push(verdict);
     }
   }
 
-  const loyaltyPointsTax = Math.max(0, Math.trunc(Number(settlement.loyaltyPointsTax) || 0));
+  const loyaltyPointsTax = Math.max(0, Math.trunc(Number(part.loyaltyPointsTax) || 0));
   if (
     loyaltyPointsTax > 0 &&
-    toPositiveInt(settlement.loyaltyPointTaxCorporationID, 0) > 0 &&
-    settlement.corpLpTaxApplied !== true
+    toPositiveInt(part.loyaltyPointTaxCorporationID, 0) > 0 &&
+    part.corpLpTaxApplied !== true &&
+    !isLegSkipped(part, LEG_KEY_FIELDS.corpLpTaxKey)
   ) {
     const verdict = classifyMoneyLeg({
-      receipt: lpWalletState.getOperationReceipt(settlement.corpLpTaxKey),
+      receipt: lpWalletState.getOperationReceipt(part.corpLpTaxKey),
       expectedAmount: loyaltyPointsTax,
-      label: "corp-lp-tax",
+      label: `${labelPrefix}corp-lp-tax`,
     });
     if (verdict.verdict === "applied") {
       patch.corpLpTaxApplied = true;
       patch.corpLpTaxPaid = loyaltyPointsTax;
-      healedLegs.push("corp-lp-tax");
+      healedLegs.push(`${labelPrefix}corp-lp-tax`);
     } else if (verdict.verdict === "unresolved") {
       unresolved.push(verdict);
     }
   }
+}
+
+/**
+ * Reconcile every leg of one settlement against the ledgers, every recipient's
+ * alike.
+ *
+ * Produces the checkpoint patch that should be written before the settlement is
+ * handed back to the ordinary path (`patch` for the completing pilot's legs,
+ * `sharePatches[index]` for each sharer's), plus the list of legs that could
+ * not be classified. It performs no writes and no authority calls.
+ */
+function reconcileSettlementLegs(settlement) {
+  const patch = {};
+  const sharePatches = {};
+  const unresolved = [];
+  const healedLegs = [];
+  const inferences = [];
+
+  reconcileRecipientLegs(settlement, "", patch, unresolved, healedLegs);
+  const shares = Array.isArray(settlement.shares) ? settlement.shares : [];
+  shares.forEach((part, index) => {
+    const sharePatch = {};
+    reconcileRecipientLegs(
+      part,
+      `share:${toPositiveInt(part && part.characterID, 0)}:`,
+      sharePatch,
+      unresolved,
+      healedLegs,
+    );
+    if (Object.keys(sharePatch).length > 0) {
+      sharePatches[index] = sharePatch;
+    }
+  });
 
   // Cargo. A staged leg is committed if its commit step has a durable custody
   // receipt (a fact), or -- failing that -- if the escrow row it staged is no
@@ -294,7 +365,7 @@ function reconcileSettlementLegs(settlement) {
     }
   }
 
-  return { patch, cargoLegs, unresolved, healedLegs, inferences };
+  return { patch, sharePatches, cargoLegs, unresolved, healedLegs, inferences };
 }
 
 /**
@@ -337,8 +408,11 @@ function buildRecoveryFinalizer(operationID, finalizeMissionCompletion) {
  * Raise nextMissionSequence above every sequence any receipt or settlement
  * already references.
  *
- * Mission commandIDs are `mission-reward:<characterID>:<missionSequence>:<leg>`,
- * so the guarantee that "a receipt for this commandID means this leg already
+ * Mission commandIDs are `mission-reward:<characterID>:<missionSequence>:<leg>`
+ * (since key generations, `...:<missionSequence>:<generation>:<leg>`; a
+ * sharer's `...:share:<sharerID>:<leg>`, under the completing pilot's prefix,
+ * so their receipts count too; the pattern reads the mission sequence, never
+ * the generation), so the guarantee that "a receipt for this commandID means this leg already
  * paid" rests entirely on missionSequence never repeating for a character. A
  * store reset or migration that rewinds the counter without clearing the
  * receipt ledgers breaks that: a fresh mission inherits an old mission's
@@ -448,12 +522,20 @@ async function healSettlement(settlement, finalizeMissionCompletion) {
   }
 
   const hasPatch = Object.keys(reconciliation.patch).length > 0 ||
-    reconciliation.cargoLegs.length > 0;
+    Object.keys(reconciliation.sharePatches).length > 0 ||
+    reconciliation.cargoLegs.length > 0 ||
+    settlement.recoveryHoldError === "MISSION_REWARD_RECEIPT_EVICTED_UNVERIFIABLE";
   if (hasPatch) {
     const committedLegIDs = new Set(reconciliation.cargoLegs.map((entry) => entry.legID));
     const written = settlementState.applyRecoveredCheckpoints(operationID, (current) => ({
       ...current,
       ...reconciliation.patch,
+      recoveryHoldError: current.recoveryHoldError === "MISSION_REWARD_RECEIPT_EVICTED_UNVERIFIABLE"
+        ? null : current.recoveryHoldError,
+      shares: current.shares.map((part, index) =>
+        reconciliation.sharePatches[index]
+          ? { ...part, ...reconciliation.sharePatches[index] }
+          : part),
       cargoLegs: current.cargoLegs.map((leg) =>
         committedLegIDs.has(leg.legID)
           ? { ...leg, committed: true, commitError: null }

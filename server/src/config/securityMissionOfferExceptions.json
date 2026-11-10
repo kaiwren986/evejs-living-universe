@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "TQ_single_offers_outside_decline_studies",
+  "note": "Single TQ offers from agents with no decline study. Each adds one mission to that agent's pool and says nothing about the rest of it, so this is not a profile.",
+  "capturesByID": {
+    "29f04cd0e30129c91d5eebd8596ca3e3bbd266dc00c43659526f66ef114e941a": { "fileName": "cruiser.lsw" },
+    "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547": { "fileName": "part tre.lsw" }
+  },
+  "agentsByID": {
+    "3020249": {
+      "agentID": 3020249,
+      "agentTypeID": 2,
+      "level": 1,
+      "missionKind": "encounter",
+      "corporationID": 1000035,
+      "factionID": 500001,
+      "stationID": 60015218,
+      "solarSystemID": 30100067,
+      "missionsByID": {
+        "13490": {
+          "missionID": 13490,
+          "titleID": 56982,
+          "dungeonID": 2734,
+          "name": "Interstellar Railroad (1 of 4)",
+          "captureID": "29f04cd0e30129c91d5eebd8596ca3e3bbd266dc00c43659526f66ef114e941a",
+          "sourceRows": { "offered": 699635, "objective": 699980, "declined": 703769 }
+        },
+        "1182": {
+          "missionID": 1182,
+          "titleID": 57802,
+          "dungeonID": 283,
+          "name": "Avenge a Fallen Comrade",
+          "captureID": "063637af8a775a5c778854948fb43821f90857c49b997f51bba9e3ea68de9547",
+          "sourceRows": { "offered": 157247, "objective": 157437, "declined": 160814 }
+        }
+      }
+    }
+  }
+}

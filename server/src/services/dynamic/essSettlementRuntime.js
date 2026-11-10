@@ -29,14 +29,18 @@ function notify(systemID, name, payload, characterID = 0) {
   }
 }
 function changed(systemID) {
-  notify(systemID, "OnSystemESSDataChanged", [systemID, state.buildEssDataPayload(state.getSystemState(systemID))]);
+  const bank = state.getSystemState(systemID);
+  require("./essPresentationRuntime").refreshSystem(systemID, bank);
+  notify(systemID, "OnSystemESSDataChanged", [systemID, state.buildEssDataPayload(bank)]);
 }
 function splitBounty(systemID, gross) {
   const total = cents(gross), bank = state.getSystemState(systemID);
-  if (!bank?.essID) return { playerAmount: total / 100, essMainBankAmount: 0, reserveBankAmount: 0 };
-  const cut = Math.round(total * state.DEFAULT_DYNAMIC_RESOURCE_SETTINGS.bountiesCut);
+  const cut = bank?.essID ? Math.round(total * state.DEFAULT_DYNAMIC_RESOURCE_SETTINGS.bountiesCut) : 0;
   const main = Math.round(cut * state.DEFAULT_DYNAMIC_RESOURCE_SETTINGS.mainBankPayRatio);
-  return { playerAmount: (total - cut) / 100, essMainBankAmount: main / 100, reserveBankAmount: (cut - main) / 100 };
+  // CONCORD's Safe Security share comes off what the ESS leaves the player.
+  const securityTax = cents(require("../security/securityTax").computeNpcBountySecurityTax(systemID, (total - cut) / 100).tax);
+  return { playerAmount: (total - cut - securityTax) / 100, essMainBankAmount: main / 100,
+    reserveBankAmount: (cut - main) / 100, securityTaxAmount: securityTax / 100 };
 }
 async function schedule(systemID, kind, dueAtMs, generation = "") {
   if (!binding.get()) return;

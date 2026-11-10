@@ -138,25 +138,46 @@ nextBubbleUpdateStamp() {
 // to the bubble it left). options.stamp: the stamp to carry instead of
 // historyStamp() (a destruction effect carries its removal's). Returns the
 // stamp they carry.
+// options.preserveTarget captures the current visibility destination so a
+// terminal update survives removal. Cloaked/global events keep their normal
+// stamp; an ordinary visible Ball uses its committed bubble and removal stamp.
 queueBallHistory(entityOrID, updates, options = {}) {
     const ballID = getEntityMapKey(
       entityOrID && typeof entityOrID === "object" ? entityOrID.itemID : entityOrID,
     );
-    const stamp = options.stamp !== undefined && options.stamp !== null && Number.isFinite(Number(options.stamp))
-      ? Number(options.stamp)
-      : this.historyStamp();
+    const hasExplicitStamp = options.stamp !== undefined && options.stamp !== null && Number.isFinite(Number(options.stamp));
+    let stamp = hasExplicitStamp ? Number(options.stamp) : this.historyStamp();
     if (ballID === null) {
       return null;
     }
+    let target = options.bubble === undefined || options.bubble === null
+      ? { ball: ballID }
+      : { ball: ballID, bubble: options.bubble };
+    if (options.preserveTarget === true) {
+      const entity = this.getEntityByID(ballID);
+      if (!entity) return null;
+      // Capture the same visibility classes as applyDestinyTickList's resolver.
+      // A lethal removal must not turn a cloaked owner's update into a public
+      // bubble event or narrow a global Ball's update to its spatial bubble.
+      if (isEntityCloaked(entity)) {
+        const owner = entity.session || null;
+        const key = observerKey(owner);
+        if (key === null) return null;
+        target = { observer: key, session: owner };
+      } else if (this.isGlobalBall(entity)) {
+        target = { everyBubble: true };
+      } else {
+        const bubble = gridBubbles.committedBubbleOf(this.getGridBubbles(), ballID);
+        if (bubble === null || bubble === undefined) return null;
+        target = { ball: ballID, bubble };
+        // Ordinary removals wait for the next bubble update. Global removals
+        // and an owner's character events keep the normal history stamp.
+        if (!hasExplicitStamp) stamp = this.nextBubbleUpdateStamp();
+      }
+    }
     const history = this.getDestinyHistory();
     for (const payload of payloadsOf(updates)) {
-      destinyHistory.queueUpdate(history, {
-        stamp,
-        target: options.bubble === undefined || options.bubble === null
-          ? { ball: ballID }
-          : { ball: ballID, bubble: options.bubble },
-        payload,
-      });
+      destinyHistory.queueUpdate(history, { stamp, target, payload });
     }
     return stamp;
   },

@@ -1,6 +1,7 @@
 "use strict";
 
 const DESTRUCTIBLE_SENTRY_GUN_GROUP_ID = 383;
+const EMPIRE_SENTRY_TYPE_IDS = new Set([1194, 3739, 3740, 3741, 3742, 3743]);
 const NPC_SENTRY_AMMO_DROP_CHANCE = 0.5;
 
 const MISSILE_NAMES_BY_BATTERY_SIZE = Object.freeze({
@@ -82,6 +83,11 @@ function isDestructibleNpcSentry(value) {
   );
 }
 
+function isEmpireSentry(value) {
+  return Boolean(value && value.empireSentry === true &&
+    EMPIRE_SENTRY_TYPE_IDS.has(toPositiveInt(value.typeID || value.slimTypeID, 0)));
+}
+
 function buildNpcSentryBehaviorOverrides(existingOverrides = {}) {
   return {
     ...(existingOverrides && typeof existingOverrides === "object"
@@ -109,7 +115,7 @@ function applyStationaryNpcSentryState(state) {
 }
 
 function applyNpcSentryRuntimePolicy(entity) {
-  if (!isDestructibleNpcSentry(entity)) {
+  if (!isDestructibleNpcSentry(entity) && !isEmpireSentry(entity)) {
     return entity;
   }
   entity.nativeNpcSentry = true;
@@ -206,6 +212,8 @@ function rollNpcSentryAmmoDrop(value, options = {}) {
 }
 
 module.exports = {
+  EMPIRE_SENTRY_TYPE_IDS,
+  isEmpireSentry,
   DESTRUCTIBLE_SENTRY_GUN_GROUP_ID,
   NPC_SENTRY_AMMO_DROP_CHANCE,
   MISSILE_NAMES_BY_BATTERY_SIZE,

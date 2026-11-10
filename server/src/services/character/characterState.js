@@ -4313,6 +4313,8 @@ function applyCharacterToSession(session, charId, options = {}) {
       errorMsg: "SESSION_REQUIRED",
     };
   }
+  const affiliation = require("../corporation/allianceAffiliationSettlement").reconcileForCharacter(charId);
+  if (!affiliation.success) return affiliation;
 
   // Finish accepted docked clone deaths before login can repair/choose a ship
   // or publish the old location. The owner guards its own rebuild recursion.

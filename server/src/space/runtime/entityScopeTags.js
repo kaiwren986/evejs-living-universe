@@ -117,6 +117,7 @@ function applyRuntimeEntityScopeMetadata(entity, scopeMetadata = {}) {
     "dungeonSiteContentBonus",
     "dungeonSiteContentFailureExplodes",
     "dungeonSiteContentFailureNeverDestroys",
+    "dungeonSiteContentShowsContents",
     "dungeonSiteContentFailureLocksOut",
     "dungeonSiteContentCompletesSiteOnHack",
     "dungeonSiteContentPersistsAfterResponse",
@@ -128,6 +129,7 @@ function applyRuntimeEntityScopeMetadata(entity, scopeMetadata = {}) {
   for (const key of [
     "airNpeHostileWave",
     "dungeonEncounterKey",
+    "dungeonObjectiveTargetKey",
     "dungeonSiteContentKey",
     "dungeonSiteContentRole",
     "dungeonSiteContentAnalyzer",
@@ -153,6 +155,10 @@ function applyRuntimeEntityScopeMetadata(entity, scopeMetadata = {}) {
         entry && typeof entry === "object" ? { ...entry } : entry
       ));
     }
+  }
+  const hackingBoard = scopeMetadata.dungeonSiteContentHackingBoard;
+  if (hackingBoard && typeof hackingBoard === "object" && !Array.isArray(hackingBoard)) {
+    entity.dungeonSiteContentHackingBoard = structuredClone(hackingBoard);
   }
   return entity;
 }
@@ -321,6 +327,7 @@ function serializeRuntimeEntityScopeMetadata(entity) {
     "dungeonSiteContentBonus",
     "dungeonSiteContentFailureExplodes",
     "dungeonSiteContentFailureNeverDestroys",
+    "dungeonSiteContentShowsContents",
     "dungeonSiteContentFailureLocksOut",
     "dungeonSiteContentCompletesSiteOnHack",
     "dungeonSiteContentPersistsAfterResponse",
@@ -332,6 +339,7 @@ function serializeRuntimeEntityScopeMetadata(entity) {
   for (const key of [
     "airNpeHostileWave",
     "dungeonEncounterKey",
+    "dungeonObjectiveTargetKey",
     "dungeonSiteContentKey",
     "dungeonSiteContentRole",
     "dungeonSiteContentAnalyzer",
@@ -355,6 +363,10 @@ function serializeRuntimeEntityScopeMetadata(entity) {
         entry && typeof entry === "object" ? { ...entry } : entry
       ));
     }
+  }
+  const hackingBoard = entity.dungeonSiteContentHackingBoard;
+  if (hackingBoard && typeof hackingBoard === "object" && !Array.isArray(hackingBoard)) {
+    serialized.dungeonSiteContentHackingBoard = structuredClone(hackingBoard);
   }
   return serialized;
 }

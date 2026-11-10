@@ -1,6 +1,13 @@
 "use strict";
 
 const path = require("path");
+const randomSource = require("../../common/random");
+const offerEvidence = require("../../config/securityMissionOfferEvidence");
+const rewardBaseline = require("../../config/securityMissionRewardBaseline");
+const standingBaseline = require("../../config/securityMissionStandingBaseline");
+const declineBaseline = require("../../config/securityMissionDeclineBaseline");
+const destinationBaseline = require("../../config/securityMissionDestinations");
+const pirateFactionPolicy = require("../../space/npc/pirateFactionPolicy");
 
 const database = require(path.join(__dirname, "../../gameStore"));
 const worldData = require(path.join(__dirname, "../../space/worldData"));
@@ -25,6 +32,7 @@ const {
 const {
   getChainContinuationMissionID,
   getMissionByID,
+  getSecurityMissionBindingForAgent,
   getMissionArcInfo,
   isMissionOfferAllowedForAgent,
   isOrdinarySecurityAgent,
@@ -72,7 +80,6 @@ const {
 } = require(path.join(__dirname, "../inventory/itemTypeRegistry"));
 const {
   getActiveShipItem,
-  grantItemsToCharacterStationHangar,
   grantItemsToOwnerLocation,
   listContainerItems,
   ITEM_FLAGS,
@@ -102,6 +109,11 @@ const notificationState = require(path.join(
 const config = require(path.join(__dirname, "../../config"));
 const researchRuntime = require(path.join(__dirname, "./researchRuntime"));
 const researchDialogue = require(path.join(__dirname, "./researchDialogue"));
+const careerAgentMissions = require("./careerAgentMissions");
+const careerRetailMissionData = require("./careerRetailMissionData");
+const fleetShare = require(path.join(__dirname, "../fleetShare/fleetShare"));
+const visionsOfGreatness = require("./visionsOfGreatness");
+const fracturedLegacy = require("./fracturedLegacy");
 
 const AGENT_DIALOGUE_BUTTON_VIEW_MISSION = 1;
 const AGENT_DIALOGUE_BUTTON_REQUEST_MISSION = 2;
@@ -156,7 +168,6 @@ const AGENT_MISSION_QUIT = "quit";
 
 const MISSION_KIND_COURIER = "courier";
 const MISSION_KIND_DISTRIBUTION = "distribution";
-const MISSION_KIND_MINING = "mining";
 const OBJECTIVE_TYPE_AGENT = "agent";
 const OBJECTIVE_TYPE_DUNGEON = "dungeon";
 const OBJECTIVE_TYPE_FETCH = "fetch";
@@ -189,6 +200,8 @@ const LP_SECURITY_MULTIPLIER_FLOOR = 0.1;
 // Captured TQ reward presentations put the timed bonus at 1.230-1.237x the base reward, not
 // the fraction-of-base this table used to assume.
 const MISSION_BONUS_ISK_RATIO = 1.23;
+// An important mission's direct faction gain, as a share of its corporation gain.
+const IMPORTANT_MISSION_FACTION_SHARE = 0.5;
 
 const REWARD_SCALE_SECURITY = "security";
 const REWARD_SCALE_DISTRIBUTION = "distribution";
@@ -436,6 +449,15 @@ function fileTimeBigIntToLong(fileTimeValue) {
   return buildFiletimeLong(fileTimeValue > 0n ? fileTimeValue : currentFileTime());
 }
 
+// A mission's expiration: expiresAtFileTime 0 means it never expires (career agent missions,
+// every mission whose data has expirationTime 0). The client's value for that is 0 (agentUtil
+// GetMissionExpirationText: "does not expire"). Not "now", which made such missions show as
+// "Expired" right after accepting, and not None: Python 2 orders None below 0, so the station
+// Agents tab (GetMissionStateText: expirationTime < 0) would show "Offer Expired".
+function missionExpirationToLong(fileTimeValue) {
+  return buildFiletimeLong(fileTimeValue > 0n ? fileTimeValue : 0n);
+}
+
 function nowFileTimeBigInt() {
   return currentFileTime();
 }
@@ -480,6 +502,15 @@ function getDungeonMissionTemplateRecord(missionRecord = null) {
 }
 
 function getMissionInstanceTemplateRecord(missionRecord = null) {
+  const alias = normalizeText(missionRecord?.dungeonTemplateID, "");
+  const legacyID = require("../dungeon/capturedSecurityLegacyScenes").getLegacyTemplateID(alias);
+  if (legacyID && missionRecord.dungeonInstanceID) {
+    const instance = dungeonRuntime.getInstance(missionRecord.dungeonInstanceID);
+    if (instance?.templateID === legacyID && instance.metadata?.missionRuntimeTemplateID === alias) {
+      const legacy = getMissionTemplateRecord(legacyID);
+      if (legacy) return legacy;
+    }
+  }
   const runtimeMissionTemplate = getRuntimeMissionTemplateRecord(missionRecord);
   if (
     runtimeMissionTemplate &&
@@ -488,6 +519,14 @@ function getMissionInstanceTemplateRecord(missionRecord = null) {
     return runtimeMissionTemplate;
   }
   return getDungeonMissionTemplateRecord(missionRecord) || runtimeMissionTemplate || null;
+}
+
+// The mission site's hints for the mission tracker (populationHints.missionTracker, or the older
+// populationHints.tracker): its objectiveKey, approachKey, destroyAllAnchor.
+function getMissionTrackerHints(missionRecord) {
+  const template = getMissionInstanceTemplateRecord(missionRecord);
+  const populationHints = normalizeObject(template && template.populationHints);
+  return normalizeObject(populationHints.missionTracker || populationHints.tracker);
 }
 
 function getMissionTemplatePool(agentID) {
@@ -672,6 +711,11 @@ function resolveMissionTemplateForClientMission(
   fallbackMissionTemplate = null,
   runtimeDungeonTemplate = null,
 ) {
+  // Resolve the exact installed alias before the historical title/cache path.
+  // This lookup rechecks agent restrictions against the current authority.
+  const securityBinding = getSecurityMissionBindingForAgent(agentRecord, clientMissionRecord);
+  if (securityBinding) return getMissionTemplateRecord(securityBinding.templateID);
+  if (String(runtimeDungeonTemplate && runtimeDungeonTemplate.templateID).startsWith("security-mission:")) runtimeDungeonTemplate = null;
   const selectionCacheKey = [
     normalizePositiveInteger(agentRecord && agentRecord.agentID, 0),
     missionContentIDToText(clientMissionRecord && clientMissionRecord.missionID, ""),
@@ -684,14 +728,17 @@ function resolveMissionTemplateForClientMission(
   ].join(":");
   if (selectionCacheKey && cachedMissionTemplateSelections.has(selectionCacheKey)) {
     const cachedTemplateID = cachedMissionTemplateSelections.get(selectionCacheKey);
-    return cachedTemplateID ? getMissionTemplateRecord(cachedTemplateID) : null;
+    if (!String(cachedTemplateID).startsWith("security-mission:")) {
+      return cachedTemplateID ? getMissionTemplateRecord(cachedTemplateID) : null;
+    }
+    cachedMissionTemplateSelections.delete(selectionCacheKey);
   }
 
   const candidateTemplates = [];
   const seenTemplateIDs = new Set();
   const pushTemplate = (template) => {
     const templateID = normalizeText(template && template.templateID, "");
-    if (!templateID || seenTemplateIDs.has(templateID)) {
+    if (!templateID || templateID.startsWith("security-mission:") || seenTemplateIDs.has(templateID)) {
       return;
     }
     seenTemplateIDs.add(templateID);
@@ -699,7 +746,7 @@ function resolveMissionTemplateForClientMission(
   };
 
   const explicitMissionTemplate = getExplicitMissionTemplateForClientMission(clientMissionRecord);
-  if (explicitMissionTemplate) {
+  if (explicitMissionTemplate && !String(explicitMissionTemplate.templateID).startsWith("security-mission:")) {
     cachedMissionTemplateSelections.set(
       selectionCacheKey,
       normalizeText(explicitMissionTemplate && explicitMissionTemplate.templateID, ""),
@@ -857,20 +904,19 @@ function isCourierMission(agentRecord = null, missionTemplate = null) {
   return missionTitle.includes("courier");
 }
 
-function isMiningAgent(agentRecord = null) {
-  const missionKind = normalizeText(agentRecord && agentRecord.missionKind, "");
-  if (missionKind === MISSION_KIND_MINING) {
-    return true;
-  }
-  return normalizeText(agentRecord && agentRecord.missionTypeLabel, "")
-    .toLowerCase()
-    .includes("mining");
-}
-
-// Distribution and mining agents hand out short, low-risk work and TQ pays them on their own
-// curve. Everything else (encounter/security, research, career) rides the combat curve.
+// Distribution agents hand out short, low-risk work and TQ pays them on their own curve.
+// Everything else (encounter/security, mining, research, career) rides the combat curve.
+//
+// Mining is on the security curve, not the distribution one it used to share with couriers. A
+// published nine-mission level 4 dataset from TQ (Negotiation V, Mining Connections V) averages
+// 1,719,111 ISK and 3,976 LP per mission; on the distribution curve the same pilot was paid
+// 398,750 ISK and 1,236 LP, 4.31x and 3.22x short. Backing Negotiation out of the observed base
+// gives 681,956 ISK against the security table's 675,000, a 1% match. corpRaw/agentRaw/factionRaw
+// are identical between the two curves at every level, so standings and the quit penalty do not
+// move; bonusTimeIntervalMinutes does (level 4: 120 -> 240), which is the security curve's own
+// value rather than a claim about how long a mining mission takes.
 function resolveRewardScale(agentRecord = null) {
-  return isCourierMission(agentRecord, null) || isMiningAgent(agentRecord)
+  return isCourierMission(agentRecord, null)
     ? REWARD_SCALE_DISTRIBUTION
     : REWARD_SCALE_SECURITY;
 }
@@ -928,8 +974,8 @@ function resolveLoyaltyPointSecurityMultiplier(agentRecord = null) {
 }
 
 // TQ awards no loyalty points for storyline, epic arc or R&D missions even though they still
-// move standings. Keyed off the mission record only: isCareerAgent() tests careerID > 0, which
-// is the character-creation career field and is set on every agent, so it cannot gate this.
+// move standings. Use mission flags; character-creation careerID is set on
+// ordinary agents too and cannot determine mission loyalty-point eligibility.
 function isLoyaltyPointExemptMission(clientMissionRecord = null) {
   if (!clientMissionRecord || typeof clientMissionRecord !== "object") {
     return false;
@@ -952,7 +998,7 @@ function isResearchAgent(agentRecord = null) {
 }
 
 function isCareerAgent(agentRecord = null) {
-  return normalizePositiveInteger(agentRecord && agentRecord.careerID, 0) > 0;
+  return Number(agentRecord?.agentTypeID) === 12;
 }
 
 function canUseAgent(characterID, agentRecord) {
@@ -1051,17 +1097,24 @@ function normalizeMissionRewardItem(rewardRecord = null) {
   const itemType = resolveItemByTypeID(typeID);
   const { isBlueprintCopyRewardType } = require("../inventory/blueprintRewardState");
   const blueprintReward = isBlueprintCopyRewardType(itemType);
+  const blueprintInfo = rewardRecord.blueprintInfo || rewardRecord.extra?.blueprintInfo;
   // Authored mission blueprint quantities are licensed runs on one copy.
   // This includes both normal rewards and timed COSMOS/epic-arc bonuses.
   const blueprintRuns = blueprintReward && rewardRecord.original !== true
-    ? normalizePositiveInteger(rewardRecord.blueprintRuns, quantity)
+    ? normalizePositiveInteger(rewardRecord.blueprintRuns ?? blueprintInfo?.licensedProductionRunsRemaining, quantity)
     : 0;
+  const blueprintEfficiency = blueprintRuns > 0 && (blueprintInfo || rewardRecord.blueprintMaterialLevel !== undefined ||
+    rewardRecord.blueprintProductivityLevel !== undefined) ? {
+      blueprintMaterialLevel: Math.max(0, normalizeInteger(rewardRecord.blueprintMaterialLevel ?? blueprintInfo?.materialLevel, 0)),
+      blueprintProductivityLevel: Math.max(0, normalizeInteger(rewardRecord.blueprintProductivityLevel ?? blueprintInfo?.productivityLevel, 0)),
+    } : {};
   return {
     typeID,
     quantity: blueprintRuns > 0 ? 1 : quantity,
     ...(blueprintRuns > 0 ? { blueprintRuns } : {}),
+    ...blueprintEfficiency,
     ...(Number(itemType?.categoryID) === 9 && !blueprintRuns ? { original: true } : {}),
-    extra: null,
+    extra: blueprintInfo ? { blueprintInfo: cloneValue(blueprintInfo) } : null,
   };
 }
 
@@ -1131,6 +1184,34 @@ function hydrateMissionFailureStandingEvent(agentRecord, missionRecord) {
   };
 }
 
+// A mission's faction standing bonus (the client's extraStandings, in percent: 1.5 on the last
+// mission of each career agent's chain, 5 to 30 on epic arcs), a raw gain on completion. Since
+// TQ 23.02 (2026-02-25.1) the career agents' bonus triggers no derived standings, "just like epic
+// arcs", so neither does any extraStandings bonus here.
+function resolveObservedLayoutRewardFallback(agentRecord, clientMissionRecord, presentationTemplate) {
+  const missionID = normalizePositiveInteger(clientMissionRecord?.missionID, 0);
+  const row = presentationTemplate?.missionRewardFallbacksByMissionID?.[missionID];
+  if (!row) return null;
+  const canonical = missionID && getMissionByID(missionID);
+  const dungeonID = normalizePositiveInteger(canonical?.killMission?.dungeonID, 0);
+  if (!canonical || !isOrdinarySecurityAgent(agentRecord) ||
+      !isMissionOfferAllowedForAgent(agentRecord, canonical) ||
+      canonical.contentTemplate !== "agent.missionTemplatizedContent_BasicKillMission" ||
+      dungeonID <= 0 || dungeonID !== normalizePositiveInteger(clientMissionRecord?.killMission?.dungeonID, 0) ||
+      dungeonID !== normalizePositiveInteger(presentationTemplate?.sourceDungeonID, 0) ||
+      row.missionID !== missionID || row.dungeonID !== dungeonID ||
+      row.agentLevel !== normalizePositiveInteger(agentRecord?.level, 0)) return null;
+  return row.rewards || null;
+}
+
+
+function missionExtraStandings(clientMissionRecord) {
+  const extraStandings = Object.entries(normalizeObject(clientMissionRecord && clientMissionRecord.extraStandings))
+    .map(([ownerID, percent]) => ({ ownerID: normalizePositiveInteger(ownerID, 0), rawChange: Number(percent) / 100 }))
+    .filter((entry) => entry.ownerID > 0 && Number.isFinite(entry.rawChange) && entry.rawChange !== 0);
+  return extraStandings.length > 0 ? { extraStandings } : {};
+}
+
 function buildMissionRewards(
   agentRecord,
   importantMission = false,
@@ -1143,33 +1224,61 @@ function buildMissionRewards(
   const base =
     rewardScale[normalizeInteger(agentRecord && agentRecord.level, 1)] || rewardScale[1];
   const importantMultiplier = importantMission ? 1.3 : 1.0;
+  const securityBinding = getSecurityMissionBindingForAgent(agentRecord, clientMissionRecord);
+  let aliasRewards = securityBinding ? securityBinding.rewards :
+    resolveObservedLayoutRewardFallback(agentRecord, clientMissionRecord, presentationTemplate);
+  const logDefaults = !importantMission && isOrdinarySecurityAgent(agentRecord) &&
+    isMissionOfferAllowedForAgent(agentRecord, clientMissionRecord)
+    ? rewardBaseline.getLevel?.(normalizeInteger(agentRecord.level, 1)) : null;
+  if (securityBinding && !importantMission) {
+    aliasRewards = { ...aliasRewards, ...rewardBaseline.selectFallbacks?.(securityBinding, clientMissionRecord, normalizeInteger(agentRecord.level, 1)) };
+  }
+  // TODO: Validate pack estimates against observed gameplay. Only the existing
+  // canonical/agent binding gate or exact observed-layout identity may supply
+  // these provisional fallback bases. Matching captured presentations below
+  // still override computed fallbacks after skill/security modifiers.
+  const baseIsk = Number.isFinite(aliasRewards?.isk) ? aliasRewards.isk : logDefaults?.isk ?? base.isk;
+  const baseBonusIsk = Number.isFinite(aliasRewards?.bonusISK) ? aliasRewards.bonusISK : logDefaults?.bonusISK ?? base.bonusIsk;
+  const baseLoyaltyPoints = Number.isFinite(aliasRewards?.baseLP)
+    ? aliasRewards.baseLP : logDefaults?.baseLP ?? base.baseLoyaltyPoints;
+  const nativeRewards = aliasRewards && aliasRewards.nativeMissionRewards;
+  const nativePrimary = nativeRewards && nativeRewards.reward;
+  const nativeBonus = nativeRewards && nativeRewards.bonusReward;
   const missionRewards =
     clientMissionRecord &&
     clientMissionRecord.missionRewards &&
     typeof clientMissionRecord.missionRewards === "object"
       ? clientMissionRecord.missionRewards
       : null;
-  const primaryReward = normalizeMissionRewardItem(missionRewards && missionRewards.reward);
-  const bonusReward = normalizeMissionRewardItem(missionRewards && missionRewards.bonusReward);
-  const capturedRewardPresentation = missionRewards
-    ? null
-    : resolveCapturedMissionRewardPresentation(
-        presentationTemplate,
-        contentID === null || contentID === undefined
-          ? clientMissionRecord && clientMissionRecord.missionID
-          : contentID,
-        agentRecord,
-      );
+  const primaryReward = normalizeMissionRewardItem(missionRewards && missionRewards.reward) ||
+    normalizeMissionRewardItem(nativePrimary);
+  const bonusReward = normalizeMissionRewardItem(missionRewards && missionRewards.bonusReward) ||
+    normalizeMissionRewardItem(nativeBonus);
+  // Canonical normalization loses authored quantity zero. Retain that exact
+  // native presence only for validated aliases; positive canonical entries win.
+  const nativePrimaryZero = normalizePositiveInteger(nativePrimary?.rewardTypeID ?? nativePrimary?.typeID, 0) > 0 &&
+    (nativePrimary.rewardQuantity ?? nativePrimary.quantity) === 0;
+  const nativeBonusZero = normalizePositiveInteger(nativeBonus?.rewardTypeID ?? nativeBonus?.typeID, 0) > 0 &&
+    (nativeBonus.rewardQuantity ?? nativeBonus.quantity) === 0;
+  const rewardContentID = contentID === null || contentID === undefined ? clientMissionRecord?.missionID : contentID;
+  const capturedRewardPresentation = securityBinding ? null : careerRetailMissionData.filterCapturedRewardPresentation(
+    rewardContentID, agentRecord, {
+      ...careerRetailMissionData.resolveCapturedRewardPresentation(rewardContentID, agentRecord),
+      ...visionsOfGreatness.resolveCapturedRewardPresentation(rewardContentID, agentRecord),
+      ...fracturedLegacy.resolveCapturedRewardPresentation(rewardContentID, agentRecord),
+      ...resolveCapturedMissionRewardPresentation(presentationTemplate, rewardContentID, agentRecord),
+    },
+  );
   const capturedPrimaryReward = normalizeMissionRewardItem(
-    capturedRewardPresentation && capturedRewardPresentation.normalReward,
+    (!primaryReward || clientMissionRecord?.estimatedRewardFields?.includes("reward")) && capturedRewardPresentation && capturedRewardPresentation.normalReward,
   );
   const capturedBonusReward = normalizeMissionRewardItem(
-    capturedRewardPresentation && capturedRewardPresentation.bonusReward,
+    (!bonusReward || clientMissionRecord?.estimatedRewardFields?.includes("bonusReward")) && capturedRewardPresentation && capturedRewardPresentation.bonusReward,
   );
   const itemRewards = [];
   const bonusItemRewards = [];
-  let isk = roundMoney(base.isk * importantMultiplier);
-  let bonusIsk = roundMoney(base.bonusIsk * importantMultiplier);
+  let isk = nativePrimaryZero ? 0 : roundMoney(baseIsk * importantMultiplier);
+  let bonusIsk = nativeBonusZero ? 0 : roundMoney(baseBonusIsk * importantMultiplier);
 
   if (primaryReward) {
     isk = 0;
@@ -1201,14 +1310,23 @@ function buildMissionRewards(
     normalizeInteger(clientMissionRecord && clientMissionRecord.fixedLpRewardOmega, 0),
     normalizeInteger(clientMissionRecord && clientMissionRecord.fixedLpRewardAlpha, 0),
   );
-  // Fall back to the level's window rather than 0: a 0 interval means "no timed bonus", which
-  // makes isMissionBonusRewardAvailable() pay the bonus unconditionally on every turn-in.
-  // Authored data uses null for "unspecified", which normalizeInteger would coerce to 0, so
-  // only a positive authored interval wins over the level default.
+  // Generic records retain the positive-window fallback. Validated aliases also
+  // preserve native zero (no timed limit), then a provisional pack window,
+  // without coercing missing/null evidence to an authored zero.
+  const authoredBonusTimeIntervalMinutes = normalizePositiveInteger(
+    missionRewards && missionRewards.bonusTimeInterval, 0,
+  );
   let bonusTimeIntervalMinutes = normalizePositiveInteger(
     missionRewards && missionRewards.bonusTimeInterval,
-    Math.max(0, normalizeInteger(base.bonusTimeIntervalMinutes, 0)),
+    Math.max(0, normalizeInteger(logDefaults?.bonusMinutes ?? base.bonusTimeIntervalMinutes, 0)),
   );
+  if (!authoredBonusTimeIntervalMinutes) {
+    if (Number.isFinite(nativeRewards?.bonusTimeInterval) && nativeRewards.bonusTimeInterval >= 0) {
+      bonusTimeIntervalMinutes = normalizeInteger(nativeRewards.bonusTimeInterval, 0);
+    } else if (Number.isFinite(aliasRewards?.bonusMinutes)) {
+      bonusTimeIntervalMinutes = normalizeInteger(aliasRewards.bonusMinutes, 0);
+    }
+  }
   const loyaltyPointSecurityMultiplier =
     resolveLoyaltyPointSecurityMultiplier(agentRecord);
   const divisionConnectionsMultiplier =
@@ -1226,7 +1344,7 @@ function buildMissionRewards(
       (isLoyaltyPointExemptMission(clientMissionRecord)
         ? 0
         : Math.round(
-            base.baseLoyaltyPoints *
+            baseLoyaltyPoints *
               loyaltyPointSecurityMultiplier *
               divisionConnectionsMultiplier *
               importantMultiplier,
@@ -1234,7 +1352,7 @@ function buildMissionRewards(
   );
 
   // Captured setup rewards are exact presentation values for the matching source context.
-  // Apply them only to fallback fields; authored missionRewards remain authoritative.
+  // Apply them to computed/authored estimates; native mission rewards remain authoritative.
   if (capturedPrimaryReward) {
     isk = 0;
     itemRewards.length = 0;
@@ -1252,18 +1370,12 @@ function buildMissionRewards(
     } else {
       bonusItemRewards.push(capturedBonusReward);
     }
-    bonusTimeIntervalMinutes = Math.max(
-      0,
-      normalizeInteger(
-        capturedRewardPresentation &&
-          capturedRewardPresentation.bonusReward &&
-          capturedRewardPresentation.bonusReward.timeIntervalMinutes,
-        0,
-      ),
+    if (!authoredBonusTimeIntervalMinutes) bonusTimeIntervalMinutes = normalizePositiveInteger(
+      capturedRewardPresentation?.bonusReward?.timeIntervalMinutes, bonusTimeIntervalMinutes,
     );
   }
   if (
-    capturedRewardPresentation &&
+    !fixedLpReward && capturedRewardPresentation &&
     Object.prototype.hasOwnProperty.call(capturedRewardPresentation, "loyaltyPoints")
   ) {
     loyaltyPoints = Math.max(
@@ -1271,6 +1383,60 @@ function buildMissionRewards(
       normalizeInteger(capturedRewardPresentation.loyaltyPoints, 0),
     );
   }
+
+  // Current exact-agent TQ quotes supersede estimated fallbacks, not authored
+  // native rewards. Sample a whole tuple once when building the persisted offer
+  // so ISK, bonus, LP, timer and item choices cannot reroll independently.
+  const observedMission = !importantMission && isOrdinarySecurityAgent(agentRecord) &&
+    isMissionOfferAllowedForAgent(agentRecord, clientMissionRecord)
+    ? offerEvidence.getMissionObservation?.(agentRecord, clientMissionRecord) : null;
+  const observedSample = observedMission?.rewardSamples?.length
+    ? observedMission.rewardSamples[Math.floor(randomSource.random() * observedMission.rewardSamples.length)] : null;
+  if (observedSample) {
+    // TODO: Zero reward skills are user-reported for the new TQ character. Apply
+    // Negotiation/Connections once, but validate their baseline and exact TQ
+    // rounding. These already location-specific LP quotes must not receive the
+    // security factor again. Resampling is provisional, not TQ's true formula.
+    if (!primaryReward && !nativePrimaryZero) {
+      isk = 0; itemRewards.length = 0;
+      for (const [typeID, quantity] of observedSample.normalRewards) {
+        if (typeID === ISK_REWARD_TYPE_ID) isk += roundMoney(quantity * negotiationMultiplier);
+        else {
+          const item = normalizeMissionRewardItem({ typeID, quantity });
+          if (item) itemRewards.push(item);
+        }
+      }
+    }
+    if (!bonusReward && !nativeBonusZero) {
+      bonusIsk = 0; bonusItemRewards.length = 0;
+      for (const [, typeID, quantity] of observedSample.bonusRewards) {
+        if (typeID === ISK_REWARD_TYPE_ID) bonusIsk += roundMoney(quantity * negotiationMultiplier);
+        else {
+          const item = normalizeMissionRewardItem({ typeID, quantity });
+          if (item) bonusItemRewards.push(item);
+        }
+      }
+      const authoredWindow = missionRewards?.bonusTimeInterval ?? nativeRewards?.bonusTimeInterval;
+      if (!Number.isFinite(authoredWindow)) {
+        bonusTimeIntervalMinutes = Math.max(0, ...observedSample.bonusRewards.map((row) => row[4]));
+      }
+    }
+    if (!fixedLpReward && !isLoyaltyPointExemptMission(clientMissionRecord)) {
+      loyaltyPoints = Math.max(0, Math.round(observedSample.loyaltyPoints * divisionConnectionsMultiplier));
+    }
+  }
+
+  for (const reward of itemRewards) {
+    const info = fracturedLegacy.getRewardBlueprintInfo(rewardContentID, agentRecord, reward.typeID);
+    if (info) Object.assign(reward, { quantity: 1, blueprintRuns: info.licensedProductionRunsRemaining,
+      blueprintMaterialLevel: info.materialLevel, blueprintProductivityLevel: info.productivityLevel,
+      extra: { blueprintInfo: info } });
+  }
+  // These are final, source-scoped retail quotes, with an unknown recorded
+  // Negotiation baseline. Do not multiply the captured presentation twice.
+  const fracturedQuote = fracturedLegacy.resolveCapturedRewardPresentation(rewardContentID, agentRecord);
+  if (fracturedQuote?.normalReward?.typeID === ISK_REWARD_TYPE_ID) isk = fracturedQuote.normalReward.quantity;
+  if (fracturedQuote?.bonusReward?.typeID === ISK_REWARD_TYPE_ID) bonusIsk = fracturedQuote.bonusReward.quantity;
 
   // Server-wide payout knob, applied last so it scales the level tables, the security term,
   // the skill bonuses, and any authored or captured per-mission reward alike. Item rewards are
@@ -1302,6 +1468,48 @@ function buildMissionRewards(
     loyaltyPoints = 0;
   }
 
+  const securityStandingBinding = securityBinding;
+  const securityStandingValues = securityStandingBinding && securityStandingBinding.standings;
+  const useStandingBaseline = !importantMission && isOrdinarySecurityAgent(agentRecord) &&
+    isMissionOfferAllowedForAgent(agentRecord, clientMissionRecord);
+  const calibratedStanding = useStandingBaseline
+    ? standingBaseline.getCompleted?.(clientMissionRecord, normalizeInteger(agentRecord.level, 1), baseLoyaltyPoints, agentRecord.corporationID) : null;
+  const standingField = (field) => {
+    const evidence = securityStandingBinding?.baselineEvidence?.find((row) => row.fieldPath === `/securityMission/standings/${field}`)?.evidenceClass;
+    return calibratedStanding && (!securityStandingBinding || !Number.isFinite(securityStandingValues?.[field]) || ["estimated", "TQ_log_standing_projection"].includes(evidence))
+      ? calibratedStanding[field] : securityStandingValues?.[field];
+  };
+  const calibratedDecline = useStandingBaseline
+    ? declineBaseline.getDeclined?.(agentRecord, clientMissionRecord, baseLoyaltyPoints) : null;
+  // Validated pack estimates are raw fractions. Social and relationship propagation
+  // remain owned by standingRuntime; unresolved loss metadata is not an event policy.
+  const corporationRawStanding = Number.isFinite(standingField("corpRaw"))
+    ? standingField("corpRaw")
+    : Number(base.corpRaw || 0);
+  // The faction's direct gain: an important mission's is a share of the
+  // corporation's. Every completion also derives the faction a change from the
+  // corporation's gain; standingRuntime adds that one.
+  const completedRawStandings = {
+    corporation: corporationRawStanding,
+    faction: Number.isFinite(securityStandingValues && securityStandingValues.factionRaw)
+      ? securityStandingValues.factionRaw
+      : importantMission ? corporationRawStanding * IMPORTANT_MISSION_FACTION_SHARE : 0,
+    agent: Number.isFinite(standingField("agentRaw"))
+      ? standingField("agentRaw")
+      : Number(base.agentRaw || 0),
+  };
+  const capturedStanding = fracturedLegacy.resolveCapturedStandingPresentation(rewardContentID, agentRecord);
+  let capturedCompletionEvent = null;
+  if (capturedStanding) {
+    const changes = capturedStanding.changes;
+    const rawFor = ownerID => changes.find(row => Number(row.ownerID) === Number(ownerID))?.rawChange || 0;
+    Object.assign(completedRawStandings, { corporation: rawFor(agentRecord.corporationID),
+      agent: rawFor(agentRecord.agentID), faction: 0 });
+    capturedCompletionEvent = { applySocial: false, notificationMin: -1, notificationMax: 1,
+      derivedStandings: [], extraStandings: changes.filter(row =>
+        ![Number(agentRecord.corporationID), Number(agentRecord.agentID)].includes(Number(row.ownerID))) };
+  }
+
   return {
     isk,
     bonusIsk,
@@ -1309,6 +1517,11 @@ function buildMissionRewards(
     bonusItemRewards,
     bonusTimeIntervalMinutes,
     loyaltyPoints,
+    ...(observedSample ? { tqOfferEvidence: {
+      captureID: offerEvidence.getProfile(agentRecord).captureID,
+      source: { ...observedSample.source },
+      validationTODO: "TODO: Validate baseline reward skills and replace finite empirical resampling with TQ reward ranges/formula when known.",
+    } } : {}),
     // "Completion of a mission will add one day's worth of bonus Research Points to
     // your account." Quoted on the offer the way every other reward is.
     researchPoints: researchRuntime.isResearchAgent(agentRecord)
@@ -1316,29 +1529,22 @@ function buildMissionRewards(
         researchRuntime.getMissionBonusPointPreview(characterID, agentRecord),
       )
       : 0,
-    rawStandings: {
-      corporation: Number(base.corpRaw || 0),
-      faction: importantMission ? Number(base.factionRaw || 0.012) : 0,
-      agent: Number(base.agentRaw || 0),
-    },
+    rawStandings: completedRawStandings,
     standingEvents: {
       completed: {
-        corporation: Number(base.corpRaw || 0),
-        faction: importantMission ? Number(base.factionRaw || 0.012) : 0,
-        agent: Number(base.agentRaw || 0),
+        ...completedRawStandings,
         applySocial: true,
+        ...missionExtraStandings(clientMissionRecord),
+        ...capturedCompletionEvent,
       },
       declined: {
-        // TQ parity (golden: Starting Simple L1 declines) — a penalized decline is a two-event hit:
-        // a DIRECT change to the agent and its corp (= agent/10), then a DERIVED faction ripple.
-        // We emit only the direct agent+corp change here (faction: 0 → no direct faction change,
-        // matching the golden); the faction ripple is produced by standingRuntime's derived
-        // propagation. Magnitude = the mission's would-be agent reward negated. The golden shows the
-        // true value runs ~1.2-1.5x higher and varies per mission — needs more decline logs to source.
-        corporation: -Number(base.agentRaw || 0) / 10,
+        // Exact-context wire fractions win; other admitted Security missions
+        // use TODO-marked LP projections, independently of completion gains.
+        corporation: calibratedDecline?.corpRaw ?? -Number(base.agentRaw || 0) / 10,
         faction: 0,
-        agent: -Number(base.agentRaw || 0),
+        agent: calibratedDecline?.agentRaw ?? -Number(base.agentRaw || 0),
         applySocial: false,
+        ...calibratedDecline?.eventExtras,
       },
       failed: buildMissionFailureStandingEvent(
         agentRecord,
@@ -1388,8 +1594,8 @@ function buildLocationWrapForStation(stationID) {
   };
 }
 
-// Stargate adjacency for courier destination banding. Built once — the map is static, and the
-// per-offer cost is a depth-bounded BFS (at most level+2 = 7 jumps), not a full-universe walk.
+// Shared stargate adjacency for mission destination banding. Built once; each
+// offer uses a depth-bounded BFS, not a full-universe walk.
 function getSolarSystemAdjacency() {
   if (cachedSolarSystemAdjacency) {
     return cachedSolarSystemAdjacency;
@@ -2112,7 +2318,13 @@ function buildMissionRewardDisplayEntry(rewardRecord = null) {
   return buildMarshalTuple([
     typeID,
     quantity,
-    rewardRecord && Object.prototype.hasOwnProperty.call(rewardRecord, "extra")
+    normalizePositiveInteger(rewardRecord?.blueprintRuns, 0) > 0 &&
+      (rewardRecord.blueprintMaterialLevel !== undefined || rewardRecord.blueprintProductivityLevel !== undefined)
+      ? { ...normalizeObject(rewardRecord.extra), blueprintInfo: { copy: true,
+        licensedProductionRunsRemaining: rewardRecord.blueprintRuns,
+        materialLevel: Math.max(0, normalizeInteger(rewardRecord.blueprintMaterialLevel, 0)),
+        productivityLevel: Math.max(0, normalizeInteger(rewardRecord.blueprintProductivityLevel, 0)) } }
+      : rewardRecord && Object.prototype.hasOwnProperty.call(rewardRecord, "extra")
       ? cloneValue(rewardRecord.extra)
       : null,
   ]);
@@ -2365,6 +2577,29 @@ function buildMissionProcessMessageReferenceByKeys(
   );
 }
 
+function withMissionEstimateNotice(missionRecord, message) {
+  if (!/^security-mission:[1-9]\d*$/.test(String(missionRecord && missionRecord.dungeonTemplateID || ""))) {
+    return message;
+  }
+  // Conversation, journal and Opportunities all display dungeon objectives.
+  // Opportunities reads its narrative from client FSD and ignores agentSays.
+  // ProcessMessage recursively resolves this postfix through GetByLabel, whose
+  // native Get also accepts numeric message IDs with the original mission args.
+  // Keep localization on the client rather than flattening its tokenized text.
+  const reference = message && message.type === "tuple" ? message.items : null;
+  const body = reference ? reference[0] : message;
+  return buildMarshalTuple([
+    buildMarshalTuple([
+      "/Carbon/UI/Controls/ScrollEntries/LabelWithPostfix",
+      {
+        label: "<b>Includes estimates:</b> mission difficulty, rewards and standing changes.<br><br>",
+        postfix: typeof body === "number" ? buildMarshalTuple([body, {}]) : body,
+      },
+    ]),
+    reference ? reference[1] : resolveClientMissionContentID(missionRecord),
+  ]);
+}
+
 function buildConversationAgentSays(missionRecord, clientMissionRecord, messageKeys, fallbackText) {
   const keys = Array.isArray(messageKeys) ? messageKeys : [messageKeys];
   for (const key of keys) {
@@ -2504,10 +2739,23 @@ function listMissionBookmarks(characterID, missionRecord) {
     missionRecord && missionRecord.bookmarkIDsByRole && typeof missionRecord.bookmarkIDsByRole === "object"
       ? missionRecord.bookmarkIDsByRole
       : {};
+  const clientMission = isAgentObjectiveMissionRecord(missionRecord) ? getClientMissionRecord(missionRecord) : null;
+  const needsNativeDestination =
+    Boolean(clientMission && (clientMission.nodeGraphID || clientMission.clientObjectives)) &&
+    Boolean(worldData.getStationByID(missionRecord.dropoffLocation?.locationID));
   return Object.values(bookmarkIDsByRole)
     .map((bookmarkID) => bookmarkRuntime.getBookmarkForCharacter(characterID, bookmarkID))
     .filter(Boolean)
-    .map((bookmarkInfo) => buildMissionBookmarkPayload(bookmarkInfo.bookmark))
+    .flatMap(({ bookmark }) => {
+      const payload = buildMissionBookmarkPayload(bookmark);
+      // Native TalkToAgentObjective still consumes "objective", while the
+      // newer ActiveAgentMission context requires "objective.destination".
+      // Project both from the same owned bookmark; do not create another
+      // persistent location or leave older accepted missions with stale roles.
+      if (!needsNativeDestination || bookmark.metadata?.locationType !== "objective") return [payload];
+      return [payload, buildMissionBookmarkPayload({ ...bookmark,
+        metadata: { ...bookmark.metadata, locationType: "objective.destination" } })];
+    })
     .filter(Boolean);
 }
 
@@ -2870,28 +3118,6 @@ function cleanupMissionBookmarks(characterID, missionRecord) {
 function ensureMissionSiteState(characterID, agentRecord, missionRecord, missionTemplate = null) {
   const nextRecord = cloneValue(missionRecord);
   if (nextRecord.objectiveMode === OBJECTIVE_TYPE_TRANSPORT) {
-    if (
-      nextRecord.cargo &&
-      nextRecord.pickupLocation &&
-      normalizePositiveInteger(nextRecord.pickupLocation.locationID, 0) > 0 &&
-      nextRecord.cargo.granted !== true
-    ) {
-      const grantResult = grantItemsToCharacterStationHangar(
-        characterID,
-        nextRecord.pickupLocation.locationID,
-        [{
-          itemType: nextRecord.cargo.typeID,
-          quantity: nextRecord.cargo.quantity,
-        }],
-      );
-      if (grantResult && grantResult.success === true) {
-        nextRecord.cargo.granted = true;
-        notifyMissionInventoryChanges(
-          characterID,
-          (grantResult.data && grantResult.data.changes) || [],
-        );
-      }
-    }
     nextRecord.bookmarkIDsByRole = ensureMissionBookmarks(
       characterID,
       agentRecord,
@@ -3150,6 +3376,7 @@ function isMissionDungeonObjectiveSatisfied(missionRecord) {
     ? dungeonRuntime.getInstance(missionRecord.dungeonInstanceID)
     : null;
   const objectiveState = normalizeObject(instance && instance.objectiveState);
+  if (instance && !require("../dungeon/careerLessonRuntime").ready(instance, getTemplateByID(instance.templateID))) return false;
   return Boolean(
     instance &&
     (
@@ -3258,7 +3485,7 @@ function evaluateMissionProgress(characterID, missionRecord) {
 
   // Explicit satisfaction (objective-target destroyed, mining reached, fetch items granted)
   // is honored immediately, without waiting for a later behavior tick to promote the instance.
-  const dungeonObjectiveCompleted = isMissionDungeonObjectiveSatisfied(nextRecord);
+  let dungeonObjectiveCompleted = isMissionDungeonObjectiveSatisfied(nextRecord);
 
   // Dungeon-fetch missions (cargo spec stamped from killMission.objectiveTypeID) additionally
   // require the objective items delivered to the dropoff before the journal completes —
@@ -3287,6 +3514,22 @@ function evaluateMissionProgress(characterID, missionRecord) {
       template.populationHints &&
       template.populationHints.fetchObjective,
     );
+    // fetchObjective mechanic "loot_container": the pilot takes the objective item out of the
+    // site's container (the career agents' training sites). Acquiring it is what completes the
+    // dungeon (TQ: FetchObjectAcquiredDungeonDone), so mark the site satisfied once the item is
+    // in the pilot's possession; nothing else in the site would.
+    if (
+      !dungeonObjectiveCompleted &&
+      instance &&
+      hasAuthoredFetchGrant &&
+      normalizeText(template.populationHints.fetchObjective.mechanic, "").toLowerCase() === "loot_container" &&
+      progress.totalQuantity >= requiredQuantity
+    ) {
+      dungeonRuntime.markInstanceObjectiveSatisfied(instance.instanceID, {
+        reason: "fetch_objective_container_looted",
+      });
+      dungeonObjectiveCompleted = true;
+    }
     const isMiningMission = normalizeText(nextRecord.missionKind, "").toLowerCase() === "mining";
     // Some client-authored kill missions name an objective item but carry no
     // fetch-objective hint in their dungeon template. Once their dungeon has
@@ -3368,6 +3611,9 @@ function syncMissionRecordState(characterID, agentID, options = {}) {
       cargo: updatedMissionRecord.cargo || null,
     });
   if (!changed) {
+    if (options.forceNotifyTracker === true) {
+      notifyMissionTrackerUpdate(characterID, agentID);
+    }
     return updatedMissionRecord;
   }
   const completionChanged =
@@ -3383,7 +3629,7 @@ function syncMissionRecordState(characterID, agentID, options = {}) {
     storedMission.lastUpdatedAtMs = Date.now();
     return cloneValue(storedMission);
   });
-  if (options.notifyTracker !== false) {
+  if (options.notifyTracker !== false || options.forceNotifyTracker === true) {
     notifyMissionTrackerUpdate(characterID, agentID);
   }
   if (completionChanged && options.notifyMissionChange !== false) {
@@ -3423,6 +3669,7 @@ function syncMissionRecordForDungeonInstance(instanceOrID, options = {}) {
   }
   return syncMissionRecordState(characterID, agentID, {
     notifyTracker: options.notifyTracker !== false,
+    forceNotifyTracker: options.forceNotifyTracker === true,
     notifyMissionChange: options.notifyMissionChange === true,
   });
 }
@@ -3736,9 +3983,7 @@ function buildEncounterDestroyAllObjectiveTuple(characterID, missionRecord, opti
   const template = getMissionInstanceTemplateRecord(missionRecord);
   const populationHints = normalizeObject(template && template.populationHints);
   const completion = normalizeObject(populationHints.completion);
-  const trackerHints = normalizeObject(
-    populationHints.missionTracker || populationHints.tracker,
-  );
+  const trackerHints = getMissionTrackerHints(missionRecord);
   const anchor = normalizeObject(
     trackerHints.destroyAllAnchor ||
       completion.destroyAllAnchor ||
@@ -3803,6 +4048,16 @@ function buildEncounterDestroyAllObjectiveTuple(characterID, missionRecord, opti
   return buildMarshalTuple(["DestroyAll", 0]);
 }
 
+// fetchObjective mechanic "player_supplied": the site holds no objective item; the pilot brings it.
+function isPlayerSuppliedFetchMission(missionRecord) {
+  const instance = normalizePositiveInteger(missionRecord && missionRecord.dungeonInstanceID, 0)
+    ? dungeonRuntime.getInstance(missionRecord.dungeonInstanceID)
+    : null;
+  const template = instance ? getTemplateByID(normalizeText(instance.templateID, "")) : null;
+  const fetchObjective = template && template.populationHints && template.populationHints.fetchObjective;
+  return normalizeText(fetchObjective && fetchObjective.mechanic, "").toLowerCase() === "player_supplied";
+}
+
 function buildDungeonFetchReturnTuple(missionRecord, itemSpec) {
   return buildList([
     "FetchObjectAcquiredDungeonDone",
@@ -3853,6 +4108,15 @@ function buildDungeonFetchObjectiveState(characterID, missionRecord, options = {
     current = gateEntityID > 0
       ? buildMarshalTuple(["GoToGate", gateEntityID])
       : buildMissionFetchTuple("MissionFetch", itemSpec);
+  } else if (
+    isMissionDungeonObjectiveSatisfied(missionRecord) &&
+    isPlayerSuppliedFetchMission(missionRecord)
+  ) {
+    // The pilot makes the item outside the site (career Industry part 4: mine Veldspar there,
+    // reprocess it into Tritanium at the station). The client's MissionFetch graph (chain 25,
+    // node graph 605) takes "outside the cleared site" as its cue for Transport and Reprocess;
+    // TravelTo would send the pilot back to the site.
+    current = buildMissionFetchTuple("MissionFetch", itemSpec);
   } else {
     current = buildMarshalTuple([
       "TravelTo",
@@ -3898,10 +4162,15 @@ function buildMiningObjectiveState(characterID, missionRecord, options = {}) {
   ) {
     current = returnTuple;
   } else if (options.inActiveDungeon === true) {
-    current = buildMarshalTuple([
-      "MissionFetchMineTrigger",
-      normalizePositiveInteger(itemSpec && itemSpec.typeID, 0),
-    ]);
+    // The client's CreateMissionFetchMine reads a third element and renders
+    // MissionFetchMineQuantity ("mine N units of X") when it is present and greater than 1,
+    // falling back to the bare MissionFetchMine when it is not. Emitting the typeID alone made
+    // the in-pocket objective line read "Mine Banidine" with no count.
+    current = buildMissionFetchTuple("MissionFetchMineTrigger", itemSpec) ||
+      buildMarshalTuple([
+        "MissionFetchMineTrigger",
+        normalizePositiveInteger(itemSpec && itemSpec.typeID, 0),
+      ]);
   } else {
     current = buildMarshalTuple([
       "TravelTo",
@@ -3975,16 +4244,30 @@ function buildEncounterObjectiveState(characterID, missionRecord, options = {}) 
     };
   }
   let current = tuples.travel;
-  if (options.inActiveDungeon === true) {
+  // A site whose client mission graph shows its goal on "EventEnterRoom"
+  // (populationHints.missionTracker.objectiveKey): the career agents' The Exam (Advanced
+  // Military part 10). Its mission's hostile_target is a list ([{type_id: Terrorist Leader}]),
+  // which "Destroy" cannot write its item into (the goal stays empty), and "DestroyAll" shows
+  // "destroy all hostiles" for it. On "EventEnterRoom" the client's objective chain (33, node
+  // graph 616) goes straight to "Destroy <target>" from the mission's own hostile_target, as on
+  // TQ (the leader with his health bars).
+  if (options.inActiveDungeon === true &&
+      normalizeText(getMissionTrackerHints(missionRecord).objectiveKey, "") === "EventEnterRoom") {
+    current = buildMarshalTuple(["EventEnterRoom"]);
+  } else if (options.inActiveDungeon === true) {
+    const rescue = buildRescueObjectiveTuple(characterID, missionRecord, options);
     const gateEntityID = findNextMissionGateEntityID(
       characterID,
       missionRecord,
       options,
     );
-    current = gateEntityID > 0
+    current = rescue || (gateEntityID > 0
       ? buildMarshalTuple(["GoToGate", gateEntityID])
-      : buildEncounterDestroyObjectiveTuple(characterID, missionRecord, options) ||
-        buildEncounterDestroyAllObjectiveTuple(characterID, missionRecord, options);
+      : buildStandHoldOutObjectiveTuple(missionRecord) ||
+        buildClientTargetApproachObjectiveTuple(characterID, missionRecord, options) ||
+        buildEncounterApproachObjectiveTuple(characterID, missionRecord, options) ||
+        buildEncounterDestroyObjectiveTuple(characterID, missionRecord, options) ||
+        buildEncounterDestroyAllObjectiveTuple(characterID, missionRecord, options));
   }
   return {
     current,
@@ -3992,16 +4275,120 @@ function buildEncounterObjectiveState(characterID, missionRecord, options = {}) 
   };
 }
 
+// "dunTriggerCounterEQ" for the career agents' The Stand (Advanced Military part 5), in its
+// fight room (after the gate). On this key the client's objective chain (33, node graph 616)
+// looks for the Mercenary Fighter within 100 km: while it lives the goal is "Destroy" it, and
+// once it is dead the client turns the goal to "Fight - Hold out as long as you can." on its
+// own, as on TQ. "DestroyAll" must not come first: the client keeps that goal ("Hostiles
+// remaining") next to "Fight" when the key changes.
+function buildStandHoldOutObjectiveTuple(missionRecord) {
+  const template = getMissionInstanceTemplateRecord(missionRecord);
+  const instanceID = normalizePositiveInteger(missionRecord && missionRecord.dungeonInstanceID, 0);
+  return template && template.careerLesson && template.careerLesson.kind === "stand" && instanceID
+    ? buildMarshalTuple(["dunTriggerCounterEQ"])
+    : null;
+}
+
+// "dunTriggerEffectActivated <module groups> <type> <items>" for a mission whose client
+// objectives name a target to use a module on (the mission's clientObjectives context:
+// `target` with a type_id, `required_modules` with a group_id, and `need_module`). The
+// client's objective chain (33, node graph 616) shows this key as "Activate Module on
+// Target" with the module and the target, as on TQ. "Approach" would make it ask for any
+// module activation first and then for approaching the target; any other key makes it
+// fall back to "destroy all hostiles". The career agents' Advanced Military parts 3, 4
+// and 9 (warp disruptor, remote repair, webifier) use it.
+function buildClientTargetApproachObjectiveTuple(characterID, missionRecord, options = {}) {
+  const context = buildClientMissionObjectiveContext(getClientMissionRecord(missionRecord));
+  const targetTypeID = normalizePositiveInteger(context.target && context.target.type_id, 0);
+  const moduleGroupID = normalizePositiveInteger(context.required_modules && context.required_modules.group_id, 0);
+  const instanceID = normalizePositiveInteger(missionRecord && missionRecord.dungeonInstanceID, 0);
+  if (!targetTypeID || !moduleGroupID || normalizeInteger(context.need_module, 0) !== 1 || !instanceID) {
+    return null;
+  }
+  const instance = dungeonRuntime.getInstance(instanceID);
+  const { scene, tracked } = resolveMissionTrackerDungeonContext(characterID, missionRecord, options);
+  if (!instance || !scene) {
+    return null;
+  }
+  const isTarget = (entity) => (
+    entity &&
+      normalizePositiveInteger(entity.itemID, 0) > 0 &&
+      normalizePositiveInteger(entity.typeID, 0) === targetTypeID
+  );
+  const entity = listActiveMissionEncounterEntityIDs(instance, tracked)
+    .map((entityID) => getSceneEntityByID(scene, entityID))
+    .find(isTarget) ||
+    listSceneEntities(scene).find((candidate) => (
+      isTarget(candidate) &&
+        normalizePositiveInteger(candidate.dungeonSiteInstanceID, 0) === instanceID
+    ));
+  return entity
+    ? buildMarshalTuple(["dunTriggerEffectActivated", { type: "list", items: [moduleGroupID] }, targetTypeID,
+      { type: "list", items: [normalizePositiveInteger(entity.itemID, 0)] }])
+    : null;
+}
+
+// "Approach <type>" for a site whose objective is to fly to one of its objects
+// (populationHints.missionTracker.approachKey: that object's environment key). The
+// client's mission graph waits for this key (the career agents' Military part 4 plays
+// its agent's transmissions from it).
+function buildEncounterApproachObjectiveTuple(characterID, missionRecord, options = {}) {
+  const trackerHints = getMissionTrackerHints(missionRecord);
+  const approachKey = normalizeText(trackerHints.approachKey, "");
+  const instanceID = normalizePositiveInteger(missionRecord && missionRecord.dungeonInstanceID, 0);
+  if (!approachKey || !instanceID) {
+    return null;
+  }
+  const { scene } = resolveMissionTrackerDungeonContext(characterID, missionRecord, options);
+  const entity = listSceneEntities(scene).find((candidate) => (
+    candidate &&
+      normalizePositiveInteger(candidate.dungeonSiteInstanceID, 0) === instanceID &&
+      normalizeText(candidate.dungeonEnvironmentKey, "") === approachKey
+  ));
+  const entityID = normalizePositiveInteger(entity && entity.itemID, 0);
+  return entityID > 0
+    ? buildMarshalTuple(["Approach", normalizePositiveInteger(entity.typeID, 0), entityID])
+    : null;
+}
+
+function buildRescueObjectiveTuple(characterID, missionRecord, options = {}) {
+  const template = getMissionInstanceTemplateRecord(missionRecord);
+  const instanceID = normalizePositiveInteger(missionRecord.dungeonInstanceID, 0);
+  const instance = dungeonRuntime.getInstance(instanceID);
+  const rescue = (instance?.spawnState?.populationHints || template?.populationHints)?.rescueObjective;
+  if (!rescue || rescue.version !== 1 || rescue.kind !== "container_transfer_then_combat") return null;
+  const progress = instance?.spawnState?.rescueObjective || {};
+  if (!instance || progress.deliveredAtMs) return null;
+  const { scene } = resolveMissionTrackerDungeonContext(characterID, missionRecord, options);
+  const targetID = progress.pickedUpAtMs ? rescue.destinationObjectID : rescue.sourceObjectID;
+  const entity = listSceneEntities(scene).find((item) => item.dungeonSiteInstanceID === instanceID &&
+    item.dungeonSourceObjectID === targetID && item.dungeonMaterializedContainer === true);
+  if (!entity) return null;
+  // Supported client missionObjectiveData.py: CreateApproach, CreateRemoveItemFromContainer,
+  // and DropItemInMissionContainerObjective. The initial Approach is also visible in TQ video.
+  // The native pickup objective ID is literally "Remove item from container".
+  if (progress.pickedUpAtMs) return buildMarshalTuple([
+    "DropItemInMissionContainer", entity.typeID, entity.itemID, rescue.typeID, rescue.quantity,
+  ]);
+  return progress.approachedAtMs
+    ? buildMarshalTuple(["Remove item from container", rescue.typeID, entity.itemID])
+    : buildMarshalTuple(["Approach", entity.typeID, entity.itemID]);
+}
+
 function buildMissionFetchTuple(tupleKey, itemSpec) {
   const normalizedTypeID = normalizePositiveInteger(itemSpec && itemSpec.typeID, 0);
   if (!normalizedTypeID) {
     return null;
   }
+  // TQ sends the quantity even when it is 1. The client's guide graphs read it as
+  // objective_value[1] (career Industry part 3: "[Guide] Production" checks "have at
+  // least that many"); None made that check pass at once, so the guide never started.
+  // The tracker text still shows the single-item line for 1.
   const quantity = Math.max(1, normalizeInteger(itemSpec && itemSpec.quantity, 1));
   return buildMarshalTuple([
     tupleKey,
     normalizedTypeID,
-    quantity > 1 ? quantity : null,
+    quantity,
   ]);
 }
 
@@ -4142,15 +4529,17 @@ function normalizeObjectiveTargetDescriptor(target) {
     return null;
   }
   const typeID = normalizePositiveInteger(target.typeID || target.type_id, 0);
+  const dunObjectID = normalizePositiveInteger(target.dunObjectID, 0);
   const nameID = normalizePositiveInteger(
     target.nameID || target.name_id,
     normalizePositiveInteger(target.dunObjectNameID || target.dun_object_name_id, 0),
   );
-  if (!typeID) {
+  if (!typeID && !dunObjectID) {
     return null;
   }
   return {
     typeID,
+    dunObjectID: dunObjectID || null,
     nameID: nameID || null,
     itemID: normalizePositiveInteger(target.itemID || target.item_id, 0) || null,
   };
@@ -4176,9 +4565,19 @@ function listSpawnedMissionObjectiveTargetIDs(instance) {
   return entityIDs;
 }
 
+// "Destroy <type>" for a site whose objective is one of its targets. A site whose client mission
+// graph waits for DestroyAll instead (populationHints.missionTracker.objectiveKey) gets that key:
+// the career agents' Military part 10 graph (344) finds the tower and then the leader's capsule
+// by type itself, and shows only on DestroyAll. Advanced Military part 7 (Weapon of Choice): on
+// DestroyAll the client's objective chain (33, graph 616) checks for exactly those missions and
+// shows "Destroy <pirate>" from the mission's own hostile_target, as on TQ; "Destroy" would
+// overwrite that hostile_target and leave the goal empty.
 function buildEncounterDestroyObjectiveTuple(characterID, missionRecord, options = {}) {
   const instanceID = normalizePositiveInteger(missionRecord && missionRecord.dungeonInstanceID, 0);
   if (!instanceID) {
+    return null;
+  }
+  if (normalizeText(getMissionTrackerHints(missionRecord).objectiveKey, "") === "DestroyAll") {
     return null;
   }
   const instance = dungeonRuntime.getInstance(instanceID);
@@ -4235,7 +4634,8 @@ function buildEncounterDestroyObjectiveTuple(characterID, missionRecord, options
     );
     const target = targets.find((candidate) => (
       (!candidate.itemID || candidate.itemID === targetEntityID) &&
-      candidate.typeID === entityTypeID &&
+      (!candidate.dunObjectID || candidate.dunObjectID === normalizePositiveInteger(entity.dunObjectID, 0)) &&
+      (!candidate.typeID || candidate.typeID === entityTypeID) &&
       (
         !candidate.nameID ||
         !entityNameID ||
@@ -4245,9 +4645,9 @@ function buildEncounterDestroyObjectiveTuple(characterID, missionRecord, options
     if (target) {
       return buildMarshalTuple([
         "Destroy",
-        target.typeID,
+        entityTypeID,
         targetEntityID,
-        target.nameID,
+        target.nameID || entityNameID || null,
       ]);
     }
   }
@@ -4255,6 +4655,9 @@ function buildEncounterDestroyObjectiveTuple(characterID, missionRecord, options
     return null;
   }
   const target = targets[0];
+  // A native identity requires the exact live object, including mixed native/type descriptors.
+  // Preserve legacy type-only fallback without inventing a link for an unverified native target.
+  if (target.dunObjectID || !target.typeID) return null;
   const targetEntityID = targetEntityIDs[0];
   return buildMarshalTuple([
     "Destroy",
@@ -4464,8 +4867,103 @@ function expireMissionIfNeeded(characterID, agentID, missionRecord) {
       // ignored: expiration should still close the mission if its site already despawned.
     }
   }
+  notifyEpicJournalChange(characterID, expiredMissionRecord);
   notifyMissionChange(characterID, AGENT_MISSION_OFFER_EXPIRED, agentID);
   return true;
+}
+
+// An accepted mission closes when its time runs out, not when the client next
+// reads it. expireMissionIfNeeded is the only closing path (same history row,
+// bookmarks, site purge and notices); this timer just calls it on time. One
+// in-memory, unref'd timeout per (character, agent), armed on accept and on
+// every read of an accepted mission, so a restart re-arms it the first time the
+// pilot's journal or tracker is read. A pilot who is offline needs no notice, and
+// the read path still expires the mission lazily if no timer is armed.
+const MISSION_EXPIRY_TIMER_GRACE_MS = 1000;
+const MISSION_EXPIRY_TIMER_RETRY_MS = 60 * 1000;
+const MISSION_EXPIRY_TIMER_MAX_DELAY_MS = 2147483000;
+const missionExpiryTimers = new Map();
+
+function missionExpiryTimerKey(characterID, agentID) {
+  return `${characterID}:${agentID}`;
+}
+
+function clearMissionExpiryTimer(characterID, agentID) {
+  const key = missionExpiryTimerKey(
+    normalizePositiveInteger(characterID, 0),
+    normalizePositiveInteger(agentID, 0),
+  );
+  const entry = missionExpiryTimers.get(key);
+  if (entry) {
+    clearTimeout(entry.handle);
+    missionExpiryTimers.delete(key);
+  }
+}
+
+function armMissionExpiryTimer(characterID, agentID, missionRecord) {
+  const normalizedCharacterID = normalizePositiveInteger(characterID, 0);
+  const normalizedAgentID = normalizePositiveInteger(agentID, 0);
+  if (!normalizedCharacterID || !normalizedAgentID || !missionRecord) {
+    return false;
+  }
+  if (normalizeText(missionRecord.runtimeStatus, "").toLowerCase() !== "accepted") {
+    return false;
+  }
+  const expiresAt = fileTimeStringToBigInt(missionRecord.expiresAtFileTime);
+  if (expiresAt <= 0n) {
+    return false;
+  }
+  const missionSequence = normalizePositiveInteger(missionRecord.missionSequence, 0);
+  const key = missionExpiryTimerKey(normalizedCharacterID, normalizedAgentID);
+  const existing = missionExpiryTimers.get(key);
+  if (
+    existing &&
+    existing.expiresAt === expiresAt &&
+    existing.missionSequence === missionSequence
+  ) {
+    return true;
+  }
+  if (existing) {
+    clearTimeout(existing.handle);
+  }
+  const remainingMs = Number((expiresAt - nowFileTimeBigInt()) / 10000n);
+  const delayMs = Math.min(
+    MISSION_EXPIRY_TIMER_MAX_DELAY_MS,
+    remainingMs > 0
+      ? remainingMs + MISSION_EXPIRY_TIMER_GRACE_MS
+      : MISSION_EXPIRY_TIMER_RETRY_MS,
+  );
+  const entry = { expiresAt, missionSequence, handle: null };
+  entry.handle = setTimeout(() => {
+    if (missionExpiryTimers.get(key) === entry) {
+      missionExpiryTimers.delete(key);
+    }
+    runMissionExpiryTimer(normalizedCharacterID, normalizedAgentID);
+  }, delayMs);
+  if (entry.handle && typeof entry.handle.unref === "function") {
+    entry.handle.unref();
+  }
+  missionExpiryTimers.set(key, entry);
+  return true;
+}
+
+function runMissionExpiryTimer(characterID, agentID) {
+  try {
+    const missionRecord = getMissionRecord(characterID, agentID);
+    if (!missionRecord) {
+      return false;
+    }
+    if (expireMissionIfNeeded(characterID, agentID, missionRecord)) {
+      return true;
+    }
+    // Not due yet (the delay was capped) or the close did not commit: try again.
+    armMissionExpiryTimer(characterID, agentID, missionRecord);
+  } catch (error) {
+    log.warn(
+      `[Missions] Mission expiry timer failed for char=${characterID} agent=${agentID}: ${error && error.message}`,
+    );
+  }
+  return false;
 }
 
 function getMissionRecordForRead(characterID, agentID) {
@@ -4477,6 +4975,14 @@ function getMissionRecordForRead(characterID, agentID) {
     return null;
   }
   if (normalizeText(missionRecord.runtimeStatus, "offered") === "accepted") {
+    armMissionExpiryTimer(characterID, agentID, missionRecord);
+    if (missionRecord.objectiveMode === OBJECTIVE_TYPE_TRANSPORT && missionRecord.cargo?.granted !== true) {
+      const agent = getAgentByID(agentID);
+      if (agent) {
+        const delivery = acceptMission(characterID, agent);
+        if (!delivery.success) log.warn(`[Missions] Courier delivery awaits retry: ${delivery.errorMsg}`);
+      }
+    }
     return syncMissionRecordState(characterID, agentID) || missionRecord;
   }
   return missionRecord;
@@ -4574,6 +5080,10 @@ function buildPlaceholderBriefing(agentRecord, missionRecord, missionTemplate) {
       return `${label}: ${note}`;
     })
     .filter(Boolean);
+  const missionTemplateLevel = normalizePositiveInteger(
+    missionTemplate && missionTemplate.populationHints && missionTemplate.populationHints.missionLevel,
+    normalizePositiveInteger(missionTemplate && missionTemplate.missionLevel, 0),
+  );
   const advisoryLines = [
     normalizeText(missionTemplate && missionTemplate.faction, "")
       ? `Faction: ${normalizeText(missionTemplate && missionTemplate.faction, "")}`
@@ -4620,9 +5130,9 @@ function buildPlaceholderBriefing(agentRecord, missionRecord, missionTemplate) {
 
   pushSection("Operational Intel", [
     ...advisoryLines,
-    normalizePositiveInteger(missionTemplate && missionTemplate.missionLevel, 0) > 0
-      ? `Mission level: ${normalizePositiveInteger(missionTemplate.missionLevel, 0)}`
-      : "",
+    // Templates carry missionLevel under populationHints, not at the top level, so reading it
+    // off the template itself never fired.
+    missionTemplateLevel > 0 ? `Mission level: ${missionTemplateLevel}` : "",
     chainSummary,
   ]);
   pushSection(
@@ -4950,7 +5460,8 @@ function buildMissionRecord(
 ) {
   const agentID = normalizePositiveInteger(agentRecord && agentRecord.agentID, 0);
   const missionSequence = normalizePositiveInteger(state.nextMissionSequence, 1);
-  const clientMissionRecord = explicitClientMissionRecord || pickMissionForAgent(agentRecord, selectionCursor);
+  const clientMissionRecord = explicitClientMissionRecord || pickMissionForAgent(agentRecord, selectionCursor,
+    characterState.lastOfferedMissionIDByAgentID?.[agentID]);
   const fallbackMissionTemplateID = normalizeText(
     missionTemplate && missionTemplate.templateID,
     "",
@@ -5082,9 +5593,19 @@ function buildMissionRecord(
     contentID,
     agentRecord,
   );
+  const securityDestination = objectiveMode === OBJECTIVE_TYPE_DUNGEON && isOrdinarySecurityAgent(agentRecord)
+    ? destinationBaseline.selectDestination(agentRecord, clientMissionRecord, {
+        fixedSystemID: normalizePositiveInteger(clientObjectiveContext.dungeon_location_id, 0),
+        capturedSystemID: capturedMissionSystemID,
+        getSystem: (id) => worldData.getSolarSystemByID(id),
+        systemsInBand: collectSystemsInJumpBand,
+        space: pirateFactionPolicy.resolvePirateFactionForSystem(agentRecord.solarSystemID),
+        random: () => randomSource.random(),
+      }) : null;
   const runtimeMissionTemplate =
     matchedMissionTemplate &&
-    normalizeText(matchedMissionTemplate && matchedMissionTemplate.siteFamily, "").toLowerCase() === "mission"
+    (normalizeText(matchedMissionTemplate && matchedMissionTemplate.siteFamily, "").toLowerCase() === "mission" ||
+      getSecurityMissionBindingForAgent(agentRecord, clientMissionRecord)?.templateID === matchedMissionTemplate.templateID)
       ? matchedMissionTemplate
       : runtimeDungeonTemplate || matchedMissionTemplate || missionTemplate || null;
   const conversationTargetLocation = buildMissionConversationTargetLocationWrap(
@@ -5139,7 +5660,7 @@ function buildMissionRecord(
           normalizePositiveInteger(agentRecord && agentRecord.solarSystemID, 0),
         )
       : objectiveMode === OBJECTIVE_TYPE_DUNGEON
-      ? capturedMissionSystemID || normalizePositiveInteger(
+      ? securityDestination?.solarSystemID || capturedMissionSystemID || normalizePositiveInteger(
         clientObjectiveContext.dungeon_location_id,
         normalizePositiveInteger(agentRecord && agentRecord.solarSystemID, 0),
       )
@@ -5149,13 +5670,18 @@ function buildMissionRecord(
     objectiveMode === OBJECTIVE_TYPE_FETCH ||
     objectiveMode === OBJECTIVE_TYPE_AGENT
     ? null
-    : capturedMissionPosition || buildMissionSitePosition(missionSystemID, {
+    : (capturedMissionPosition && (!capturedMissionSystemID || capturedMissionSystemID === missionSystemID)
+      ? capturedMissionPosition : null) || buildMissionSitePosition(missionSystemID, {
         missionSequence,
         contentID,
       }, agentRecord);
   const offerExpirationMs = resolveMissionExpirationDurationMs(clientMissionRecord);
 
   state.nextMissionSequence = missionSequence + 1;
+  if (clientMissionRecord?.missionID > 0) {
+    characterState.lastOfferedMissionIDByAgentID ||= {};
+    characterState.lastOfferedMissionIDByAgentID[agentID] = clientMissionRecord.missionID;
+  }
   if (advanceSelectionCursor) {
     characterState.missionSelectionCursorByAgentID[String(agentID)] =
       (normalizeInteger(
@@ -5649,7 +6175,7 @@ function buildMissionJournalRow(characterID, agentRecord, missionRecord) {
     missionTypeLabel,
     resolveMissionTitleValue(missionRecord, null),
     normalizePositiveInteger(agentRecord && agentRecord.agentID, 0),
-    fileTimeBigIntToLong(fileTimeStringToBigInt(missionRecord && missionRecord.expiresAtFileTime)),
+    missionExpirationToLong(fileTimeStringToBigInt(missionRecord && missionRecord.expiresAtFileTime)),
     bookmarks,
     isMissionRemoteOfferable(missionRecord) ? 1 : 0,
     isMissionRemoteCompletable(missionRecord, {
@@ -5963,7 +6489,7 @@ function buildMissionObjectivePayload(agentRecord, missionRecord, missionTemplat
       // Match the legacy agent-service dictionary order. The client treats this
       // as a normal dict, but preserving the captured order keeps every dungeon
       // family on the protocol-faithful wire shape established by the golden.
-      briefingMessage,
+      briefingMessage: withMissionEstimateNotice(missionRecord, briefingMessage),
       dungeonID,
       ...(objectiveCompleted ? { completed: 1 } : {}),
       ...(!miningMission && hasMissionShipRestrictions(presentationTemplate, dungeonTemplate)
@@ -6068,17 +6594,11 @@ function buildMissionObjectivePayload(agentRecord, missionRecord, missionTemplat
     importantStandings: normalizeBoolean(missionRecord.importantMission, false) ? 1 : 0,
     ...(missionExtra ? { missionExtra } : {}),
     contentID: clientFacingContentID,
-    agentGift:
-      normalizePositiveInteger(clientMissionRecord && clientMissionRecord.initialAgentGiftTypeID, 0) > 0
-        ? [buildMarshalTuple([
-            normalizePositiveInteger(clientMissionRecord.initialAgentGiftTypeID, 0),
-            Math.max(
-              1,
-              normalizeInteger(clientMissionRecord.initialAgentGiftQuantity, 1),
-            ),
-            null,
-          ])]
-        : [],
+    agentGift: (() => {
+      const gift = buildMissionInitialAgentGift(clientMissionRecord, missionRecord.contentID, agentRecord);
+      return gift ? [buildMarshalTuple([gift.typeID, gift.quantity,
+        gift.blueprintInfo ? { blueprintInfo: gift.blueprintInfo } : null])] : [];
+    })(),
     normalRewards,
     bonusRewards,
     researchPoints: Math.max(0, normalizeInteger(rewards.researchPoints, 0)),
@@ -6109,7 +6629,7 @@ function buildMissionJournalInfo(characterID, agentRecord, missionRecord, missio
       ],
     ),
     missionImage: buildMissionImage(missionRecord),
-    expirationTime: fileTimeBigIntToLong(
+    expirationTime: missionExpirationToLong(
       fileTimeStringToBigInt(missionRecord && missionRecord.expiresAtFileTime),
     ),
     missionState: getMissionStateFromRecord(missionRecord),
@@ -6215,6 +6735,37 @@ function notifyMissionChange(characterID, eventName, agentID) {
   }
 }
 
+// The client loads epic arc status once (epicArcSvc) and reloads it only on
+// OnEpicJournalChange. TQ sends it (charid, no arguments) whenever an epic arc
+// mission is offered, accepted, completed or closed.
+function notifyEpicJournalChange(characterID, missionRecord) {
+  const normalizedCharacterID = normalizePositiveInteger(characterID, 0);
+  if (!normalizedCharacterID || !missionRecord) {
+    return false;
+  }
+  let statusRecord = null;
+  try {
+    statusRecord = buildEpicArcMissionStatusRecord(missionRecord);
+  } catch (_error) {
+    statusRecord = null;
+  }
+  if (!statusRecord) {
+    return false;
+  }
+  let sent = false;
+  for (const session of sessionRegistry.getSessions()) {
+    if (
+      Number(session && session.characterID) !== normalizedCharacterID ||
+      typeof session.sendNotification !== "function"
+    ) {
+      continue;
+    }
+    session.sendNotification("OnEpicJournalChange", "charid", []);
+    sent = true;
+  }
+  return sent;
+}
+
 function notifyStorylineOfferLifecycleChange(characterID, agentID, status = "pending") {
   const normalizedStatus = normalizeText(status, "pending").toLowerCase();
   const eventName =
@@ -6232,6 +6783,17 @@ function notifyStorylineOfferLifecycleChange(characterID, agentID, status = "pen
   }
   notifyMissionChange(characterID, eventName, agentID);
   return eventName;
+}
+
+// OnMissionsUpdated resolves an NPC agent through deliver_items.get(), but
+// some native mission contexts carry a list there. The existing completion
+// callback asks for state without entering that incompatible notification path.
+function requiresMissionTrackerStatePull(missionRecord, info) {
+  const items = Array.isArray(info) ? info : info && info.items;
+  return Boolean(
+    Array.isArray(items) && items[0] === "AllObjectivesComplete" &&
+    Array.isArray(buildClientMissionObjectiveContext(getClientMissionRecord(missionRecord)).deliver_items)
+  );
 }
 
 function notifyMissionTrackerUpdate(characterID, agentID) {
@@ -6261,6 +6823,15 @@ function notifyMissionTrackerUpdate(characterID, agentID) {
       : Array.isArray(info)
         ? buildList(info)
         : info;
+    // TQ sends a completed mission as OnMissionsUpdated too, but the client's handler first reads
+    // the mission's deliver_items as a dict, and the client's own data of a few missions has it
+    // as a list (the Gallente career agents' Military part 9): the handler fails there, and the
+    // tracker would point back to the agent only once the pilot leaves the site. Those missions
+    // get OnAgentMissionObjectivesCompleted, on which the client asks for the state itself.
+    if (requiresMissionTrackerStatePull(missionRecord, infoList)) {
+      session.sendNotification("OnAgentMissionObjectivesCompleted", "charid", [normalizedAgentID]);
+      continue;
+    }
     const updates = [buildDict([
       ["info", infoList],
       ["agentID", normalizedAgentID],
@@ -6289,6 +6860,30 @@ function getReplayUntilFileTime(characterID, agentID) {
   );
 }
 
+function isUnavailableCareerMission(characterState, agentRecord, contentID) {
+  if (!careerAgentMissions.getChainPart(agentRecord, contentID)) return false;
+  return careerAgentMissions.isCareerChainClosed(characterState, agentRecord) ||
+    careerAgentMissions.completedChainMissionIDs(characterState, agentRecord).some(id => String(id) === String(contentID));
+}
+
+function capturedEpicFor(agentID, missionID) {
+  return [visionsOfGreatness, fracturedLegacy].find(arc => arc.isAgent(agentID) || arc.isMission(missionID));
+}
+
+function isUnavailableCapturedEpicMission(characterState, agentRecord, contentID) {
+  const arc = capturedEpicFor(agentRecord?.agentID, contentID);
+  if (!arc) return false;
+  return !arc.missionIDs().every(id => getMissionByID(id)) ||
+    !arc.canOfferMission(characterState, agentRecord?.agentID, contentID);
+}
+
+function flushMissionLifecycleTransition(errorMsg) {
+  try {
+    const result = database.flushTableSync("missionRuntimeState");
+    return result?.success ? { success: true } : { success: false, errorMsg: result?.errorMsg || errorMsg };
+  } catch (_error) { return { success: false, errorMsg }; }
+}
+
 function offerMission(characterID, agentRecord) {
   const normalizedCharacterID = normalizePositiveInteger(characterID, 0);
   const normalizedAgentID = normalizePositiveInteger(agentRecord && agentRecord.agentID, 0);
@@ -6307,9 +6902,25 @@ function offerMission(characterID, agentRecord) {
   }
 
   return mutateCharacterState(normalizedCharacterID, (characterState, state) => {
+    const capturedArc = capturedEpicFor(normalizedAgentID);
+    if (capturedArc) {
+      const nextID = capturedArc.nextMissionID(characterState, normalizedAgentID);
+      const nextMission = nextID ? getMissionByID(nextID) : null;
+      if (!nextMission || isUnavailableCapturedEpicMission(characterState, agentRecord, nextID)) return { kind: "unavailable" };
+      const existing = characterState.missionsByAgentID[String(normalizedAgentID)];
+      if (existing) return Number(existing.contentID) === nextID
+        ? { kind: "existing", missionRecord: cloneValue(existing) } : { kind: "unavailable" };
+      const record = buildMissionRecord(state, characterState, agentRecord, null, 0, nextMission, false);
+      characterState.missionsByAgentID[String(normalizedAgentID)] = record;
+      return { kind: "offered", missionRecord: cloneValue(record) };
+    }
     const existingMissionRecord = characterState.missionsByAgentID[String(normalizedAgentID)];
     if (existingMissionRecord) {
+      if (isUnavailableCareerMission(characterState, agentRecord, existingMissionRecord.contentID)) return { kind: "unavailable" };
       return { kind: "existing", missionRecord: cloneValue(existingMissionRecord) };
+    }
+    if (careerAgentMissions.isCareerChainClosed(characterState, agentRecord)) {
+      return { kind: "unavailable" };
     }
     // TEMP DEBUG HOOK (EveAnomUtility): force this agent to offer a specific mission id (e.g. 2391 The Score)
     // so the authored mission can be tested through the real agent flow. Unset EVEJS_FORCE_MISSION_ID to disable.
@@ -6331,6 +6942,23 @@ function offerMission(characterID, agentRecord) {
       }
     }
 
+    // Expired offers can resume from permanent chain progress. An explicit
+    // decline/quit is terminal; neither state depends on journal retention.
+    const completedHere = careerAgentMissions.completedChainMissionIDs(characterState, agentRecord);
+    // After the chain's last part the agent has nothing more to offer; its usual offer is part 1.
+    if (careerAgentMissions.isCareerChainCompleted(agentRecord, completedHere)) {
+      return { kind: "unavailable" };
+    }
+    const nextChainMissionID = careerAgentMissions.nextChainMissionID(agentRecord, completedHere);
+    const nextChainMission = nextChainMissionID ? getMissionByID(nextChainMissionID) : null;
+    if (nextChainMission && isMissionOfferAllowedForAgent(agentRecord, nextChainMission)) {
+      const chainRecord = buildMissionRecord(state, characterState, agentRecord, null, 0, nextChainMission, false);
+      characterState.missionsByAgentID[String(normalizedAgentID)] = chainRecord;
+      return { kind: "offered", missionRecord: cloneValue(chainRecord) };
+    }
+    // Missing content must not turn a partly completed chain into part 1.
+    if (nextChainMissionID) return { kind: "unavailable" };
+
     // Ordinary Security agents must be backed by an allowlisted client mission.
     // Their scraped template pools are intentionally not a fallback offer source.
     const pool = isOrdinarySecurityAgent(agentRecord)
@@ -6339,7 +6967,7 @@ function offerMission(characterID, agentRecord) {
     const availableClientMission = pickMissionForAgent(agentRecord, normalizeInteger(
       characterState.missionSelectionCursorByAgentID[String(normalizedAgentID)],
       0,
-    ));
+    ), characterState.lastOfferedMissionIDByAgentID?.[normalizedAgentID]);
     if (!pool.length && !availableClientMission) {
       return { kind: "unavailable" };
     }
@@ -6360,6 +6988,7 @@ function offerMission(characterID, agentRecord) {
       agentRecord,
       missionTemplate,
       cursor,
+      availableClientMission,
     );
     characterState.missionsByAgentID[String(normalizedAgentID)] = missionRecord;
     return { kind: "offered", missionRecord: cloneValue(missionRecord) };
@@ -6374,9 +7003,17 @@ function offerSpecificMission(characterID, agentRecord, clientMissionRecord) {
   }
 
   return mutateCharacterState(normalizedCharacterID, (characterState, state) => {
+    if (isUnavailableCapturedEpicMission(characterState, agentRecord, clientMissionRecord.missionID)) {
+      return { kind: "unavailable" };
+    }
+    if (isUnavailableCareerMission(characterState, agentRecord, clientMissionRecord.missionID)) return { kind: "unavailable" };
     const existingMissionRecord = characterState.missionsByAgentID[String(normalizedAgentID)];
     if (existingMissionRecord) {
+      if (isUnavailableCareerMission(characterState, agentRecord, existingMissionRecord.contentID)) return { kind: "unavailable" };
       return { kind: "existing", missionRecord: cloneValue(existingMissionRecord) };
+    }
+    if (careerAgentMissions.isCareerChainClosed(characterState, agentRecord)) {
+      return { kind: "unavailable" };
     }
     const missionRecord = buildMissionRecord(
       state,
@@ -6392,36 +7029,96 @@ function offerSpecificMission(characterID, agentRecord, clientMissionRecord) {
   });
 }
 
+function buildMissionInitialAgentGift(clientMissionRecord, contentID, agentRecord) {
+  const typeID = normalizePositiveInteger(clientMissionRecord?.initialAgentGiftTypeID, 0);
+  if (!typeID) return null;
+  const quantity = Math.max(1, normalizeInteger(clientMissionRecord.initialAgentGiftQuantity, 1));
+  const { isBlueprintCopyRewardType } = require("../inventory/blueprintRewardState");
+  if (Number(agentRecord?.agentTypeID) !== 12 || !isBlueprintCopyRewardType(resolveItemByTypeID(typeID))) return { typeID, quantity };
+  // The client's career gift quantity is licensed production runs, just as for
+  // blueprint rewards. Retail sends one finite copy, not that many originals.
+  return careerRetailMissionData.resolveCapturedInitialBlueprintGift(contentID, agentRecord, typeID, quantity) ||
+    { typeID, quantity: 1, blueprintInfo: { licensedProductionRunsRemaining: quantity,
+      copy: true, materialLevel: 0, productivityLevel: 0 } };
+}
+
+function finishMissionInitialBlueprintGift(gift, items) {
+  if (!gift?.blueprintInfo || !items.length) return { success: true };
+  const { ensureGrantedBlueprintCopyState } = require("../inventory/blueprintRewardState");
+  return ensureGrantedBlueprintCopyState(items, {
+    runsRemaining: gift.blueprintInfo.licensedProductionRunsRemaining,
+    materialEfficiency: gift.blueprintInfo.materialLevel,
+    timeEfficiency: gift.blueprintInfo.productivityLevel,
+  });
+}
+
 function grantMissionInitialAgentGift(characterID, agentRecord, missionRecord) {
+  const custody = require("../inventory/itemCustody");
   const clientMissionRecord = getClientMissionRecord(missionRecord);
-  const typeID = normalizePositiveInteger(
-    clientMissionRecord && clientMissionRecord.initialAgentGiftTypeID,
-    0,
-  );
-  if (!typeID) {
+  const gift = buildMissionInitialAgentGift(clientMissionRecord, missionRecord.contentID, agentRecord);
+  const idempotencyKey = `mission-initial-gift:${characterID}:${agentRecord.agentID}:${missionRecord.missionSequence}`;
+  const receipt = custody.getCommittedReceipt(idempotencyKey, { reconcileWriteRefusal: true });
+  if (!receipt.success) return receipt;
+  if (receipt.committed) {
+    // A crash can occur after inventory commits but before industry state does.
+    // Recover the same surviving copy without minting, restoring spent runs, or
+    // changing gifts already granted as originals by older server versions.
+    const { findItemById } = require("../inventory/itemStore");
+    const copies = (receipt.resultData?.itemIDs || []).map(itemID => findItemById(itemID))
+      .filter(item => item && Number(item.typeID) === gift?.typeID && Number(item.singleton) === 2);
+    const blueprintResult = finishMissionInitialBlueprintGift(gift, copies);
+    if (!blueprintResult.success) return blueprintResult;
+    // The gift may have been consumed, moved or lost before acceptance retried.
+    // Its permanent receipt is sufficient; never replay old created-item rows.
+    return { success: true, durable: true, duplicate: true, data: { granted: true, items: [], changes: [] } };
+  }
+  if (!gift) {
     return { success: true, data: { granted: false } };
   }
 
-  const quantity = Math.max(
-    1,
-    normalizeInteger(clientMissionRecord && clientMissionRecord.initialAgentGiftQuantity, 1),
-  );
   const stationID = normalizePositiveInteger(agentRecord && agentRecord.stationID, 0);
   if (!stationID) {
     return { success: true, data: { granted: false } };
   }
 
-  const grantResult = grantItemsToCharacterStationHangar(characterID, stationID, [{
-    itemType: typeID,
-    quantity,
-  }]);
+  const grantResult = custody.transfer({ items: { typeID: gift.typeID, quantity: gift.quantity,
+    ...(gift.blueprintInfo ? { options: { singleton: 2 } } : {}) },
+    to: custody.custodyRef.ownerLocation(characterID, stationID, ITEM_FLAGS.HANGAR),
+    actor: characterID, reason: custody.CUSTODY_REASON.MISSION_REWARD_GRANT, idempotencyKey });
   if (grantResult && grantResult.success === true) {
+    if (!grantResult.durable) return { success: false, errorMsg: "MISSION_INITIAL_GIFT_NOT_DURABLE" };
+    const blueprintResult = finishMissionInitialBlueprintGift(gift, grantResult.data?.items || []);
+    if (!blueprintResult.success) return blueprintResult;
     notifyMissionInventoryChanges(
       characterID,
       (grantResult.data && grantResult.data.changes) || [],
     );
   }
   return grantResult;
+}
+
+function deliverMissionTransportCargo(characterID, agentRecord, mission) {
+  if (mission.objectiveMode !== OBJECTIVE_TYPE_TRANSPORT || !mission.cargo || mission.cargo.granted === true) {
+    return { success: true };
+  }
+  const stationID = normalizePositiveInteger(mission.pickupLocation?.locationID, 0);
+  if (!stationID) return { success: false, errorMsg: "MISSION_CARGO_DESTINATION_INVALID" };
+  // The fenced offer is the delivery intent. Its sequence remains stable across
+  // retries, including a crash after custody committed but before acceptance.
+  const custody = require("../inventory/itemCustody");
+  const idempotencyKey = `mission-transport-cargo:${characterID}:${agentRecord.agentID}:${mission.missionSequence}`;
+  const receipt = custody.getCommittedReceipt(idempotencyKey, { reconcileWriteRefusal: true });
+  if (!receipt.success) return receipt;
+  if (receipt.committed) return { success: true, granted: true };
+  const result = custody.transfer({
+    items: { typeID: mission.cargo.typeID, quantity: mission.cargo.quantity },
+    to: custody.custodyRef.ownerLocation(characterID, stationID, ITEM_FLAGS.HANGAR),
+    actor: characterID, reason: custody.CUSTODY_REASON.MISSION_REWARD_GRANT, idempotencyKey,
+  });
+  if (!result?.success) return result || { success: false, errorMsg: "MISSION_CARGO_GRANT_FAILED" };
+  if (!result.durable) return { success: false, errorMsg: "MISSION_CARGO_NOT_DURABLE" };
+  notifyMissionInventoryChanges(characterID, result.data?.changes || []);
+  return { success: true, granted: true };
 }
 
 function acceptMission(characterID, agentRecord) {
@@ -6432,13 +7129,40 @@ function acceptMission(characterID, agentRecord) {
       errorMsg: "MISSION_NOT_FOUND",
     };
   }
-  if (normalizeText(existingMissionRecord.runtimeStatus, "").toLowerCase() !== "offered") {
+  if (isUnavailableCareerMission(getCharacterStateSnapshot(characterID), agentRecord, existingMissionRecord.contentID)) {
+    return { success: false, errorMsg: "MISSION_NOT_AVAILABLE" };
+  }
+  if (isUnavailableCapturedEpicMission(getCharacterStateSnapshot(characterID), agentRecord, existingMissionRecord.contentID)) {
+    return { success: false, errorMsg: "MISSION_NOT_AVAILABLE" };
+  }
+  const existingStatus = normalizeText(existingMissionRecord.runtimeStatus, "").toLowerCase();
+  // An accepted write may still be ahead of disk after a failed fence. Its
+  // idempotent retry must recommit before acknowledging the accepted state.
+  const durableIdentity = flushMissionLifecycleTransition(existingStatus === "accepted"
+    ? "MISSION_ACCEPT_FLUSH_FAILED" : "MISSION_OFFER_FLUSH_FAILED");
+  if (!durableIdentity.success) return durableIdentity;
+  if (["offered", "accepted"].includes(existingStatus)) {
+    const cargoResult = deliverMissionTransportCargo(characterID, agentRecord, existingMissionRecord);
+    if (!cargoResult.success) return cargoResult;
+    if (cargoResult.granted) {
+      existingMissionRecord.cargo.granted = true;
+      const saved = mutateCharacterState(characterID, character => {
+        character.missionsByAgentID[String(agentRecord.agentID)].cargo.granted = true;
+        return true;
+      });
+      if (!saved.success) return saved;
+      const fence = flushMissionLifecycleTransition("MISSION_CARGO_FLUSH_FAILED");
+      if (!fence.success) return fence;
+    }
+  }
+  if (existingStatus !== "offered") {
     return {
       success: true,
       data: cloneValue(existingMissionRecord),
       acceptedNow: false,
     };
   }
+  // The gift key names this already fenced offered mission sequence.
   const missionTemplate = getRuntimeMissionTemplateRecord(existingMissionRecord);
   const preparedMissionRecord = ensureMissionSiteState(
     characterID,
@@ -6493,6 +7217,11 @@ function acceptMission(characterID, agentRecord) {
     missionRecord.lastUpdatedAtMs = Date.now();
     return cloneValue(missionRecord);
   });
+  if (acceptResult?.success && acceptResult.data) {
+    const durableAccept = flushMissionLifecycleTransition("MISSION_ACCEPT_FLUSH_FAILED");
+    if (!durableAccept.success) return durableAccept;
+    armMissionExpiryTimer(characterID, agentRecord.agentID, acceptResult.data);
+  }
   return {
     ...acceptResult,
     acceptedNow: Boolean(acceptResult && acceptResult.success && acceptResult.data),
@@ -6500,7 +7229,7 @@ function acceptMission(characterID, agentRecord) {
 }
 
 function clearMissionWithCooldown(characterID, agentRecord, runtimeStatus = "declined") {
-  return mutateCharacterState(characterID, (characterState) => {
+  const result = mutateCharacterState(characterID, (characterState) => {
     const missionRecord = characterState.missionsByAgentID[String(agentRecord.agentID)];
     if (missionRecord) {
       delete characterState.missionsByAgentID[String(agentRecord.agentID)];
@@ -6508,6 +7237,7 @@ function clearMissionWithCooldown(characterID, agentRecord, runtimeStatus = "dec
     characterState.declineTimersByAgentID[String(agentRecord.agentID)] =
       futureFileTimeString(REPLAY_DELAY_MS);
     if (missionRecord) {
+      careerAgentMissions.recordChainOutcome(characterState, agentRecord, missionRecord.contentID, runtimeStatus);
       characterState.history.unshift({
         missionSequence: missionRecord.missionSequence,
         agentID: missionRecord.agentID,
@@ -6532,6 +7262,9 @@ function clearMissionWithCooldown(characterID, agentRecord, runtimeStatus = "dec
       missionRecord: missionRecord ? cloneValue(missionRecord) : null,
     };
   });
+  if (!result.success) return result;
+  const durable = flushMissionLifecycleTransition("MISSION_DECLINE_FLUSH_FAILED");
+  return durable.success ? result : durable;
 }
 
 function buildMissionQuitStandingIdempotencyKey(agentID, missionRecord) {
@@ -6766,6 +7499,7 @@ function quitMission(characterID, agentRecord, options = {}) {
     delete characterState.missionsByAgentID[String(agentID)];
     const quitAtFileTime = quitTimestamp.fileTime;
     const quitAtMs = quitTimestamp.unixTimeMs;
+    careerAgentMissions.recordChainOutcome(characterState, agentRecord, storedMissionRecord.contentID, "quit");
     characterState.history.unshift({
       missionSequence: storedMissionRecord.missionSequence,
       agentID: storedMissionRecord.agentID,
@@ -6799,6 +7533,9 @@ function quitMission(characterID, agentRecord, options = {}) {
       : quitResult;
   }
 
+  const durableQuit = flushMissionLifecycleTransition("MISSION_QUIT_FLUSH_FAILED");
+  if (!durableQuit.success) return durableQuit;
+
   cleanupMissionBookmarks(characterID, missionRecord);
   const dungeonInstanceID = normalizePositiveInteger(
     missionRecord.dungeonInstanceID,
@@ -6811,6 +7548,7 @@ function quitMission(characterID, agentRecord, options = {}) {
       // ignored: quitting remains successful if the private mission instance already despawned.
     }
   }
+  notifyEpicJournalChange(characterID, missionRecord);
   return { success: true, data: { missionRecord, standingResult } };
 }
 
@@ -6938,6 +7676,10 @@ function buildMissionRewardSettlementOptions(
     ...(normalizePositiveInteger(rewardRecord.blueprintRuns, 0) > 0
       ? { blueprintRuns: normalizePositiveInteger(rewardRecord.blueprintRuns, 0) }
       : {}),
+    ...(normalizePositiveInteger(rewardRecord.blueprintRuns, 0) > 0 &&
+      (rewardRecord.blueprintMaterialLevel !== undefined || rewardRecord.blueprintProductivityLevel !== undefined)
+      ? { blueprintMaterialLevel: Math.max(0, normalizeInteger(rewardRecord.blueprintMaterialLevel, 0)),
+        blueprintProductivityLevel: Math.max(0, normalizeInteger(rewardRecord.blueprintProductivityLevel, 0)) } : {}),
     ...(rewardRecord.original === true ? { original: true } : {}),
   }));
   const rewardStationID = normalizePositiveInteger(
@@ -6976,17 +7718,113 @@ function buildMissionRewardSettlementOptions(
         missionRecord,
       ),
       bonusAvailable,
-      // Explicit continuations (conversation missions) win; otherwise a golden mission chain
-      // (TQ contract: completing part N immediately re-offers part N+1 at the same agent)
-      // supplies the default.
+      // Explicit conversation continuations win. TQ-backed chains are next;
+      // otherwise use the TODO-marked client/wiki baseline for this agent.
       continuationMissionID: normalizeMissionContentID(
         options.continuationMissionID,
         getChainContinuationMissionID(
           normalizeMissionContentID(missionRecord && missionRecord.contentID, null),
+          agentRecord,
         ),
       ),
     },
   };
+}
+
+// Who shares this turn-in, the completing pilot first.
+// Only a turn-in the pilot chose to share, from an agent that isn't R&D, asks Fleet share; the
+// sharers are picked once per turn-in.
+function resolveMissionTurnInRecipients(characterID, agentRecord, options = {}) {
+  if (options.share !== true || researchRuntime.isResearchAgent(agentRecord)) {
+    return [characterID];
+  }
+  const sharers = fleetShare.resolveMissionSharers(characterID);
+  return [
+    characterID,
+    ...(Array.isArray(sharers) ? sharers : []).filter((sharerID) => sharerID !== characterID),
+  ];
+}
+
+// The settlement options with the reward split ÷ N among `recipients` (the completing pilot
+// first): the ISK reward and the time bonus to the cent, the LP to the point, the agent's, the
+// corporation's and the faction's standing gains exactly, with each remainder to the completing
+// pilot. Each recipient's corporation part derives their own faction change, and their own
+// Social applies to their part. An extraStandings bonus stays the completing pilot's, as do
+// items, cargo and a chain's continuation.
+// One recipient gets the whole reward and no shares.
+function splitMissionRewardSettlementOptions(settlementOptions, recipients) {
+  if (recipients.length <= 1) {
+    return { ...settlementOptions, shares: [] };
+  }
+  const { agentRecord, missionRecord } = settlementOptions;
+  // Standings builds each recipient's part from the mission, so the faction change it derives
+  // from the corporation follows that recipient's corporation part. Only a gain is divided.
+  const standingsChangesOf = (index) => standingRuntime.buildMissionRewardStandingChanges(
+    agentRecord,
+    missionRecord,
+    {
+      completingPilot: index === 0,
+      partOf: (rawChange) => {
+        if (rawChange > 0) {
+          return fleetShare.splitEvenly(rawChange, recipients, "exact")[index].amount;
+        }
+        return index === 0 ? rawChange : 0;
+      },
+    },
+  );
+  const isk = fleetShare.splitEvenly(settlementOptions.walletReward, recipients, "cent");
+  const bonusIsk = fleetShare.splitEvenly(settlementOptions.walletBonusReward, recipients, "cent");
+  const loyaltyPoints = fleetShare.splitEvenly(settlementOptions.loyaltyPoints, recipients, "point");
+  const parts = recipients.map((characterID, index) => ({
+    characterID,
+    walletReward: isk[index].amount,
+    walletBonusReward: bonusIsk[index].amount,
+    loyaltyPoints: loyaltyPoints[index].amount,
+    standingsChanges: standingsChangesOf(index),
+  }));
+  const [completingPilotPart, ...shares] = parts;
+  return {
+    ...settlementOptions,
+    walletReward: completingPilotPart.walletReward,
+    walletBonusReward: completingPilotPart.walletBonusReward,
+    loyaltyPoints: completingPilotPart.loyaltyPoints,
+    standingsChanges: completingPilotPart.standingsChanges,
+    shares,
+  };
+}
+
+// Prepares the turn-in's one settlement. A sharer the prepare refuses
+// (MISSION_REWARD_SHARER_INVALID) has been paid nothing: drop every one it names and split the
+// same reward among the rest from the start, down to the completing pilot alone.
+function prepareMissionTurnInSettlement(characterID, settlementOptions, sharers) {
+  let recipients = sharers;
+  for (;;) {
+    const prepared = missionRewardSettlementState.prepareMissionRewardSettlement(
+      splitMissionRewardSettlementOptions(settlementOptions, recipients),
+    );
+    if (
+      prepared.success ||
+      prepared.errorMsg !== "MISSION_REWARD_SHARER_INVALID" ||
+      recipients.length <= 1
+    ) {
+      return prepared;
+    }
+    const refused = new Set(
+      normalizeArray(prepared.failedCharacterIDs).map((sharerID) => Number(sharerID)),
+    );
+    const remaining = recipients.filter(
+      (sharerID, index) => index === 0 || !refused.has(sharerID),
+    );
+    if (remaining.length === recipients.length) {
+      return prepared;
+    }
+    log.info(
+      `[AgentMissions] turn-in char=${characterID} drops sharers ` +
+        `${recipients.filter((sharerID) => !remaining.includes(sharerID)).join(",")} ` +
+        `the settlement refused; splitting among ${remaining.length}`,
+    );
+    recipients = remaining;
+  }
 }
 
 function finalizeMissionCompletion(
@@ -7024,7 +7862,10 @@ function finalizeMissionCompletion(
     );
     if (!careerEvidence.success) return { finalized: false, errorMsg: careerEvidence.errorMsg };
     delete characterState.missionsByAgentID[String(agentID)];
-    if (isCareerAgent(agentRecord)) {
+    careerAgentMissions.recordChainOutcome(characterState, agentRecord, activeMission.contentID, "completed");
+    // The Agent Finder ticks a career agent once its whole chain is done.
+    if (isCareerAgent(agentRecord) &&
+      require("./careerAgentMissions").isCareerAgentFinished(agentRecord, activeMission.contentID)) {
       characterState.completedCareerAgentIDs[String(agentID)] = true;
     }
     const completedAtFileTime = currentFileTimeString();
@@ -7092,14 +7933,14 @@ function finalizeMissionCompletion(
   try { require("../career/careerProgress").sync(characterID); }
   catch (error) { log.warn(`[Career] completed mission awaits projection: ${error.message}`); }
   cleanupMissionBookmarks(characterID, missionRecord);
-  // Best-effort delivery is backed by the durable completion outbox. Reconnect
-  // and subsequent season reads retry without duplicating a mission's credit.
+  // Best-effort delivery follows the durable mission write. Reconnect and
+  // subsequent season reads recover progress without re-crediting the mission.
   try {
     const session = sessionRegistry.getSessions().find(entry =>
       Number(entry.characterID || entry.charid) === Number(characterID));
     require("../seasons/eventHooks").missions.reconcileCharacter(session || { characterID });
   } catch (error) {
-    log.warn(`[AgentMissionRuntime] election mission credit pending char=${characterID}: ${error.message}`);
+    log.warn(`[AgentMissionRuntime] seasonal mission projection pending char=${characterID}: ${error.message}`);
   }
   if (normalizePositiveInteger(missionRecord.dungeonInstanceID, 0) > 0) {
     try {
@@ -7114,6 +7955,8 @@ function finalizeMissionCompletion(
     if (researchRuntime.isResearchAgent(agentRecord)) {
       researchRuntime.addMissionBonusPoints(characterID, agentRecord);
     }
+    // TQ order: OnEpicJournalChange goes out before 'completed'.
+    notifyEpicJournalChange(characterID, cleanupResult.data.missionRecord || missionRecord);
     notifyMissionChange(characterID, AGENT_MISSION_COMPLETED, agentID);
     if (completedEpicArcID > 0) {
       try {
@@ -7144,7 +7987,9 @@ function finalizeMissionCompletion(
       0,
     ) || agentID;
     const nextAgentRecord = getAgentRecord(nextAgentID);
-    if (nextMissionRecord && nextAgentRecord) {
+    if (nextMissionRecord && nextAgentRecord && !isUnavailableCareerMission(
+      getCharacterStateSnapshot(characterID), nextAgentRecord, continuationMissionID,
+    )) {
       const offerResult = offerSpecificMission(
         characterID,
         nextAgentRecord,
@@ -7163,8 +8008,13 @@ function finalizeMissionCompletion(
       ) {
         return { success: false, errorMsg: "MISSION_CONTINUATION_CONFLICT" };
       }
+      // The offered successor must outlive this process before its settlement
+      // can discard the frozen continuation and acknowledge finalization.
+      const durableOffer = flushMissionLifecycleTransition("MISSION_CONTINUATION_FLUSH_FAILED");
+      if (!durableOffer.success) return durableOffer;
       if (offerResult.data.kind === "offered") {
         notifyMissionChange(characterID, AGENT_MISSION_OFFERED, nextAgentID);
+        notifyEpicJournalChange(characterID, offeredMission);
       }
       continuation = {
         agentRecord: cloneValue(nextAgentRecord),
@@ -7239,6 +8089,12 @@ async function completeMission(characterID, agentRecord, options = {}) {
   if (!missionRecord) {
     return { success: false, errorMsg: "MISSION_NOT_FOUND" };
   }
+  // An already accepted settlement keeps its frozen owner receipts above. A
+  // stale active record cannot create a fresh payout for a completed lesson or
+  // an agent whose one-time chain is now permanently closed.
+  if (isUnavailableCareerMission(getCharacterStateSnapshot(characterID), agentRecord, missionRecord.contentID)) {
+    return { success: false, errorMsg: "MISSION_NOT_AVAILABLE" };
+  }
   if (!missionRecord.objectiveCompleted) {
     return { success: false, errorMsg: "OBJECTIVES_NOT_COMPLETE" };
   }
@@ -7251,8 +8107,10 @@ async function completeMission(characterID, agentRecord, options = {}) {
   if (!settlementOptions.success) {
     return settlementOptions;
   }
-  const prepared = missionRewardSettlementState.prepareMissionRewardSettlement(
+  const prepared = prepareMissionTurnInSettlement(
+    characterID,
     settlementOptions.data,
+    resolveMissionTurnInRecipients(characterID, agentRecord, options),
   );
   if (!prepared.success || !prepared.data) {
     return prepared;
@@ -7452,9 +8310,11 @@ function getStandingGainsForMission(characterID, agentID, contentID = null) {
   return buildStandingPreview(characterID, agentRecord, missionRecord);
 }
 
-function getReplayTimestamp(characterID, agentID) {
-  const replayUntil = fileTimeStringToBigInt(getReplayUntilFileTime(characterID, agentID));
-  return replayUntil > 0n ? fileTimeBigIntToLong(replayUntil) : null;
+// The station Agents tab (dockedUI/agents.py) lists any agent with a replay timestamp under
+// "Not available to you". The decline timer is not one: it only feeds the briefing's Decline Time
+// and the repeat-decline penalty, and declining never stops the agent offering again.
+function getReplayTimestamp() {
+  return null;
 }
 
 function markMissionObjectiveComplete(characterID, options = {}) {
@@ -7515,6 +8375,9 @@ function markMissionObjectiveComplete(characterID, options = {}) {
 
   for (const agentID of markedAgentIDs) {
     notifyMissionChange(normalizedCharacterID, AGENT_MISSION_MODIFIED, agentID);
+    // 'modified' keeps the tracker's cached mission info (missionObjectivesTracker),
+    // so the "return to agent" line needs the tracker update as well.
+    notifyMissionTrackerUpdate(normalizedCharacterID, agentID);
   }
 
   return { success: true, data: { markedAgentIDs } };
@@ -7626,12 +8489,23 @@ function buildAgentInteractionActions(agentRecord, missionRecord) {
     .filter(Boolean);
 }
 
-async function advanceConversationMission(characterID, sourceMissionRecord, nextMissionID) {
+// Completes a conversation turn-in (an agent-interaction choice or a talk-to-agent
+// referral) and leads to its next mission. `share` is the pilot's answer to the share
+// prompt; a turn-in that asked nothing is kept. The objective is marked complete only
+// here, once the turn-in goes ahead, so a cancelled prompt leaves it as it was.
+async function advanceConversationMission(characterID, sourceMissionRecord, nextMissionID, options = {}) {
   const normalizedCharacterID = normalizePositiveInteger(characterID, 0);
   const normalizedNextMissionID = normalizeMissionContentID(nextMissionID, null);
   const sourceAgentRecord = getAgentRecord(sourceMissionRecord && sourceMissionRecord.agentID);
   if (!normalizedCharacterID || !sourceMissionRecord || !sourceAgentRecord) {
     return { success: false, errorMsg: "MISSION_NOT_FOUND" };
+  }
+
+  if (visionsOfGreatness.isMission(sourceMissionRecord.contentID)) {
+    const target = getMissionConversationTargetRecord(sourceMissionRecord, sourceAgentRecord.agentID);
+    if (!target || !isCharacterAtAgentLocation(normalizedCharacterID, target)) {
+      return { success: false, errorMsg: "MISSION_TARGET_NOT_REACHED" };
+    }
   }
 
   const markResult = setMissionObjectiveCompleted(
@@ -7645,7 +8519,10 @@ async function advanceConversationMission(characterID, sourceMissionRecord, next
   const completionResult = await completeMission(
     normalizedCharacterID,
     sourceAgentRecord,
-    { continuationMissionID: normalizedNextMissionID },
+    {
+      continuationMissionID: normalizedNextMissionID,
+      share: Boolean(options && options.share === true),
+    },
   );
   if (!completionResult.success) {
     return completionResult;
@@ -7698,6 +8575,13 @@ function resolveIdleConversationContentID(agentRecord, characterID) {
     return activeContentID;
   }
 
+  const capturedArc = capturedEpicFor(agentID);
+  if (capturedArc) {
+    const state = getCharacterStateSnapshot(characterID);
+    const nextID = capturedArc.nextMissionID(state, agentID);
+    return nextID && !isUnavailableCapturedEpicMission(state, agentRecord, nextID) ? nextID : null;
+  }
+
   const forcedMissionID = normalizePositiveInteger(process.env.EVEJS_FORCE_MISSION_ID, 0);
   const forcedMission = forcedMissionID > 0 ? getMissionByID(forcedMissionID) : null;
   if (forcedMission && isMissionOfferAllowedForAgent(agentRecord, forcedMission)) {
@@ -7705,13 +8589,25 @@ function resolveIdleConversationContentID(agentRecord, characterID) {
   }
 
   const characterState = getCharacterStateSnapshot(characterID);
+  // A career agent's greeting names the part of its chain it would offer next, and none once the
+  // chain is done (the conversation's title is this mission's name). Agents without a chain, and
+  // part 1, keep the usual pick.
+  if (careerAgentMissions.isCareerChainClosed(characterState, agentRecord)) return null;
+  const completedHere = careerAgentMissions.completedChainMissionIDs(characterState, agentRecord);
+  if (careerAgentMissions.isCareerChainCompleted(agentRecord, completedHere)) return null;
+  const nextChainMissionID = careerAgentMissions.nextChainMissionID(agentRecord, completedHere);
+  if (nextChainMissionID) return normalizeMissionContentID(nextChainMissionID, null);
   const selectionCursor = normalizeInteger(
     characterState &&
       characterState.missionSelectionCursorByAgentID &&
       characterState.missionSelectionCursorByAgentID[String(agentID)],
     0,
   );
-  const selectedMission = pickMissionForAgent(agentRecord, selectionCursor);
+  // Idle greeting metadata is not a new offer. Keep it stable and consume no
+  // Security offer draw; offerMission stores the one actual selected record.
+  const selectedMission = isOrdinarySecurityAgent(agentRecord)
+    ? getMissionByID(listClientMissionIDsForAgent(agentRecord)[0])
+    : pickMissionForAgent(agentRecord, selectionCursor);
   return normalizeMissionContentID(selectedMission && selectedMission.missionID, null);
 }
 
@@ -7937,6 +8833,310 @@ function buildQuitConversation(missionRecord) {
   };
 }
 
+// The receipt time of a quit whose penalty was flushed while its mission was never removed
+// (the process died between the two writes), or null. doAgentAction finishes that quit, with
+// that time, before honouring any action, so nothing else is asked of such a mission.
+function getUnfinishedMissionQuitTime(characterID, agentRecord, missionRecord) {
+  if (
+    !missionRecord ||
+    !["accepted", "offered"].includes(
+      normalizeText(missionRecord.runtimeStatus, "").toLowerCase(),
+    )
+  ) {
+    return null;
+  }
+  const receipt = getMissionQuitStandingReceipt(characterID, agentRecord.agentID, missionRecord);
+  return receipt ? receipt.createdAt : null;
+}
+
+// The dialogue's Complete tokens are read as Complete Remotely where the mission is
+// remote-completable from where the pilot is now; every other action is left as it is.
+function resolveCompleteTokenActionID(
+  rawActionID,
+  normalizedActionID,
+  characterID,
+  agentRecord,
+  missionRecord,
+) {
+  if (
+    (
+      rawActionID === AGENT_DIALOGUE_ACTION_TOKEN_COMPLETE ||
+      rawActionID === AGENT_DIALOGUE_ACTION_TOKEN_COMPLETE_READY
+    ) &&
+    missionRecord &&
+    isMissionRemoteCompletable(missionRecord, { characterID, agentRecord })
+  ) {
+    return AGENT_DIALOGUE_BUTTON_COMPLETE_REMOTELY;
+  }
+  return normalizedActionID;
+}
+
+// Why doAgentAction refuses a turn-in (Complete Mission or Complete Remotely) before any
+// reward is settled, or null when it goes ahead. doAgentAction and getFleetSharePrompt both
+// ask here, so the share prompt is raised exactly when the turn-in would proceed.
+function findMissionTurnInRefusal(characterID, agentRecord, missionRecord, actionID) {
+  if (
+    actionID === AGENT_DIALOGUE_BUTTON_COMPLETE_REMOTELY &&
+    !isMissionRemoteCompletable(missionRecord, { characterID, agentRecord })
+  ) {
+    return "not-remote-completable";
+  }
+  if (
+    actionID === AGENT_DIALOGUE_BUTTON_COMPLETE &&
+    !isCharacterAtMissionCompletionLocation(characterID, agentRecord, missionRecord)
+  ) {
+    // A courier only becomes completable at its dropoff, not at the agent's
+    // station -- the single most common reason a player reports a mission as
+    // stuck, and previously indistinguishable from a wedged settlement.
+    return "wrong-location";
+  }
+  // A settlement already prepared for this pilot and agent is completeMission's to resume
+  // (or refuse as orphaned), whatever the mission record says now.
+  if (
+    missionRewardSettlementState.findPendingMissionRewardSettlement(
+      characterID,
+      agentRecord.agentID,
+    )
+  ) {
+    return null;
+  }
+  // `missionRecord` is the one getMissionRecordForRead answered both callers, already
+  // synced, so a finished objective counts without syncing the mission again.
+  if (!missionRecord) {
+    return "no-mission";
+  }
+  if (!missionRecord.objectiveCompleted) {
+    return "objectives-not-complete";
+  }
+  return null;
+}
+
+// Retail's share prompt (doc/FLEET_SHARES.md → Fleet-share prompt). The client has no title
+// for it, so the title is empty: a string shows as it is (agents.py L440-L441), where None
+// would be looked up as a message ID and show the corrupt-briefing text. The client
+// pre-selects the last choice by the box's title.
+const FLEET_SHARE_PROMPT_TITLE = "";
+const FLEET_SHARE_PROMPT_BODY_LABEL =
+  "UI/Agents/StandardMission/CompleteShareWithFleetMessage"; // 235497
+const FLEET_SHARE_PROMPT_SHARE_LABEL = "UI/Agents/StandardMission/ShareWithFleetYes"; // 235503
+const FLEET_SHARE_PROMPT_KEEP_LABEL = "UI/Agents/StandardMission/ShareWithFleetNo"; // 235505
+
+// A label the client localizes: (labelPath, {}), as a tuple, since agents.SingleChoiceBox
+// localizes a choice only when it is a tuple (agents.py L448-L452).
+function buildFleetSharePromptLabel(labelPath) {
+  return buildMarshalTuple([labelPath, buildDict([])]);
+}
+
+function isAgentInteractionActionID(actionID) {
+  return actionID !== null &&
+    actionID >= AGENT_INTERACTION_ACTION_ID_BASE &&
+    actionID < (AGENT_INTERACTION_ACTION_ID_BASE + 16);
+}
+
+// The conversation turn-in an action makes, as doAgentAction carries it out, or null:
+// - a talk-to-agent referral: opening the conversation (no action), Request Mission or View
+//   Mission, with no mission of the bound agent's and an accepted one referred to it, which
+//   completes the referring mission and leads to its first next mission;
+// - an agent-interaction choice (10000 to 10015) naming a next mission of the bound agent's
+//   mission, which completes that mission and leads to the chosen one.
+// `missionRecord` is the bound agent's mission as doAgentAction reads it. `agentRecord` in the
+// answer is the completing mission's agent, null when that agent is unknown.
+function findConversationTurnIn(characterID, agentRecord, actionID, missionRecord) {
+  if (
+    actionID === null ||
+    actionID === AGENT_DIALOGUE_BUTTON_REQUEST_MISSION ||
+    actionID === AGENT_DIALOGUE_BUTTON_VIEW_MISSION
+  ) {
+    const referredMission = missionRecord
+      ? null
+      : findReferredConversationMission(characterID, agentRecord.agentID);
+    return referredMission
+      ? {
+          kind: "referral",
+          agentRecord: getAgentRecord(referredMission.agentID),
+          missionRecord: referredMission,
+          nextMissionID: getMissionNextMissionIDs(referredMission)[0] ?? null,
+        }
+      : null;
+  }
+  if (missionRecord && isAgentInteractionActionID(actionID)) {
+    const nextMissionID =
+      getMissionNextMissionIDs(missionRecord)[actionID - AGENT_INTERACTION_ACTION_ID_BASE] ?? null;
+    return nextMissionID === null
+      ? null
+      : { kind: "interaction", agentRecord, missionRecord, nextMissionID };
+  }
+  return null;
+}
+
+// The turn-in an action on the bound agent's conversation would make now, or null: the
+// completing mission, its agent and the kind of turn-in, read as doAgentAction reads them,
+// with every refusal doAgentAction makes for it applied (doc/FLEET_SHARES.md → Fleet-share
+// prompt, "Every turn-in is asked").
+function findActionTurnIn(characterID, agentID, actionID) {
+  const normalizedCharacterID = normalizePositiveInteger(characterID, 0);
+  const agentRecord = getAgentRecord(agentID);
+  if (!normalizedCharacterID || !agentRecord || !getCharacterRecord(normalizedCharacterID)) {
+    return null;
+  }
+  const rawActionID = actionID === null || actionID === undefined
+    ? null
+    : normalizeInteger(actionID, 0);
+  const normalizedActionID = rawActionID === null
+    ? null
+    : normalizeAgentDialogueActionID(rawActionID);
+  const isComplete =
+    normalizedActionID === AGENT_DIALOGUE_BUTTON_COMPLETE ||
+    normalizedActionID === AGENT_DIALOGUE_BUTTON_COMPLETE_REMOTELY;
+  if (
+    !isComplete &&
+    normalizedActionID !== null &&
+    normalizedActionID !== AGENT_DIALOGUE_BUTTON_REQUEST_MISSION &&
+    normalizedActionID !== AGENT_DIALOGUE_BUTTON_VIEW_MISSION &&
+    !isAgentInteractionActionID(normalizedActionID)
+  ) {
+    return null;
+  }
+  const boundAgentID = agentRecord.agentID;
+  if (
+    getUnfinishedMissionQuitTime(
+      normalizedCharacterID,
+      agentRecord,
+      getMissionRecord(normalizedCharacterID, boundAgentID),
+    )
+  ) {
+    return null;
+  }
+  const missionRecord = getMissionRecordForRead(normalizedCharacterID, boundAgentID);
+  const turnInActionID = resolveCompleteTokenActionID(
+    rawActionID,
+    normalizedActionID,
+    normalizedCharacterID,
+    agentRecord,
+    missionRecord,
+  );
+  if (isComplete) {
+    return findMissionTurnInRefusal(normalizedCharacterID, agentRecord, missionRecord, turnInActionID)
+      ? null
+      : { kind: "complete", agentRecord, missionRecord, nextMissionID: null };
+  }
+  const conversationTurnIn = findConversationTurnIn(
+    normalizedCharacterID,
+    agentRecord,
+    turnInActionID,
+    missionRecord,
+  );
+  return conversationTurnIn && conversationTurnIn.agentRecord ? conversationTurnIn : null;
+}
+
+// Which mission an action would turn in now, for the late-answer guard: the completing
+// mission's agent, sequence and contentID, the kind of turn-in and where it leads; or null.
+function getMissionTurnIn(characterID, agentID, actionID) {
+  return describeMissionTurnIn(findActionTurnIn(characterID, agentID, actionID));
+}
+
+function describeMissionTurnIn(turnIn) {
+  if (!turnIn || !turnIn.missionRecord) {
+    return null;
+  }
+  return {
+    kind: turnIn.kind,
+    agentID: turnIn.agentRecord.agentID,
+    missionSequence: normalizePositiveInteger(turnIn.missionRecord.missionSequence, 0),
+    contentID: normalizeMissionContentID(turnIn.missionRecord.contentID, null),
+    nextMissionID: turnIn.nextMissionID,
+  };
+}
+
+// The share prompt for a turn-in, or null when none is asked: the action is a turn-in that
+// would go ahead, no reward settlement is pending for the completing mission, its agent is
+// not R&D, and the pilot's Mission sharers hold someone else. `agentID` and `contentID` are
+// the completing mission's, which for a referral is not the bound agent's.
+function getFleetSharePrompt(characterID, agentID, actionID) {
+  const turnIn = findActionTurnIn(characterID, agentID, actionID);
+  if (!turnIn || researchRuntime.isResearchAgent(turnIn.agentRecord)) {
+    return null;
+  }
+  const normalizedCharacterID = normalizePositiveInteger(characterID, 0);
+  const completingAgentRecord = turnIn.agentRecord;
+  if (
+    missionRewardSettlementState.findPendingMissionRewardSettlement(
+      normalizedCharacterID,
+      completingAgentRecord.agentID,
+    )
+  ) {
+    return null;
+  }
+  const sharers = fleetShare.resolveMissionSharers(normalizedCharacterID);
+  if (!sharers.some((sharerID) => sharerID !== normalizedCharacterID)) {
+    return null;
+  }
+  return {
+    agentID: completingAgentRecord.agentID,
+    contentID: resolveClientMissionContentID(turnIn.missionRecord, completingAgentRecord),
+    // The turn-in asked about, as getMissionTurnIn describes it, for the late-answer guard.
+    turnIn: describeMissionTurnIn(turnIn),
+    title: FLEET_SHARE_PROMPT_TITLE,
+    body: buildFleetSharePromptLabel(FLEET_SHARE_PROMPT_BODY_LABEL),
+    choices: [
+      buildFleetSharePromptLabel(FLEET_SHARE_PROMPT_SHARE_LABEL),
+      buildFleetSharePromptLabel(FLEET_SHARE_PROMPT_KEEP_LABEL),
+    ],
+  };
+}
+
+// The share prompt's options, as the client names the selected one
+// (radioButtonMessageBox.py L48): option 1 shares, option 2 keeps.
+const FLEET_SHARE_OPTION_PATTERN = /^radioboxOption([12])Selected$/;
+
+function readFleetShareOption(selection) {
+  const match = typeof selection === "string"
+    ? FLEET_SHARE_OPTION_PATTERN.exec(selection.trim())
+    : null;
+  return match ? Number(match[1]) : null;
+}
+
+// What the pilot answered the share prompt, read from the call record onResponse delivers.
+// A live answer is (confirmed, selection); a remembered one is the stored raw tuple
+// (button, selection), 1 OK, 2 Cancel, 8 Close (agents.py L459-L467).
+// - true or 1 with option 1: "share"; with option 2: "keep".
+// - 2 or 8, or a remembered 1 naming neither option: "no-preference".
+// - anything else (false, a live true naming neither option, an error, no answer): "cancel".
+// researchDialogue.readChoiceIndex is not used: it reads a remembered 1 as a cancel.
+function readFleetShareAnswer(clientResponse) {
+  const answer = researchDialogue.unwrapClientResponse(clientResponse);
+  if (!Array.isArray(answer) || answer.length === 0) {
+    if (answer !== null) {
+      log.warn(
+        `[AgentMissions] fleet-share answer not readable, read as cancel: ` +
+          `${JSON.stringify(answer)}`,
+      );
+    }
+    return "cancel";
+  }
+  const [button, selection] = answer;
+  const option = readFleetShareOption(selection);
+  if (button === true) {
+    if (option === 1) {
+      return "share";
+    }
+    return option === 2 ? "keep" : "cancel";
+  }
+  const buttonCode = typeof button === "number" || typeof button === "bigint"
+    ? Number(button)
+    : null;
+  if (buttonCode === 1) {
+    if (option === 1) {
+      return "share";
+    }
+    return option === 2 ? "keep" : "no-preference";
+  }
+  if (buttonCode === 2 || buttonCode === 8) {
+    return "no-preference";
+  }
+  return "cancel";
+}
+
 function doAgentAction(characterID, agentID, actionID = null, options = {}) {
   const normalizedCharacterID = normalizePositiveInteger(characterID, 0);
   const agentRecord = getAgentRecord(agentID);
@@ -7951,6 +9151,12 @@ function doAgentAction(characterID, agentID, actionID = null, options = {}) {
       },
     };
   }
+  // A failed terminal flush can leave a closed career record ahead of disk in
+  // cache. Recommit it before any subsequent unavailable/idle acknowledgement.
+  if (careerAgentMissions.isCareerChainClosed(getCharacterStateSnapshot(normalizedCharacterID), agentRecord)) {
+    const durable = flushMissionLifecycleTransition("MISSION_CAREER_CLOSURE_FLUSH_FAILED");
+    if (!durable.success) return durable;
+  }
 
   const rawActionID =
     actionID === null || actionID === undefined
@@ -7963,20 +9169,18 @@ function doAgentAction(characterID, agentID, actionID = null, options = {}) {
     ? null
     : normalizeAgentDialogueActionID(rawActionID);
   const rawMission = getMissionRecord(normalizedCharacterID, agentID);
-  const missionQuitStandingReceipt = rawMission
-    ? getMissionQuitStandingReceipt(
-        normalizedCharacterID,
-        agentRecord.agentID,
-        rawMission,
-      )
-    : null;
-  if (
-    rawMission &&
-    ["accepted", "offered"].includes(
-      normalizeText(rawMission.runtimeStatus, "").toLowerCase(),
-    ) &&
-    missionQuitStandingReceipt
-  ) {
+  if (normalizeText(rawMission?.runtimeStatus, "").toLowerCase() === "accepted") {
+    // REQUEST/View/Defer also acknowledge acceptance without calling its
+    // mutator. Do not expose an unfenced cached acceptance through those paths.
+    const durable = flushMissionLifecycleTransition("MISSION_ACCEPT_FLUSH_FAILED");
+    if (!durable.success) return durable;
+  }
+  const unfinishedQuitTime = getUnfinishedMissionQuitTime(
+    normalizedCharacterID,
+    agentRecord,
+    rawMission,
+  );
+  if (unfinishedQuitTime) {
     // The standing penalty is flushed before mission state is removed. If the process dies
     // between those writes, the receipt is the durable intent to cancel. Resume that transition
     // before honoring any later action so a recovered mission cannot also be completed.
@@ -7985,9 +9189,7 @@ function doAgentAction(characterID, agentID, actionID = null, options = {}) {
       agentRecord,
       {
         allowOfferedRecovery: true,
-        quitAtFileTime: fileTimeStringFromIso(
-          missionQuitStandingReceipt.createdAt,
-        ),
+        quitAtFileTime: fileTimeStringFromIso(unfinishedQuitTime),
       },
     );
     if (recoveredQuit.success) {
@@ -8023,32 +9225,45 @@ function doAgentAction(characterID, agentID, actionID = null, options = {}) {
   const syncedMission = isIdempotentAcceptedAction
     ? rawMission
     : getMissionRecordForRead(normalizedCharacterID, agentID);
-  if (
-    (
-      rawActionID === AGENT_DIALOGUE_ACTION_TOKEN_COMPLETE ||
-      rawActionID === AGENT_DIALOGUE_ACTION_TOKEN_COMPLETE_READY
-    ) &&
-    syncedMission &&
-    isMissionRemoteCompletable(syncedMission, {
-      characterID: normalizedCharacterID,
-      agentRecord,
-    })
-  ) {
-    normalizedActionID = AGENT_DIALOGUE_BUTTON_COMPLETE_REMOTELY;
+  normalizedActionID = resolveCompleteTokenActionID(
+    rawActionID,
+    normalizedActionID,
+    normalizedCharacterID,
+    agentRecord,
+    syncedMission,
+  );
+  // A referral or an agent-interaction choice turns a mission in. `completeNothing` reads
+  // the conversation as it stands without carrying one out (a cancelled share prompt).
+  const conversationTurnIn = conversationOptions.completeNothing === true
+    ? null
+    : findConversationTurnIn(normalizedCharacterID, agentRecord, normalizedActionID, syncedMission);
+  if (conversationTurnIn) {
+    return advanceConversationMission(
+      normalizedCharacterID,
+      conversationTurnIn.missionRecord,
+      conversationTurnIn.nextMissionID,
+      { share: conversationOptions.share === true },
+    ).then((turnInResult) => {
+      if (turnInResult && turnInResult.success) {
+        return turnInResult;
+      }
+      // As Complete Mission's failure does: say why, and answer the conversation as it
+      // stands, nothing turned in, rather than the "unavailable" fallback.
+      log.warn(
+        `[MissionDebug] complete-refused reason=settlement:` +
+          `${normalizeText(turnInResult && turnInResult.errorMsg, "UNKNOWN")} ` +
+          `char=${normalizedCharacterID} agent=${agentID} ` +
+          `turnIn=${conversationTurnIn.kind} ` +
+          `completingAgent=${normalizePositiveInteger(conversationTurnIn.missionRecord.agentID, 0)}`,
+      );
+      return doAgentAction(normalizedCharacterID, agentID, null, {
+        session: conversationOptions.session,
+        completeNothing: true,
+      });
+    });
   }
-  const referredMission =
-    !syncedMission
-      ? findReferredConversationMission(normalizedCharacterID, agentID)
-      : null;
 
   if (normalizedActionID === null) {
-    if (referredMission) {
-      return advanceConversationMission(
-        normalizedCharacterID,
-        referredMission,
-        getMissionNextMissionIDs(referredMission)[0] ?? null,
-      );
-    }
     // Opening a research agent lands on its research screen even with a mission in
     // hand; View Mission there leads into the ordinary mission conversation. Without
     // this the mission screen replaces it and Buy Datacores / Cancel Research become
@@ -8083,13 +9298,6 @@ function doAgentAction(characterID, agentID, actionID = null, options = {}) {
     normalizedActionID === AGENT_DIALOGUE_BUTTON_REQUEST_MISSION ||
     normalizedActionID === AGENT_DIALOGUE_BUTTON_VIEW_MISSION
   ) {
-    if (referredMission) {
-      return advanceConversationMission(
-        normalizedCharacterID,
-        referredMission,
-        getMissionNextMissionIDs(referredMission)[0] ?? null,
-      );
-    }
     if (syncedMission) {
       const missionTemplate = getRuntimeMissionTemplateRecord(syncedMission);
       return {
@@ -8111,6 +9319,7 @@ function doAgentAction(characterID, agentID, actionID = null, options = {}) {
       return { success: true, data: buildIdleConversation(agentRecord, normalizedCharacterID) };
     }
     notifyMissionChange(normalizedCharacterID, AGENT_MISSION_OFFERED, agentID);
+    notifyEpicJournalChange(normalizedCharacterID, offeredPayload.missionRecord);
     return {
       success: true,
       data: buildOfferedConversation(
@@ -8167,6 +9376,8 @@ function doAgentAction(characterID, agentID, actionID = null, options = {}) {
       return { success: true, data: buildIdleConversation(agentRecord, normalizedCharacterID) };
     }
     if (acceptResult.acceptedNow === true) {
+      // TQ order: OnEpicJournalChange goes out before 'accepted'.
+      notifyEpicJournalChange(normalizedCharacterID, acceptResult.data);
       notifyMissionChange(normalizedCharacterID, AGENT_MISSION_ACCEPTED, agentID);
     }
     return {
@@ -8203,12 +9414,21 @@ function doAgentAction(characterID, agentID, actionID = null, options = {}) {
     // Read the timer BEFORE clearMissionWithCooldown re-arms it. This mirrors the informational
     // declineTime the briefing already surfaces (buildMissionBriefingInfo). Best-effort — a standing
     // failure must never block the decline itself.
-    if (
+    const declinePenaltyApplies = (
       config.missionDeclinePenaltyEnabled === true &&
       fileTimeStringToBigInt(
         getReplayUntilFileTime(normalizedCharacterID, agentID),
       ) > nowFileTimeBigInt()
-    ) {
+    );
+    const declineResult = clearMissionWithCooldown(
+      normalizedCharacterID,
+      agentRecord,
+      "declined",
+    );
+    if (!declineResult.success) return declineResult;
+    // Commit the transition first. A refused write/flush must not charge this
+    // same still-offered mission again when the player retries the decline.
+    if (declinePenaltyApplies) {
       try {
         standingRuntime.applyMissionStandingChanges(
           normalizedCharacterID,
@@ -8221,14 +9441,13 @@ function doAgentAction(characterID, agentID, actionID = null, options = {}) {
         log.debug(`[AgentMissions] decline standing penalty for character ${normalizedCharacterID} failed: ${error && error.message}`);
       }
     }
-    clearMissionWithCooldown(
-      normalizedCharacterID,
-      agentRecord,
-      "declined",
-    );
     // TQ parity: a decline is pushed as 'declined' (golden "Starting Simple Level 1", both
     // declines). 'reset' is a different event to the client: it closes the agent's conversation
     // window (agents.py OnAgentMissionChange), so the answer below would never be drawn.
+    notifyEpicJournalChange(
+      normalizedCharacterID,
+      declineResult.data && declineResult.data.missionRecord,
+    );
     notifyMissionChange(normalizedCharacterID, AGENT_MISSION_DECLINED, agentID);
     const idleConversation = buildIdleConversation(agentRecord, normalizedCharacterID);
     return {
@@ -8283,22 +9502,6 @@ function doAgentAction(characterID, agentID, actionID = null, options = {}) {
   }
 
   if (
-    syncedMission &&
-    normalizedActionID >= AGENT_INTERACTION_ACTION_ID_BASE &&
-    normalizedActionID < (AGENT_INTERACTION_ACTION_ID_BASE + 16)
-  ) {
-    const nextMissionIDs = getMissionNextMissionIDs(syncedMission);
-    const nextMissionID = nextMissionIDs[normalizedActionID - AGENT_INTERACTION_ACTION_ID_BASE] ?? null;
-    if (nextMissionID !== null) {
-      return advanceConversationMission(
-        normalizedCharacterID,
-        syncedMission,
-        nextMissionID,
-      );
-    }
-  }
-
-  if (
     normalizedActionID === AGENT_DIALOGUE_BUTTON_COMPLETE ||
     normalizedActionID === AGENT_DIALOGUE_BUTTON_COMPLETE_REMOTELY
   ) {
@@ -8333,29 +9536,19 @@ function doAgentAction(characterID, agentID, actionID = null, options = {}) {
           }
         : { success: true, data: buildIdleConversation(agentRecord, normalizedCharacterID) };
     };
-    if (
-      normalizedActionID === AGENT_DIALOGUE_BUTTON_COMPLETE_REMOTELY &&
-      !isMissionRemoteCompletable(syncedMission, {
-        characterID: normalizedCharacterID,
-        agentRecord,
-      })
-    ) {
-      return refuseComplete("not-remote-completable");
+    const turnInRefusal = findMissionTurnInRefusal(
+      normalizedCharacterID,
+      agentRecord,
+      syncedMission,
+      normalizedActionID,
+    );
+    if (turnInRefusal) {
+      return refuseComplete(turnInRefusal);
     }
-    if (
-      normalizedActionID === AGENT_DIALOGUE_BUTTON_COMPLETE &&
-      !isCharacterAtMissionCompletionLocation(
-        normalizedCharacterID,
-        agentRecord,
-        syncedMission,
-      )
-    ) {
-      // A courier only becomes completable at its dropoff, not at the agent's
-      // station -- the single most common reason a player reports a mission as
-      // stuck, and previously indistinguishable from a wedged settlement.
-      return refuseComplete("wrong-location");
-    }
-    return completeMission(normalizedCharacterID, agentRecord).then((completeResult) => {
+    // `share` is the pilot's answer to the share prompt; a turn-in that asked nothing is kept.
+    return completeMission(normalizedCharacterID, agentRecord, {
+      share: conversationOptions.share === true,
+    }).then((completeResult) => {
       if (!completeResult.success) {
         log.warn(
           `[MissionDebug] complete-refused reason=settlement:` +
@@ -8440,10 +9633,14 @@ module.exports = {
   // a refusal is only observable here.
   completeMission,
   doAgentAction,
+  getFleetSharePrompt,
+  getMissionTurnIn,
+  readFleetShareAnswer,
   isMissionRemoteOfferable,
   isMissionRemoteCompletable,
   missionGrantsItemsOnAccept,
   notifyMissionQuit,
+  notifyEpicJournalChange,
   getAgentLocationWrap,
   getCompletedCareerAgentMap,
   getInfoServiceDetails,
@@ -8452,6 +9649,7 @@ module.exports = {
   getMissionJournalInfo,
   getMissionKeywords,
   getMissionInfoItems,
+  requiresMissionTrackerStatePull,
   getMissionObjectiveInfo,
   getMyEpicArcStatus,
   getMissionRecord,
@@ -8478,6 +9676,20 @@ module.exports = {
   offerSpecificMission,
   evaluateMissionProgress,
   finalizeMissionCompletion,
+  _testing: {
+    buildEncounterObjectiveState, buildEncounterDestroyObjectiveTuple, buildEncounterDestroyAllObjectiveTuple,
+    notifyMissionTrackerUpdate,
+    armMissionExpiryTimer,
+    clearMissionExpiryTimer,
+    runMissionExpiryTimer,
+    getMissionExpiryTimer: (characterID, agentID) => {
+      const entry = missionExpiryTimers.get(missionExpiryTimerKey(
+        normalizePositiveInteger(characterID, 0),
+        normalizePositiveInteger(agentID, 0),
+      ));
+      return entry ? { expiresAt: entry.expiresAt, missionSequence: entry.missionSequence } : null;
+    },
+  },
 };
 
 // The dungeon site service reaches this module through here, without requiring it. It reads the

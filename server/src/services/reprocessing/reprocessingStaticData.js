@@ -5,6 +5,7 @@ const {
 } = require("../../common/numbers");
 
 const path = require("path");
+const { buildCompressedTypeMaps } = require("./compressionAuthority");
 
 const database = require(path.join(__dirname, "../../gameStore"));
 const {
@@ -298,12 +299,12 @@ function buildCacheFromPayload(payload = {}) {
     Object.freeze(profilesBySize);
   }
 
+  // Static caches from older installs can retain inferred/stale mappings.
+  // The matching native client catalog is authoritative on existing installs too.
+  const nativeCompression = buildCompressedTypeMaps();
   const compressedTypeBySourceTypeID = new Map(
     Object.entries(
-      payload.compressedTypeBySourceTypeID &&
-      typeof payload.compressedTypeBySourceTypeID === "object"
-        ? payload.compressedTypeBySourceTypeID
-        : {},
+      nativeCompression.compressedTypeBySourceTypeID,
     )
       .map(([sourceTypeID, compressedTypeID]) => [
         toInt(sourceTypeID, 0),
@@ -314,10 +315,7 @@ function buildCacheFromPayload(payload = {}) {
 
   const sourceTypesByCompressedTypeID = new Map(
     Object.entries(
-      payload.sourceTypesByCompressedTypeID &&
-      typeof payload.sourceTypesByCompressedTypeID === "object"
-        ? payload.sourceTypesByCompressedTypeID
-        : {},
+      nativeCompression.sourceTypesByCompressedTypeID,
     )
       .map(([compressedTypeID, sourceTypeIDs]) => [
         toInt(compressedTypeID, 0),

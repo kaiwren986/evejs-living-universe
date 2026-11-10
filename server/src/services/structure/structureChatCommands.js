@@ -379,6 +379,37 @@ function executeStructureGmCommand(session, argumentText) {
   };
 }
 
+// /extraction advance <mid|stop|ready|decay> [structureID]: the GM buttons of
+// the client's moon scheduling window (ui/moonmining/scheduling.py:275-278),
+// which act on the structure the pilot is in.
+function executeExtractionGmCommand(session, argumentText) {
+  const usage = "Usage: /extraction advance <mid|stop|ready|decay> [structureID]";
+  const [subcommandRaw, phase, structureToken] = String(argumentText || "").trim().split(/\s+/).filter(Boolean);
+  if (String(subcommandRaw || "").toLowerCase() !== "advance" || !phase) {
+    return { success: false, message: usage };
+  }
+  const structure = resolveStructureToken(session, structureToken);
+  if (!structure) {
+    return { success: false, message: `Structure not found. ${usage}` };
+  }
+  const MoonExtractionsService = require(path.join(__dirname, "./moonExtractionsService"));
+  const result = MoonExtractionsService.gmAdvanceExtraction(structure.structureID, phase);
+  if (!result.success) {
+    return {
+      success: false,
+      message: `Failed to advance the extraction of ${structure.structureID}: ${result.errorMsg}. ${usage}`,
+    };
+  }
+  structureState.tickStructures(Date.now());
+  return {
+    success: true,
+    message: `GM advanced the extraction of ${structure.structureID} to ${phase} ` +
+      `(times moved ${Math.round(-result.shiftMs / 1000)} s earlier; chunk ready ` +
+      `${new Date(result.data.chunkAvailableTimeMs).toISOString()}, auto fracture ` +
+      `${new Date(result.data.naturalDecayTimeMs).toISOString()}).`,
+  };
+}
+
 function formatTetherRestrictionState(characterID, nowMs = Date.now()) {
   const state = structureTetherRestrictionState.describeCharacterTetherRestrictions(
     characterID,
@@ -938,6 +969,7 @@ function executeUpwellCommand(session, argumentText) {
 }
 
 module.exports = {
+  executeExtractionGmCommand,
   executeStructureGmCommand,
   executeUpwellCommand,
 };

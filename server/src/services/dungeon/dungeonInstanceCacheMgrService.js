@@ -62,6 +62,7 @@ const BUILD_3396210_BULWARK_MINING_DUNGEON_IDS = Object.freeze(new Set([
 ]));
 
 const ACTIVE_STATES = Object.freeze(["seeded", "active", "paused"]);
+const ORE_ANOMALY_MAP_RANGE_JUMPS = 5;
 
 let cachedBuckets = null;
 let cachedEntryDicts = null;
@@ -623,6 +624,16 @@ class DungeonInstanceCacheMgrService extends BaseService {
     super("dungeonInstanceCacheMgr");
   }
 
+  // The client's job board asks for the combat anomalies when it loads; that is the moment
+  // the AIR chapter 2 Opportunities entry has to be restored (airOpportunityRuntime). Here
+  // rather than in the handler, so it holds whatever the handler is replaced with.
+  callMethod(method, args, session, kwargs, callContext = null) {
+    if (String(method) === "GetCombatAnomalyInstances" && session) {
+      require("../npe/airOpportunityRuntime").handleJobBoardLoaded(session);
+    }
+    return super.callMethod(method, args, session, kwargs, callContext);
+  }
+
   Handle_GetCombatAnomalyInstances() {
     log.debug("[DungeonInstanceCacheMgr] GetCombatAnomalyInstances");
     return buildGroupedEntryDict("combatAnomalies");
@@ -658,9 +669,25 @@ class DungeonInstanceCacheMgrService extends BaseService {
     return buildResourceCountDict("oreAnomalies");
   }
 
-  Handle_GetOreAnomaliesCountInRange() {
+  Handle_GetOreAnomaliesCountInRange(_args, session) {
     log.debug("[DungeonInstanceCacheMgr] GetOreAnomaliesCountInRange");
-    return buildResourceCountDict("oreAnomalies");
+    const origin = session?._space?.systemID || session?.solarsystemid2 || session?.solarsystemid;
+    const nearby = dungeonUniverseRuntime.listSystemJumpDistances(origin, ORE_ANOMALY_MAP_RANGE_JUMPS);
+    if (nearby.size === 0) {
+      return buildDict([]);
+    }
+    const projected = dungeonUniverseRuntime.buildUniverseSpawnCountMap("ore", {
+      systemIDs: [...nearby.keys()],
+    });
+    const activeCounts = getBuckets().counts.get("oreAnomalies");
+    const positiveCounts = new Map();
+    for (const systemID of nearby.keys()) {
+      const count = activeCounts.get(systemID) ?? projected.get(systemID) ?? 0;
+      if (count > 0) {
+        positiveCounts.set(systemID, count);
+      }
+    }
+    return buildCountDictFromMap(positiveCounts);
   }
 
   Handle_GetBulwarkMiningSiteCounts() {

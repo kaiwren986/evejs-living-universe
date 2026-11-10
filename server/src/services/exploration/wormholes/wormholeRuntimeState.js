@@ -8,6 +8,7 @@ const targetIdRuntime = require(path.join(
   __dirname,
   "../signatures/targetIdRuntime",
 ));
+const { WORMHOLE_ENDPOINT_ID_BASE } = require("./wormholeRuntimeMigration");
 
 const WORMHOLE_RUNTIME_TABLE = "wormholeRuntimeState";
 const WORMHOLE_RUNTIME_VERSION = 4;
@@ -22,6 +23,8 @@ function normalizeVisibilityState(value, discovered = false) {
 
 let cache = null;
 let cacheIndex = null;
+let pendingAllocatorRepairs = [];
+let profileRevisionSequence = 0;
 
 function toInt(value, fallback = 0) {
   const numeric = Number(value);
@@ -149,10 +152,15 @@ function normalizePair(pair = {}) {
 }
 
 function normalizeState(table = {}) {
+  if (toInt(table.version, 0) > WORMHOLE_RUNTIME_VERSION) {
+    throw new Error(`Unsupported wormhole runtime version ${table.version}`);
+  }
   const nextPairSequence = Math.max(1, toInt(table.nextPairSequence, 1));
   const nextEndpointSequence = Math.max(1, toInt(table.nextEndpointSequence, 1));
   const universeSeededAtMs = Math.max(0, toInt(table.universeSeededAtMs, 0));
   const pairsByID = {};
+  let maxPairID = 0;
+  let maxEndpointSequence = 0;
   for (const [pairKey, pair] of Object.entries(table.pairsByID || {})) {
     const normalized = normalizePair(pair);
     if (normalized.pairID > 0) {
@@ -160,6 +168,13 @@ function normalizeState(table = {}) {
     } else if (toInt(pairKey, 0) > 0) {
       normalized.pairID = toInt(pairKey, 0);
       pairsByID[String(normalized.pairID)] = normalized;
+    }
+    maxPairID = Math.max(maxPairID, normalized.pairID);
+    for (const endpoint of [normalized.source, normalized.destination]) {
+      maxEndpointSequence = Math.max(maxEndpointSequence,
+        endpoint.endpointID > WORMHOLE_ENDPOINT_ID_BASE
+          ? endpoint.endpointID - WORMHOLE_ENDPOINT_ID_BASE
+          : endpoint.endpointID);
     }
   }
 
@@ -207,8 +222,8 @@ function normalizeState(table = {}) {
 
   return {
     version: WORMHOLE_RUNTIME_VERSION,
-    nextPairSequence,
-    nextEndpointSequence,
+    nextPairSequence: Math.max(nextPairSequence, maxPairID + 1),
+    nextEndpointSequence: Math.max(nextEndpointSequence, maxEndpointSequence + 1),
     universeSeededAtMs,
     pairsByID,
     staticSlotsByKey,
@@ -263,10 +278,28 @@ function removePairIDFromIndex(index, key, pairID) {
   }
 }
 
-function addPairToStateIndex(index, pair) {
+function hasSameRandomPopulation(previous, pair) {
+  return previous && previous.kind === "random" && pair.kind === "random" &&
+    previous.randomProfileKey && previous.randomProfileKey === pair.randomProfileKey &&
+    previous.state === pair.state && (pair.state === "active"
+      ? previous.source.systemID === pair.source.systemID
+      : previous.collapseAtMs === pair.collapseAtMs);
+}
+
+function addPairToStateIndex(index, pair, preserveProfile = false) {
   const pairID = toInt(pair && pair.pairID, 0);
   if (pairID <= 0) {
     return;
+  }
+  index.pairIDs.add(pairID);
+  const profileKey = String(pair.randomProfileKey || "");
+  if (pair.kind === "random" && profileKey) {
+    const profilePairs = index.randomPairsByProfile.get(profileKey) || new Map();
+    profilePairs.set(pairID, pair);
+    index.randomPairsByProfile.set(profileKey, profilePairs);
+    if (!preserveProfile) {
+      index.profileRevisions.set(profileKey, ++profileRevisionSequence);
+    }
   }
   const sourceSystemID = toInt(pair && pair.source && pair.source.systemID, 0);
   const destinationSystemID = toInt(
@@ -304,10 +337,24 @@ function addPairToStateIndex(index, pair) {
   }
 }
 
-function removePairFromStateIndex(index, pair) {
+function removePairFromStateIndex(index, pair, preserveMaintenanceOrder = false, preserveProfile = false) {
   const pairID = toInt(pair && pair.pairID, 0);
   if (pairID <= 0) {
     return;
+  }
+  if (!preserveMaintenanceOrder) {
+    index.pairIDs.delete(pairID);
+  }
+  const profileKey = String(pair.randomProfileKey || "");
+  if (!preserveProfile && pair.kind === "random" && profileKey) {
+    const profilePairs = index.randomPairsByProfile.get(profileKey);
+    if (profilePairs) {
+      profilePairs.delete(pairID);
+      if (profilePairs.size === 0) {
+        index.randomPairsByProfile.delete(profileKey);
+      }
+    }
+    index.profileRevisions.set(profileKey, ++profileRevisionSequence);
   }
   const sourceSystemID = toInt(pair && pair.source && pair.source.systemID, 0);
   const destinationSystemID = toInt(
@@ -354,7 +401,11 @@ function buildStateIndex(state = {}) {
     activePairCount: 0,
     activePairIDsBySystemID,
     allPairIDsBySystemID,
+    pairIDs: new Set(),
     pairIDByEndpointID,
+    polarizationCharacterIDs: new Set(Object.keys(state.polarizationByCharacter || {})),
+    profileRevisions: new Map(),
+    randomPairsByProfile: new Map(),
     totalPairCount: 0,
     visibleEndpointCountBySystemID,
   };
@@ -417,6 +468,30 @@ function getIndexStats() {
     totalPairCount: index.totalPairCount,
     endpointCount: index.pairIDByEndpointID.size,
     activeSystemCount: index.activePairIDsBySystemID.size,
+  };
+}
+
+function createMaintenanceCursors() {
+  const index = getStateIndex();
+  return {
+    pairs: index.pairIDs.values(),
+    pairCount: index.pairIDs.size,
+    polarizations: index.polarizationCharacterIDs.values(),
+    polarizationCount: index.polarizationCharacterIDs.size,
+  };
+}
+
+function getRandomProfileRevision(profileKey) {
+  return getStateIndex().profileRevisions.get(profileKey) || 0;
+}
+
+function createRandomProfilePopulationCursor(profileKey) {
+  const index = getStateIndex();
+  const pairs = index.randomPairsByProfile.get(profileKey);
+  return {
+    pairs: pairs ? pairs.values() : [][Symbol.iterator](),
+    pairCount: pairs ? pairs.size : 0,
+    revision: index.profileRevisions.get(profileKey) || 0,
   };
 }
 
@@ -583,6 +658,13 @@ function applyRowTransaction(transaction) {
   const state = loadState();
   const index = getStateIndex();
   const changes = transaction._changes;
+  // Preserve repaired high-water marks even if cleanup removes the rows
+  // that established them before another pair is allocated.
+  for (const key of pendingAllocatorRepairs) {
+    if (!changes.scalarWrites.has(key)) {
+      changes.scalarWrites.set(key, state[key]);
+    }
+  }
   const normalizedPairWrites = new Map(
     [...changes.pairWrites.entries()].map(([key, pair]) => [key, normalizePair(pair)]),
   );
@@ -646,11 +728,12 @@ function applyRowTransaction(transaction) {
   }
   for (const [key, pair] of normalizedPairWrites) {
     const previous = state.pairsByID[key];
+    const preserveProfile = hasSameRandomPopulation(previous, pair);
     if (previous) {
-      removePairFromStateIndex(index, previous);
+      removePairFromStateIndex(index, previous, true, preserveProfile);
     }
     state.pairsByID[key] = pair;
-    addPairToStateIndex(index, pair);
+    addPairToStateIndex(index, pair, preserveProfile);
   }
   for (const key of changes.slotRemoves) {
     delete state.staticSlotsByKey[key];
@@ -660,15 +743,18 @@ function applyRowTransaction(transaction) {
   }
   for (const key of changes.polarizationRemoves) {
     delete state.polarizationByCharacter[key];
+    index.polarizationCharacterIDs.delete(key);
   }
   for (const [key, endpoints] of normalizedPolarizationWrites) {
     state.polarizationByCharacter[key] = endpoints;
+    index.polarizationCharacterIDs.add(key);
   }
   for (const [key, value] of changes.scalarWrites) {
     if (key) {
       state[key] = value;
     }
   }
+  pendingAllocatorRepairs = [];
   return true;
 }
 
@@ -686,7 +772,10 @@ function loadState() {
   }
 
   const result = database.read(WORMHOLE_RUNTIME_TABLE, "/");
-  cache = normalizeState(result && result.success ? result.data : {});
+  const persistedState = result && result.success ? result.data : {};
+  cache = normalizeState(persistedState);
+  pendingAllocatorRepairs = ["nextPairSequence", "nextEndpointSequence"].filter((key) =>
+    cache[key] > Math.max(1, toInt(persistedState[key], 1)));
   return cache;
 }
 
@@ -782,6 +871,7 @@ function writeState(state, options = {}) {
   }
   cache = normalized;
   cacheIndex = buildStateIndex(cache);
+  pendingAllocatorRepairs = [];
   return true;
 }
 
@@ -805,14 +895,18 @@ function getStateSnapshot() {
 function clearRuntimeCache() {
   cache = null;
   cacheIndex = null;
+  pendingAllocatorRepairs = [];
 }
 
 module.exports = {
   WORMHOLE_RUNTIME_TABLE,
   WORMHOLE_RUNTIME_VERSION,
   clearRuntimeCache,
+  createMaintenanceCursors,
+  createRandomProfilePopulationCursor,
   getIndexStats,
   getPairByEndpointID,
+  getRandomProfileRevision,
   getStateSnapshot,
   getStateView,
   getVisibleEndpointCountsBySystem,

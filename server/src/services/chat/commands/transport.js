@@ -1323,6 +1323,19 @@ function handleTransportCommand(session, argumentText, chatHub, options) {
   );
 }
 
+function handleFetchCommand(session, argumentText, chatHub, options) {
+  const reply = (message) => handledResult(chatHub, session, options, message);
+  if (!require("./commandAccess").hasStaffDebugRole(session)) return reply("/fetch requires a staff/admin role.");
+  const target = String(argumentText || "").trim();
+  const itemID = /^\d+$/.test(target) ? Number(target) : 0;
+  const scene = spaceRuntime.getSceneForSession(session);
+  if (!Number.isSafeInteger(itemID) || itemID <= 0 || !scene || !scene.dynamicEntities.has(itemID)) {
+    return reply("Usage: /fetch <local dynamic entityID> (enter space first)");
+  }
+  // svc_gridutils.py fetches cans and wrecks to the caller before looting.
+  return handleTransportCommand(session, `${itemID} me`, chatHub, options);
+}
+
 function handleTeleCommand(session, argumentText, chatHub, options) {
   if (!session || !session.characterID) {
     return handledResult(
@@ -1527,6 +1540,7 @@ function handleDeadwarpCommand(session, argumentText, chatHub, options) {
 module.exports = {
   handleSolarTeleport,
   handleTransportCommand,
+  handleFetchCommand,
   handleTeleCommand,
   handleHomeDock,
   handleDeadwarpCommand,

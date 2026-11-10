@@ -17,6 +17,7 @@ const {
   updateShipItem,
   normalizeShipConditionState,
   updateInventoryItem,
+  findItemById,
 } = require("../../inventory/itemStore");
 const {
   listFittedItems,
@@ -355,6 +356,91 @@ function handleInvuCommand(session, argumentText, chatHub, options) {
   );
 }
 
+function handleRepairModulesCommand(session, argumentText, chatHub, options) {
+  const reply = (message) => handledResult(chatHub, session, options, message);
+  if (!require("./commandAccess").hasStaffDebugRole(session)) {
+    return reply("/repairmodules requires a staff/admin role.");
+  }
+  if (String(argumentText || "").trim()) return reply("Usage: /repairmodules");
+  const ship = getActiveShipRecord(session && session.characterID);
+  if (!ship) return reply("Board a ship before using /repairmodules.");
+  let repaired = [];
+  if (isSpaceSessionReady(session)) {
+    const scene = spaceRuntime.getSceneForSession(session);
+    const entity = scene && scene.getShipEntityForSession(session);
+    if (!entity || Number(entity.itemID) !== Number(ship.itemID)) return reply("Active ship not found in space.");
+    repaired = require("../../../space/runtime/moduleHeat").repairEntityFittedModules(entity, { session });
+  } else if (isDockedSession(session)) {
+    for (const item of listFittedItems(session.characterID, ship.itemID).filter(isFittedModuleItem)) {
+      const state = normalizeModuleState(item.moduleState);
+      if (!(state.damage > 0 || state.armorDamage > 0 || state.shieldCharge < 1 || state.incapacitated)) continue;
+      const result = updateInventoryItem(item.itemID, (current) => ({
+        ...current,
+        moduleState: normalizeModuleState({ ...current.moduleState,
+          damage: 0, armorDamage: 0, shieldCharge: 1, incapacitated: false }),
+      }));
+      if (!result.success) return reply(`Repaired ${repaired.length} modules; repair failed: ${result.errorMsg}.`);
+      syncDamageStateAttributesForSession(session, result.data, result.previousData || {});
+      repaired.push(item.itemID);
+    }
+    if (repaired.length) syncShipFittingStateForSession(session, ship.itemID, {
+      includeOfflineModules: true, includeCharges: false, restrictToItemIDs: repaired,
+    });
+  } else return reply("Your active ship must be docked or present in space.");
+  return reply(`Repaired ${repaired.length} fitted modules.`);
+}
+
+function handleNativeHealCommand(session, argumentText, chatHub, options) {
+  const reply = (message) => handledResult(chatHub, session, options, message);
+  if (!require("./commandAccess").hasStaffDebugRole(session)) return reply("Targeted /heal requires a staff/admin role.");
+  const text = String(argumentText || "").trim();
+  if (/^me$/i.test(text)) return handleHealCommand(session, chatHub, options);
+  if (/^me\s+capac=1$/i.test(text)) {
+    const scene = spaceRuntime.getSceneForSession(session);
+    const entity = scene && scene.getShipEntityForSession(session);
+    if (!entity) return reply("Enter space before using /heal me capac=1.");
+    const cap = require("../../../space/runtime/entityCapacitor");
+    const previousRatio = cap.getEntityCapacitorRatio(entity);
+    const previousAmount = cap.getEntityCapacitorAmount(entity);
+    cap.setEntityCapacitorRatio(entity, 1);
+    if (!cap.persistEntityCapacitorRatio(entity)) {
+      cap.setEntityCapacitorRatio(entity, previousRatio);
+      return reply("Could not save the capacitor restore.");
+    }
+    require("../../../space/runtime/attributeChangeNotification").notifyCapacitorChangeToSession(
+      session, entity, scene.getCurrentSimTimeMs(), previousAmount,
+    );
+    return reply("Restored your ship's capacitor.");
+  }
+  const itemID = /^\d+$/.test(text) ? Number(text) : 0;
+  const item = Number.isSafeInteger(itemID) && itemID > 0 ? findItemById(itemID) : null;
+  if (!item || Number(item.ownerID) !== Number(session.characterID) || ![7, 32].includes(Number(item.categoryID))) {
+    return reply("Usage: /heal [me|me capac=1|ownedModuleID]");
+  }
+  const ship = getActiveShipRecord(session.characterID);
+  const scene = spaceRuntime.getSceneForSession(session);
+  const entity = scene && scene.getShipEntityForSession(session);
+  if (entity && Number(item.locationID) === Number(entity.itemID) && isFittedModuleItem(item)) {
+    require("../../../space/runtime/moduleHeat").repairEntityFittedModules(entity, { session, moduleIDs: [itemID] });
+  } else {
+    const result = updateInventoryItem(itemID, (current) => ({ ...current,
+      moduleState: normalizeModuleState({ ...current.moduleState,
+        damage: 0, armorDamage: 0, shieldCharge: 1, incapacitated: false }),
+    }));
+    if (!result.success) return reply(`Module repair failed: ${result.errorMsg}.`);
+    syncDamageStateAttributesForSession(session, result.data, result.previousData || {});
+    if (ship && Number(item.locationID) === Number(ship.itemID)) syncShipFittingStateForSession(session, ship.itemID, {
+      includeOfflineModules: true, includeCharges: false, restrictToItemIDs: [itemID],
+    });
+  }
+  const saved = findItemById(itemID);
+  const state = saved && normalizeModuleState(saved.moduleState);
+  if (!state || state.damage > 0 || state.armorDamage > 0 || state.shieldCharge < 1 || state.incapacitated) {
+    return reply(`Module ${itemID} could not be repaired.`);
+  }
+  return reply(`Repaired module ${itemID}.`);
+}
+
 function handleHealCommand(session, chatHub, options) {
   if (!session || !session.characterID) {
     return handledResult(
@@ -454,5 +540,7 @@ function handleDamageCommand(session, argumentText, chatHub, options) {
 module.exports = {
   handleInvuCommand,
   handleHealCommand,
+  handleRepairModulesCommand,
+  handleNativeHealCommand,
   handleDamageCommand,
 };

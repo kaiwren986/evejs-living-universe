@@ -13,6 +13,10 @@ const path = require("path");
 const spaceRuntime = require(path.join(__dirname, "../runtime"));
 const npcService = require(path.join(__dirname, "./npcService"));
 const {
+  createWarpJitter,
+  npcWarpStreamSeed,
+} = require(path.join(__dirname, "../destiny/simulation/warpJitter"));
+const {
   ONE_AU_IN_METERS,
   findSafeWarpOriginAnchor,
 } = require(path.join(__dirname, "./npcWarpOrigins"));
@@ -96,9 +100,19 @@ function startManagedNpcWarp(context, point, options = {}) {
       NPC_WARP_VISIBILITY_SUPPRESS_MS,
     ),
   );
+  // Only the behaviour warp asks for jitter (retail's NPCWarpTo). Scripted warps
+  // such as CONCORD, mining and mission fleets land where they were sent.
+  const jitterRadiusMeters = toFiniteNumber(options.jitterRadiusMeters, 0);
+  const offset = jitterRadiusMeters > 0
+    ? createWarpJitter(
+      npcWarpStreamSeed(context.entityID, scene.getCurrentSimTimeMs()),
+      { radiusMeters: jitterRadiusMeters },
+    ).next()
+    : { x: 0, y: 0, z: 0 };
+  const destination = cloneVector(point);
   const warpResult = scene.startSessionlessWarpIngress(
     context.entityID,
-    cloneVector(point),
+    { x: destination.x + offset.x, y: destination.y + offset.y, z: destination.z + offset.z },
     {
       ...options,
       // Let the shared visibility sync acquire the ship on the next Gameplay tick
@@ -760,4 +774,5 @@ module.exports = {
   warpToEntity,
   warpBatchToPoints,
   despawn,
+  __testing: { startManagedNpcWarp },
 };

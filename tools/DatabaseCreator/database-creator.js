@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
 const crypto = require("crypto");
+const { buildCompressedTypeMaps, compressionSource } = require("../../server/src/services/reprocessing/compressionAuthority");
 const {
   policyViolationCount,
   sanitizeAuthorityTable,
@@ -1788,6 +1789,10 @@ function dogmaAttributeRecord(row) {
     name: row.name || "",
     dataType: toInt(row.dataType, 0),
     displayWhenZero: row.displayWhenZero === true,
+    maxAttributeID: row.maxAttributeID == null
+      ? null : toInt(row.maxAttributeID, 0),
+    minAttributeID: row.minAttributeID == null ? null : toInt(row.minAttributeID, 0),
+    chargeRechargeTimeID: row.chargeRechargeTimeID == null ? null : toInt(row.chargeRechargeTimeID, 0),
   };
 }
 
@@ -1929,36 +1934,6 @@ function reprocessingTypeRecord(row, typeByID, dogmaByTypeID) {
     randomizedMaterials: [],
     averageRandomizedOutputs: [],
   };
-}
-
-function buildCompressedTypeMaps(types) {
-  const typesByName = new Map();
-  for (const type of [...types].sort((left, right) => left.typeID - right.typeID)) {
-    if (!typesByName.has(type.name)) {
-      typesByName.set(type.name, type);
-    }
-  }
-
-  const compressedTypeBySourceTypeID = {};
-  const sourceTypesByCompressedTypeID = {};
-
-  for (const sourceType of [...types].sort((left, right) => left.typeID - right.typeID)) {
-    if (!sourceType.name || sourceType.name.startsWith("Compressed ") || !sourceType.marketGroupID) {
-      continue;
-    }
-    const compressedType = typesByName.get(`Compressed ${sourceType.name}`);
-    if (!compressedType || !compressedType.marketGroupID) {
-      continue;
-    }
-    compressedTypeBySourceTypeID[String(sourceType.typeID)] = compressedType.typeID;
-    const compressedKey = String(compressedType.typeID);
-    if (!sourceTypesByCompressedTypeID[compressedKey]) {
-      sourceTypesByCompressedTypeID[compressedKey] = [];
-    }
-    sourceTypesByCompressedTypeID[compressedKey].push(sourceType.typeID);
-  }
-
-  return { compressedTypeBySourceTypeID, sourceTypesByCompressedTypeID };
 }
 
 function structureReprocessingProfile(type, dogmaByTypeID) {
@@ -2436,15 +2411,22 @@ function buildCorporations(authority = null) {
 
 function buildCharacterCreationSchools() {
   const schools = {};
+  // Starter-space schools 31-38. A new pilot is stored with one of these, never
+  // with the picker's 11-22 ID: the client treats 31-38 as starter space
+  // (safespace/client/util.py). Each corporation is the client's own
+  // (res:/staticdata/schools.fsdbinary), which retail characters carry. The
+  // station is that corporation's school station in the system the client's
+  // school map gives it (res:/staticdata/schoolmap.fsdbinary); retail reports it
+  // as the corporation HQ. This is the school HQ and home fallback.
   const definitions = [
-    [31, 4, 1000166, 60012505, 30003489],
-    [32, 4, 1000167, 60012505, 30003489],
-    [33, 2, 1000044, 60003760, 30000142],
-    [34, 2, 1000045, 60003760, 30000142],
-    [35, 1, 1000006, 60008494, 30003410],
-    [36, 1, 1000007, 60008494, 30003410],
-    [37, 8, 1000094, 60015068, 30002547],
-    [38, 8, 1000095, 60015068, 30002547],
+    [31, 4, 1000165, 60014599, 30005042], // Hedion University, Sehmy
+    [32, 4, 1000077, 60007702, 30001672], // Royal Amarr Institute, Emrayur
+    [33, 2, 1000171, 60014779, 30002505], // Republic University, Hulm
+    [34, 2, 1000172, 60014809, 30003410], // Pator Tech School, Ryddinjorn
+    [35, 1, 1000045, 60004450, 30001392], // Science and Trade Institute, Amsen
+    [36, 1, 1000044, 60004420, 30001407], // School of Applied Knowledge, Todaki
+    [37, 8, 1000115, 60011566, 30002715], // University of Caille, Bourynes
+    [38, 8, 1000169, 60014719, 30005305], // Center for Advanced Studies, Cistuvaert
   ];
   for (const [schoolID, raceID, corporationID, stationID, solarSystemID] of definitions) {
     schools[String(schoolID)] = {
@@ -3006,7 +2988,7 @@ function buildTables(authority, options) {
   const {
     compressedTypeBySourceTypeID,
     sourceTypesByCompressedTypeID,
-  } = buildCompressedTypeMaps(authority.types);
+  } = buildCompressedTypeMaps(authority.types, options.build);
 
   return {
     asteroidBelts: { source, count: belts.length, belts },
@@ -3093,7 +3075,7 @@ function buildTables(authority, options) {
       // SDE, so a reader of this cache otherwise has no way to tell which
       // randomized-material authority it was built against or whether that
       // build exposed explicit probabilities.
-      source: buildReprocessingStaticSource(source),
+      source: { ...buildReprocessingStaticSource(source), compression: compressionSource },
       reprocessingTypes,
       structureReprocessingProfiles,
       reprocessingRigProfiles,
@@ -3360,6 +3342,7 @@ module.exports = {
   buildSovereigntyStatic,
   stationLocatorProfileByTypeID,
   buildCorporations,
+  buildCharacterCreationSchools,
   buildLocalAccountsAndCharacters,
   readRequiredStaticTableOverride,
   sanitizeAndValidateProductionMissionPolicy,

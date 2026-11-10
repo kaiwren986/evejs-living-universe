@@ -1,5 +1,7 @@
 "use strict";
 
+const { frameGamePayload } = require("../../gameFrame");
+
 /**
  * EVE Online Marshal Protocol - Encoder & Decoder
  *
@@ -2000,9 +2002,7 @@ function decodeValue(state) {
  * [4-byte LE length] [marshaled data]
  */
 function wrapPacket(marshaledData) {
-  const header = Buffer.alloc(4);
-  header.writeUInt32LE(marshaledData.length, 0);
-  return Buffer.concat([header, marshaledData]);
+  return frameGamePayload(marshaledData);
 }
 
 /**

@@ -383,5 +383,6 @@ function createMercenaryDenGatewayService({ publishGatewayNotice }) {
 }
 
 module.exports = {
+  buildEvolutionPayload,
   createMercenaryDenGatewayService,
 };

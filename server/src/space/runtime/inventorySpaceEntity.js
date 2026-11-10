@@ -23,6 +23,7 @@ module.exports = {
 const runtimeEntryDirname = require("path").resolve(__dirname, "..");
 const path = require("path");
 const starbaseDefenseRuntime = require("../../services/starbase/starbaseDefenseRuntime");
+const { isMaterializedMissionCargoContainer } = require("../../services/inventory/materializedMissionCargoContainer");
 const log = require(path.join(runtimeEntryDirname, "../utils/logger"));
 const {
   CAPSULE_TYPE_ID,
@@ -55,6 +56,7 @@ const deployableCynoRuntime = require(path.join(runtimeEntryDirname, "../service
 const mobileAnalysisBeaconRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileAnalysisBeaconRuntime"));
 const mobileCynoInhibitorRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileCynoInhibitorRuntime"));
 const mobileDepotRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileDepotRuntime"));
+const mercenaryDenRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mercenaryDenRuntime"));
 const mobileMicroJumpUnitRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileMicroJumpUnitRuntime"));
 const mobileObservatoryRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobileObservatoryRuntime"));
 const mobilePhaseAnchorRuntime = require(path.join(runtimeEntryDirname, "../services/ship/mobilePhaseAnchorRuntime"));
@@ -305,11 +307,15 @@ function refreshInventoryBackedEntityPresentationFields(entity, itemRecordOverri
   entity.categoryID = toInt(itemRecord.categoryID, entity.categoryID);
   entity.graphicID = toInt(metadata && metadata.graphicID, 0) || null;
   entity.radius = resolvedRadius;
-  entity.signatureRadius = resolveRuntimeInventoryEntitySignatureRadius(
-    itemRecord,
-    metadata,
-    resolvedRadius,
-  );
+  // Fighter signature is operational Dogma state, including active mobility
+  // effects. Its presentation hydration below preserves that state.
+  if (entity.kind !== "fighter") {
+    entity.signatureRadius = resolveRuntimeInventoryEntitySignatureRadius(
+      itemRecord,
+      metadata,
+      resolvedRadius,
+    );
+  }
   entity.spaceState = itemRecord.spaceState || entity.spaceState || null;
   if (entity.kind === "forceField") {
     hydrateForceFieldEntityFromInventoryItem(entity, itemRecord);
@@ -343,6 +349,7 @@ function refreshInventoryBackedEntityPresentationFields(entity, itemRecordOverri
     hydrateAbyssalTraceEntityFromInventoryItem(entity, itemRecord);
     deployableCynoRuntime.hydrateMobileCynoDeployableEntityFromInventoryItem(entity, itemRecord);
     mobileDepotRuntime.hydrateMobileDepotEntityFromInventoryItem(entity, itemRecord);
+    mercenaryDenRuntime.hydrateMercenaryDenEntityFromInventoryItem(entity, itemRecord);
     mobileAnalysisBeaconRuntime.hydrateMobileAnalysisBeaconEntityFromInventoryItem(entity, itemRecord);
     mobileCynoInhibitorRuntime.hydrateMobileCynoInhibitorEntityFromInventoryItem(entity, itemRecord);
     mobileMicroJumpUnitRuntime.hydrateMobileMicroJumpUnitEntityFromInventoryItem(entity, itemRecord);
@@ -373,6 +380,9 @@ function getRuntimeInventoryEntityKind(item) {
   if (!item) {
     return null;
   }
+  // Authored mission delivery structures retain their native hull/type while exposing real cargo.
+  // These markers are persisted by the dungeon container materializer, never supplied by the client.
+  if (isMaterializedMissionCargoContainer(item) || require("../../services/inventory/incursionFactoryCustody").isFactory(item)) return "container";
   if (Number(item.typeID) === 81933) {
     return parseInventoryCustomInfo(item)?.evejsSkyhookSilo ? "skyhookSilo" : null;
   }
@@ -950,6 +960,7 @@ function buildRuntimeInventoryEntity(item, systemID, nowMs) {
     hydrateAbyssalPocketMarkerEntityFromInventoryItem(entity, item);
     deployableCynoRuntime.hydrateMobileCynoDeployableEntityFromInventoryItem(entity, item);
     mobileDepotRuntime.hydrateMobileDepotEntityFromInventoryItem(entity, item);
+    mercenaryDenRuntime.hydrateMercenaryDenEntityFromInventoryItem(entity, item);
     mobileAnalysisBeaconRuntime.hydrateMobileAnalysisBeaconEntityFromInventoryItem(entity, item);
     mobileCynoInhibitorRuntime.hydrateMobileCynoInhibitorEntityFromInventoryItem(entity, item);
     mobileMicroJumpUnitRuntime.hydrateMobileMicroJumpUnitEntityFromInventoryItem(entity, item);

@@ -1,11 +1,17 @@
 "use strict";
 
-const { buildDict, buildFiletimeLong } = require("../_shared/serviceHelpers");
+const {
+  buildDict,
+  buildFiletimeLong,
+  buildList,
+} = require("../_shared/serviceHelpers");
 const epoch = 116444736000000000n;
 const filetime = (ms) =>
   buildFiletimeLong(epoch + BigInt(Math.trunc(ms)) * 10000n);
 function marshal(value) {
-  if (Array.isArray(value)) return value.map(marshal);
+  // A real list: a tuple is taken for one target (objective_task/target.py L217),
+  // and the objective tracker then raises on every update.
+  if (Array.isArray(value)) return buildList(value.map(marshal));
   if (value && typeof value === "object" && !value.type)
     return buildDict(Object.entries(value).map(([k, v]) => [k, marshal(v)]));
   return value;

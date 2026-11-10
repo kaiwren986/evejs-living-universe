@@ -358,10 +358,12 @@ function finalizeGenericModuleDeactivationWithoutSession(
         notifyTargeting: true,
       });
     }
+    // Stopped mid-cycle, the icon stays until the cycle ends.
     const removedHudState = targetEntity
-      ? hudIconRuntime.removeHudIconState(
+      ? hudIconRuntime.releaseHudIconStateAtCycleEnd(
         targetEntity,
         buildAssistanceHudState(targetEntity, entity, effectState, stopTimeMs),
+        scene.getCurrentSimTimeMs(),
       )
       : null;
     if (targetSession && isReadyForDestiny(targetSession) && removedHudState) {
@@ -396,10 +398,12 @@ function finalizeGenericModuleDeactivationWithoutSession(
         notifyTargeting: true,
       });
     }
+    // Stopped mid-cycle, the icon stays until the cycle ends.
     const removedHudState = targetEntity
-      ? hudIconRuntime.removeHudIconState(
+      ? hudIconRuntime.releaseHudIconStateAtCycleEnd(
         targetEntity,
         buildHostileHudState(targetEntity, entity, effectState, stopTimeMs),
+        scene.getCurrentSimTimeMs(),
       )
       : null;
     if (targetSession && isReadyForDestiny(targetSession) && removedHudState) {

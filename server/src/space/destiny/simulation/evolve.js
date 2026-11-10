@@ -928,6 +928,12 @@ function headingFor(ball, acceleration, nextVelocity) {
   if (length(acceleration) > 0) {
     return turnHeading(ball, unit(acceleration));
   }
+  // An idle Stop preserves its already-owned heading. Re-normalizing a
+  // seeded unit vector can alternate its last bits on successive ticks.
+  if (mode === "STOP" && length(nextVelocity) === 0 && isFiniteVector(ball.direction)) {
+    const headingLength = length(ball.direction);
+    if (headingLength > 0 && Number.isFinite(headingLength)) return copy(ball.direction);
+  }
   return unit(copy(ball.direction), vec(1, 0, 0));
 }
 
@@ -1221,6 +1227,7 @@ module.exports = {
   entityWarpIn,
   evolve,
   gotoDirection,
+  inertialMass,
   isAlignedForWarp,
   isAligningForWarp,
   isFollowerOf,

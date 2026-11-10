@@ -6,6 +6,7 @@ const { fingerprint } = require("./loginCampaignCatalog");
 const characters = require("../character/characterState");
 const items = require("../inventory/itemStore");
 const custody = require("../inventory/itemCustody");
+const { getWallclockNowMs } = require("../../space/runtime/runtimeClock");
 const { createDurableSchedulerBinding } = require("../_shared/durableSchedulerBinding");
 const binding = createDurableSchedulerBinding(), lanes = new Map();
 const JOB_TYPE = "campaign.redeem";
@@ -15,6 +16,9 @@ function exclusive(accountID, work) {
   lanes.set(accountID, next);
   return next.finally(() => { if (lanes.get(accountID) === next) lanes.delete(accountID); });
 }
+// Both token producers freeze a permanent grant identity; delivery stays with
+// the existing redeem owner and its durable item-custody saga.
+function grantID(token) { return (token?.projectDiscoveryGrant || token?.campaignGrant)?.grantID; }
 function check(result) { if (!result?.success) throw new Error(result?.errorMsg || "CAMPAIGN_DELIVERY_FAILED"); return result; }
 function enqueue(accountID, id) {
   return binding.get()?.schedule({ jobID: id, type: JOB_TYPE, dueAtMs: Date.now(), payload: { accountID, id } });
@@ -30,8 +34,43 @@ function notify(operation, session) {
     characters.emitItemsChangedBatchForSession(target, changes);
     if (operation.result?.skillpoints) require("../skills/training/skillQueueNotifications").notifyFreeSkillPointsChanged(operation.characterID,
       characters.getCharacterRecord(operation.characterID).freeSkillPoints);
+    if (operation.result?.skinID) target.sendNotification?.("OnSkinLicenseActivated", "charid", [operation.result.skinID, operation.characterID]);
+    if (operation.result?.booster) {
+      target.sendNotification?.("OnServerBoostersChanged", "charid", []);
+      require("../dogma/brain/characterBrainRuntime").syncCharacterDogmaState(target, operation.characterID, { refreshLiveShip: true });
+    }
   }
   runtime.notify(session || { userid: operation.accountID });
+}
+
+function injectReward(operation, result) {
+  const { id, characterID, token } = operation;
+  switch (token.campaignGrant.injection) {
+    case "skin": {
+      const owner = require("../ship/shipCosmeticsState");
+      const license = owner.getLicenseCatalogEntry(token.typeID);
+      if (!license || license.duration !== -1 || license.isSingleUse || token.quantity !== 1) throw new Error("CAMPAIGN_SKIN_UNSUPPORTED");
+      check(owner.giveSkin(characterID, license.skinID, { licenseTypeID: token.typeID, receiptID: id, source: "login-campaign" }));
+      result.skinID = license.skinID;
+      break;
+    }
+    case "component": {
+      const mapping = require("../ship/shipSkinComponentAuthority").getShipSkinComponentItemByTypeID(token.typeID);
+      if (mapping?.licenseType !== "finite") throw new Error("CAMPAIGN_COMPONENT_UNSUPPORTED");
+      check(require("../ship/shipSkinComponentRuntime").grantShipSkinComponentLicenseOnce(characterID,
+        mapping.componentID, mapping.licenseType, token.quantity * mapping.licenseUsesGranted, id));
+      break;
+    }
+    case "booster": {
+      const owner = require("../skills/boosters/boosterRuntime");
+      check(owner.applyRedeemedBoosterOnce(characterID, id, operation.boosterPlan));
+      owner.refreshRedeemedBooster(characterID);
+      result.booster = true;
+      break;
+    }
+    default:
+      throw new Error("CAMPAIGN_INJECTION_UNSUPPORTED");
+  }
 }
 async function settleUnlocked(accountID, id, session) {
   let account = store.readRuntimeAccount(accountID), operation = account.campaignRedemptions?.[id];
@@ -44,7 +83,9 @@ async function settleUnlocked(accountID, id, session) {
   const sp = require("../user/userService").getSkillPointRedeemAmount(token.typeID) * token.quantity;
   const result = { items: [], changes: [], skillpoints: 0, isk: 0 };
   const expert = require("../skills/expertSystems/expertSystemCatalog").getExpertSystemByTypeID(token.typeID);
-  if (expert) {
+  if (token.campaignGrant?.injection) {
+    injectReward(operation, result);
+  } else if (expert) {
     check(require("../skills/expertSystems/expertSystemRuntime").installExpertSystemForCharacter(operation.characterID, token.typeID,
       { idempotencyKey: id, durationDays: Math.max(1, Number(expert.durationDays) || 7) * token.quantity,
         sourceItemID: token.tokenID, grantReason: "redeem", session }));
@@ -98,7 +139,7 @@ async function settleUnlocked(accountID, id, session) {
   account = store.readRuntimeAccount(accountID);
   operation = { ...account.campaignRedemptions[id], state: "completed", result };
   account.campaignRedemptions[id] = operation;
-  account.redeemTokens = account.redeemTokens.filter(candidate => candidate.campaignGrant?.grantID !== token.campaignGrant.grantID);
+  account.redeemTokens = account.redeemTokens.filter(candidate => grantID(candidate) !== grantID(token));
   runtime.save(accountID, account);
   notify(operation, session);
   return { success: true, duplicate: false, data: result };
@@ -106,23 +147,36 @@ async function settleUnlocked(accountID, id, session) {
 function settle(accountID, id) { return exclusive(accountID, () => settleUnlocked(accountID, id)); }
 function redeem(accountID, token, characterID, destinationID, session) {
   return exclusive(accountID, async () => {
-    const id = `campaign:${fingerprint([accountID, token.campaignGrant.grantID])}`;
+    const id = `campaign:${fingerprint([accountID, grantID(token)])}`;
     const account = store.readRuntimeAccount(accountID), existing = account.campaignRedemptions?.[id];
     if (existing) {
       if (existing.characterID !== characterID) return { success: false, errorMsg: "CAMPAIGN_REDEMPTION_BOUND_TO_CHARACTER" };
       return settleUnlocked(accountID, id, session);
     }
-    const current = account.redeemTokens.find(candidate => candidate.tokenID === token.tokenID && candidate.campaignGrant?.grantID === token.campaignGrant.grantID);
+    const current = account.redeemTokens.find(candidate => candidate.tokenID === token.tokenID && grantID(candidate) === grantID(token));
     const character = characters.getCharacterRecord(characterID);
     if (!current || !character || Number(character.accountId) !== accountID) return { success: false, errorMsg: "CAMPAIGN_REDEMPTION_UNAUTHORIZED" };
+    const nowMs = getWallclockNowMs();
+    if (runtime.isExpired(current, nowMs)) return { success: false, errorMsg: "CAMPAIGN_REWARD_EXPIRED" };
+    const injection = current.campaignGrant?.injection;
     const sp = require("../user/userService").getSkillPointRedeemAmount(current.typeID) * current.quantity;
-    if (sp > 10000000 || current.soulbound || current.available === false) return { success: false, errorMsg: "CAMPAIGN_REWARD_UNSUPPORTED" };
-    const virtual = sp > 0 || [52996, 73277].includes(current.typeID) || require("../skills/expertSystems/expertSystemCatalog").isExpertSystemType(current.typeID);
+    if (sp > 10000000 || (current.soulbound && !injection) || current.available === false) return { success: false, errorMsg: "CAMPAIGN_REWARD_UNSUPPORTED" };
+    const virtual = injection || sp > 0 || [52996, 73277].includes(current.typeID) || require("../skills/expertSystems/expertSystemCatalog").isExpertSystemType(current.typeID);
     if (!virtual && !destinationID) return { success: false, errorMsg: "RedeemNoDestination" };
     account.campaignRedemptions ||= {};
     if (Object.keys(account.campaignRedemptions).length >= 8192) return { success: false, errorMsg: "CAMPAIGN_REDEMPTION_LIMIT" };
+    let boosterPlan;
+    if (injection === "booster") {
+      if (current.quantity !== 1 || !Number.isSafeInteger(current.campaignGrant.injectionEndsAtMs)) {
+        return { success: false, errorMsg: "CAMPAIGN_BOOSTER_UNSUPPORTED" };
+      }
+      const prepared = require("../skills/boosters/boosterRuntime").prepareRedeemedBooster(characterID,
+        current.tokenID, current.typeID, nowMs, current.campaignGrant.injectionEndsAtMs);
+      if (!prepared.success) return prepared;
+      boosterPlan = prepared.data;
+    }
     account.campaignRedemptions[id] = { id, state: "pending", accountID, characterID, destinationID,
-      token: current, attempt: 0 };
+      token: current, attempt: 0, ...(boosterPlan ? { boosterPlan } : {}) };
     runtime.save(accountID, account);
     if (binding.get()) await enqueue(accountID, id);
     return settleUnlocked(accountID, id, session);

@@ -26,9 +26,11 @@ const RECEIPT_LIST_FIELDS = new Set([
   "walletAuthorityReceipts",
   "walletOperationReceipts",
   "nodeGraphWalletReceipts",
+  "incursionWalletReceipts",
   "freelanceWalletReceipts",
   "contractWalletReceipts",
   "campaignWalletReceipts",
+  "discoveryWalletReceipts",
   "nodeGraphRewardReceipts",
   "adjustmentReceipts",
 ]);
@@ -205,7 +207,13 @@ function executeIdempotently(commandType, payload, metadata, execute) {
   const existing = (canPersistReceipt ? getReceipts(target) : []).find(
     (receipt) => receipt && receipt.commandID === commandID,
   );
-  if (existing) {
+  const retryCapacityFailure = existing &&
+    existing.fingerprint === commandFingerprint &&
+    existing.commandType === "corporation.adjust-isk" &&
+    commandType === "corporation.adjust-isk" &&
+    existing.result?.success === false &&
+    existing.result.errorMsg === "WALLET_RECEIPT_LIMIT";
+  if (existing && !retryCapacityFailure) {
     if (existing.fingerprint !== commandFingerprint) {
       // MONEY PATH -- read the reasoning before changing this back to a throw.
       //

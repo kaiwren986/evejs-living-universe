@@ -42,11 +42,11 @@ function normalizeStorageState(rawState = {}) {
     energyIncreasePerRechargeTick: normalizeNumber(
       source.energyIncreasePerRechargeTick ??
         source._energyIncreasePerRechargeTick,
-      1,
+      4.4,
     ),
     rechargeTickPeriod: normalizeNumber(
       source.rechargeTickPeriod ?? source._rechargeTickPeriod,
-      792,
+      3600,
     ),
     minEnergyLevel: normalizeNumber(
       source.minEnergyLevel ?? source._minEnergyLevel,
@@ -85,20 +85,30 @@ function readCharacterEnergyTable() {
   };
 }
 
-function getCharacterEnergyState(characterID) {
+function readCharacterEnergyState(characterID) {
   const normalizedCharacterID = normalizeCharacterID(characterID);
   if (!normalizedCharacterID) {
-    return null;
+    return { success: false, errorMsg: "CHARACTER_NOT_FOUND" };
   }
 
   const result = database.read(
     CHARACTER_ENERGY_STATE_TABLE,
     characterPath(normalizedCharacterID),
   );
-  if (!result.success || !result.data || typeof result.data !== "object") {
-    return null;
+  if (!result.success) {
+    return result.errorMsg === "ENTRY_NOT_FOUND"
+      ? { success: true, data: null }
+      : { success: false, errorMsg: result.errorMsg || "READ_ERROR" };
   }
-  return cloneValue(result.data);
+  if (!result.data || typeof result.data !== "object" || Array.isArray(result.data)) {
+    return { success: false, errorMsg: "INVALID_CHARACTER_ENERGY_STATE" };
+  }
+  return { success: true, data: cloneValue(result.data) };
+}
+
+function getCharacterEnergyState(characterID) {
+  const result = readCharacterEnergyState(characterID);
+  return result.success ? result.data : null;
 }
 
 function writeCharacterEnergyState(characterID, rawState) {
@@ -143,9 +153,26 @@ function writeCharacterEnergyState(characterID, rawState) {
   };
 }
 
+function restoreCharacterEnergyState(characterID, previous) {
+  const id = normalizeCharacterID(characterID);
+  if (!id) return { success: false, errorMsg: "CHARACTER_NOT_FOUND" };
+  const restored = previous === null
+    ? database.remove(CHARACTER_ENERGY_STATE_TABLE, characterPath(id))
+    : database.write(CHARACTER_ENERGY_STATE_TABLE, characterPath(id), cloneValue(previous), { force: true });
+  if (!restored.success && restored.errorMsg !== "ENTRY_NOT_FOUND") return restored;
+  return database.flushTableSync(CHARACTER_ENERGY_STATE_TABLE);
+}
+
+function flushCharacterEnergyState() {
+  return database.flushTableSync(CHARACTER_ENERGY_STATE_TABLE);
+}
+
 module.exports = {
   CHARACTER_ENERGY_STATE_TABLE,
   readCharacterEnergyTable,
+  readCharacterEnergyState,
   getCharacterEnergyState,
   writeCharacterEnergyState,
+  restoreCharacterEnergyState,
+  flushCharacterEnergyState,
 };

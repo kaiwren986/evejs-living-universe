@@ -1,0 +1,658 @@
+{
+  "targetClientBuild": 3396210,
+  "generatedAt": "2026-10-27T19:34:48.130Z",
+  "sources": {
+    "agentsInSpace": "_local/sde/eve-online-static-data-3396210-jsonl/agentsInSpace.jsonl",
+    "dungeonAuthority": "../../../AppData/Local/Temp/evejs-isolated-tests-7wkTjl/test-0001/data/dungeonAuthority/data.json"
+  },
+  "clientEvidence": {
+    "files": [
+      {
+        "file": "tools/ClientCodeGrabber/Latest/eveagent/data.py",
+        "exists": true,
+        "evidence": [
+          {
+            "check": "loads agentsInSpace.fsdbinary",
+            "matched": true
+          },
+          {
+            "check": "exports get_agents_in_space",
+            "matched": true
+          }
+        ]
+      },
+      {
+        "file": "tools/ClientCodeGrabber/Latest/behaviors/actions/dungeon.py",
+        "exists": true,
+        "evidence": [
+          {
+            "check": "server keeper owns spawn existence",
+            "matched": true
+          },
+          {
+            "check": "server keeper returns spawn entryPos",
+            "matched": true
+          }
+        ]
+      }
+    ]
+  },
+  "sdeAgentsInSpace": {
+    "rowCount": 360,
+    "uniqueAgentIDs": 360,
+    "uniqueDungeonIDs": 169,
+    "uniqueSpawnPointIDs": 169
+  },
+  "dungeonAuthorityCoverage": {
+    "uniqueDungeonIDs": 169,
+    "templatesResolved": 168,
+    "templatesMissing": [
+      5294
+    ],
+    "clientDungeonsResolved": 168,
+    "clientDungeonsMissing": [
+      5294
+    ],
+    "templateFamilies": {
+      "combat:signature": 168,
+      "missing:missing": 1
+    }
+  },
+  "spawnPointResolution": {
+    "status": "metadata-only",
+    "note": "A resolved warp target requires spawn-point records or coordinates, not only dungeon metadata. Dungeon ID collisions are not spawn-point evidence.",
+    "spawnEvidence": {
+      "idsWithAnyExactHit": 140,
+      "exactHitClassification": {
+        "spawn-named": 0,
+        "dungeon-id-collision": 572,
+        "other": 4
+      },
+      "idsWithSpawnNamedExactHits": [],
+      "idsWithOnlyDungeonIDCollisions": [
+        4251,
+        4254,
+        4257,
+        4275,
+        4276,
+        4281,
+        4283,
+        4285,
+        4287,
+        4290,
+        4292,
+        4295,
+        4297,
+        4298,
+        4299,
+        4301,
+        4306,
+        4325,
+        4327,
+        4329,
+        4330,
+        4357,
+        4358,
+        4362,
+        4363,
+        4364,
+        4383,
+        4384,
+        4388,
+        4389,
+        4390,
+        4391,
+        4392,
+        4393,
+        4394,
+        4395,
+        4396,
+        4397,
+        4398,
+        4399,
+        4400,
+        4401,
+        4403,
+        4409,
+        4410,
+        4411,
+        4413,
+        4414,
+        4415,
+        4416,
+        4418,
+        4419,
+        4420,
+        4424,
+        4428,
+        4429,
+        4430,
+        4431,
+        4433,
+        4434,
+        4435,
+        4436,
+        4446,
+        4452,
+        4454,
+        4455,
+        4457,
+        4461,
+        4481,
+        4490,
+        4494,
+        4503,
+        4505,
+        4507,
+        4509,
+        4510,
+        4511,
+        4512,
+        4517,
+        4518,
+        4519,
+        4520,
+        4521,
+        4522,
+        4523,
+        4524,
+        4525,
+        4526,
+        4527,
+        4529,
+        4531,
+        4532,
+        4533,
+        4534,
+        4535,
+        4536,
+        4537,
+        4538,
+        4540,
+        4541,
+        4542,
+        4543,
+        4544,
+        4545,
+        4546,
+        4547,
+        4548,
+        4549,
+        4550,
+        4551,
+        4553,
+        4554,
+        4803,
+        4951,
+        4964,
+        4965,
+        4966,
+        4967,
+        4968,
+        4969,
+        4979,
+        4993,
+        4994,
+        4996,
+        5034,
+        5035,
+        5036,
+        5037,
+        5038,
+        5039,
+        5042,
+        5043,
+        5044,
+        5048,
+        5085,
+        5086
+      ],
+      "idsWithNoExactHits": [
+        4237,
+        4239,
+        4242,
+        4243,
+        4249,
+        4263,
+        4270,
+        4271,
+        4277,
+        4280,
+        4286,
+        4293,
+        4326,
+        4445,
+        4453,
+        4528,
+        4530,
+        5072,
+        5073,
+        5074,
+        5075,
+        5076,
+        5077,
+        5078,
+        5081,
+        5082,
+        5083,
+        5084,
+        5899
+      ],
+      "samples": [
+        {
+          "id": 4251,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4251",
+            "clientData.tables.dungeonsByID.4251.dungeonID",
+            "templatesByID.client-dungeon:4251.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4251"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4254,
+          "byClass": {
+            "dungeon-id-collision": 5
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4254",
+            "clientData.tables.dungeonsByID.4254.dungeonID",
+            "clientData.tables.oreTypesByDungeonID.4254",
+            "templatesByID.client-dungeon:4254.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4254"
+          ],
+          "hitCount": 5
+        },
+        {
+          "id": 4257,
+          "byClass": {
+            "dungeon-id-collision": 5
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4257",
+            "clientData.tables.dungeonsByID.4257.dungeonID",
+            "clientData.tables.oreTypesByDungeonID.4257",
+            "templatesByID.client-dungeon:4257.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4257"
+          ],
+          "hitCount": 5
+        },
+        {
+          "id": 4275,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4275",
+            "clientData.tables.dungeonsByID.4275.dungeonID",
+            "templatesByID.client-dungeon:4275.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4275"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4276,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4276",
+            "clientData.tables.dungeonsByID.4276.dungeonID",
+            "templatesByID.client-dungeon:4276.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4276"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4281,
+          "byClass": {
+            "dungeon-id-collision": 5
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4281",
+            "clientData.tables.dungeonsByID.4281.dungeonID",
+            "clientData.tables.oreTypesByDungeonID.4281",
+            "templatesByID.client-dungeon:4281.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4281"
+          ],
+          "hitCount": 5
+        },
+        {
+          "id": 4283,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4283",
+            "clientData.tables.dungeonsByID.4283.dungeonID",
+            "templatesByID.client-dungeon:4283.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4283"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4285,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4285",
+            "clientData.tables.dungeonsByID.4285.dungeonID",
+            "templatesByID.client-dungeon:4285.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4285"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4287,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4287",
+            "clientData.tables.dungeonsByID.4287.dungeonID",
+            "templatesByID.client-dungeon:4287.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4287"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4290,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4290",
+            "clientData.tables.dungeonsByID.4290.dungeonID",
+            "templatesByID.client-dungeon:4290.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4290"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4292,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4292",
+            "clientData.tables.dungeonsByID.4292.dungeonID",
+            "templatesByID.client-dungeon:4292.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4292"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4295,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4295",
+            "clientData.tables.dungeonsByID.4295.dungeonID",
+            "templatesByID.client-dungeon:4295.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4295"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4297,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4297",
+            "clientData.tables.dungeonsByID.4297.dungeonID",
+            "templatesByID.client-dungeon:4297.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4297"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4298,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4298",
+            "clientData.tables.dungeonsByID.4298.dungeonID",
+            "templatesByID.client-dungeon:4298.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4298"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4299,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4299",
+            "clientData.tables.dungeonsByID.4299.dungeonID",
+            "templatesByID.client-dungeon:4299.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4299"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4301,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4301",
+            "clientData.tables.dungeonsByID.4301.dungeonID",
+            "templatesByID.client-dungeon:4301.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4301"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4306,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4306",
+            "clientData.tables.dungeonsByID.4306.dungeonID",
+            "templatesByID.client-dungeon:4306.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4306"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4325,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4325",
+            "clientData.tables.dungeonsByID.4325.dungeonID",
+            "templatesByID.client-dungeon:4325.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4325"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4327,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4327",
+            "clientData.tables.dungeonsByID.4327.dungeonID",
+            "templatesByID.client-dungeon:4327.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4327"
+          ],
+          "hitCount": 4
+        },
+        {
+          "id": 4329,
+          "byClass": {
+            "dungeon-id-collision": 4
+          },
+          "samplePaths": [
+            "clientData.tables.dungeonsByID.4329",
+            "clientData.tables.dungeonsByID.4329.dungeonID",
+            "templatesByID.client-dungeon:4329.sourceDungeonID",
+            "indexes.templateIDsBySourceDungeonID.4329"
+          ],
+          "hitCount": 4
+        }
+      ]
+    },
+    "coordinateLikeTemplatePathCount": 0,
+    "coordinateLikeTemplatePathSamples": []
+  },
+  "samples": {
+    "agentsInSpace": [
+      {
+        "agentID": 3018343,
+        "dungeonID": 416,
+        "spawnPointID": 4239,
+        "solarSystemID": 30000165,
+        "typeID": 20520,
+        "templateName": "Ishisomo Agent Site",
+        "siteFamily": "combat",
+        "siteKind": "signature",
+        "spawnNamedExactHitCount": 0,
+        "coordinateLikeTemplatePathCount": 0
+      },
+      {
+        "agentID": 3018344,
+        "dungeonID": 422,
+        "spawnPointID": 4271,
+        "solarSystemID": 30000165,
+        "typeID": 20529,
+        "templateName": "Rusty Ridge Mine",
+        "siteFamily": "combat",
+        "siteKind": "signature",
+        "spawnNamedExactHitCount": 0,
+        "coordinateLikeTemplatePathCount": 0
+      },
+      {
+        "agentID": 3018345,
+        "dungeonID": 416,
+        "spawnPointID": 4239,
+        "solarSystemID": 30000165,
+        "typeID": 20534,
+        "templateName": "Ishisomo Agent Site",
+        "siteFamily": "combat",
+        "siteKind": "signature",
+        "spawnNamedExactHitCount": 0,
+        "coordinateLikeTemplatePathCount": 0
+      },
+      {
+        "agentID": 3018346,
+        "dungeonID": 422,
+        "spawnPointID": 4271,
+        "solarSystemID": 30000165,
+        "typeID": 20535,
+        "templateName": "Rusty Ridge Mine",
+        "siteFamily": "combat",
+        "siteKind": "signature",
+        "spawnNamedExactHitCount": 0,
+        "coordinateLikeTemplatePathCount": 0
+      },
+      {
+        "agentID": 3018347,
+        "dungeonID": 416,
+        "spawnPointID": 4239,
+        "solarSystemID": 30000165,
+        "typeID": 20536,
+        "templateName": "Ishisomo Agent Site",
+        "siteFamily": "combat",
+        "siteKind": "signature",
+        "spawnNamedExactHitCount": 0,
+        "coordinateLikeTemplatePathCount": 0
+      },
+      {
+        "agentID": 3018350,
+        "dungeonID": 423,
+        "spawnPointID": 4280,
+        "solarSystemID": 30000166,
+        "typeID": 20643,
+        "templateName": "Station Foundation Site",
+        "siteFamily": "combat",
+        "siteKind": "signature",
+        "spawnNamedExactHitCount": 0,
+        "coordinateLikeTemplatePathCount": 0
+      },
+      {
+        "agentID": 3018351,
+        "dungeonID": 423,
+        "spawnPointID": 4280,
+        "solarSystemID": 30000166,
+        "typeID": 20644,
+        "templateName": "Station Foundation Site",
+        "siteFamily": "combat",
+        "siteKind": "signature",
+        "spawnNamedExactHitCount": 0,
+        "coordinateLikeTemplatePathCount": 0
+      },
+      {
+        "agentID": 3018352,
+        "dungeonID": 423,
+        "spawnPointID": 4280,
+        "solarSystemID": 30000166,
+        "typeID": 20645,
+        "templateName": "Station Foundation Site",
+        "siteFamily": "combat",
+        "siteKind": "signature",
+        "spawnNamedExactHitCount": 0,
+        "coordinateLikeTemplatePathCount": 0
+      },
+      {
+        "agentID": 3018353,
+        "dungeonID": 424,
+        "spawnPointID": 4281,
+        "solarSystemID": 30000166,
+        "typeID": 20646,
+        "templateName": "Grand Crag Watch",
+        "siteFamily": "combat",
+        "siteKind": "signature",
+        "spawnNamedExactHitCount": 0,
+        "coordinateLikeTemplatePathCount": 0
+      },
+      {
+        "agentID": 3018357,
+        "dungeonID": 425,
+        "spawnPointID": 4263,
+        "solarSystemID": 30000167,
+        "typeID": 20650,
+        "templateName": "Frontier Stockade",
+        "siteFamily": "combat",
+        "siteKind": "signature",
+        "spawnNamedExactHitCount": 0,
+        "coordinateLikeTemplatePathCount": 0
+      },
+      {
+        "agentID": 3018358,
+        "dungeonID": 425,
+        "spawnPointID": 4263,
+        "solarSystemID": 30000167,
+        "typeID": 20651,
+        "templateName": "Frontier Stockade",
+        "siteFamily": "combat",
+        "siteKind": "signature",
+        "spawnNamedExactHitCount": 0,
+        "coordinateLikeTemplatePathCount": 0
+      },
+      {
+        "agentID": 3018359,
+        "dungeonID": 426,
+        "spawnPointID": 4276,
+        "solarSystemID": 30000167,
+        "typeID": 20652,
+        "templateName": "Settler's Waystation",
+        "siteFamily": "combat",
+        "siteKind": "signature",
+        "spawnNamedExactHitCount": 0,
+        "coordinateLikeTemplatePathCount": 0
+      }
+    ]
+  }
+}

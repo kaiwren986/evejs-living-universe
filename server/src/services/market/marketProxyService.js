@@ -101,6 +101,7 @@ const {
   removeEscrowRecord: removeEscrowRecordState,
   removeEscrowRecordDurable: removeEscrowRecordDurableState,
 } = require(path.join(__dirname, "./marketEscrowState"));
+const { isNpcCorporationID } = require(path.join(__dirname, "../corporation/corporationState"));
 const {
   RANGE_STATION,
   RANGE_REGION,
@@ -178,7 +179,9 @@ const ORDER_ROW_DESCRIPTOR_COLUMNS = [
   ["bid", 3],
   ["issueDate", 64],
   ["duration", 3],
-  ["stationID", 3],
+  // I8: an order at an Upwell structure carries the structure ID (10^12),
+  // which overflows an I4 column in the client's blue.DBRow.
+  ["stationID", 20],
   ["regionID", 3],
   ["solarSystemID", 3],
   ["constellationID", 3],
@@ -1147,14 +1150,37 @@ function getMarketCounterpartyOwnerID(stationID) {
 }
 
 function buildNativeStationMetadata(stationID) {
-  const station = require("../../space/worldData").getStationByID(Number(stationID));
+  const worldData = require("../../space/worldData");
+  const station = worldData.getStationByID(Number(stationID));
   // Seeded market coverage is independent of the game's installed NPC station
-  // catalog. Never relay a player's supplied location metadata or structures.
-  if (!station || Number(station.stationID) !== Number(stationID) || station.isStructure) return undefined;
+  // catalog. Never relay a player's supplied location metadata: the location
+  // comes from the game authority's own records.
+  if (!station || Number(station.stationID) !== Number(stationID) || station.isStructure) {
+    return buildNativeStructureMetadata(stationID, worldData);
+  }
   return {
     station_id: Number(station.stationID), solar_system_id: Number(station.solarSystemID),
     constellation_id: Number(station.constellationID), region_id: Number(station.regionID),
     station_name: String(station.stationName || ""), security: Number(station.security || 0),
+  };
+}
+
+// An Upwell structure's market location, from the structure record. The market
+// daemon knows NPC stations only and admits a structure in the order's own
+// transaction when this metadata comes with it; without it every order at a
+// structure's Market Hub failed with "does not exist in market database"
+// (client check, 2026-11-05). Access to the Market Hub is checked before any
+// order is placed.
+function buildNativeStructureMetadata(structureID, worldData) {
+  const structure = require("../structure/structureState")
+    .getStructureByID(Number(structureID), { refresh: false });
+  if (!structure || structure.destroyedAt) return undefined;
+  const system = worldData.getSolarSystemByID(Number(structure.solarSystemID));
+  if (!system) return undefined;
+  return {
+    station_id: Number(structure.structureID), solar_system_id: Number(system.solarSystemID),
+    constellation_id: Number(system.constellationID), region_id: Number(system.regionID),
+    station_name: String(structure.itemName || structure.name || ""), security: Number(system.security || 0),
   };
 }
 
@@ -2906,7 +2932,7 @@ function notifyBuyerDelivery(characterID, changes = []) {
     return;
   }
 
-  notifyInventoryChangesToCharacter(characterID, visibleChanges);
+  notifyInventoryChangesToCharacter(characterID, visibleChanges, { emitItemsChangedBatch: true });
   for (const change of visibleChanges) {
     notifyMarketItemReceived(characterID, change.item);
   }
@@ -3042,7 +3068,9 @@ function deliverSeedItemToCharacter(
           buildCreatedPreviousState(change.item),
     }));
   if (options.notify !== false) {
-    notifyInventoryChangesToCharacter(characterID, deliveredChanges);
+    // TQ's OnItemsChanged: the client's OnMultipleItemChange recounts item goals
+    // (career Industry part 3: buy the afterburner instead of building it).
+    notifyInventoryChangesToCharacter(characterID, deliveredChanges, { emitItemsChangedBatch: true });
     for (const change of deliveredChanges) {
       notifyMarketItemReceived(characterID, change.item);
     }
@@ -5183,7 +5211,7 @@ async function matchBuyOrdersForSeller({
       continue;
     }
 
-    const isSeedBuyOrder = String(buyOrder && buyOrder.source ? buyOrder.source : "")
+    let isSeedBuyOrder = String(buyOrder && buyOrder.source ? buyOrder.source : "")
       .trim()
       .toLowerCase() === "seed";
     const orderPrice = Number(buyOrder && buyOrder.price) || 0;
@@ -5217,6 +5245,11 @@ async function matchBuyOrdersForSeller({
     let buyerEscrowRecord = null;
     if (!isSeedBuyOrder) {
       playerBuyOrder = await fetchOrderById(buyOrder && buyOrder.order_id);
+      // An order owned by an NPC corporation (the AIR tutorial's ore buyer) is NPC
+      // demand like a seeded bid: no player can own one, and nobody funded it.
+      isSeedBuyOrder = isNpcCorporationID(playerBuyOrder && playerBuyOrder.owner_id);
+    }
+    if (!isSeedBuyOrder) {
       buyerEscrowRecord = getEscrowRecord(buyOrder && buyOrder.order_id);
       // Item delivery must go to the character who actually placed this buy
       // order (escrowRecord.ownerId, our own bookkeeping) - not
@@ -5291,46 +5324,52 @@ async function matchBuyOrdersForSeller({
       }
       const sellerWalletResult = sagaResult.sellerWalletResult;
 
-      if (sagaResult.sellerInventoryChanges.length > 0) {
-        notifyInventoryChangesToCharacter(
-          sellerCharacterID,
-          sagaResult.sellerInventoryChanges,
-        );
-      }
       notifyBuyerDelivery(buyerCharacterID, sagaResult.buyerChanges);
+      // The seller hears the items left only once the sale is on record: the client
+      // acts on that at once (the AIR market lesson completes when the ore is gone,
+      // and the server checks that lesson against the seller's market transactions).
       try {
-        await recordTrade(typeID, orderPrice, fillableQuantity);
-      } catch (error) {
-        log.warn(
-          `[MarketProxy] Failed to record committed fill ${saga.operationKey}: ${error.message}`,
-        );
+        try {
+          await recordTrade(typeID, orderPrice, fillableQuantity);
+        } catch (error) {
+          log.warn(
+            `[MarketProxy] Failed to record committed fill ${saga.operationKey}: ${error.message}`,
+          );
+        }
+        await recordMarketTransactionForWalletOwner(resolvedSellerOwner, {
+          transactionDate: sellerWalletResult && sellerWalletResult.journalEntry
+            ? sellerWalletResult.journalEntry.transactionDate
+            : null,
+          typeID,
+          quantity: fillableQuantity,
+          price: orderPrice,
+          stationID: destinationStationID,
+          buyerID: buyerOwner.isCorp ? buyerOwner.id : buyerCharacterID,
+          sellerID: sellerWalletID,
+          clientID: buyerOwner.isCorp ? buyerOwner.id : buyerCharacterID,
+          journalRefID:
+            sellerWalletResult && sellerWalletResult.journalEntry
+              ? sellerWalletResult.journalEntry.transactionID
+              : -1,
+        });
+        await recordMarketTransactionForWalletOwner(buyerOwner, {
+          typeID,
+          quantity: fillableQuantity,
+          price: orderPrice,
+          stationID: destinationStationID,
+          buyerID: buyerOwner.isCorp ? buyerOwner.id : buyerCharacterID,
+          sellerID: sellerWalletID,
+          clientID: sellerWalletID,
+          journalRefID: -1,
+        });
+      } finally {
+        if (sagaResult.sellerInventoryChanges.length > 0) {
+          notifyInventoryChangesToCharacter(
+            sellerCharacterID,
+            sagaResult.sellerInventoryChanges,
+          );
+        }
       }
-      await recordMarketTransactionForWalletOwner(resolvedSellerOwner, {
-        transactionDate: sellerWalletResult && sellerWalletResult.journalEntry
-          ? sellerWalletResult.journalEntry.transactionDate
-          : null,
-        typeID,
-        quantity: fillableQuantity,
-        price: orderPrice,
-        stationID: destinationStationID,
-        buyerID: buyerOwner.isCorp ? buyerOwner.id : buyerCharacterID,
-        sellerID: sellerWalletID,
-        clientID: buyerOwner.isCorp ? buyerOwner.id : buyerCharacterID,
-        journalRefID:
-          sellerWalletResult && sellerWalletResult.journalEntry
-            ? sellerWalletResult.journalEntry.transactionID
-            : -1,
-      });
-      await recordMarketTransactionForWalletOwner(buyerOwner, {
-        typeID,
-        quantity: fillableQuantity,
-        price: orderPrice,
-        stationID: destinationStationID,
-        buyerID: buyerOwner.isCorp ? buyerOwner.id : buyerCharacterID,
-        sellerID: sellerWalletID,
-        clientID: sellerWalletID,
-        journalRefID: -1,
-      });
       notifyOwnOrdersChanged(
         buyerCharacterID,
         [{
@@ -5396,36 +5435,40 @@ async function matchBuyOrdersForSeller({
         0,
       );
     }
-    if (sagaResult.sellerInventoryChanges.length > 0) {
-      notifyInventoryChangesToCharacter(
-        sellerCharacterID,
-        sagaResult.sellerInventoryChanges,
-      );
-    }
+    // As for a player bid: the seller hears the items left once the sale is on record.
     try {
-      await recordTrade(typeID, orderPrice, fillableQuantity);
-    } catch (error) {
-      log.warn(
-        `[MarketProxy] Failed to record committed fill ${saga.operationKey}: ${error.message}`,
-      );
+      try {
+        await recordTrade(typeID, orderPrice, fillableQuantity);
+      } catch (error) {
+        log.warn(
+          `[MarketProxy] Failed to record committed fill ${saga.operationKey}: ${error.message}`,
+        );
+      }
+      const sellerWalletResult = sagaResult.sellerWalletResult;
+      await recordMarketTransactionForWalletOwner(resolvedSellerOwner, {
+        transactionDate: sellerWalletResult && sellerWalletResult.journalEntry
+          ? sellerWalletResult.journalEntry.transactionDate
+          : null,
+        typeID,
+        quantity: fillableQuantity,
+        price: orderPrice,
+        stationID: destinationStationID,
+        buyerID: getMarketCounterpartyOwnerID(destinationStationID),
+        sellerID: sellerWalletID,
+        clientID: getMarketCounterpartyOwnerID(destinationStationID),
+        journalRefID:
+          sellerWalletResult && sellerWalletResult.journalEntry
+            ? sellerWalletResult.journalEntry.transactionID
+            : -1,
+      });
+    } finally {
+      if (sagaResult.sellerInventoryChanges.length > 0) {
+        notifyInventoryChangesToCharacter(
+          sellerCharacterID,
+          sagaResult.sellerInventoryChanges,
+        );
+      }
     }
-    const sellerWalletResult = sagaResult.sellerWalletResult;
-    await recordMarketTransactionForWalletOwner(resolvedSellerOwner, {
-      transactionDate: sellerWalletResult && sellerWalletResult.journalEntry
-        ? sellerWalletResult.journalEntry.transactionDate
-        : null,
-      typeID,
-      quantity: fillableQuantity,
-      price: orderPrice,
-      stationID: destinationStationID,
-      buyerID: getMarketCounterpartyOwnerID(destinationStationID),
-      sellerID: sellerWalletID,
-      clientID: getMarketCounterpartyOwnerID(destinationStationID),
-      journalRefID:
-        sellerWalletResult && sellerWalletResult.journalEntry
-          ? sellerWalletResult.journalEntry.transactionID
-          : -1,
-    });
 
     totalSold += fillableQuantity;
     totalGross = roundIsk(totalGross + grossAmount);

@@ -362,9 +362,13 @@ validateTargetLockRequest(session, sourceEntity, targetEntity, options = {}) {
       targetEntity.session &&
       toInt(targetEntity.session.characterID, 0) > 0
     );
+    // Nor does it veto the AIR fleet battle: the ships of one pilot's AIR site are all scoped to
+    // that pilot, never to an NPC session (airCombatPolicy).
+    const airFleetBattleLock = require("../../combat/airCombatPolicy").isBattleShot(sourceEntity, targetEntity);
     if (
       session &&
       !nativeNpcTargetingPlayer &&
+      !airFleetBattleLock &&
       !this.canSessionSeeDungeonScopedEntity(session, targetEntity)
     ) {
       return {

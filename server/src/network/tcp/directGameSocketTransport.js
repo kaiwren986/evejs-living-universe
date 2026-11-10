@@ -1,6 +1,8 @@
 "use strict";
 
-const DEFAULT_MAX_PAYLOAD_LENGTH = 10_000_000;
+const { MAX_GAME_PAYLOAD_BYTES } = require("../gameFrame");
+
+const DEFAULT_MAX_PAYLOAD_LENGTH = MAX_GAME_PAYLOAD_BYTES;
 
 function positiveInteger(value, fallback) {
   const numeric = Number(value);

@@ -39,7 +39,6 @@ const { fingerprintFolder } = require("./dropFolderFingerprint");
 const {
   importContentPackDirectory,
   readRegistry,
-  removeContentPack,
   resolveContentPacksRoot,
   contentPackCompatibility,
 } = require(path.join(__dirname, "contentPackManager"));
@@ -158,7 +157,19 @@ function autoInstallContentPacks(options = {}) {
 
   outcome.ran = true;
   const started = performance.now();
-  const result = importContentPackDirectory(directory, options);
+  const result = importContentPackDirectory(directory, {
+    ...options,
+    reconcileRegistry: true,
+    validateReconciliation() {
+      const currentNames = listPackFiles(directory);
+      if (currentNames === null || !sameFingerprint(folder, fingerprintFolder(directory, currentNames))) {
+        const error = new Error("content-packs folder changed during reconciliation; retry on next start");
+        error.code = "CONTENT_PACK_DIRECTORY_CHANGED";
+        throw error;
+      }
+    },
+  });
+  outcome.removed.push(...(result.removed || []).map((entry) => `${entry.id}@${entry.version}`));
   outcome.stats = { ...result.stats, elapsedMs: Math.round(performance.now() - started) };
   for (const entry of result.results) {
     if (!entry.ok) {
@@ -184,33 +195,12 @@ function autoInstallContentPacks(options = {}) {
     }
   }
 
-  // Deleting a pack file is how somebody turns a pack off, so a pack the folder
-  // no longer offers has to come back out of the registry -- otherwise the file
-  // is gone and the content is still live. removeContentPack only deactivates:
-  // the stored copy stays, so putting the file back reinstates it.
-  //
-  // Not attempted when a file failed to identify. Its pack id is unknown, so it
-  // would look absent and get removed on the strength of a corrupt download.
+  // Reconciliation deactivates retired IDs together with the new active set.
+  // Stored copies remain available for rollback. No registry is changed when
+  // an offered file cannot be identified or the final set fails preflight.
   const finalNames = listPackFiles(directory);
   const folderUnchanged = finalNames !== null &&
     sameFingerprint(folder, fingerprintFolder(directory, finalNames));
-  if (outcome.failed.length === 0 && folderUnchanged) {
-    const offered = new Set(result.results.filter((entry) => entry.ok).map((entry) => entry.id));
-    for (const entry of readRegistry(options).installed) {
-      if (offered.has(entry.id)) continue;
-      try {
-        if (removeContentPack(entry.id, options).changed) {
-          outcome.removed.push(`${entry.id}@${entry.version}`);
-        }
-      } catch (error) {
-        outcome.failed.push({
-          file: entry.id,
-          code: (error && error.code) || "CONTENT_PACK_ERROR",
-          message: `could not remove ${entry.id}: ${(error && error.message) || error}`,
-        });
-      }
-    }
-  }
 
   // Stable content failures are remembered too: unchanged invalid input need
   // not force an expensive import on every boot.

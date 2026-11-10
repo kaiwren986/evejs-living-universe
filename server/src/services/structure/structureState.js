@@ -838,6 +838,8 @@ function normalizeStructureRecord(entry = {}) {
       : STRUCTURE_STATE.UNANCHORED,
     stateStartedAt: Number.isFinite(Number(entry.stateStartedAt)) ? toInt(entry.stateStartedAt, 0) : null,
     stateEndsAt: Number.isFinite(Number(entry.stateEndsAt)) ? toInt(entry.stateEndsAt, 0) : null,
+    deployStartedAt: toPositiveInt(entry.deployStartedAt, 0) || null,
+    deployEndsAt: toPositiveInt(entry.deployEndsAt, 0) || null,
     timerPausedAt: Number.isFinite(Number(entry.timerPausedAt)) ? toInt(entry.timerPausedAt, 0) : null,
     upkeepState: STRUCTURE_UPKEEP_NAME_BY_ID[toInt(entry.upkeepState, -1)]
       ? toInt(entry.upkeepState, STRUCTURE_UPKEEP_STATE.FULL_POWER)
@@ -885,6 +887,7 @@ function normalizeStructureRecord(entry = {}) {
     abandonmentWarningRecipients: Array.isArray(entry.abandonmentWarningRecipients)
       ? entry.abandonmentWarningRecipients.map((recipient) => String(recipient))
       : [],
+    lowFuelAlertAt: toPositiveInt(entry.lowFuelAlertAt, 0) || null,
     liquidOzoneQty: Math.max(0, toInt(entry.liquidOzoneQty, 0)),
     deliveryFuelReceipts: (Array.isArray(entry.deliveryFuelReceipts)
       ? entry.deliveryFuelReceipts
@@ -2318,6 +2321,9 @@ function setStructureState(structureID, stateNameOrID, options = {}) {
   return updateStructureRecord(structureID, (current) => ({
     ...current,
     state: numericState,
+    ...(numericState === STRUCTURE_STATE.DEPLOY_VULNERABLE ? {} : {
+      deployStartedAt: null, deployEndsAt: null,
+    }),
     stateStartedAt: nowMs,
     stateEndsAt:
       options.clearTimer === true
@@ -2344,8 +2350,9 @@ function setStructureDeployTimerRemaining(structureID, seconds, options = {}) {
   return updateStructureRecord(structureID, (current) => ({
     ...current,
     state: STRUCTURE_STATE.DEPLOY_VULNERABLE,
-    stateStartedAt: nowMs,
-    stateEndsAt: nowMs + remainingMs,
+    ...(hasIndependentDeploymentClock(current)
+      ? { deployStartedAt: nowMs, deployEndsAt: nowMs + remainingMs }
+      : { stateStartedAt: nowMs, stateEndsAt: nowMs + remainingMs }),
   }));
 }
 
@@ -2435,6 +2442,26 @@ function buildDockAccessPolicy(structure, policyName, session) {
   return false;
 }
 
+function characterHasStructureDockingPermission(structure, session) {
+  // Resolve the profile directly, rather than through structurePayloads: service
+  // authorization already calls canCharacterDockAtStructure. Reentering that
+  // service check here would recurse. Lazy loading also avoids the state cycle.
+  const { getProfileSettingResolutionForStructure } = lazyRequire("./structureProfilesState");
+  const { STRUCTURE_SETTING_ID } = lazyRequire("./structureServiceAuthority");
+  const resolution = getProfileSettingResolutionForStructure(
+    structure,
+    STRUCTURE_SETTING_ID.HOUSING_CAN_DOCK,
+    { session },
+  );
+  if (resolution.configured) {
+    return resolution.matched;
+  }
+  // Only genuinely unconfigured legacy records use the old policy. Neither a
+  // configured denial nor a missing assigned profile may fall through to public.
+  return toPositiveInt(structure && structure.profileID, 0) === 0 &&
+    buildDockAccessPolicy(structure, "docking", session);
+}
+
 function isDockingServiceOnline(structure) {
   if (!structure || !structure.dockable || structure.destroyedAt || structure.unanchoring) {
     return false;
@@ -2461,7 +2488,7 @@ function isStructureTetheringAllowed(structure, session) {
       structure.hasQuantumCore === true &&
       toInt(structure.upkeepState, 0) !== STRUCTURE_UPKEEP_STATE.ABANDONED &&
       STRUCTURE_TETHER_ENABLED_STATES.has(toInt(structure.state, 0)) &&
-      buildDockAccessPolicy(structure, "docking", session),
+      characterHasStructureDockingPermission(structure, session),
   );
 }
 
@@ -2561,7 +2588,7 @@ function canCharacterDockAtStructure(session, structure, options = {}) {
       errorMsg: "STRUCTURE_DOCKING_UNAVAILABLE",
     };
   }
-  if (!buildDockAccessPolicy(structure, "docking", session)) {
+  if (!characterHasStructureDockingPermission(structure, session)) {
     return {
       success: false,
       errorMsg: "STRUCTURE_DOCKING_DENIED",
@@ -2820,6 +2847,8 @@ function repairStructureState(structure, preserveState = false) {
   return {
     ...structure,
     state: preserveState ? structure.state : STRUCTURE_STATE.SHIELD_VULNERABLE,
+    deployStartedAt: preserveState ? structure.deployStartedAt : null,
+    deployEndsAt: preserveState ? structure.deployEndsAt : null,
     stateStartedAt: Date.now(),
     stateEndsAt: preserveState ? structure.stateEndsAt : null,
     timerPausedAt: preserveState ? structure.timerPausedAt : null,
@@ -3110,7 +3139,46 @@ function buildOnliningVulnerableStructure(structure, nowMs) {
   };
 }
 
+// Only explicit producer-owned pairs identify the new deployment clock.
+// Legacy DEPLOY records used the state timer for several purposes; do not
+// infer a second clock or rewrite their existing lifecycle on load.
+function hasIndependentDeploymentClock(structure) {
+  const start = toPositiveInt(structure?.deployStartedAt, 0);
+  const end = toPositiveInt(structure?.deployEndsAt, 0);
+  return start > 0 && end >= start;
+}
+
+function advanceIndependentFlexDeployment(structure, nowMs) {
+  let current = structure;
+  let changed = false;
+  if (normalizeConditionState(current.conditionState).damage > 0) {
+    const repairEnd = toPositiveInt(current.stateEndsAt, 0);
+    if (!repairEnd || nowMs < repairEnd || toPositiveInt(current.timerPausedAt, 0) > 0) {
+      return { structure: current, changed: false };
+    }
+    // Native UpdateRepair clears the repair timer and repairs hull only. The
+    // deployment remains vulnerable, with its original shield/armor layers.
+    current = {
+      ...current, stateStartedAt: null, stateEndsAt: null, timerPausedAt: null,
+      conditionState: normalizeConditionState({ ...current.conditionState, damage: 0 }),
+    };
+    changed = true;
+  } else if (toPositiveInt(current.stateEndsAt, 0) > 0 || toPositiveInt(current.timerPausedAt, 0) > 0) {
+    // Also clear a healed generation encountered on a normal persisted reload.
+    current = { ...current, stateStartedAt: null, stateEndsAt: null, timerPausedAt: null };
+    changed = true;
+  }
+  if (nowMs > current.deployEndsAt) {
+    return { structure: { ...repairStructureState(current), stateStartedAt: nowMs }, changed: true };
+  }
+  return { structure: current, changed };
+}
+
 function maybeAdvanceStructureState(structure, nowMs = Date.now()) {
+  if (structure && !structure.destroyedAt && structure.state === STRUCTURE_STATE.DEPLOY_VULNERABLE &&
+      hasIndependentDeploymentClock(structure)) {
+    return advanceIndependentFlexDeployment(structure, nowMs);
+  }
   const stateEndsAt = Number(structure && structure.stateEndsAt);
   if (
     structure &&
@@ -3153,6 +3221,18 @@ function maybeAdvanceStructureState(structure, nowMs = Date.now()) {
   if (structure.state === STRUCTURE_STATE.ANCHORING) {
     return {
       structure: buildOnliningVulnerableStructure(structure, nowMs),
+      changed: true,
+    };
+  }
+  // Compatibility for legacy/GM DEPLOY records without an explicit clock.
+  // Preserve their historical shared-timer behavior; fresh deployment above
+  // follows the native independent deployment and hull-repair clocks.
+  if (structure.state === STRUCTURE_STATE.DEPLOY_VULNERABLE) {
+    return {
+      structure: {
+        ...repairStructureState(structure),
+        stateStartedAt: nowMs,
+      },
       changed: true,
     };
   }
@@ -3281,9 +3361,13 @@ function tickStructures(nowMs = Date.now()) {
   const pendingFuelAlerts = [];
   const pendingReagentAlerts = [];
   const pendingWarHQLossStructures = [];
+  const pendingTimerInventoryChanges = [];
+  const pendingRemovedFromSpaceIDs = [];
   let changed = false;
   for (const structure of cache.rows) {
     let current = cloneValue(structure);
+    const timerInventoryChanges = [];
+    const timerOfflinedModuleIDs = [];
     const onlineServiceModules = typeof structureServiceModules.listOnlineStructureServiceModules === "function"
       ? structureServiceModules.listOnlineStructureServiceModules(current.structureID)
       : [];
@@ -3299,6 +3383,12 @@ function tickStructures(nowMs = Date.now()) {
         current.structureID,
         { nowMs },
       );
+      if (serviceSync) {
+        // Fuel already left the bay, and starved modules are already offline,
+        // whether or not the structure row write below succeeded.
+        timerInventoryChanges.push(...(serviceSync.fuelCycleChanges || []));
+        timerOfflinedModuleIDs.push(...(serviceSync.offlinedModuleIDs || []));
+      }
       if (serviceSync && serviceSync.success === true && serviceSync.data) {
         // syncStructureServiceModuleState persists its own service/upkeep
         // transition. Continue this timer pass from that fresh row so a later
@@ -3312,6 +3402,7 @@ function tickStructures(nowMs = Date.now()) {
       { structureProximityCandidates: cache.rows },
     );
     current = flexFuelTick.structure;
+    timerInventoryChanges.push(...((flexFuelTick && flexFuelTick.changes) || []));
     if (
       flexFuelTick &&
       flexFuelTick.fuelResult &&
@@ -3329,6 +3420,14 @@ function tickStructures(nowMs = Date.now()) {
       nowMs,
     );
     current = autoMoonFuelTick.structure;
+    timerInventoryChanges.push(...((autoMoonFuelTick && autoMoonFuelTick.changes) || []));
+    if (timerInventoryChanges.length > 0 || timerOfflinedModuleIDs.length > 0) {
+      pendingTimerInventoryChanges.push({
+        structure: current,
+        changes: timerInventoryChanges,
+        offlinedModuleIDs: timerOfflinedModuleIDs,
+      });
+    }
     if (
       autoMoonFuelTick &&
       autoMoonFuelTick.fuelResult &&
@@ -3435,6 +3534,7 @@ function tickStructures(nowMs = Date.now()) {
       removeJumpClonesForStructureLifecycle(current, "structureUnanchored");
       moveHomeStationsForStructureLifecycle(current, "structureUnanchored");
       pendingWarHQLossStructures.push(cloneValue(current));
+      pendingRemovedFromSpaceIDs.push(current.structureID);
       changed = true;
       continue;
     }
@@ -3483,6 +3583,17 @@ function tickStructures(nowMs = Date.now()) {
           reason: "structureUnanchored",
         });
       }
+      notifyStructuresRemovedFromSpace(pendingRemovedFromSpaceIDs);
+    }
+  }
+  // The bay item writes are committed by the fuel and harvest helpers
+  // themselves, so they are published even if the structure row write failed.
+  if (pendingTimerInventoryChanges.length > 0) {
+    const { publishStructureTimerInventoryChanges } = lazyRequire("./structureTimerInventoryFanout");
+    for (const pending of pendingTimerInventoryChanges) {
+      publishStructureTimerInventoryChanges(pending.structure, pending.changes, {
+        offlinedModuleIDs: pending.offlinedModuleIDs,
+      });
     }
   }
   const updatedStructures = listStructures({
@@ -3539,7 +3650,7 @@ function seedStructureForSession(session, typeToken, options = {}) {
         seeded: true,
         ...(options.devFlags || {}),
       },
-    });
+    }, options.createOptions || {});
 }
 
 function startAnchoring(structureID, nowMs = Date.now(), options = {}) {
@@ -3579,6 +3690,36 @@ function startAnchoring(structureID, nowMs = Date.now(), options = {}) {
     const builtInResult = lazyRequire("./structureFlexBuiltIns").syncFlexServiceModule(result.data);
     if (!builtInResult.success) {
       log.warn(`[StructureState] FLEX built-in after anchoring failed for ${structureID}: ${builtInResult.errorMsg}`);
+    }
+  }
+  return result;
+}
+
+// Retail FLEX structures do not anchor. They deploy for FLEX_DEPLOYING_TIME in
+// STATE_DEPLOY_VULNERABLE, which the client draws as the build effect from the
+// slim item's deployTimes, and then wait at low power for their service to be
+// onlined (structures/structure.py UpdateTimers and UpdateState).
+function startFlexDeployment(structureID, nowMs = Date.now(), options = {}) {
+  const result = updateStructureRecord(structureID, (current) => ({
+    ...current,
+    state: STRUCTURE_STATE.DEPLOY_VULNERABLE,
+    stateStartedAt: nowMs,
+    stateEndsAt: null,
+    deployStartedAt: nowMs,
+    deployEndsAt: nowMs + scaledTimerMs(STRUCTURE_TIMER_SECONDS.FLEX_DEPLOYING, current),
+    timerPausedAt: null,
+    upkeepState: STRUCTURE_UPKEEP_STATE.LOW_POWER,
+    destroyedAt: null,
+    conditionState: normalizeConditionState({
+      damage: 0,
+      armorDamage: 1,
+      shieldCharge: 0,
+    }),
+  }), options);
+  if (result && result.success === true) {
+    const builtInResult = lazyRequire("./structureFlexBuiltIns").syncFlexServiceModule(result.data);
+    if (!builtInResult.success) {
+      log.warn(`[StructureState] FLEX built-in after deployment failed for ${structureID}: ${builtInResult.errorMsg}`);
     }
   }
   return result;
@@ -3901,6 +4042,10 @@ function fastForwardStructure(structureID, seconds) {
   const deltaMs = Math.max(0, Math.round(Math.max(0, toFloat(seconds, 0)) * 1000));
   return updateStructureRecord(structureID, (current) => ({
     ...current,
+    ...(hasIndependentDeploymentClock(current) ? {
+      deployStartedAt: current.deployStartedAt - deltaMs,
+      deployEndsAt: current.deployEndsAt - deltaMs,
+    } : {}),
     stateStartedAt: Number.isFinite(Number(current.stateStartedAt))
       ? toInt(current.stateStartedAt, 0) - deltaMs
       : current.stateStartedAt,
@@ -3943,6 +4088,19 @@ function setStructureTimerScale(structureID, timerScale) {
       timerScale: normalizedScale,
     },
   }));
+}
+
+function notifyStructuresRemovedFromSpace(structureIDs = []) {
+  if (!Array.isArray(structureIDs) || structureIDs.length === 0) {
+    return 0;
+  }
+  try {
+    return lazyRequire("./structureRemovedFromSpaceNotice")
+      .notifyStructuresRemovedFromSpace(structureIDs);
+  } catch (error) {
+    log.warn(`[StructureState] OnStructureRemovedFromSpace fan-out failed: ${error.message}`);
+    return 0;
+  }
 }
 
 function removeStructure(structureID, options = {}) {
@@ -4016,6 +4174,10 @@ function removeStructure(structureID, options = {}) {
     nowMs: toInt(options.nowMs, Date.now()),
     reason: "structureRemoved",
   });
+  if (!existing.destroyedAt) {
+    // A destroyed structure was already announced when it was destroyed.
+    notifyStructuresRemovedFromSpace([targetID]);
+  }
 
   return {
     success: true,
@@ -4177,6 +4339,7 @@ function destroyStructure(structureID, options = {}) {
     });
     createStructureDestroyedNotifications(current, options.selfDestructGeneration
       ? { idempotencyKey: `structure-self-destruct:${current.structureID}:${options.selfDestructGeneration}` } : {});
+    notifyStructuresRemovedFromSpace([current.structureID]);
   }
 
   return {
@@ -4455,6 +4618,11 @@ function applyStructureRepairTransition(structure, nowMs) {
   const shieldWhole = condition.shieldCharge >= STRUCTURE_ALMOST_MAX_SHIELD_LEVEL;
   const armorWhole = condition.armorDamage <= 0;
   const hullWhole = condition.damage <= 0;
+  if (state === STRUCTURE_STATE.DEPLOY_VULNERABLE && hasIndependentDeploymentClock(structure) && hullWhole) {
+    // A fully repaired hull ends this repair generation. The next injury must
+    // start a fresh900seconds; it cannot inherit the healed injury's timer.
+    return { ...structure, stateStartedAt: null, stateEndsAt: null, timerPausedAt: null };
+  }
   const healed =
     (state === STRUCTURE_STATE.ARMOR_VULNERABLE && shieldWhole && armorWhole && hullWhole) ||
     (state === STRUCTURE_STATE.HULL_VULNERABLE && (shieldWhole || armorWhole));
@@ -4629,9 +4797,28 @@ function getStructureServices(structure) {
   );
 }
 
+// FLEX and Metenox structures keep their own fuelExpiresAt; every other
+// structure's runs out when its online service modules can no longer pay.
+function resolveStructureFuelExpiresAt(structure) {
+  if (structure.fuelExpiresAt) {
+    return structure.fuelExpiresAt;
+  }
+  if (structure.destroyedAt) {
+    return null;
+  }
+  try {
+    return lazyRequire("./structureServiceModules")
+      .estimateStructureServiceFuelExpiresAt(structure.structureID) || null;
+  } catch (error) {
+    log.warn(`[StructureState] fuel expiry for ${structure.structureID} failed: ${error.message}`);
+    return null;
+  }
+}
+
 function buildStructureDirectoryInfo(structure) {
   const next = normalizeStructureRecord(structure);
   const typeRecord = getStructureTypeByID(next.typeID);
+  const fuelExpiresAt = resolveStructureFuelExpiresAt(next);
   return {
     itemID: next.structureID,
     structureID: next.structureID,
@@ -4649,7 +4836,7 @@ function buildStructureDirectoryInfo(structure) {
     inSpace: !next.destroyedAt,
     profileID: next.profileID,
     services: getStructureServices(next),
-    fuelExpires: next.fuelExpiresAt ? toFileTimeLongFromMs(next.fuelExpiresAt) : null,
+    fuelExpires: fuelExpiresAt ? toFileTimeLongFromMs(fuelExpiresAt) : null,
     upkeepState: next.upkeepState,
     state: next.state,
     timerEnd: next.stateEndsAt ? toFileTimeLongFromMs(next.stateEndsAt) : null,
@@ -4776,6 +4963,7 @@ Object.assign(module.exports, {
   incrementStructureLiquidOzoneIdempotent,
   seedStructureForSession,
   startAnchoring,
+  startFlexDeployment,
   startStructureUnanchoring,
   setStructureState,
   setStructureStateTimerRemaining,

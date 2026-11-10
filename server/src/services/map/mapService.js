@@ -568,7 +568,8 @@ class MapService extends BaseService {
   }
 
   Handle_GetIncursionGlobalReport() {
-    const incursions = incursionRuntime.listActiveIncursions();
+    const incursions = [...incursionRuntime.listActiveIncursions(),
+      ...require("../incursion/incursionRewardReports").listControlledRewardReports()];
     log.debug(`[MapService] GetIncursionGlobalReport count=${incursions.length}`);
     return buildIncursionGlobalReport(incursions);
   }

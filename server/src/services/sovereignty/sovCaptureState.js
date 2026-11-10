@@ -24,6 +24,10 @@ const {
   setStructureEntosisCapture,
   tickStrategicClaimAge,
 } = require(path.join(__dirname, "./sovState"));
+const campaignNotifications = require(path.join(
+  __dirname,
+  "./sovCampaignNotifications",
+));
 
 const SOV_HUB_CAPTURE_TIME_SECONDS = 595;
 const SOV_HUB_CAPTURE_TIME_MS = SOV_HUB_CAPTURE_TIME_SECONDS * 1000;
@@ -428,6 +432,15 @@ function prepareOrResumeCompletion(target, capture, winnerAllianceID, nowMs) {
     };
   }
   liveTargets.delete(target.targetID);
+  // Claim acknowledged (43 alliance, 44 corporation), keyed by the capture
+  // epoch so a resumed completion reuses the same notifications.
+  campaignNotifications.notifySovClaimAcquired({
+    allianceID: Number(receipt.winnerAllianceID),
+    corporationID: Number(receipt.executorCorporationID),
+    solarSystemID: target.solarSystemID,
+    eventKey: String(receipt.captureEpoch),
+    created: unixMsToFiletimeString(nowMs),
+  });
   return {
     success: true,
     completed: true,

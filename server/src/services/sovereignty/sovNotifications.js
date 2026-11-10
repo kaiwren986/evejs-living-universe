@@ -248,6 +248,39 @@ function broadcastSovereigntyChanged(
   }
 
   sendNotificationToSessions(direct, "OnSovereigntyChanged", "solarsystemid2", payload);
+  broadcastSovStatusChanged(numericSolarSystemID, claimInfo);
+}
+
+// sovSvc caches each system's SovClaimInfo the first time anything asks
+// (eve/client/script/ui/services/sovSvc.py:72 GetSystemSovereigntyInfo) and only
+// replaces it on ProcessSovStatusChanged(solarSystemID, newStatus), its listed
+// notify event (sovSvc.py:35, :62); None drops the entry. The cache covers any
+// system a client has looked at (info panel, map, info window), so every
+// online character gets it, or the info panel keeps the old owner.
+function broadcastSovStatusChanged(solarSystemID, claimInfo = null) {
+  const numericSolarSystemID = normalizePositiveInteger(solarSystemID, 0) || 0;
+  if (!numericSolarSystemID) {
+    return;
+  }
+  const seenCharacterIDs = new Set();
+  const sessions = [];
+  for (const session of sessionRegistry.getSessions()) {
+    const characterID = normalizePositiveInteger(
+      session && (session.characterID || session.charid),
+      null,
+    );
+    if (!characterID || seenCharacterIDs.has(characterID)) {
+      continue;
+    }
+    seenCharacterIDs.add(characterID);
+    sessions.push(session);
+  }
+  sendNotificationToSessions(
+    sessions,
+    "ProcessSovStatusChanged",
+    "clientID",
+    [numericSolarSystemID, buildSovClaimInfoPayload(claimInfo)],
+  );
 }
 
 function broadcastSovereigntyAudioEvent(
@@ -324,7 +357,43 @@ function broadcastCynoJammerChanged(solarSystemID, onlineSimTime) {
   return sessions.length;
 }
 
+// Client: infoPanelLocationInfo.OnCapitalSystemChanged(change) unpacks
+// (allianceID, oldSolarSystemID, newSolarSystemID) and redraws the sov block
+// (30 s later when old is None, a first claim); sovDashboard claimedSystems
+// reloads the dashboard. No retail capture: sent to the alliance's members and
+// to pilots in the old or new capital system, whose info panel shows it.
+function broadcastCapitalSystemChanged(allianceID, oldSolarSystemID, newSolarSystemID) {
+  const numericAllianceID = normalizePositiveInteger(allianceID, null);
+  if (!numericAllianceID) {
+    return 0;
+  }
+  const oldID = normalizePositiveInteger(oldSolarSystemID, null);
+  const newID = normalizePositiveInteger(newSolarSystemID, null);
+  const seen = new Set();
+  const sessions = [];
+  const candidates = [
+    ...getTargetSessions({ allianceIDs: [numericAllianceID] }),
+    ...(oldID ? getTargetSessions({ solarSystemID: oldID }) : []),
+    ...(newID ? getTargetSessions({ solarSystemID: newID }) : []),
+  ];
+  for (const session of candidates) {
+    if (seen.has(session)) {
+      continue;
+    }
+    seen.add(session);
+    sessions.push(session);
+  }
+  if (sessions.length === 0) {
+    return 0;
+  }
+  sendNotificationToSessions(sessions, "OnCapitalSystemChanged", "clientID", [
+    [numericAllianceID, oldID, newID],
+  ]);
+  return sessions.length;
+}
+
 module.exports = {
+  broadcastCapitalSystemChanged,
   broadcastCynoJammerChanged,
   broadcastSolarSystemDevIndexChanged,
   broadcastSolarSystemSovStructuresUpdated,

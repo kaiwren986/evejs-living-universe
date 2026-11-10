@@ -2,6 +2,59 @@
 
 module.exports = [
   {
+    "key": "voidReplayEnabled",
+    "defaultValue": false,
+    "envVar": "EVEJS_VOID_REPLAY_ENABLED",
+    "envType": "boolean",
+    "valueType": "boolean",
+    "description": "Enables admission to the historical Ruined Electrical relic pocket.",
+    "validValues": "true or false.",
+    "allowBlank": false,
+    "integer": false
+  },
+  {
+    "key": "incursionOrganicHighSecEnabled",
+    "defaultValue": false,
+    "envVar": "EVEJS_INCURSION_ORGANIC_HIGH_SEC_ENABLED",
+    "envType": "boolean",
+    "valueType": "boolean",
+    "description": [
+      "Starts automatic Sansha focus scheduling in high security on world startup.",
+      "Requires both approved Incursion content packs. Disabling it pauses new focus creation while existing tales finish."
+    ],
+    "validValues": "true or false.",
+    "allowBlank": false,
+    "integer": false
+  },
+  {
+    "key": "incursionOrganicLowSecEnabled",
+    "defaultValue": false,
+    "envVar": "EVEJS_INCURSION_ORGANIC_LOW_SEC_ENABLED",
+    "envType": "boolean",
+    "valueType": "boolean",
+    "description": [
+      "Starts automatic Sansha focus scheduling in low security on world startup.",
+      "Requires both approved Incursion content packs. Disabling it pauses new low-security focuses while existing tales finish."
+    ],
+    "validValues": "true or false.",
+    "allowBlank": false,
+    "integer": false
+  },
+  {
+    "key": "incursionOrganicNullSecEnabled",
+    "defaultValue": false,
+    "envVar": "EVEJS_INCURSION_ORGANIC_NULL_SEC_ENABLED",
+    "envType": "boolean",
+    "valueType": "boolean",
+    "description": [
+      "Starts automatic Sansha focus scheduling in null security on world startup.",
+      "Requires both approved Incursion content packs. Disabling it pauses new null-security focuses while existing tales finish."
+    ],
+    "validValues": "true or false.",
+    "allowBlank": false,
+    "integer": false
+  },
+  {
     "key": "wormholesEnabled",
     "defaultValue": true,
     "envVar": "EVEJS_WORMHOLES_ENABLED",

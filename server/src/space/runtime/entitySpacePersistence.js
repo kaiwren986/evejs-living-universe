@@ -388,6 +388,9 @@ function persistDynamicEntity(entity) {
       errorMsg: "ENTITY_NOT_FOUND",
     };
   }
+  if (entity.nativeNpc === true && entity.dungeonSiteContentRole === "required_actor") {
+    return require("../npc/nativeNpcService").persistRequiredDungeonActor(entity);
+  }
   if (entity.kind === "ship") {
     return persistShipEntity(entity);
   }

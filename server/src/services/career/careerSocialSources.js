@@ -1,13 +1,9 @@
 "use strict";
-const database = require("../../gameStore");
+const { readDurablePath } = require("./careerOwnerReads");
 function observe(characterID, record, definition, context = {}) {
   if (definition.source?.kind !== "mail-sent") return null;
-  if (!context.mail) {
-    const result = database.readPersisted("mail", "/");
-    if (!result?.success) throw new Error(result?.errorMsg || "CAREER_MAIL_SOURCE_UNAVAILABLE");
-    context.mail = result.data || {};
-  }
-  const receipt = context.mail.careerPlayerMailSent?.[String(characterID)];
+  const receipt = readDurablePath("mail", `/careerPlayerMailSent/${characterID}`, context,
+    "CAREER_MAIL_SOURCE_UNAVAILABLE");
   return { kind: "mail-sent", id: "mail-sent:v1", progress: receipt && Number(receipt.messageID) > 0 ? 1 : 0,
     updatedAtMs: Number(receipt?.completedAtMs) || 0 };
 }

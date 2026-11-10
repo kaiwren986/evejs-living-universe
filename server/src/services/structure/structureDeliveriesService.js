@@ -153,7 +153,7 @@ function createStructureItemsDeliveredNotification(
       charID: senderCharacterID,
       listOfTypesAndQty,
     },
-    emitLive: false,
+    emitLive: true,
   });
 }
 

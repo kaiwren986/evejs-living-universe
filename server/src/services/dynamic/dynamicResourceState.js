@@ -6,6 +6,7 @@ const {
 
 const path = require("path");
 const { randomUUID } = require("crypto");
+const reserveKeyAuthority = require("./essReserveKeyAuthority.json");
 
 const {
   buildDict,
@@ -46,64 +47,9 @@ const ESS_KEY_TYPE_IDS = Object.freeze({
   SW_45: 57721,
 });
 
-const ESS_RESERVE_KEY_TOTAL_PULSES = Object.freeze({
-  [ESS_KEY_TYPE_IDS.NW_15]: 15,
-  [ESS_KEY_TYPE_IDS.NW_45]: 45,
-  [ESS_KEY_TYPE_IDS.NE_15]: 15,
-  [ESS_KEY_TYPE_IDS.NE_45]: 45,
-  [ESS_KEY_TYPE_IDS.SE_15]: 15,
-  [ESS_KEY_TYPE_IDS.SE_45]: 45,
-  [ESS_KEY_TYPE_IDS.SW_15]: 15,
-  [ESS_KEY_TYPE_IDS.SW_45]: 45,
-});
-
-const ESS_RESERVE_KEY_TYPES_BY_QUADRANT = Object.freeze({
-  NE: Object.freeze([ESS_KEY_TYPE_IDS.NE_15, ESS_KEY_TYPE_IDS.NE_45]),
-  NW: Object.freeze([ESS_KEY_TYPE_IDS.NW_15, ESS_KEY_TYPE_IDS.NW_45]),
-  SE: Object.freeze([ESS_KEY_TYPE_IDS.SE_15, ESS_KEY_TYPE_IDS.SE_45]),
-  SW: Object.freeze([ESS_KEY_TYPE_IDS.SW_15, ESS_KEY_TYPE_IDS.SW_45]),
-});
-
-// Region mappings follow the public reserve-key quadrants and source-jsonl
-// mapRegions IDs for build 3396210. The keys themselves are source-backed SDE
-// types; live availability still depends on authored/runtime content.
-const REGION_QUADRANT_BY_ID = new Map([
-  [10000053, "NE"], // Cobalt Edge
-  [10000027, "NE"], // Etherium Reach
-  [10000013, "NE"], // Malpais
-  [10000040, "NE"], // Oasa
-  [10000021, "NE"], // Outer Passage
-  [10000066, "NE"], // Perrigen Falls
-  [10000018, "NE"], // The Spire
-  [10000007, "NE"], // Cache
-  [10000055, "NW"], // Branch
-  [10000035, "NW"], // Deklein
-  [10000023, "NW"], // Pure Blind
-  [10000045, "NW"], // Tenal
-  [10000010, "NW"], // Tribute
-  [10000051, "NW"], // Cloud Ring
-  [10000046, "NW"], // Fade
-  [10000058, "NW"], // Fountain
-  [10000034, "NW"], // The Kalevala Expanse
-  [10000003, "NW"], // Vale of the Silent
-  [10000029, "SE"], // Geminate
-  [10000005, "SE"], // Detorid
-  [10000025, "SE"], // Immensea
-  [10000009, "SE"], // Insmother
-  [10000062, "SE"], // Omist
-  [10000008, "SE"], // Scalding Pass
-  [10000061, "SE"], // Tenerifis
-  [10000006, "SE"], // Wicked Creek
-  [10000056, "SW"], // Feythabolis
-  [10000031, "SW"], // Impass
-  [10000060, "SW"], // Delve
-  [10000063, "SW"], // Period Basis
-  [10000050, "SW"], // Querious
-  [10000014, "SW"], // Catch
-  [10000039, "SW"], // Esoteria
-  [10000059, "SW"], // Paragon Soul
-  [10000047, "SW"], // Providence
-]);
+const ESS_RESERVE_KEY_TOTAL_PULSES = Object.freeze(Object.fromEntries(
+  Object.entries(reserveKeyAuthority.keysByTypeID).map(([typeID, definition]) => [typeID, definition.totalPulses]),
+));
 
 const DEFAULT_DYNAMIC_RESOURCE_SETTINGS = Object.freeze({
   minOutput: 1.0,
@@ -127,6 +73,7 @@ const DEFAULT_DYNAMIC_RESOURCE_SETTINGS = Object.freeze({
 
 const repository = require("./essRepository");
 const { SCENE_KIND_SOLAR_SYSTEM } = require("../../space/runtime/sceneIdentity");
+const { isPublicEssEntity, TYPE_ESS_ENTRY_BEACON } = require("../../space/encounterSurveillanceSystem");
 let nowProvider = () => Date.now();
 function now() { return nowProvider(); }
 function filetimeNow() { return BigInt(Math.trunc(now())) * 10_000n + 116444736000000000n; }
@@ -195,19 +142,17 @@ function isKnownNullsecSystem(solarSystemID) {
   return Boolean(
     system &&
     toPositiveInt(system.solarSystemID, 0) < 31000000 &&
-    toNumber(system.security, 1) < 0,
+    toNumber(system.security, 1) <= 0,
   );
 }
 
-function resolveRegionQuadrant(solarSystemID) {
+function listReserveKeyTypeIDsForSystem(solarSystemID) {
   const system = getStaticSolarSystem(solarSystemID);
   const regionID = toPositiveInt(system && system.regionID, 0);
-  return REGION_QUADRANT_BY_ID.get(regionID) || null;
-}
-
-function listReserveKeyTypeIDsForSystem(solarSystemID) {
-  const quadrant = resolveRegionQuadrant(solarSystemID);
-  return quadrant ? [...ESS_RESERVE_KEY_TYPES_BY_QUADRANT[quadrant]] : [];
+  return Object.entries(reserveKeyAuthority.keysByTypeID)
+    .filter(([, definition]) => definition.regionIDs.includes(regionID))
+    .sort((left, right) => left[1].totalPulses - right[1].totalPulses || Number(left[0]) - Number(right[0]))
+    .map(([typeID]) => Number(typeID));
 }
 
 function getReserveKeyTotalPulses(typeID) {
@@ -293,11 +238,21 @@ function ensureAuthoredEss(scene) {
   const systemID = toPositiveInt(scene?.systemID, 0);
   if (!scene || scene.sceneKind !== SCENE_KIND_SOLAR_SYSTEM || !isKnownNullsecSystem(systemID)) return getSystemState(systemID);
   const existing = getSystemState(systemID);
-  if (existing?.essID) return existing;
-  const entity = [...(scene.staticEntities || [])].find(item => Number(item.typeID) === TYPE_ENCOUNTER_SURVEILLANCE_SYSTEM &&
-    !item.airNpeOwnerCharacterID && !item.airNpeInstanceID && item.staticVisibilityScope === "publicgrid");
+  const entities = (scene.staticEntities || []).filter(isPublicEssEntity);
+  const entity = entities.find(item => Number(item.itemID) === existing?.essID) || entities[0];
   if (!entity) return existing;
-  return setSystemState(systemID, { ...existing, essID: Number(entity.itemID), beaconID: Number(entity.itemID) });
+  const companion = scene.getEntityByID?.(Number(entity.essEntryBeaconID || entity.beaconID));
+  const retainedBeacon = scene.getEntityByID?.(Number(existing?.beaconID));
+  const isPublicBeacon = item => item && Number(item.itemID) !== Number(entity.itemID) &&
+    Number(item.typeID) === TYPE_ESS_ENTRY_BEACON &&
+    !item.airNpeOwnerCharacterID && !item.airNpeInstanceID && item.staticVisibilityScope === "publicgrid";
+  const beaconID = isPublicBeacon(companion) ? Number(companion.itemID) :
+    Number(existing?.essID) === Number(entity.itemID) && isPublicBeacon(retainedBeacon)
+      ? Number(retainedBeacon.itemID) : Number(entity.itemID);
+  const result = Number(entity.itemID) === existing?.essID && beaconID === existing?.beaconID
+    ? existing : setSystemState(systemID, { ...existing, essID: Number(entity.itemID), beaconID });
+  require("./essPresentationRuntime").refreshScene(scene, result, { broadcast: true });
+  return result;
 }
 
 function listSystemStates() {
@@ -310,9 +265,11 @@ function buildSettingsPayload() {
   return buildDict(Object.entries({ ...DEFAULT_DYNAMIC_RESOURCE_SETTINGS, ...require("./dynamicBountyPolicy").CONTROL_SETTINGS }));
 }
 
+// An unlinked bank is an empty dict, not null: dynamicResourceSvc.py:260 indexes
+// the key and tests it, and controller.py:111 calls .get on the value.
 function buildMainBankLinkPayload(link = null) {
   if (!link) {
-    return null;
+    return buildDict([]);
   }
   return buildDict([
     ["linkID", link.linkID],
@@ -326,6 +283,18 @@ function buildEssDataPayload(state = null) {
   if (!state || !toPositiveInt(state.essID, 0)) {
     return null;
   }
+  // The client countdown and progress gauge use FILETIME integers. Derive the
+  // cycle start from the persisted deadline so queries and restarts do not
+  // restart the gauge, including for banks saved before these wire fields.
+  const payoutAtMs = Number(state.autopayAtMs);
+  const hasScheduledAutopayment = Number.isSafeInteger(payoutAtMs) && payoutAtMs > 0;
+  // An idle bank uses a fixed, expired display window ending at the Unix
+  // epoch. Equal timestamps divide by zero in the native gauge; a future
+  // fallback would advertise a payout which the settlement owner never scheduled.
+  const nextScheduledAutopayment =
+    BigInt(hasScheduledAutopayment ? payoutAtMs : 0) * 10_000n + 116444736000000000n;
+  const lastAutopayment = nextScheduledAutopayment -
+    BigInt(DEFAULT_DYNAMIC_RESOURCE_SETTINGS.autopaymentIntervalSeconds) * FILETIME_TICKS_PER_SECOND;
   return buildDict([
     ["essID", state.essID],
     ["beaconID", state.beaconID || state.essID],
@@ -334,6 +303,8 @@ function buildEssDataPayload(state = null) {
     ["currentOutput", state.dbs?.active ? require("./dynamicBountyRuntime").project(state).currentOutput : state.currentOutput],
     ["mainValue", state.mainValue],
     ["reserveValue", state.reserveValue],
+    ["nextScheduledAutopayment", buildFiletimeLong(nextScheduledAutopayment)],
+    ["lastAutopayment", buildFiletimeLong(lastAutopayment)],
     ["mainBankLink", buildMainBankLinkPayload(state.mainBankLink)],
     [
       "reserveBankLastPulseInitiated",

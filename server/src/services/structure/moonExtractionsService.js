@@ -1078,6 +1078,14 @@ class MoonExtractionsService extends BaseService {
         nowMs + FRACTURE_TOTAL_DURATION_SECONDS * 1000;
       state.extractions[String(extraction.extractionID)] = extraction;
       this._persistState();
+      if (!this._useInjectedState) {
+        // The drill fires at the chunk: its effect moves to fracture_phase.
+        try {
+          getMoonMiningSpaceRuntime().syncChunkEffectForExtraction(extraction);
+        } catch (error) {
+          log.warn(`[MoonExtractions] drill effect for extraction ${extraction.extractionID} failed: ${error.message}`);
+        }
+      }
       createMoonMiningOwnerNotifications(
         extraction,
         NOTIFICATION_TYPE.MOONMINING_LASER_FIRED,
@@ -1261,6 +1269,76 @@ class MoonExtractionsService extends BaseService {
     );
   }
 }
+
+// The GM buttons of the client's moon scheduling window
+// (eve/client/script/ui/moonmining/scheduling.py:275-278) send
+// /extraction advance mid|stop|ready|decay for the structure being
+// controlled:
+//   mid   - the chunk half way between its start and stop positions;
+//   stop  - the chunk at its stop position, not yet ready to fracture;
+//   ready - the chunk at its stop position and ready to fracture now;
+//   decay - the chunk about to fracture by itself.
+// The extraction's start, arrival and natural decay times move earlier
+// together, so the pull keeps its length and yield; the regular structure
+// tick then marks it ready or fractures it as it would have.
+const GM_ADVANCE_STOP_LEAD_MS = 60 * 1000;
+const GM_ADVANCE_DECAY_LEAD_MS = 5 * 1000;
+MoonExtractionsService.gmAdvanceExtraction = function gmAdvanceExtraction(
+  structureID,
+  phase,
+  options = {},
+) {
+  const targetStructureID = normalizePositiveInteger(structureID, 0);
+  const normalizedPhase = String(phase || "").trim().toLowerCase();
+  const nowMs = normalizeNonNegativeInteger(options.nowMs, currentFileTimeMs());
+  if (!targetStructureID) {
+    return { success: false, errorMsg: "STRUCTURE_REQUIRED" };
+  }
+  const existing = database.read(TABLE, ROOT_PATH);
+  const state = ensureStateShape(
+    existing.success && existing.data && typeof existing.data === "object"
+      ? existing.data
+      : buildInitialState(),
+  );
+  const extraction = getActiveExtractionForStructure(state, targetStructureID);
+  if (!extraction || extraction.state !== "active") {
+    return { success: false, errorMsg: "NO_ACTIVE_EXTRACTION" };
+  }
+  const midpointMs = extraction.startMoveTimeMs +
+    Math.floor((extraction.chunkAvailableTimeMs - extraction.startMoveTimeMs) / 2);
+  const shiftByPhase = {
+    mid: nowMs - midpointMs,
+    stop: nowMs + GM_ADVANCE_STOP_LEAD_MS - extraction.chunkAvailableTimeMs,
+    ready: nowMs - extraction.chunkAvailableTimeMs,
+    decay: nowMs + GM_ADVANCE_DECAY_LEAD_MS - extraction.naturalDecayTimeMs,
+  };
+  if (!Object.prototype.hasOwnProperty.call(shiftByPhase, normalizedPhase)) {
+    return { success: false, errorMsg: "UNKNOWN_PHASE" };
+  }
+  const shiftMs = Math.min(0, shiftByPhase[normalizedPhase]);
+  const advanced = {
+    ...extraction,
+    startMoveTimeMs: extraction.startMoveTimeMs + shiftMs,
+    chunkAvailableTimeMs: extraction.chunkAvailableTimeMs + shiftMs,
+    naturalDecayTimeMs: extraction.naturalDecayTimeMs + shiftMs,
+  };
+  state.extractions[String(advanced.extractionID)] = advanced;
+  database.write(TABLE, ROOT_PATH, state);
+
+  // Move the chunk ball to where the new times put it.
+  try {
+    getMoonMiningSpaceRuntime().placeChunkForExtraction(advanced, { nowMs });
+  } catch (error) {
+    log.warn(`[MoonExtractions] GM advance could not move chunk ${advanced.extractionID}: ${error.message}`);
+  }
+  const sessions = Array.isArray(options.sessions) ? options.sessions : sessionRegistry.getSessions();
+  for (const session of sessions) {
+    if (shouldSendExtractionUpdateToSession(session, advanced)) {
+      sendMoonExtractionUpdate(session, advanced);
+    }
+  }
+  return { success: true, data: advanced, shiftMs };
+};
 
 MoonExtractionsService.readResourceProfileForStructure = function readResourceProfileForStructure(
   structureID,

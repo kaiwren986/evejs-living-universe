@@ -26,6 +26,7 @@ module.exports = {
   isEntityWarpSafeCloakedInFlight,
   isPrototypeCloakingModule,
   isWarpSafeActiveModuleEffectState,
+  isWarpSafeModuleEffectDescriptor,
   isWarpSafeCloakingEffectDescriptor,
   resolveActiveModuleEffectRecord,
   resolveCloakModuleTargetingDelayMs,
@@ -579,10 +580,20 @@ function resolveActiveModuleEffectRecord(effectState) {
 
 function isWarpSafeActiveModuleEffectState(effectState) {
   const effectRecord = resolveActiveModuleEffectRecord(effectState);
-  return Boolean(
-    (effectRecord && effectRecord.isWarpSafe === true) ||
-      isWarpSafeCloakingEffectDescriptor(effectState),
-  );
+  return isWarpSafeModuleEffectDescriptor(effectRecord || effectState);
+}
+
+function isWarpSafeModuleEffectDescriptor(effectRecordOrState) {
+  const effectName = String(
+    effectRecordOrState?.name || effectRecordOrState?.effectName || "",
+  ).trim();
+  // Burst projectors and the transportation oscillator carry isWarpSafe in
+  // the SDE, but their doomsday effects cannot operate during warp. Apply the
+  // same exception when activating and when stopping an effect at warp start.
+  if (/^doomsday/i.test(effectName)) {
+    return false;
+  }
+  return isWarpSafeCloakingEffectDescriptor(effectRecordOrState);
 }
 
 function isEntityActiveWarpInFlight(entity) {

@@ -192,7 +192,8 @@ function resume(intent, nowMs = Date.now()) {
     if (intent.phase === "deploying") {
       intent.phase = "onlining";
       intent.onliningStartedAtMs = nowMs;
-      intent.onliningEndsAtMs = nowMs + orbitals.DEFAULT_ORBITAL_TIMER_MS;
+      intent.onliningEndsAtMs = nowMs + orbitals.getOrbitalTransitionMs(
+        orbitals.TYPE_ORBITAL_SKYHOOK, orbitals.ORBITAL_STATE.ONLINING);
       state.orbitalsByID[String(intent.launchedItemID)] = { ...record,
         skyhookActivationStarted: true, state: orbitals.ORBITAL_STATE.ONLINING,
         stateStartedAtMs: intent.onliningStartedAtMs, stateEndsAtMs: intent.onliningEndsAtMs };
@@ -285,6 +286,34 @@ function cancelUntouchedInvalidSource(intent) {
   return { success: true, cancelled: true };
 }
 
+// The customs office is gone once the skyhook finishes onlining. The client's
+// OnSkyhookFirstActivation(skyhookID, planetID) closes an open import/export
+// window for that planet with the SkyhookReplacingPoco dialog
+// (importExportUI.py:422) and drops the cached skyhook data and theft state
+// (sovereigntyResourceSvc.py:77). No retail capture of this event exists, so
+// the audience is chosen from those handlers: every session in the system
+// (a customs window needs the pilot there) plus the owner corporation's
+// members elsewhere (their skyhook lists). One notification per session.
+function notifySkyhookFirstActivation(intent, sessions) {
+  const skyhookID = Number(intent.launchedItemID) || 0;
+  const planetID = Number(intent.planetID) || 0;
+  const systemID = Number(intent.systemID) || 0;
+  const ownerID = Number(intent.context && intent.context.ownerID) || 0;
+  if (!skyhookID || !planetID) return 0;
+  let sent = 0;
+  for (const candidate of sessions.getSessions()) {
+    if (!candidate || typeof candidate.sendNotification !== "function") continue;
+    const sessionSystemID = Number(candidate.solarsystemid2 || candidate.solarsystemid ||
+      (candidate._space && candidate._space.systemID)) || 0;
+    const corporationID = Number(candidate.corporationID || candidate.corpid) || 0;
+    if ((systemID > 0 && sessionSystemID === systemID) || (ownerID > 0 && corporationID === ownerID)) {
+      candidate.sendNotification("OnSkyhookFirstActivation", "clientID", [skyhookID, planetID]);
+      sent += 1;
+    }
+  }
+  return sent;
+}
+
 function publish(intent, session) {
   const runtime = require("../../space/runtime");
   const scene = session ? runtime.getSceneForSession(session) : runtime.scenes.get(intent.systemID);
@@ -319,6 +348,7 @@ function publish(intent, session) {
   if (!intent.onliningPresentationCompleted && actorSession)
     character.syncInventoryItemForSession(actorSession, launched, intent.sourceItem, { emitCfgLocation: true });
   if (intent.completed) require("../sovereignty/skyhookRuntime").publishSkyhookState(intent.systemID);
+  if (intent.completed && !intent.presentationCompleted) notifySkyhookFirstActivation(intent, sessions);
   if (intent.completed) intent.presentationCompleted = true;
   else intent.onliningPresentationCompleted = true;
   return save(intent) ? { success: true } : fail("WRITE_ERROR");

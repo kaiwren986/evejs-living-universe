@@ -7,6 +7,8 @@ const {
   getAgentByID,
 } = require(path.join(__dirname, "./agentAuthority"));
 const missionAuthority = require(path.join(__dirname, "./missionAuthority"));
+const visionsOfGreatness = require("./visionsOfGreatness");
+const fracturedLegacy = require("./fracturedLegacy");
 // Phase 0 / 0.C: agent/epic-arc state via an ownership-scoped repository.
 const {
   createTableRepository,
@@ -220,6 +222,14 @@ function agentHasEpicMissionsForCharacter(agentID, characterID = 0, options = {}
     : normalizePositiveInteger(characterID, 0) > 0
       ? getExistingCharacterStateSnapshot(characterID)
       : null;
+  const capturedArc = [visionsOfGreatness, fracturedLegacy].find(arc => arc.isAgent(normalizedAgentID));
+  if (capturedArc) {
+    if (!capturedArc.missionIDs().every(id => missionAuthority.getMissionByID(id))) return false;
+    if (capturedArc.nextMissionID(characterState, normalizedAgentID) !== null) return true;
+    return Object.values(characterState?.missionsByAgentID || {}).some(record =>
+      capturedArc.canOfferMission(characterState, record.agentID, record.contentID) &&
+      missionRecordReferencesAgent(record, normalizedAgentID));
+  }
   if (characterStateReferencesAgent(characterState, normalizedAgentID)) {
     return true;
   }

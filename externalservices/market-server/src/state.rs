@@ -774,30 +774,51 @@ impl MarketRuntime {
         let swept_at = as_of
             .format(&Rfc3339)
             .context("failed to format market expiry sweep timestamp")?;
-        let sweep_timestamp = swept_at.clone();
-        let expired_orders = tokio::task::spawn_blocking(move || {
-            expire_due_orders_in_db(&database_path, &sweep_timestamp)
-        })
-        .await
-        .context("expire due orders task join failed")??;
+        // Each batch commits on its own so the writer is released between
+        // batches, but the call still settles every order due at `as_of`:
+        // callers rely on that before cancels, fills and expiry checks.
+        let mut expired_count = 0;
+        loop {
+            let batch_path = database_path.clone();
+            let sweep_timestamp = swept_at.clone();
+            let expired_orders = tokio::task::spawn_blocking(move || {
+                expire_due_orders_in_db(&batch_path, &sweep_timestamp, EXPIRY_SWEEP_BATCH_LIMIT)
+            })
+            .await
+            .context("expire due orders task join failed")??;
+            expired_count += expired_orders.len();
 
-        for order in &expired_orders {
-            self.invalidate_scope_caches(
-                order.row.region_id,
-                order.row.solar_system_id,
-                order.row.station_id,
-                order.row.type_id,
-            )
-            .await;
-        }
+            let scopes: HashSet<(u32, u32, u64, u32)> = expired_orders
+                .iter()
+                .map(|order| {
+                    (
+                        order.row.region_id,
+                        order.row.solar_system_id,
+                        order.row.station_id,
+                        order.row.type_id,
+                    )
+                })
+                .collect();
+            for &(region_id, solar_system_id, station_id, type_id) in &scopes {
+                self.invalidate_scope_caches(region_id, solar_system_id, station_id, type_id)
+                    .await;
+            }
 
-        for order in &expired_orders {
-            self.refresh_region_summary_row(order.row.region_id, order.row.type_id)
-                .await?;
+            let region_types: HashSet<(u32, u32)> = scopes
+                .iter()
+                .map(|&(region_id, _, _, type_id)| (region_id, type_id))
+                .collect();
+            for (region_id, type_id) in region_types {
+                self.refresh_region_summary_row(region_id, type_id).await?;
+            }
+
+            if expired_orders.len() < EXPIRY_SWEEP_BATCH_LIMIT as usize {
+                break;
+            }
         }
 
         Ok(SweepExpiredOrdersResponse {
-            expired_count: expired_orders.len(),
+            expired_count,
             swept_at,
         })
     }
@@ -1041,9 +1062,10 @@ async fn ensure_runtime_schema(database_path: Arc<PathBuf>) -> Result<()> {
                ON seed_stock (station_id, type_id, price);
               CREATE INDEX IF NOT EXISTS idx_market_orders_station_type_bid_state_price
                ON market_orders (station_id, type_id, bid, state, price);
-             CREATE INDEX IF NOT EXISTS idx_market_orders_player_expiry
-               ON market_orders (state, issued_at, duration_days, order_id)
-               WHERE source = 'player';
+             DROP INDEX IF EXISTS idx_market_orders_player_expiry;
+             CREATE INDEX IF NOT EXISTS idx_market_orders_player_due
+               ON market_orders (datetime(issued_at, '+' || duration_days || ' days'), order_id)
+               WHERE source = 'player' AND state = 'open';
               CREATE TABLE IF NOT EXISTS market_order_events (
                 event_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 event_type TEXT NOT NULL,
@@ -2029,6 +2051,23 @@ fn query_system_summary_rows_fallback(
     Ok(values)
 }
 
+fn compare_order_issue_times(left: &str, right: &str) -> std::cmp::Ordering {
+    if left == right {
+        return std::cmp::Ordering::Equal;
+    }
+    // Compare instants, not RFC3339 text: offsets and optional fractions can
+    // reverse lexical order. Unknown dates follow known dates at the same price.
+    match (
+        OffsetDateTime::parse(left, &Rfc3339).ok(),
+        OffsetDateTime::parse(right, &Rfc3339).ok(),
+    ) {
+        (Some(left), Some(right)) => left.cmp(&right),
+        (Some(_), None) => std::cmp::Ordering::Less,
+        (None, Some(_)) => std::cmp::Ordering::Greater,
+        (None, None) => std::cmp::Ordering::Equal,
+    }
+}
+
 fn query_order_book_rows_with_connection(
     connection: &Connection,
     region_id: u32,
@@ -2040,7 +2079,7 @@ fn query_order_book_rows_with_connection(
             "SELECT station_id, solar_system_id, constellation_id, price, quantity, initial_quantity, updated_at
              FROM seed_stock
              WHERE region_id = ?1 AND type_id = ?2 AND quantity > 0
-             ORDER BY price ASC, station_id ASC",
+             ORDER BY price ASC, updated_at ASC, station_id ASC",
         )?;
         let rows = statement.query_map(params![region_id, type_id], |row| {
             Ok(OrderRow {
@@ -2073,7 +2112,7 @@ fn query_order_book_rows_with_connection(
                     station_id, solar_system_id, constellation_id, issued_at, source
              FROM market_orders
              WHERE region_id = ?1 AND type_id = ?2 AND state = 'open' AND bid = 0 AND vol_remaining > 0
-             ORDER BY price ASC, station_id ASC, order_id ASC",
+             ORDER BY price ASC, issued_at ASC, station_id ASC, order_id ASC",
         )?;
         let rows = statement.query_map(params![region_id, type_id], |row| {
             Ok(OrderRow {
@@ -2104,6 +2143,7 @@ fn query_order_book_rows_with_connection(
         left.price
             .partial_cmp(&right.price)
             .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| compare_order_issue_times(&left.issued_at, &right.issued_at))
             .then(left.station_id.cmp(&right.station_id))
             .then(left.order_id.cmp(&right.order_id))
     });
@@ -2114,7 +2154,7 @@ fn query_order_book_rows_with_connection(
             "SELECT station_id, solar_system_id, constellation_id, price, quantity, initial_quantity, updated_at
              FROM seed_buy_orders
              WHERE region_id = ?1 AND type_id = ?2 AND quantity > 0
-             ORDER BY price DESC, station_id ASC",
+             ORDER BY price DESC, updated_at ASC, station_id ASC",
         )?;
         let rows = statement.query_map(params![region_id, type_id], |row| {
             Ok(OrderRow {
@@ -2147,7 +2187,7 @@ fn query_order_book_rows_with_connection(
                     station_id, solar_system_id, constellation_id, issued_at, source
              FROM market_orders
              WHERE region_id = ?1 AND type_id = ?2 AND state = 'open' AND bid = 1 AND source = 'player' AND vol_remaining > 0
-             ORDER BY price DESC, station_id ASC, order_id ASC",
+             ORDER BY price DESC, issued_at ASC, station_id ASC, order_id ASC",
         )?;
         let rows = statement.query_map(params![region_id, type_id], |row| {
             Ok(OrderRow {
@@ -2174,13 +2214,14 @@ fn query_order_book_rows_with_connection(
         }
     }
 
-    // Matching consumes this merged book in order. Sorting each source's SQL
-    // rows separately would let a cheaper seeded bid beat a player bid.
+    // Matching consumes the merged books in price/time order, as the pinned
+    // client quotes them. SQL/source order must not outrank price or issue time.
     buys.sort_by(|left, right| {
         right
             .price
             .partial_cmp(&left.price)
             .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| compare_order_issue_times(&left.issued_at, &right.issued_at))
             .then(left.station_id.cmp(&right.station_id))
             .then(left.order_id.cmp(&right.order_id))
     });
@@ -3254,7 +3295,22 @@ fn fill_order_in_db(database_path: &Path, request: FillOrderRequest) -> Result<F
     )
 }
 
-fn expire_due_orders_in_db(database_path: &Path, as_of: &str) -> Result<Vec<OwnerOrderRow>> {
+/// Most orders one expiry transaction settles. A swept row becomes `expired`
+/// and the rest stay `open`, so the next batch picks up where this one ended.
+/// The due-time expression in the query must match
+/// idx_market_orders_player_due exactly, or each batch scans every open order
+/// while holding the write lock.
+const EXPIRY_SWEEP_BATCH_LIMIT: u32 = 5_000;
+
+fn expire_due_orders_in_db(
+    database_path: &Path,
+    as_of: &str,
+    batch_limit: u32,
+) -> Result<Vec<OwnerOrderRow>> {
+    // SQLite reads LIMIT 0 as "none" and a negative LIMIT as "all".
+    if batch_limit == 0 {
+        bail!("market expiry batch limit must be positive");
+    }
     let mut connection = load_connection(database_path)?;
     let transaction = begin_write_transaction(&mut connection)?;
     let mut expired_orders = Vec::new();
@@ -3267,9 +3323,10 @@ fn expire_due_orders_in_db(database_path: &Path, as_of: &str) -> Result<Vec<Owne
              WHERE state = 'open'
                AND source = 'player'
                AND datetime(issued_at, '+' || duration_days || ' days') <= datetime(?1)
-             ORDER BY order_id ASC",
+             ORDER BY datetime(issued_at, '+' || duration_days || ' days'), order_id
+             LIMIT ?2",
         )?;
-        let rows = statement.query_map(params![as_of], map_owner_order_row)?;
+        let rows = statement.query_map(params![as_of, batch_limit], map_owner_order_row)?;
 
         for row in rows {
             expired_orders.push(row?);
@@ -4107,7 +4164,7 @@ mod tests {
         }
 
         let swept_at = "2025-01-02T00:00:01Z";
-        let expired = expire_due_orders_in_db(&database_path, swept_at)?;
+        let expired = expire_due_orders_in_db(&database_path, swept_at, EXPIRY_SWEEP_BATCH_LIMIT)?;
         assert_eq!(expired.len(), 1);
         assert_eq!(expired[0].order_id, 44);
         assert_eq!(expired[0].state, "expired");
@@ -4136,6 +4193,83 @@ mod tests {
                 |row| row.get::<_, String>(0),
             )?,
             swept_at,
+        );
+
+        remove_test_database(&database_path);
+        Ok(())
+    }
+
+    #[test]
+    fn expiry_batches_resume_in_due_order_through_the_index() -> Result<()> {
+        let unique = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
+        let database_path = std::env::temp_dir().join(format!(
+            "evejs-market-expiry-batch-{}-{unique}.sqlite",
+            std::process::id()
+        ));
+        remove_test_database(&database_path);
+
+        {
+            let connection = load_connection(&database_path)?;
+            connection.execute_batch(SCHEMA_SQL)?;
+            for (order_id, issued_at) in [
+                (44_i64, "2025-01-01T00:00:00Z"),
+                (45_i64, "2025-01-01T00:00:00Z"),
+                (46_i64, "2024-12-31T00:00:00Z"),
+            ] {
+                connection.execute(
+                    "INSERT INTO market_orders (
+                       order_id, owner_id, station_id, solar_system_id, constellation_id, region_id,
+                       type_id, price, vol_entered, vol_remaining, bid, issued_at, duration_days,
+                       source, updated_at
+                     ) VALUES (?1, 100, 3, 2, 4, 1, 34, 5.0, 10, 10, 0, ?2, 1, 'player', ?2)",
+                    params![order_id, issued_at],
+                )?;
+            }
+
+            let plan = connection
+                .prepare(
+                    "EXPLAIN QUERY PLAN
+                     SELECT order_id FROM market_orders
+                     WHERE state = 'open'
+                       AND source = 'player'
+                       AND datetime(issued_at, '+' || duration_days || ' days') <= datetime(?1)
+                     ORDER BY datetime(issued_at, '+' || duration_days || ' days'), order_id
+                     LIMIT ?2",
+                )?
+                .query_map(params!["2025-01-02T00:00:01Z", 2], |row| {
+                    row.get::<_, String>(3)
+                })?
+                .collect::<rusqlite::Result<Vec<_>>>()?;
+            assert_eq!(
+                plan,
+                vec!["SEARCH market_orders USING INDEX idx_market_orders_player_due (<expr><?)"]
+            );
+        }
+
+        let swept_at = "2025-01-02T00:00:01Z";
+        assert!(expire_due_orders_in_db(&database_path, swept_at, 0).is_err());
+
+        let ids = |orders: Vec<OwnerOrderRow>| -> Vec<i64> {
+            orders.iter().map(|order| order.order_id as i64).collect()
+        };
+        assert_eq!(
+            ids(expire_due_orders_in_db(&database_path, swept_at, 2)?),
+            vec![46, 44]
+        );
+        assert_eq!(
+            ids(expire_due_orders_in_db(&database_path, swept_at, 2)?),
+            vec![45]
+        );
+        assert!(expire_due_orders_in_db(&database_path, swept_at, 2)?.is_empty());
+
+        let connection = load_connection(&database_path)?;
+        assert_eq!(
+            connection.query_row(
+                "SELECT COUNT(*) FROM market_order_events WHERE event_type = 'expired'",
+                [],
+                |row| row.get::<_, u64>(0),
+            )?,
+            3
         );
 
         remove_test_database(&database_path);

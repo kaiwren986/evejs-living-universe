@@ -10,6 +10,9 @@ const { performance } = require("perf_hooks");
 const log = require(path.join(__dirname, "../../utils/logger"));
 const config = require(path.join(__dirname, "../../config"));
 const { random } = require(path.join(__dirname, "../../common/random"));
+const {
+  NPC_WARP_JITTER_RADIUS_METERS,
+} = require(path.join(__dirname, "../destiny/simulation/warpJitter"));
 
 const {
   getControllerByEntityID,
@@ -84,6 +87,9 @@ const {
 const {
   ENTITY_TYPE,
 } = require(path.join(__dirname, "../entityConstants"));
+const {
+  GRID_BUBBLE_BOX_METERS,
+} = require(path.join(__dirname, "../destiny/visibility/gridBubbles"));
 const { resolveAbyssalNpcBoundaryDirection } = require("./abyssal/abyssalNpcBoundaryNavigation");
 
 // These entity-missile special-FX helpers live in modules that transitively
@@ -1107,6 +1113,7 @@ function beginNpcWarpToPoint(scene, entity, controller, destination, options = {
     {
       forceImmediateStart: true,
       broadcastWarpStartToVisibleSessions: true,
+      jitterRadiusMeters: NPC_WARP_JITTER_RADIUS_METERS,
       // Refused when its queued order applies: the warp never
       // happened, so it costs no cooldown (npcRuntime wakes the NPC at once).
       onRefusedWhenApplied() {
@@ -1571,6 +1578,11 @@ function isFriendlyCombatTarget(entity, target) {
     if (["protected", "dread", "array"].includes(target?.homefrontRole))
       return true;
   }
+  // The AIR fleet battle (services/npe/airFleetBattle.js): a pilot's lesson hostiles and the
+  // companions of the same site are enemies; everything else of the site is one side.
+  if (require("../combat/airCombatPolicy").isBattleShot(entity, target)) {
+    return entity.airEncounterSlot.startsWith("hostile:") === target.airEncounterSlot.startsWith("hostile:");
+  }
   const sourceClass = resolveCombatActorClass(entity);
   const targetClass = resolveCombatActorClass(target);
   if (!sourceClass || !targetClass) {
@@ -1695,6 +1707,7 @@ function normalizeBehaviorOverrides(overrides) {
     "useChasePropulsion",
     "allowTargetSwitching",
     "useSdeChaseVelocity",
+    "warpOffWhenTargeted",
   ];
   for (const field of booleanFields) {
     if (overrides[field] !== undefined) {
@@ -1723,6 +1736,7 @@ function normalizeBehaviorOverrides(overrides) {
     "chaseMaxDelayChance",
     "chaseMaxDurationMs",
     "chaseMaxDurationChance",
+    "idleApproachPlayerRangeMeters",
   ];
   for (const field of numericFields) {
     if (overrides[field] !== undefined) {
@@ -2186,7 +2200,12 @@ function syncNpcChaseVelocity(scene, entity, controller, behaviorProfile, target
     return {
       active: false,
       mode: "disabled",
-      changed: false,
+      // Disabling SDE chase after it has already changed a live Ball must
+      // release that speed through the ordinary movement/prime-update owner.
+      // Other disabled policies and actors never managed by SDE stay untouched.
+      changed: behaviorProfile.useSdeChaseVelocity === false && behaviorProfile.useChasePropulsion !== true && entity?._npcSdeChaseVelocityMode === "chase" && policy.cruiseSpeed > 0
+        ? applyNpcChaseVelocityMode(scene, entity, "cruise", { ...policy, enabled: true })
+        : false,
     };
   }
 
@@ -3085,12 +3104,14 @@ function normalizeManualOrder(order) {
     movementMode: String(order.movementMode || "").trim().toLowerCase() || null,
     orbitDistanceMeters: Math.max(0, toFiniteNumber(order.orbitDistanceMeters, 0)),
     followRangeMeters: Math.max(0, toFiniteNumber(order.followRangeMeters, 0)),
+    // null means "not given": the tick re-normalises the stored order, so null
+    // must survive a second pass or every omitted option turns into false.
     allowWeapons:
-      order.allowWeapons === undefined ? null : order.allowWeapons === true,
+      order.allowWeapons == null ? null : order.allowWeapons === true,
     keepLock:
-      order.keepLock === undefined ? null : order.keepLock === true,
+      order.keepLock == null ? null : order.keepLock === true,
     allowPodKill:
-      order.allowPodKill === undefined ? null : order.allowPodKill === true,
+      order.allowPodKill == null ? null : order.allowPodKill === true,
   };
 }
 
@@ -3411,6 +3432,12 @@ function resolveDesiredTarget(scene, controller, entity, behaviorProfile, manual
   if (manualOrder && manualOrder.type === "stop") {
     return null;
   }
+  if (manualOrder && manualOrder.type === "warpOff") {
+    return null;
+  }
+  if (manualOrder && manualOrder.type === "align") {
+    return null;
+  }
   if (manualOrder && manualOrder.type === "returnHome") {
     return null;
   }
@@ -3483,6 +3510,10 @@ function syncNpcHostileModules(scene, entity, target) {
   const pseudoSession = buildNpcPseudoSession(entity);
   const modules = getNpcHostileModules(entity);
   for (const { moduleItem, definition, effectName } of modules) {
+    if (definition.nativeNpcBossBurst === true) {
+      require("./nativeNpcAbilities").syncBossEcmModule(scene, entity, moduleItem, effectName, pseudoSession);
+      continue;
+    }
     const activeEffect = entity.activeModuleEffects instanceof Map
       ? entity.activeModuleEffects.get(toPositiveInt(moduleItem.itemID, 0)) || null
       : null;
@@ -3651,9 +3682,12 @@ function logNpcRemoteShieldTargetRejected(
   );
 }
 
-function syncNpcAssistanceModules(scene, entity, controller) {
+function syncNpcAssistanceModules(scene, entity, controller, activeTargetID = 0) {
   const pseudoSession = buildNpcPseudoSession(entity);
-  const modules = getNpcAssistanceModules(entity);
+  // Noncombat scripted FOLLOW only maintains its already-running repair. It
+  // must not acquire another ship or start an inactive module on scarred allies.
+  const modules = getNpcAssistanceModules(entity).filter(({ moduleItem }) => !activeTargetID ||
+    toPositiveInt(entity.activeModuleEffects?.get(toPositiveInt(moduleItem.itemID, 0))?.targetID, 0) === activeTargetID);
   const remoteShieldModules = modules.filter(isRemoteShieldAssistanceModule);
   if (remoteShieldModules.length > 0) {
     const lifecycle = getNpcRemoteShieldLifecycleState(controller);
@@ -3678,6 +3712,12 @@ function syncNpcAssistanceModules(scene, entity, controller) {
   }
   let maintainedAssistance = false;
   for (const { moduleItem, definition, effectName } of modules) {
+    if (definition.nativeNpcShield === true) {
+      maintainedAssistance = require("./nativeNpcAbilities").syncShieldModule(
+        scene, entity, controller, moduleItem, effectName, pseudoSession,
+      ) || maintainedAssistance;
+      continue;
+    }
     const remoteShieldModule = String(definition && definition.family || "") === "remoteShield";
     const activeEffect = entity.activeModuleEffects instanceof Map
       ? entity.activeModuleEffects.get(toPositiveInt(moduleItem && moduleItem.itemID, 0)) || null
@@ -3689,9 +3729,14 @@ function syncNpcAssistanceModules(scene, entity, controller) {
         activeTarget,
         activeEffect.assistanceFamily || definition && definition.family,
       );
+      // scriptedAssistanceTargetID: a scene told this NPC to repair that ship (the AIR tutorial's
+      // Balin repairing the pilot), whom its own rules would not assist; it keeps repairing
+      // while the ship still needs it.
+      const scriptedTarget = Boolean(activeTarget) &&
+        toPositiveInt(entity.scriptedAssistanceTargetID, 0) === toPositiveInt(activeTarget.itemID, 0);
       const activeTargetStillValid = Boolean(
         activeTarget &&
-        isFriendlyNpcAssistanceTarget(entity, activeTarget, controller) &&
+        (scriptedTarget || isFriendlyNpcAssistanceTarget(entity, activeTarget, controller)) &&
         activeNeedRatio > 0 &&
         (
           effectiveRange <= 0 ||
@@ -3726,10 +3771,15 @@ function syncNpcAssistanceModules(scene, entity, controller) {
         moduleItem: summarizeNpcCombatModule(moduleItem),
         activeTargetID: toPositiveInt(activeEffect && activeEffect.targetID, 0),
       });
+      // A scripted repair whose ship is whole again ends with its running cycle, as a pilot's
+      // module does; stopped at once, the stop went out in the update of the start, and the
+      // client dropped it for a beam still loading, which then ran on.
       scene.deactivateGenericModule(pseudoSession, moduleItem.itemID, {
         reason: "npc",
-        deferUntilCycle: false,
+        deferUntilCycle: scriptedTarget,
       });
+      // Until then it is still assistance: dropping the lock would end the cycle at once.
+      if (scriptedTarget) maintainedAssistance = true;
       continue;
     }
 
@@ -4745,6 +4795,78 @@ function syncNpcReturnHome(scene, entity, controller, behaviorProfile, now) {
   controller.lastHomeDirection = homeDirection;
 }
 
+// A career mission leader (e.g. Wolf in the Military career's part 3) flies toward a pilot on
+// his grid from far off without targeting him: idleApproachPlayerRangeMeters only moves the
+// NPC, at its cruise speed. With warpOffWhenTargeted he warps off his grid as soon as a pilot
+// starts to lock him, so he is never engaged (EVE University wiki: "will warp off before you
+// can engage it"), and is removed once he lands.
+function isNpcTargetedByPlayer(scene, entity) {
+  const entityID = toPositiveInt(entity && entity.itemID, 0);
+  if (typeof scene.getTargetersForEntity === "function" &&
+    scene.getTargetersForEntity(entity).some((sourceID) =>
+      resolveCombatActorClass(scene.getEntityByID(sourceID)) === "player")) {
+    return true;
+  }
+  if (typeof scene.getSortedPendingTargetLocks !== "function") {
+    return false;
+  }
+  for (const candidate of scene.dynamicEntities.values()) {
+    if (resolveCombatActorClass(candidate) === "player" &&
+      scene.getSortedPendingTargetLocks(candidate).some((lock) => toPositiveInt(lock && lock.targetID, 0) === entityID)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function syncNpcIdleApproachPlayer(scene, entity, controller, behaviorProfile, nowMs) {
+  const approachRangeMeters = Math.max(
+    0,
+    toFiniteNumber(behaviorProfile && behaviorProfile.idleApproachPlayerRangeMeters, 0),
+  );
+  if (approachRangeMeters <= 0) {
+    return false;
+  }
+  if (controller.warpedOffFromPlayer === true) {
+    // The warp applies at the next Destiny tick: he is gone once he was seen in warp and
+    // has left it. A warp refused when it applied leaves him as he was, to try again.
+    if (isEntityInActiveWarp(entity)) {
+      controller.warpOffSeenInWarp = true;
+    } else if (controller.warpOffSeenInWarp === true) {
+      getNativeNpcService().destroyNativeNpcController(controller, { scene });
+    } else if (!hasPendingNpcMovement(scene, entity)) {
+      controller.warpedOffFromPlayer = false;
+    }
+    return true;
+  }
+  const player = findNearestCombatTarget(scene, entity, approachRangeMeters, {
+    allowedTargetClasses: ["player"],
+  });
+  if (!player) {
+    return false;
+  }
+  if (behaviorProfile.warpOffWhenTargeted === true && isNpcTargetedByPlayer(scene, entity)) {
+    // One grid bubble box straight away from the pilot leaves his grid whatever the boxes.
+    const away = normalizeVector(subtractVectors(entity.position, player.position), { x: 1, y: 0, z: 0 });
+    const destination = {
+      x: entity.position.x + away.x * GRID_BUBBLE_BOX_METERS,
+      y: entity.position.y + away.y * GRID_BUBBLE_BOX_METERS,
+      z: entity.position.z + away.z * GRID_BUBBLE_BOX_METERS,
+    };
+    const warp = beginNpcWarpToPoint(scene, entity, controller, destination, { nowMs });
+    if (warp && warp.success) {
+      controller.warpedOffFromPlayer = true;
+    }
+    return true;
+  }
+  syncNpcMovement(scene, entity, player, {
+    movementMode: "follow",
+    followRangeMeters: Math.max(0, toFiniteNumber(behaviorProfile.followRangeMeters, 0)),
+  });
+  controller.returningHome = false;
+  return true;
+}
+
 function resolveIdleAnchorEntity(scene, controller, entity) {
   const anchorID = toPositiveInt(controller && controller.anchorID, 0);
   if (!scene || !anchorID || anchorID === toPositiveInt(entity && entity.itemID, 0)) {
@@ -5087,6 +5209,9 @@ function tickController(scene, controller, now) {
   }
   const boundaryDirection = resolveAbyssalNpcBoundaryDirection(scene, entity, controller);
   tickControllerBehavior(scene, controller, entity, now, Boolean(boundaryDirection));
+  // Completing an idle think is forward progress too. Combat timestamps only
+  // advance after acquiring an eligible target and cannot prove scheduler health.
+  controller.lastBehaviorTickAtMs = now;
   if (boundaryDirection) {
     // A queued change applies only at the next Destiny tick, and until then
     // the Ball's mode reads as it was. While any movement change waits, the
@@ -5108,11 +5233,92 @@ function tickController(scene, controller, now) {
   }
 }
 
+// The manual order "warpOff": leave the grid by warp, one grid bubble box away from
+// order.awayFromPosition (or straight ahead), and be removed once landed (a career friend who
+// says he is leaving). An ordinary warp order, as a pilot's: the ship turns and speeds up to
+// align, then enters warp (an entity warp-in would skip that and jump at once). It applies at
+// the next Destiny tick; one refused when it applied leaves the NPC as it was, to try again.
+// Returns "ordered", "leaving", "removed" or "waiting".
+function syncNpcWarpOff(scene, entity, controller, order) {
+  const leaving = isEntityInActiveWarp(entity);
+  if (controller.warpOffOrdered === true) {
+    if (leaving) {
+      controller.warpOffSeenLeaving = true;
+      return "leaving";
+    }
+    // Alignment can still be canceled by tackle. Only an actual flight proves
+    // that a later STOP is a landing rather than an interrupted departure.
+    if (String(entity.mode || "").toUpperCase() === "WARP") return "waiting";
+    if (controller.warpOffSeenLeaving === true) {
+      getNativeNpcService().destroyNativeNpcController(controller, { scene });
+      return "removed";
+    }
+    if (hasPendingNpcMovement(scene, entity)) return "waiting";
+    controller.warpOffOrdered = false;
+  }
+  if (typeof scene.warpDynamicEntityToPoint !== "function") return "waiting";
+  const from = order && order.awayFromPosition;
+  const away = normalizeVector(from ? subtractVectors(entity.position, from) : entity.direction || { x: 1, y: 0, z: 0 },
+    { x: 1, y: 0, z: 0 });
+  const warp = scene.warpDynamicEntityToPoint(entity, {
+    x: entity.position.x + away.x * GRID_BUBBLE_BOX_METERS,
+    y: entity.position.y + away.y * GRID_BUBBLE_BOX_METERS,
+    z: entity.position.z + away.z * GRID_BUBBLE_BOX_METERS,
+  });
+  if (!warp || !warp.success) return "waiting";
+  controller.warpOffOrdered = true;
+  return "ordered";
+}
+
+// The manual order "align": turn toward order.direction and speed up along it, as a pilot
+// aligning for a warp (the AIR rescue fleet while the pilot aligns for its fleet warp). A warp
+// in flight or queued is left alone, and once the NPC has been in warp and is out of it again
+// the order ends. Returns "ordered", "aligning", "warping" or "ended".
+function syncNpcAlign(scene, entity, controller, order) {
+  if (String(entity.mode || "").toUpperCase() === "WARP") {
+    controller.alignSawWarp = true;
+    return "warping";
+  }
+  if (typeof scene.hasQueuedWarpOrder === "function" && scene.hasQueuedWarpOrder(entity)) {
+    return "warping";
+  }
+  if (controller.alignSawWarp === true) {
+    controller.manualOrder = null;
+    delete controller.alignSawWarp;
+    delete controller.lastAlignDirection;
+    return "ended";
+  }
+  const direction = normalizeVector(order && order.direction, entity.direction || { x: 1, y: 0, z: 0 });
+  if (
+    entity.mode === "GOTO" &&
+    !hasPendingNpcMovement(scene, entity) &&
+    !isDirectionChangeSignificant(controller.lastAlignDirection || null, direction)
+  ) {
+    return "aligning";
+  }
+  scene.gotoDirection(buildNpcPseudoSession(entity), direction, {
+    queueHistorySafeContract: true,
+    suppressFreshAcquireReplay: true,
+  });
+  controller.lastAlignDirection = direction;
+  return "ordered";
+}
+
 function tickControllerBehavior(scene, controller, entity, now, avoidingBoundary = false) {
   const behaviorProfile = resolveEffectiveBehaviorProfile(controller);
   const manualOrder = normalizeManualOrder(controller.manualOrder);
   if (!manualOrder && controller.manualOrder) {
     controller.manualOrder = null;
+  }
+
+  // An order with afterWarp waits while the NPC or its target is still in warp (the AIR
+  // fleet battle's orders, given as the hostiles warp in): the warp goes on undisturbed.
+  if (manualOrder && manualOrder.afterWarp === true) {
+    const orderTarget = manualOrder.targetID > 0 ? scene.getEntityByID(manualOrder.targetID) : null;
+    if ([entity, orderTarget].some(ship => ship && String(ship.mode || "").toUpperCase() === "WARP")) {
+      scheduleNextThink(controller, behaviorProfile, now);
+      return;
+    }
   }
 
   if (manualOrder && manualOrder.type === "stop") {
@@ -5121,6 +5327,22 @@ function tickControllerBehavior(scene, controller, entity, now, avoidingBoundary
       clearTargets: true,
       stopShip: !avoidingBoundary,
     });
+    scheduleNextThink(controller, behaviorProfile, now);
+    return;
+  }
+
+  if (manualOrder && manualOrder.type === "warpOff") {
+    clearNpcCombatState(scene, entity, controller, { deactivateWeapons: true, clearTargets: true, stopShip: false });
+    if (syncNpcWarpOff(scene, entity, controller, manualOrder) !== "removed") {
+      scheduleNextThink(controller, behaviorProfile, now);
+    }
+    return;
+  }
+
+  if (manualOrder && manualOrder.type === "align") {
+    clearNpcCombatState(scene, entity, controller, { deactivateWeapons: true, clearTargets: true, stopShip: false });
+    // Once ended, the next think is the NPC's own behaviour again.
+    syncNpcAlign(scene, entity, controller, manualOrder);
     scheduleNextThink(controller, behaviorProfile, now);
     return;
   }
@@ -5239,7 +5461,14 @@ function tickControllerBehavior(scene, controller, entity, now, avoidingBoundary
         controller,
         behaviorProfile,
       );
-      if (!handledIdleAnchorOrbit) {
+      const handledIdleApproach = !handledIdleAnchorOrbit && syncNpcIdleApproachPlayer(
+        scene,
+        entity,
+        controller,
+        behaviorProfile,
+        now,
+      );
+      if (!handledIdleAnchorOrbit && !handledIdleApproach) {
         const handledCapitalReturnHome =
           entity && entity.capitalNpc === true
             ? syncCapitalNpcReturnHome(
@@ -5528,6 +5757,9 @@ function tickControllerBehavior(scene, controller, entity, now, avoidingBoundary
     );
   if (maintainCombatLock && allowCombatWeapons && shouldRunAssistanceMaintenance) {
     syncNpcAssistanceModules(scene, entity, controller);
+  } else if (maintainCombatLock && manualOrder?.type === "follow" && shouldRunAssistanceMaintenance &&
+      toPositiveInt(entity.scriptedAssistanceTargetID, 0) === desiredTargetID) {
+    syncNpcAssistanceModules(scene, entity, controller, desiredTargetID);
   }
 
   if (maintainCombatLock && allowCombatWeapons && hasDesiredLock) {
@@ -5804,7 +6036,10 @@ module.exports = {
   setBehaviorOverrides,
   noteIncomingAggression,
   deactivateNpcControllerCombat,
+  resolveNpcAssistanceNeedRatio,
+  syncNpcAlign,
   __testing: {
+    beginNpcWarpToPoint,
     isEntityInActiveWarp,
     buildNpcPseudoSession,
     isFriendlyCombatTarget,
@@ -5825,6 +6060,9 @@ module.exports = {
     ensureNpcEntityMissileOffensiveEffect,
     clearNpcEntityMissileOffensiveEffect,
     syncNpcMovement,
+    syncNpcIdleApproachPlayer,
+    syncNpcWarpOff,
+    syncNpcAlign,
     syncNpcPropulsion,
     syncNpcWeapons,
     syncNpcHostileModules,

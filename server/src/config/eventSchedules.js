@@ -2,10 +2,13 @@
 
 const ELECTION = "gallente-election-yc128";
 const LOGIN = "gallente-election-login-yc128";
+const WARPATH = "warpath-yc128";
+const WARPATH_VERSION = 1;
 const DEFAULTS = {
   [ELECTION]: { enabled: false, startsAt: "2026-09-15T00:00:00Z", endsAt: "2036-09-15T00:00:00Z", traderGraceDays: 7,
     bonuses: { warpSpeedPercent: 10, hybridTrackingPercent: 7.5, localArmorRepairPercent: 7.5 } },
   [LOGIN]: { enabled: false, startsAt: "2026-09-15T00:00:00Z", endsAt: "2036-09-15T00:00:00Z" },
+  [WARPATH]: { enabled: false, startsAt: "2026-12-01T11:00:00Z", endsAt: "2027-01-14T11:00:00Z" },
 };
 
 function timestamp(value, name) {
@@ -24,7 +27,12 @@ function validateSchedules(value) {
     const allowed = id === ELECTION ? ["enabled", "startsAt", "endsAt", "traderGraceDays", "bonuses"] : ["enabled", "startsAt", "endsAt"];
     if (Object.keys(entry).some(key => !allowed.includes(key))) throw new Error(`Unknown schedule option for ${id}.`);
     if (typeof entry.enabled !== "boolean") throw new Error(`${id}.enabled must be boolean.`);
-    if (timestamp(entry.endsAt, `${id}.endsAt`) <= timestamp(entry.startsAt, `${id}.startsAt`)) throw new Error(`${id}.endsAt must follow startsAt.`);
+    const startsAtMs = timestamp(entry.startsAt, `${id}.startsAt`);
+    const endsAtMs = timestamp(entry.endsAt, `${id}.endsAt`);
+    if (endsAtMs <= startsAtMs) throw new Error(`${id}.endsAt must follow startsAt.`);
+    if (id === WARPATH && [startsAtMs, endsAtMs].some(ms => new Date(ms).toISOString().slice(11) !== "11:00:00.000Z")) {
+      throw new Error("Warpath starts and ends at the native 11:00 UTC login reset.");
+    }
     if (id === ELECTION) {
       if (!Number.isInteger(entry.traderGraceDays) || entry.traderGraceDays < 0 || entry.traderGraceDays > 365) throw new Error("traderGraceDays must be an integer from 0 to 365.");
       const keys = Object.keys(DEFAULTS[ELECTION].bonuses);
@@ -34,4 +42,4 @@ function validateSchedules(value) {
   return value;
 }
 
-module.exports = { ELECTION, LOGIN, DEFAULTS, validateSchedules };
+module.exports = { ELECTION, LOGIN, WARPATH, WARPATH_VERSION, DEFAULTS, validateSchedules };

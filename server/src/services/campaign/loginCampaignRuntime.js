@@ -3,6 +3,7 @@ const database = require("../../gameStore");
 const store = require("../newEdenStore/storeState");
 const catalog = require("./loginCampaignCatalog");
 const { currentFileTime } = require("../_shared/serviceHelpers");
+const { getWallclockNowMs, toFileTimeFromMs } = require("../../space/runtime/runtimeClock");
 const key = row => `${row.id}:${row.version}`;
 function accountID(session) {
   const id = Number(session?.userid || session?.userID || session?.accountID);
@@ -65,6 +66,11 @@ function notify(session) {
     target.sendNotification("OnRedeemingQueueUpdated", "clientID", []);
   }
 }
+function isExpired(token, nowMs = getWallclockNowMs()) {
+  const value = token.expireDateTime;
+  const expiry = typeof value === "string" && /^\d+$/.test(value) ? BigInt(value) : 0n;
+  return expiry > 0n && expiry <= toFileTimeFromMs(nowMs);
+}
 function claim(kind, session, nowMs) {
   const model = get(kind, session, nowMs);
   if (!model) return null;
@@ -97,12 +103,24 @@ function claim(kind, session, nowMs) {
   account.redeemTokens ||= [];
   for (const { reward, day, track, grantID } of grants) {
     const tokenID = nextTokenID(account);
+    const expiry = row.honorRedeemExpiry && reward.redeemedExpiryDays > 0
+      ? nowMs + reward.redeemedExpiryDays * catalog.DAY_MS : 0;
+    const campaignGrant = { grantID, campaignID: row.id, version: row.version };
+    if (reward.injection) {
+      campaignGrant.injection = reward.injection;
+      if (reward.injection === "booster") campaignGrant.injectionEndsAtMs = row.boosterInjectionEndsAtMs;
+    }
+    // A booster token stops being useful when either its redeem window or its
+    // injection window closes. The accepted operation keeps its frozen terms.
+    const expiryMs = campaignGrant.injectionEndsAtMs ? Math.min(expiry || Infinity, campaignGrant.injectionEndsAtMs) : expiry;
     account.redeemTokens.push({ tokenID, massTokenID: 0, typeID: reward.typeID, quantity: reward.quantity,
       blueprintRuns: reward.blueprintRuns || 0, blueprintMaterialLevel: reward.blueprintMaterialLevel || 0,
       blueprintProductivityLevel: reward.blueprintProductivityLevel || 0,
-      stationID: 0, dateTime: currentFileTime().toString(), expireDateTime: "0", available: true,
-      label: kind === "daily" ? "Daily Login Reward" : `Gallente Election: Day ${day} (${track})`,
-      description: reward.name || "Login campaign reward", campaignGrant: { grantID, campaignID: row.id, version: row.version } });
+      stationID: 0, dateTime: (row.honorRedeemExpiry ? toFileTimeFromMs(nowMs) : currentFileTime()).toString(),
+      expireDateTime: expiryMs ? toFileTimeFromMs(expiryMs).toString() : "0", available: true,
+      soulbound: Boolean(reward.injection),
+      label: kind === "daily" ? "Daily Login Reward" : `${row.name || "Gallente Election"}: Day ${day} (${track})`,
+      description: reward.name || "Login campaign reward", campaignGrant });
   }
   state.fingerprint = row.fingerprint;
   state.eligibility ||= catalog.eligibility(row, id, nowMs);
@@ -117,4 +135,4 @@ function claim(kind, session, nowMs) {
   notify(session);
   return { ...model, account, progress: state, grants };
 }
-module.exports = { key, accountID, authorizedAccountID, get, claim, progress, flush, save, notify };
+module.exports = { key, accountID, authorizedAccountID, get, claim, progress, flush, save, notify, isExpired };

@@ -32,6 +32,19 @@ const MEMBERSHIP_TYPE_EXCLUDED = 3;
 // Internal helpers
 // -----------------------------------------------------------------------
 
+function cloneRecord(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function flushAccessGroups() {
+  const result = database.flushTableSync(TABLE);
+  if (!result || result.success !== true) {
+    log.warn(
+      `[AccessGroupStore] flush failed: ${result && result.errorMsg || "UNKNOWN"}`,
+    );
+  }
+}
+
 function readMeta() {
   const result = database.read(TABLE, "/_meta");
   if (result.success && result.data && typeof result.data === "object") {
@@ -42,22 +55,28 @@ function readMeta() {
 
 function writeMeta(meta) {
   database.write(TABLE, "/_meta", meta);
+  flushAccessGroups();
 }
 
 function readGroup(groupID) {
   const result = database.read(TABLE, `/${groupID}`);
   if (result.success && result.data && typeof result.data === "object") {
-    return { ...result.data };
+    // Deep clone: callers mutate members[] before writing. A shallow copy
+    // shares the array with the gameStore cache, so database.write() sees the
+    // already-mutated cache and skips the flush.
+    return cloneRecord(result.data);
   }
   return null;
 }
 
 function writeGroup(group) {
   database.write(TABLE, `/${group.groupID}`, group);
+  flushAccessGroups();
 }
 
 function deleteGroupFromDB(groupID) {
   database.remove(TABLE, `/${groupID}`);
+  flushAccessGroups();
 }
 
 function getAllGroups() {

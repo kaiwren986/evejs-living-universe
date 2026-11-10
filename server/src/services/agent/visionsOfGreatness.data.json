@@ -1,0 +1,3115 @@
+{
+  "schema": "evejs.visions-of-greatness.v1",
+  "authority": "Captured objective and briefing RPCs, source-agent state changes, epic status acceptance order and cached message maps corroborate the installed native mission/epic/NPC data and declared SDE. Final captured reward quotes have unknown skill baseline and are not native base rewards.",
+  "arc": {
+    "epicArcID": 132,
+    "rootAgentID": 3020233,
+    "missionIDs": [
+      17188,
+      17184,
+      17190,
+      17186,
+      17187,
+      17183,
+      17189,
+      17185
+    ],
+    "nameID": 1039685,
+    "title": "Visions of Greatness",
+    "factionID": 500028,
+    "restartIntervalMinutes": 129600,
+    "iconID": 25092
+  },
+  "agentsByID": {
+    "3020233": {
+      "agentID": 3020233,
+      "ownerName": "Cassandra Ahfrim",
+      "ownerNameID": 1039686,
+      "ownerTypeID": 1373,
+      "gender": 0,
+      "corporationID": 1000413,
+      "factionID": 500028,
+      "stationID": 60015249,
+      "stationTypeID": 92885,
+      "solarSystemID": 30100032,
+      "divisionID": 24,
+      "level": 1,
+      "agentTypeID": 10,
+      "isLocator": false,
+      "isInSpace": false,
+      "raceID": 1,
+      "bloodlineID": 1,
+      "missionKind": "encounter",
+      "missionTypeLabel": "UI/Agents/MissionTypes/Encounter",
+      "missionTemplateIDs": [],
+      "importantMission": false,
+      "evidence": {
+        "npcCharacterRow": 11347
+      }
+    },
+    "3020234": {
+      "agentID": 3020234,
+      "ownerName": "Holorelay: Sirdan xer Qosh",
+      "ownerNameID": 1040013,
+      "ownerTypeID": 1373,
+      "gender": 1,
+      "corporationID": 1000166,
+      "factionID": 500003,
+      "stationID": 60015230,
+      "stationTypeID": 1932,
+      "solarSystemID": 30100078,
+      "divisionID": 24,
+      "level": 1,
+      "agentTypeID": 10,
+      "isLocator": false,
+      "isInSpace": false,
+      "raceID": 4,
+      "bloodlineID": 5,
+      "missionKind": "encounter",
+      "missionTypeLabel": "UI/Agents/MissionTypes/Encounter",
+      "missionTemplateIDs": [],
+      "importantMission": false,
+      "evidence": {
+        "npcCharacterRow": 11348
+      }
+    },
+    "3020235": {
+      "agentID": 3020235,
+      "ownerName": "Holorelay: Heika Torigo",
+      "ownerNameID": 1040014,
+      "ownerTypeID": 1373,
+      "gender": 0,
+      "corporationID": 1000180,
+      "factionID": 500001,
+      "stationID": 60015220,
+      "stationTypeID": 1531,
+      "solarSystemID": 30100064,
+      "divisionID": 24,
+      "level": 1,
+      "agentTypeID": 10,
+      "isLocator": false,
+      "isInSpace": false,
+      "raceID": 1,
+      "bloodlineID": 11,
+      "missionKind": "encounter",
+      "missionTypeLabel": "UI/Agents/MissionTypes/Encounter",
+      "missionTemplateIDs": [],
+      "importantMission": false,
+      "evidence": {
+        "npcCharacterRow": 11349
+      }
+    },
+    "3020236": {
+      "agentID": 3020236,
+      "ownerName": "Holorelay: Foriana Revelli",
+      "ownerNameID": 1040015,
+      "ownerTypeID": 1373,
+      "gender": 0,
+      "corporationID": 1000120,
+      "factionID": 500004,
+      "stationID": 60015225,
+      "stationTypeID": 3867,
+      "solarSystemID": 30100057,
+      "divisionID": 24,
+      "level": 1,
+      "agentTypeID": 10,
+      "isLocator": false,
+      "isInSpace": false,
+      "raceID": 8,
+      "bloodlineID": 7,
+      "missionKind": "encounter",
+      "missionTypeLabel": "UI/Agents/MissionTypes/Encounter",
+      "missionTemplateIDs": [],
+      "importantMission": false,
+      "evidence": {
+        "npcCharacterRow": 11350
+      }
+    },
+    "3020237": {
+      "agentID": 3020237,
+      "ownerName": "Holorelay: Kanth Filmir",
+      "ownerNameID": 1040016,
+      "ownerTypeID": 1373,
+      "gender": 1,
+      "corporationID": 1000051,
+      "factionID": 500002,
+      "stationID": 60015233,
+      "stationTypeID": 2502,
+      "solarSystemID": 30100071,
+      "divisionID": 24,
+      "level": 1,
+      "agentTypeID": 10,
+      "isLocator": false,
+      "isInSpace": false,
+      "raceID": 2,
+      "bloodlineID": 4,
+      "missionKind": "encounter",
+      "missionTypeLabel": "UI/Agents/MissionTypes/Encounter",
+      "missionTemplateIDs": [],
+      "importantMission": false,
+      "evidence": {
+        "npcCharacterRow": 11351
+      }
+    }
+  },
+  "missionsByID": {
+    "17183": {
+      "missionID": 17183,
+      "contentTemplate": "agent.missionTemplatizedContent_EpicArcKillMission",
+      "nameID": 1039695,
+      "contentTags": [],
+      "messages": {
+        "messages.mission.offered.agentsays": 1039735,
+        "messages.epicMission.journalText.inProgressMessage": 1039730,
+        "messages.mission.quitted.agentsays": 1039736,
+        "messages.mission.declined.agentsays": 1039734,
+        "messages.epicMission.journalText.completedMessage": 1039729,
+        "messages.mission.accepted.agentsays": 1039731,
+        "messages.mission.completed.nextmission.agentsays": 1045653,
+        "messages.mission.briefing": 1039732,
+        "messages.mission.completed.agentsays": 1039733,
+        "messages.root.missioninprogress.agentsays": 1039762,
+        "messages.epicMission.journalText.chapterTitle": 1039696
+      },
+      "hasStandingRewards": true,
+      "fixedLpRewardAlpha": 0,
+      "fixedLpRewardOmega": 0,
+      "expirationTime": 0,
+      "agentTypeID": null,
+      "corporationID": null,
+      "factionID": null,
+      "initialAgentGiftTypeID": 93640,
+      "initialAgentGiftQuantity": 1,
+      "nodeGraphID": 1017,
+      "killMission": {
+        "dungeonID": 14097
+      },
+      "courierMission": null,
+      "missionRewards": {
+        "bonusTimeInterval": 240
+      },
+      "clientObjectives": {
+        "objectiveChainID": 132
+      },
+      "extraStandings": {
+        "500003": 2
+      },
+      "remoteCompletable": null,
+      "remoteOfferable": null,
+      "missionKind": "encounter",
+      "missionFlavor": "epicArc",
+      "isEpicArc": true,
+      "isHeraldry": false,
+      "isResearch": false,
+      "isStoryline": false,
+      "isGenericStoryline": false,
+      "isAgentInteraction": false,
+      "isTalkToAgent": false,
+      "epicArcID": 132,
+      "sourceAgentID": 3020234,
+      "nextMissionIDs": [
+        17189
+      ],
+      "nextAgentIDs": [
+        3020234
+      ],
+      "targetAgentID": null,
+      "capturedRewardPresentation": {
+        "normalReward": {
+          "typeID": 29,
+          "quantity": 104000
+        },
+        "bonusReward": {
+          "typeID": 29,
+          "quantity": 110000,
+          "timeIntervalMinutes": 240
+        },
+        "loyaltyPoints": 0
+      },
+      "evidence": [
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission5.lsw",
+            "sha256": "fcd2860572466a3d1030536d6858fa0aa3e007cc2d5422d3602eb725cf48c29a",
+            "bytes": 136480768
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              95385
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              95402
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission6.lsw",
+            "sha256": "d6223f4a5713947cd9f2ede828477e0829595fd5af1c32293b7adc3e65865c20",
+            "bytes": 297909248
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              95385
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              95402
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission6.lsw",
+            "sha256": "d6223f4a5713947cd9f2ede828477e0829595fd5af1c32293b7adc3e65865c20",
+            "bytes": 297909248
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              97844
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              97951
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission6.lsw",
+            "sha256": "d6223f4a5713947cd9f2ede828477e0829595fd5af1c32293b7adc3e65865c20",
+            "bytes": 297909248
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              176081
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              176082
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission6.lsw",
+            "sha256": "d6223f4a5713947cd9f2ede828477e0829595fd5af1c32293b7adc3e65865c20",
+            "bytes": 297909248
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              348396
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              348424
+            ]
+          }
+        }
+      ],
+      "localizedName": {
+        "messageID": 1039695,
+        "text": "Golgothan Fields",
+        "metadata": null,
+        "tokens": null
+      },
+      "localizedMessages": {
+        "messages.mission.offered.agentsays": {
+          "messageID": 1039735,
+          "text": "Our past is but a stepping stone to our inevitable destiny and our rightful dominion over the stars. This simulation is a pale mirror of the glorious light of that destiny, and yet it shines so bright.\r\n<br><br>\r\nTravel to the simulation site, and I shall instruct you as you feel the power of our faith. ",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.inProgressMessage": {
+          "messageID": 1039730,
+          "text": "The Amarr have invited you to relive their historic battle with the Minmatar at the Golgothan Fields. Travel to the simulation site and follow the instructions to be a part of this historic epic.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.quitted.agentsays": {
+          "messageID": 1039736,
+          "text": "You may turn towards the shadows, but the light shines still. Return when you are ready to give in to faith.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.declined.agentsays": {
+          "messageID": 1039734,
+          "text": "You may turn towards the shadows, but the light shines still. Return when you are ready to give in to faith.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.completedMessage": {
+          "messageID": 1039729,
+          "text": "To experience the Amarr perspective on the Great Rebellion, you entered a simulation of the Battle of Golgothan Fields. Fresh from Jovian defeat, you helped a Dreadnought get back in the fight and take on the Minmatar. Sacrificing it all to claim victory, you proved the power of Amarrian faith.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.accepted.agentsays": {
+          "messageID": 1039731,
+          "text": "Empress be praised. Make your way to the simulation site. We will discuss further once you arrive.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.completed.nextmission.agentsays": {
+          "messageID": 1045653,
+          "text": "You have borne witness to the true meaning of faith, the strength it grants, and the sacrifice it demands. \r\n<br><br>\r\nIf you are ready to stand for our holy Empress, seek out our campaigns or enlist at one of our militia offices.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.briefing": {
+          "messageID": 1039732,
+          "text": "Witness our inevitable destiny and our rightful dominion over the stars. This simulation is a pale mirror of the glorious light of that destiny, and yet it shines so bright.\r\n<br><br>\r\nTravel to the simulation site, and I shall instruct you as you feel the power of our faith. ",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.completed.agentsays": {
+          "messageID": 1039733,
+          "text": "Witness our inevitable destiny and our rightful dominion over the stars. This simulation is a pale mirror of the glorious light of that destiny, and yet it shines so bright.\r\n<br><br>\r\nTravel to the simulation site, and I shall instruct you as you feel the power of our faith. ",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.root.missioninprogress.agentsays": {
+          "messageID": 1039762,
+          "text": "Do you seek re-instruction?\r\n<br><br>\r\nThe Amarr have invited you to relive their historic battle with the Minmatar at the Golgothan Fields. Travel to the simulation site and follow the instructions to be a part of this historic epic.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.chapterTitle": {
+          "messageID": 1039696,
+          "text": "Golgothan Fields",
+          "metadata": null,
+          "tokens": null
+        }
+      },
+      "sourceSolarSystemID": 30100078
+    },
+    "17184": {
+      "missionID": 17184,
+      "contentTemplate": "agent.missionTemplatizedContent_EpicArcKillMission",
+      "nameID": 1039705,
+      "contentTags": [],
+      "messages": {
+        "messages.mission.offered.agentsays": 1039752,
+        "messages.epicMission.journalText.inProgressMessage": 1039746,
+        "messages.mission.quitted.agentsays": 1039753,
+        "messages.mission.declined.agentsays": 1039751,
+        "messages.epicMission.journalText.completedMessage": 1039745,
+        "messages.mission.accepted.agentsays": 1039748,
+        "messages.mission.completed.nextmission.agentsays": 1045646,
+        "messages.mission.briefing": 1039749,
+        "messages.mission.completed.agentsays": 1039750,
+        "messages.root.missioninprogress.agentsays": 1039781,
+        "messages.epicMission.journalText.chapterTitle": 1039706
+      },
+      "hasStandingRewards": true,
+      "fixedLpRewardAlpha": 0,
+      "fixedLpRewardOmega": 0,
+      "expirationTime": 0,
+      "agentTypeID": null,
+      "corporationID": null,
+      "factionID": null,
+      "initialAgentGiftTypeID": 93641,
+      "initialAgentGiftQuantity": 1,
+      "nodeGraphID": 1018,
+      "killMission": {
+        "dungeonID": 14098
+      },
+      "courierMission": null,
+      "missionRewards": {
+        "bonusTimeInterval": 240
+      },
+      "clientObjectives": {
+        "objectiveChainID": 133
+      },
+      "extraStandings": {
+        "500001": 2
+      },
+      "remoteCompletable": null,
+      "remoteOfferable": null,
+      "missionKind": "encounter",
+      "missionFlavor": "epicArc",
+      "isEpicArc": true,
+      "isHeraldry": false,
+      "isResearch": false,
+      "isStoryline": false,
+      "isGenericStoryline": false,
+      "isAgentInteraction": false,
+      "isTalkToAgent": false,
+      "epicArcID": 132,
+      "sourceAgentID": 3020235,
+      "nextMissionIDs": [
+        17190
+      ],
+      "nextAgentIDs": [
+        3020235
+      ],
+      "targetAgentID": null,
+      "capturedRewardPresentation": {
+        "normalReward": {
+          "typeID": 29,
+          "quantity": 123000
+        },
+        "bonusReward": {
+          "typeID": 29,
+          "quantity": 113000,
+          "timeIntervalMinutes": 240
+        },
+        "loyaltyPoints": 0
+      },
+      "evidence": [
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission1.lsw",
+            "sha256": "122a8bd1ae43898117f02c850b269e55f2b7c8502d0493db735ee6b1a59e30bb",
+            "bytes": 162154496
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              62138
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              62305
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission1.lsw",
+            "sha256": "122a8bd1ae43898117f02c850b269e55f2b7c8502d0493db735ee6b1a59e30bb",
+            "bytes": 162154496
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              67024
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              67031
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission2.lsw",
+            "sha256": "16bf4ce897770aa12b1217c8e2f9d0d1938b3c73cc5fc05df22915dfb033cf47",
+            "bytes": 207308800
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              2208
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              2235
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission2.lsw",
+            "sha256": "16bf4ce897770aa12b1217c8e2f9d0d1938b3c73cc5fc05df22915dfb033cf47",
+            "bytes": 207308800
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              4858
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              5587
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission2.lsw",
+            "sha256": "16bf4ce897770aa12b1217c8e2f9d0d1938b3c73cc5fc05df22915dfb033cf47",
+            "bytes": 207308800
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              135767
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              135768
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission2.lsw",
+            "sha256": "16bf4ce897770aa12b1217c8e2f9d0d1938b3c73cc5fc05df22915dfb033cf47",
+            "bytes": 207308800
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              549288
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              549290
+            ]
+          }
+        }
+      ],
+      "localizedName": {
+        "messageID": 1039705,
+        "text": "Caldari Prime Breakout",
+        "metadata": null,
+        "tokens": null
+      },
+      "localizedMessages": {
+        "messages.mission.offered.agentsays": {
+          "messageID": 1039752,
+          "text": "The Caldari State welcomes your interest in our history. This experience will show you why we fight, and why you should join us. Learn the meaning of honor, of duty, of what it means to be Caldari, as you experience our greatest loss and our most epic triumph.\r\n<br><br>\r\nTravel to the simulation site. Once you arrive, we will speak again.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.inProgressMessage": {
+          "messageID": 1039746,
+          "text": "The Caldari have invited you to experience their proudest and darkest day. Make your way to the simulation site and follow the instructions to see what it was like to be a part of the Caldari Breakout.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.quitted.agentsays": {
+          "messageID": 1039753,
+          "text": "Understood. Return when you are ready to learn the meaning of honor.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.declined.agentsays": {
+          "messageID": 1039751,
+          "text": "Understood. Return when you are ready to learn the meaning of honor.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.completedMessage": {
+          "messageID": 1039745,
+          "text": "You entered a simulation of the Caldari’s exodus from Caldari Prime. You faced down the Gallente Federation, fought alongside a hero from Caldari history, and helped the people of Caldari escape to a new home.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.accepted.agentsays": {
+          "messageID": 1039748,
+          "text": "Excellent. Make your way to the simulation site. I will contact you on arrival.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.completed.nextmission.agentsays": {
+          "messageID": 1045646,
+          "text": "Now you understand what we have lost and what we fight for still.\r\n<br><br>\r\nWhen you are ready to earn your honor, search out our campaigns or our militia offices. ",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.briefing": {
+          "messageID": 1039749,
+          "text": "The Caldari State invites you to experience why we fight, and why you should join us. Learn the meaning of honor, of duty, of what it means to be Caldari, as you experience our greatest loss and our most epic triumph.\r\n<br><br>\r\nTravel to the simulation site. Once you arrive, we will speak again.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.completed.agentsays": {
+          "messageID": 1039750,
+          "text": "Now you understand what we have lost and what we fight for still.\r\n<br><br>\r\nWhen you are ready to earn your honor, search out our campaigns or our militia offices. ",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.root.missioninprogress.agentsays": {
+          "messageID": 1039781,
+          "text": "You have returned? So be it.\r\n<br><br>\r\nThe Caldari have invited you to experience their proudest and darkest day. Make your way to the simulation site and follow the instructions to see what it was like to be a part of the Caldari Breakout.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.chapterTitle": {
+          "messageID": 1039706,
+          "text": "Caldari Prime Breakout",
+          "metadata": null,
+          "tokens": null
+        }
+      },
+      "sourceSolarSystemID": 30100064
+    },
+    "17185": {
+      "missionID": 17185,
+      "contentTemplate": "agent.missionTemplatizedContent_EpicArcKillMission",
+      "nameID": 1039707,
+      "contentTags": [],
+      "messages": {
+        "messages.mission.offered.agentsays": 1039743,
+        "messages.epicMission.journalText.inProgressMessage": 1039738,
+        "messages.mission.quitted.agentsays": 1039744,
+        "messages.mission.declined.agentsays": 1039742,
+        "messages.epicMission.journalText.completedMessage": 1039737,
+        "messages.mission.accepted.agentsays": 1039739,
+        "messages.mission.completed.nextmission.agentsays": 1045654,
+        "messages.mission.briefing": 1039740,
+        "messages.mission.completed.agentsays": 1039741,
+        "messages.root.missioninprogress.agentsays": 1039779,
+        "messages.epicMission.journalText.chapterTitle": 1039708
+      },
+      "hasStandingRewards": true,
+      "fixedLpRewardAlpha": 0,
+      "fixedLpRewardOmega": 0,
+      "expirationTime": 0,
+      "agentTypeID": null,
+      "corporationID": null,
+      "factionID": null,
+      "initialAgentGiftTypeID": 93642,
+      "initialAgentGiftQuantity": 1,
+      "nodeGraphID": 1019,
+      "killMission": {
+        "dungeonID": 14099
+      },
+      "courierMission": null,
+      "missionRewards": {
+        "bonusTimeInterval": 240
+      },
+      "clientObjectives": {
+        "objectiveChainID": 134
+      },
+      "extraStandings": {
+        "500004": 2
+      },
+      "remoteCompletable": null,
+      "remoteOfferable": null,
+      "missionKind": "encounter",
+      "missionFlavor": "epicArc",
+      "isEpicArc": true,
+      "isHeraldry": false,
+      "isResearch": false,
+      "isStoryline": false,
+      "isGenericStoryline": false,
+      "isAgentInteraction": false,
+      "isTalkToAgent": false,
+      "epicArcID": 132,
+      "sourceAgentID": 3020236,
+      "nextMissionIDs": [],
+      "nextAgentIDs": [],
+      "targetAgentID": null,
+      "capturedRewardPresentation": {
+        "normalReward": {
+          "typeID": 29,
+          "quantity": 123000
+        },
+        "bonusReward": {
+          "typeID": 29,
+          "quantity": 85000,
+          "timeIntervalMinutes": 240
+        },
+        "loyaltyPoints": 0
+      },
+      "evidence": [
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission7.lsw",
+            "sha256": "144d273fa63fd6e39715a29caeca945024a89f6a115b24f2a62ead15881f0c32",
+            "bytes": 161574912
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              55282
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              55320
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission7.lsw",
+            "sha256": "144d273fa63fd6e39715a29caeca945024a89f6a115b24f2a62ead15881f0c32",
+            "bytes": 161574912
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              57504
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              57630
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission8.lsw",
+            "sha256": "6c37c1d803edd20c2fdada937b89f374d9ea1f7cc4a932f3ab96104479476ab9",
+            "bytes": 79693824
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              351460
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              351461
+            ]
+          }
+        }
+      ],
+      "localizedName": {
+        "messageID": 1039707,
+        "text": "Intaki Liberation",
+        "metadata": null,
+        "tokens": null
+      },
+      "localizedMessages": {
+        "messages.mission.offered.agentsays": {
+          "messageID": 1039743,
+          "text": "The battle for freedom is a battle we must fight every day. In this simulation, you’ll learn just what it means to fight on the right side of history.\r\n<br><br>\r\nTravel to the simulation site, and let’s go on a journey of justice together.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.inProgressMessage": {
+          "messageID": 1039738,
+          "text": "The Gallente have invited you to join them in a simulation of the Liberation of Intaki. Travel to the simulation site and follow the instructions to fight for freedom side by side with the Federation.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.quitted.agentsays": {
+          "messageID": 1039744,
+          "text": "That’s your choice, and I respect it. Come back when you’re ready to fight for your freedom.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.declined.agentsays": {
+          "messageID": 1039742,
+          "text": "That’s your choice, and I respect it. Come back when you’re ready to fight for your freedom.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.completedMessage": {
+          "messageID": 1039737,
+          "text": "In the most recent of the simulated settings, you fought alongside the Federation fleet that liberated Intaki. Taking out Caldari defenses, you helped free the people of Intaki from megacorporate control.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.accepted.agentsays": {
+          "messageID": 1039739,
+          "text": "Nice. Make your way to the simulation site. I will meet you there.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.completed.nextmission.agentsays": {
+          "messageID": 1045654,
+          "text": "The fight for freedom is a never-ending one.\r\n<br><br>\r\nJoin our campaigns and serve justice, or enlist at one of our militia offices and fight the good fight.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.briefing": {
+          "messageID": 1039740,
+          "text": "Fight for freedom in this simulation where you’ll learn just what it means to be on the right side of history.\r\n<br><br>\r\nTravel to the simulation sire, and let’s go on a journey of justice together.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.completed.agentsays": {
+          "messageID": 1039741,
+          "text": "The fight for freedom is a never-ending one.\r\n<br><br>\r\nJoin our campaigns and serve justice, or enlist at one of our militia offices and fight the good fight.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.root.missioninprogress.agentsays": {
+          "messageID": 1039779,
+          "text": "Hey there, looking for a refresh?\r\n<br><br>\r\nThe Gallente have invited you to join them in a simulation of the Liberation of Intaki. Travel to the simulation site and follow the instructions to fight for freedom side by side with the Federation.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.chapterTitle": {
+          "messageID": 1039708,
+          "text": "Intaki Liberation",
+          "metadata": null,
+          "tokens": null
+        }
+      },
+      "sourceSolarSystemID": 30100057
+    },
+    "17186": {
+      "missionID": 17186,
+      "contentTemplate": "agent.missionTemplatizedContent_EpicArcKillMission",
+      "nameID": 1039709,
+      "contentTags": [],
+      "messages": {
+        "messages.mission.offered.agentsays": 1039760,
+        "messages.epicMission.journalText.inProgressMessage": 1039755,
+        "messages.mission.quitted.agentsays": 1039761,
+        "messages.mission.declined.agentsays": 1039759,
+        "messages.epicMission.journalText.completedMessage": 1039754,
+        "messages.mission.accepted.agentsays": 1039756,
+        "messages.mission.completed.nextmission.agentsays": 1045652,
+        "messages.mission.briefing": 1039757,
+        "messages.mission.completed.agentsays": 1039758,
+        "messages.root.missioninprogress.agentsays": 1039782,
+        "messages.epicMission.journalText.chapterTitle": 1039710
+      },
+      "hasStandingRewards": true,
+      "fixedLpRewardAlpha": 0,
+      "fixedLpRewardOmega": 0,
+      "expirationTime": 0,
+      "agentTypeID": null,
+      "corporationID": null,
+      "factionID": null,
+      "initialAgentGiftTypeID": 93643,
+      "initialAgentGiftQuantity": 1,
+      "nodeGraphID": 1020,
+      "killMission": {
+        "dungeonID": 14100
+      },
+      "courierMission": null,
+      "missionRewards": {
+        "bonusTimeInterval": 240
+      },
+      "clientObjectives": {
+        "objectiveChainID": 135
+      },
+      "extraStandings": {
+        "500002": 2
+      },
+      "remoteCompletable": null,
+      "remoteOfferable": null,
+      "missionKind": "encounter",
+      "missionFlavor": "epicArc",
+      "isEpicArc": true,
+      "isHeraldry": false,
+      "isResearch": false,
+      "isStoryline": false,
+      "isGenericStoryline": false,
+      "isAgentInteraction": false,
+      "isTalkToAgent": false,
+      "epicArcID": 132,
+      "sourceAgentID": 3020237,
+      "nextMissionIDs": [
+        17187
+      ],
+      "nextAgentIDs": [
+        3020237
+      ],
+      "targetAgentID": null,
+      "capturedRewardPresentation": {
+        "normalReward": {
+          "typeID": 29,
+          "quantity": 93000
+        },
+        "bonusReward": {
+          "typeID": 29,
+          "quantity": 106000,
+          "timeIntervalMinutes": 240
+        },
+        "loyaltyPoints": 0
+      },
+      "evidence": [
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission3.lsw",
+            "sha256": "52a9600b140ce1e84d7fb2ec87eb9dbcb4a69b8e0eb2a04e6c02eb3f36d6bcdc",
+            "bytes": 133793792
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              77795
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              79102
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission4.lsw",
+            "sha256": "c491d499ad7f2af7df07c3cb2daed75e0bf517c5ea2f129eae157c39188f98aa",
+            "bytes": 226359296
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              570
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              595
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission4.lsw",
+            "sha256": "c491d499ad7f2af7df07c3cb2daed75e0bf517c5ea2f129eae157c39188f98aa",
+            "bytes": 226359296
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              2722
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              2852
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission4.lsw",
+            "sha256": "c491d499ad7f2af7df07c3cb2daed75e0bf517c5ea2f129eae157c39188f98aa",
+            "bytes": 226359296
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              320902
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              320903
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission4.lsw",
+            "sha256": "c491d499ad7f2af7df07c3cb2daed75e0bf517c5ea2f129eae157c39188f98aa",
+            "bytes": 226359296
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              323298
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              323469
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission4.lsw",
+            "sha256": "c491d499ad7f2af7df07c3cb2daed75e0bf517c5ea2f129eae157c39188f98aa",
+            "bytes": 226359296
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              340207
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              340208
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission4.lsw",
+            "sha256": "c491d499ad7f2af7df07c3cb2daed75e0bf517c5ea2f129eae157c39188f98aa",
+            "bytes": 226359296
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              340563
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              340564
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission4.lsw",
+            "sha256": "c491d499ad7f2af7df07c3cb2daed75e0bf517c5ea2f129eae157c39188f98aa",
+            "bytes": 226359296
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              669186
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              669270
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission4.lsw",
+            "sha256": "c491d499ad7f2af7df07c3cb2daed75e0bf517c5ea2f129eae157c39188f98aa",
+            "bytes": 226359296
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              670376
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              670986
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission4.lsw",
+            "sha256": "c491d499ad7f2af7df07c3cb2daed75e0bf517c5ea2f129eae157c39188f98aa",
+            "bytes": 226359296
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              700621
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              700670
+            ]
+          }
+        }
+      ],
+      "localizedName": {
+        "messageID": 1039709,
+        "text": "Battle of Pator",
+        "metadata": null,
+        "tokens": null
+      },
+      "localizedMessages": {
+        "messages.mission.offered.agentsays": {
+          "messageID": 1039760,
+          "text": "Understanding heritage is at the heart of what it means to be Minmatar. Join us in a simulation of the day our Republic was born, the legendary Battle of Pator.\r\n<br><br>\r\nTravel to the simulation site. I will explain more once you arrive.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.inProgressMessage": {
+          "messageID": 1039755,
+          "text": "The Minmatar have invited you to experience the Battle of Pator firsthand. Make your way to the simulation site and follow the instructions to experience the liberation of their homeworld.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.quitted.agentsays": {
+          "messageID": 1039761,
+          "text": "A shame. Matar calls, I hope you will one day see the wisdom of answering.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.declined.agentsays": {
+          "messageID": 1039759,
+          "text": "A shame. Matar calls, I hope you will one day see the wisdom of answering.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.completedMessage": {
+          "messageID": 1039754,
+          "text": "Entering a simulation of the Minmatar’s past, you took part in the Battle of Pator. You fought Imperial occupiers and faced down a supercarrier in a deadly battle. Ultimately, you defeated the Amarr and reclaimed the planet of Matar for the Matari.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.accepted.agentsays": {
+          "messageID": 1039756,
+          "text": "Well chosen. Make your way to the simulation site. I will see you there.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.completed.nextmission.agentsays": {
+          "messageID": 1045652,
+          "text": "Much has changed since that day, but much has not. We are the Matari, and this is our Republic.\r\n<br><br>\r\nIf you are ready to continue the fight for liberation, keep an eye out for our campaigns or find our militia offices. ",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.briefing": {
+          "messageID": 1039757,
+          "text": "Heritage is at the heart of what it means to be Minmatar. Join us in a simulation of the day our Republic was born, the legendary Battle of Pator.\r\n<br><br>\r\nTravel to the simulation site. I will explain more once you arrive.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.completed.agentsays": {
+          "messageID": 1039758,
+          "text": "Much has changed since that day, but much has not. We are the Matari, and this is our Republic.\r\n<br><br>\r\nIf you are ready to continue the fight for liberation, keep an eye out for our campaigns or find our militia offices. ",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.root.missioninprogress.agentsays": {
+          "messageID": 1039782,
+          "text": "Welcome back. Need a reminder?\r\n<br><br>\r\nThe Minmatar have invited you to experience the Battle of Pator firsthand. Make your way to the simulation site and follow the instructions to experience the liberation of their homeworld.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.chapterTitle": {
+          "messageID": 1039710,
+          "text": "Battle of Pator",
+          "metadata": null,
+          "tokens": null
+        }
+      },
+      "sourceSolarSystemID": 30100071
+    },
+    "17187": {
+      "missionID": 17187,
+      "contentTemplate": "agent.missionTemplatizedContent_EpicArcTalkToAgentMission",
+      "nameID": 1040026,
+      "contentTags": [],
+      "messages": {
+        "messages.mission.offered.agentsays": 1040034,
+        "messages.epicMission.journalText.inProgressMessage": 1040029,
+        "messages.mission.quitted.agentsays": 1040035,
+        "messages.mission.declined.agentsays": 1040033,
+        "messages.epicMission.journalText.completedMessage": 1040028,
+        "messages.mission.accepted.agentsays": 1040030,
+        "messages.mission.briefing": 1040031,
+        "messages.root.missioninprogress.agentsays": 1040036,
+        "messages.epicMission.journalText.chapterTitle": 1040027
+      },
+      "hasStandingRewards": true,
+      "fixedLpRewardAlpha": 0,
+      "fixedLpRewardOmega": 0,
+      "expirationTime": 0,
+      "agentTypeID": null,
+      "corporationID": null,
+      "factionID": null,
+      "initialAgentGiftTypeID": null,
+      "initialAgentGiftQuantity": null,
+      "nodeGraphID": 1047,
+      "killMission": null,
+      "courierMission": null,
+      "missionRewards": {
+        "bonusTimeInterval": 60
+      },
+      "clientObjectives": null,
+      "extraStandings": null,
+      "remoteCompletable": null,
+      "remoteOfferable": null,
+      "missionKind": "talkToAgent",
+      "missionFlavor": "epicArc",
+      "isEpicArc": true,
+      "isHeraldry": false,
+      "isResearch": false,
+      "isStoryline": false,
+      "isGenericStoryline": false,
+      "isAgentInteraction": false,
+      "isTalkToAgent": true,
+      "epicArcID": 132,
+      "sourceAgentID": 3020237,
+      "nextMissionIDs": [
+        17183
+      ],
+      "nextAgentIDs": [
+        3020234
+      ],
+      "targetAgentID": 3020234,
+      "capturedRewardPresentation": {
+        "normalReward": {
+          "typeID": 29,
+          "quantity": 45000
+        },
+        "bonusReward": {
+          "typeID": 29,
+          "quantity": 58000,
+          "timeIntervalMinutes": 60
+        },
+        "loyaltyPoints": 0
+      },
+      "evidence": [
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission4.lsw",
+            "sha256": "c491d499ad7f2af7df07c3cb2daed75e0bf517c5ea2f129eae157c39188f98aa",
+            "bytes": 226359296
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              706683
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              706727
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission5.lsw",
+            "sha256": "fcd2860572466a3d1030536d6858fa0aa3e007cc2d5422d3602eb725cf48c29a",
+            "bytes": 136480768
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              28652
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              28759
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission5.lsw",
+            "sha256": "fcd2860572466a3d1030536d6858fa0aa3e007cc2d5422d3602eb725cf48c29a",
+            "bytes": 136480768
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              30707
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              30943
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission5.lsw",
+            "sha256": "fcd2860572466a3d1030536d6858fa0aa3e007cc2d5422d3602eb725cf48c29a",
+            "bytes": 136480768
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              33100
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              33214
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission5.lsw",
+            "sha256": "fcd2860572466a3d1030536d6858fa0aa3e007cc2d5422d3602eb725cf48c29a",
+            "bytes": 136480768
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              89575
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              89600
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission6.lsw",
+            "sha256": "d6223f4a5713947cd9f2ede828477e0829595fd5af1c32293b7adc3e65865c20",
+            "bytes": 297909248
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              28652
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              28759
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission6.lsw",
+            "sha256": "d6223f4a5713947cd9f2ede828477e0829595fd5af1c32293b7adc3e65865c20",
+            "bytes": 297909248
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              30707
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              30943
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission6.lsw",
+            "sha256": "d6223f4a5713947cd9f2ede828477e0829595fd5af1c32293b7adc3e65865c20",
+            "bytes": 297909248
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              33100
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              33214
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission6.lsw",
+            "sha256": "d6223f4a5713947cd9f2ede828477e0829595fd5af1c32293b7adc3e65865c20",
+            "bytes": 297909248
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              89575
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              89600
+            ]
+          }
+        }
+      ],
+      "localizedName": {
+        "messageID": 1040026,
+        "text": "Travel to the Amarr",
+        "metadata": null,
+        "tokens": null
+      },
+      "localizedMessages": {
+        "messages.mission.offered.agentsays": {
+          "messageID": 1040034,
+          "text": "The next simulation in this series is the lies and propaganda of the Amarr Empire. Travel to their Imperial mouthpiece and see what they have to say for themselves. I suggest you study it carefully to better understand the enemy.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.inProgressMessage": {
+          "messageID": 1040029,
+          "text": "Make your way to the Amarr agent to enter the next simulation.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.quitted.agentsays": {
+          "messageID": 1040035,
+          "text": "Have the tribes so won you over you are ready to stop here? I suggest continuing on to see the Amarr’s lies firsthand. Only then will you appreciate why they must be stopped.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.declined.agentsays": {
+          "messageID": 1040033,
+          "text": "Have the tribes so won you over you are ready to stop here? I suggest continuing on to see the Amarr’s lies firsthand. Only then will you appreciate why they must be stopped.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.completedMessage": {
+          "messageID": 1040028,
+          "text": "You made your way to the Amarr agent to enter the next simulation.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.accepted.agentsays": {
+          "messageID": 1040030,
+          "text": "Be on your guard as you fly into the belly of the Amarr. Their insidious lies are everywhere.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.briefing": {
+          "messageID": 1040031,
+          "text": "Make your way to the Amarr agent to enter the next simulation.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.root.missioninprogress.agentsays": {
+          "messageID": 1040036,
+          "text": "Are you prepared now to stare into the ugliness of false faith?\r\n<br><br>\r\nThe next simulation in this series is the lies and propaganda of the Amarr Empire. Travel to their Imperial mouthpiece and see what they have to say for themselves. I suggest you study it carefully to better understand the enemy.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.chapterTitle": {
+          "messageID": 1040027,
+          "text": "Travel to the Amarr",
+          "metadata": null,
+          "tokens": null
+        }
+      },
+      "sourceSolarSystemID": 30100071
+    },
+    "17188": {
+      "missionID": 17188,
+      "contentTemplate": "agent.missionTemplatizedContent_EpicArcTalkToAgentMission",
+      "nameID": 1040275,
+      "contentTags": [],
+      "messages": {
+        "messages.mission.offered.agentsays": 1040283,
+        "messages.epicMission.journalText.inProgressMessage": 1040278,
+        "messages.mission.quitted.agentsays": 1040284,
+        "messages.mission.declined.agentsays": 1040282,
+        "messages.epicMission.journalText.completedMessage": 1040277,
+        "messages.mission.accepted.agentsays": 1040279,
+        "messages.mission.briefing": 1040280,
+        "messages.root.missioninprogress.agentsays": 1040303,
+        "messages.epicMission.journalText.chapterTitle": 1040276
+      },
+      "hasStandingRewards": true,
+      "fixedLpRewardAlpha": 0,
+      "fixedLpRewardOmega": 0,
+      "expirationTime": 0,
+      "agentTypeID": null,
+      "corporationID": null,
+      "factionID": null,
+      "initialAgentGiftTypeID": null,
+      "initialAgentGiftQuantity": null,
+      "nodeGraphID": 1048,
+      "killMission": null,
+      "courierMission": null,
+      "missionRewards": {
+        "bonusTimeInterval": 60
+      },
+      "clientObjectives": null,
+      "extraStandings": null,
+      "remoteCompletable": null,
+      "remoteOfferable": null,
+      "missionKind": "talkToAgent",
+      "missionFlavor": "epicArc",
+      "isEpicArc": true,
+      "isHeraldry": false,
+      "isResearch": false,
+      "isStoryline": false,
+      "isGenericStoryline": false,
+      "isAgentInteraction": false,
+      "isTalkToAgent": true,
+      "epicArcID": 132,
+      "sourceAgentID": 3020233,
+      "nextMissionIDs": [
+        17184
+      ],
+      "nextAgentIDs": [
+        3020235
+      ],
+      "targetAgentID": 3020235,
+      "capturedRewardPresentation": {
+        "normalReward": {
+          "typeID": 29,
+          "quantity": 53000
+        },
+        "bonusReward": {
+          "typeID": 29,
+          "quantity": 53000,
+          "timeIntervalMinutes": 60
+        },
+        "loyaltyPoints": 0
+      },
+      "evidence": [
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission1.lsw",
+            "sha256": "122a8bd1ae43898117f02c850b269e55f2b7c8502d0493db735ee6b1a59e30bb",
+            "bytes": 162154496
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              6288
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              6297
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission1.lsw",
+            "sha256": "122a8bd1ae43898117f02c850b269e55f2b7c8502d0493db735ee6b1a59e30bb",
+            "bytes": 162154496
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              9059
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              9168
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission1.lsw",
+            "sha256": "122a8bd1ae43898117f02c850b269e55f2b7c8502d0493db735ee6b1a59e30bb",
+            "bytes": 162154496
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              55897
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              55899
+            ]
+          }
+        }
+      ],
+      "localizedName": {
+        "messageID": 1040275,
+        "text": "Holographic Reenactment",
+        "metadata": null,
+        "tokens": null
+      },
+      "localizedMessages": {
+        "messages.mission.offered.agentsays": {
+          "messageID": 1040283,
+          "text": "Capsuleer, how would you like to time-travel? \r\n<br><br>\r\nNo, of course not literally, but with the help of AIR’s new advancements in holographics and coordinated drone actors, you can take a step out of the present and into the epic battles of the past!\r\n<br><br>\r\nEach experience has been crafted in cooperation with the Empire’s top military experts. Yes, perhaps they are more… cinematic, some might even say biased, than historical.. but that is what makes them such an incredible insight into the minds of the Empires! \r\n<br><br>\r\nAccept this offer, visit all four holographic agents and their simulated experiences, and learn the Empire’s truths for yourself!",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.inProgressMessage": {
+          "messageID": 1040278,
+          "text": "You have been invited to try a series of super-advanced simulations that explore the histories of New Eden’s Empires from their different perspectives. Travel to the first Empire’s embassy system and make contact with their representatives through a holographic messenger",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.quitted.agentsays": {
+          "messageID": 1040284,
+          "text": "A shame, you don’t know what you are missing out on. Come back and see me when you are ready for an experience like no other.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.declined.agentsays": {
+          "messageID": 1040282,
+          "text": "A shame, you don’t know what you are missing out on. Come back and see me when you are ready for an experience like no other.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.completedMessage": {
+          "messageID": 1040277,
+          "text": "You made your way to the first in a series of simulations that tells the stories of EVE’s Empires from their own perspective.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.accepted.agentsays": {
+          "messageID": 1040279,
+          "text": "You won’t regret it! Make your way to the first agent and begin your journey into the experience of a lifetime.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.briefing": {
+          "messageID": 1040280,
+          "text": "Make your way to the first agent and begin your journey into these historic simulations.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.root.missioninprogress.agentsays": {
+          "messageID": 1040303,
+          "text": "Need a refresher? Not a problem.\r\n<br><br>\r\nYou have been invited to try a series of super-advanced simulations that explore the histories of New Eden’s Empires from their own perspectives. Make your way to the first Empire’s embassy system and make contact with their representatives through a holographic messenger. ",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.chapterTitle": {
+          "messageID": 1040276,
+          "text": "Holographic Reenactment",
+          "metadata": null,
+          "tokens": null
+        }
+      },
+      "sourceSolarSystemID": 30100032
+    },
+    "17189": {
+      "missionID": 17189,
+      "contentTemplate": "agent.missionTemplatizedContent_EpicArcTalkToAgentMission",
+      "nameID": 1040274,
+      "contentTags": [],
+      "messages": {
+        "messages.mission.offered.agentsays": 1040292,
+        "messages.epicMission.journalText.inProgressMessage": 1040287,
+        "messages.mission.quitted.agentsays": 1040293,
+        "messages.mission.declined.agentsays": 1040291,
+        "messages.epicMission.journalText.completedMessage": 1040286,
+        "messages.mission.accepted.agentsays": 1040288,
+        "messages.mission.briefing": 1040289,
+        "messages.root.missioninprogress.agentsays": 1040304,
+        "messages.epicMission.journalText.chapterTitle": 1040285
+      },
+      "hasStandingRewards": true,
+      "fixedLpRewardAlpha": 0,
+      "fixedLpRewardOmega": 0,
+      "expirationTime": 0,
+      "agentTypeID": null,
+      "corporationID": null,
+      "factionID": null,
+      "initialAgentGiftTypeID": null,
+      "initialAgentGiftQuantity": null,
+      "nodeGraphID": 1049,
+      "killMission": null,
+      "courierMission": null,
+      "missionRewards": {
+        "bonusTimeInterval": 60
+      },
+      "clientObjectives": null,
+      "extraStandings": null,
+      "remoteCompletable": null,
+      "remoteOfferable": null,
+      "missionKind": "talkToAgent",
+      "missionFlavor": "epicArc",
+      "isEpicArc": true,
+      "isHeraldry": false,
+      "isResearch": false,
+      "isStoryline": false,
+      "isGenericStoryline": false,
+      "isAgentInteraction": false,
+      "isTalkToAgent": true,
+      "epicArcID": 132,
+      "sourceAgentID": 3020234,
+      "nextMissionIDs": [
+        17185
+      ],
+      "nextAgentIDs": [
+        3020236
+      ],
+      "targetAgentID": 3020236,
+      "capturedRewardPresentation": {
+        "normalReward": {
+          "typeID": 29,
+          "quantity": 32000
+        },
+        "bonusReward": {
+          "typeID": 29,
+          "quantity": 29000,
+          "timeIntervalMinutes": 60
+        },
+        "loyaltyPoints": 0
+      },
+      "evidence": [
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission6.lsw",
+            "sha256": "d6223f4a5713947cd9f2ede828477e0829595fd5af1c32293b7adc3e65865c20",
+            "bytes": 297909248
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              353787
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              353795
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission6.lsw",
+            "sha256": "d6223f4a5713947cd9f2ede828477e0829595fd5af1c32293b7adc3e65865c20",
+            "bytes": 297909248
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              354633
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              354658
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission7.lsw",
+            "sha256": "144d273fa63fd6e39715a29caeca945024a89f6a115b24f2a62ead15881f0c32",
+            "bytes": 161574912
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              542
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              543
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission7.lsw",
+            "sha256": "144d273fa63fd6e39715a29caeca945024a89f6a115b24f2a62ead15881f0c32",
+            "bytes": 161574912
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              2555
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              2666
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission7.lsw",
+            "sha256": "144d273fa63fd6e39715a29caeca945024a89f6a115b24f2a62ead15881f0c32",
+            "bytes": 161574912
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              5005
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              5012
+            ]
+          }
+        }
+      ],
+      "localizedName": {
+        "messageID": 1040274,
+        "text": "Travel to the Gallente",
+        "metadata": null,
+        "tokens": null
+      },
+      "localizedMessages": {
+        "messages.mission.offered.agentsays": {
+          "messageID": 1040292,
+          "text": "Your final simulation will be some hollow entertainment put together by the godless Federation. Go and bear witness to the emptiness of their words, so that you may return to the Empire with a deeper understanding of the power of faith.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.inProgressMessage": {
+          "messageID": 1040287,
+          "text": "Make your way to the Gallente agent to enter the next simulation.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.quitted.agentsays": {
+          "messageID": 1040293,
+          "text": "Are you ready to stop this simulated pilgrimage and embrace the faith? Praise be, yet I would counsel that you go on. Only once you have seen how the heretic thinks can you protect yourself against their lies.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.declined.agentsays": {
+          "messageID": 1040291,
+          "text": "Are you ready to stop this simulated pilgrimage and embrace the faith? Praise be, yet I would counsel that you go on. Only once you have seen how the heretic thinks can you protect yourself against their lies.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.completedMessage": {
+          "messageID": 1040286,
+          "text": "You made your way to the Gallente agent to enter the next simulation.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.accepted.agentsays": {
+          "messageID": 1040288,
+          "text": "Hold your faith close as you visit the simulation. Be not tempted by that false idol they call democracy.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.briefing": {
+          "messageID": 1040289,
+          "text": "Make your way to the Gallente agent to enter the next simulation.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.root.missioninprogress.agentsays": {
+          "messageID": 1040304,
+          "text": "Are you ready to complete this virtual pilgrimage?\r\n<br><br>\r\nYour final simulation will be some hollow entertainment put together by the godless Federation. Go and bear witness to the emptiness of their words, so that you may return to the Empire with a deeper understanding of the power of faith.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.chapterTitle": {
+          "messageID": 1040285,
+          "text": "Travel to the Gallente",
+          "metadata": null,
+          "tokens": null
+        }
+      },
+      "sourceSolarSystemID": 30100078
+    },
+    "17190": {
+      "missionID": 17190,
+      "contentTemplate": "agent.missionTemplatizedContent_EpicArcTalkToAgentMission",
+      "nameID": 1040273,
+      "contentTags": [],
+      "messages": {
+        "messages.mission.offered.agentsays": 1040301,
+        "messages.epicMission.journalText.inProgressMessage": 1040296,
+        "messages.mission.quitted.agentsays": 1040302,
+        "messages.mission.declined.agentsays": 1040300,
+        "messages.epicMission.journalText.completedMessage": 1040295,
+        "messages.mission.accepted.agentsays": 1040297,
+        "messages.mission.briefing": 1040298,
+        "messages.root.missioninprogress.agentsays": 1040305,
+        "messages.epicMission.journalText.chapterTitle": 1040294
+      },
+      "hasStandingRewards": true,
+      "fixedLpRewardAlpha": 0,
+      "fixedLpRewardOmega": 0,
+      "expirationTime": 0,
+      "agentTypeID": null,
+      "corporationID": null,
+      "factionID": null,
+      "initialAgentGiftTypeID": null,
+      "initialAgentGiftQuantity": null,
+      "nodeGraphID": 1050,
+      "killMission": null,
+      "courierMission": null,
+      "missionRewards": {
+        "bonusTimeInterval": 60
+      },
+      "clientObjectives": null,
+      "extraStandings": null,
+      "remoteCompletable": null,
+      "remoteOfferable": null,
+      "missionKind": "talkToAgent",
+      "missionFlavor": "epicArc",
+      "isEpicArc": true,
+      "isHeraldry": false,
+      "isResearch": false,
+      "isStoryline": false,
+      "isGenericStoryline": false,
+      "isAgentInteraction": false,
+      "isTalkToAgent": true,
+      "epicArcID": 132,
+      "sourceAgentID": 3020235,
+      "nextMissionIDs": [
+        17186
+      ],
+      "nextAgentIDs": [
+        3020237
+      ],
+      "targetAgentID": 3020237,
+      "capturedRewardPresentation": {
+        "normalReward": {
+          "typeID": 29,
+          "quantity": 93000
+        },
+        "bonusReward": {
+          "typeID": 29,
+          "quantity": 87000,
+          "timeIntervalMinutes": 60
+        },
+        "loyaltyPoints": 0
+      },
+      "evidence": [
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission2.lsw",
+            "sha256": "16bf4ce897770aa12b1217c8e2f9d0d1938b3c73cc5fc05df22915dfb033cf47",
+            "bytes": 207308800
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              556095
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              556499
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission3.lsw",
+            "sha256": "52a9600b140ce1e84d7fb2ec87eb9dbcb4a69b8e0eb2a04e6c02eb3f36d6bcdc",
+            "bytes": 133793792
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              115
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              116
+            ]
+          }
+        },
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission3.lsw",
+            "sha256": "52a9600b140ce1e84d7fb2ec87eb9dbcb4a69b8e0eb2a04e6c02eb3f36d6bcdc",
+            "bytes": 133793792
+          },
+          "request": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              2246
+            ]
+          },
+          "response": {
+            "coordinate": "messages.rowid",
+            "rows": [
+              2358
+            ]
+          }
+        }
+      ],
+      "localizedName": {
+        "messageID": 1040273,
+        "text": "Travel to the Minmatar",
+        "metadata": null,
+        "tokens": null
+      },
+      "localizedMessages": {
+        "messages.mission.offered.agentsays": {
+          "messageID": 1040301,
+          "text": "You can travel to the next simulation now, and see how well the State stands up by comparison. I believe it is some foolishness made by the tribes of the Minmatar Republic.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.inProgressMessage": {
+          "messageID": 1040296,
+          "text": "Make your way to the Minmatar agent to enter the next simulation.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.quitted.agentsays": {
+          "messageID": 1040302,
+          "text": "You must be so excited to join the State you don’t need to go further. I would advise you to return and complete this journey, understanding an enemy is the only way to defeat them.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.declined.agentsays": {
+          "messageID": 1040300,
+          "text": "You must be so excited to join the State you don’t need to go further. I would advise you to return and complete this journey, understanding an enemy is the only way to defeat them.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.completedMessage": {
+          "messageID": 1040295,
+          "text": "You made your way to the Mimatar agent to enter the next simulation.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.accepted.agentsays": {
+          "messageID": 1040297,
+          "text": "Travel to the Minmatar now, see what they have to say for themself.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.mission.briefing": {
+          "messageID": 1040298,
+          "text": "Make your way to the Minmatar agent to enter the next simulation.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.root.missioninprogress.agentsays": {
+          "messageID": 1040305,
+          "text": "So, you have chosen knowledge.\r\n<br><br>\r\nYou can travel to the next simulation now, and see how well the State stands up by comparison. I believe it is some foolishness made by the tribes of the Minmatar Republic.",
+          "metadata": null,
+          "tokens": null
+        },
+        "messages.epicMission.journalText.chapterTitle": {
+          "messageID": 1040294,
+          "text": "Travel to the Minmatar",
+          "metadata": null,
+          "tokens": null
+        }
+      },
+      "sourceSolarSystemID": 30100064
+    }
+  },
+  "supplyCratesByTypeID": {
+    "93640": {
+      "typeID": 93640,
+      "entries": [
+        {
+          "typeID": 450,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 533,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 246,
+          "quantity": 3,
+          "singleton": 0
+        },
+        {
+          "typeID": 439,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 11355,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 597,
+          "quantity": 1,
+          "singleton": 0
+        }
+      ],
+      "delivery": "original-station-hangar",
+      "assembly": "packaged-ship-and-loose-equipment",
+      "evidence": [
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission6.lsw",
+            "sha256": "d6223f4a5713947cd9f2ede828477e0829595fd5af1c32293b7adc3e65865c20",
+            "bytes": 297909248
+          },
+          "coordinate": "messages.rowid",
+          "openingRows": [
+            100313
+          ],
+          "clientOpenRows": [
+            100314
+          ],
+          "consumedSourceRows": [
+            99904
+          ],
+          "initialRows": [
+            {
+              "typeID": 450,
+              "coordinate": "messages.rowid",
+              "rows": [
+                99939
+              ]
+            },
+            {
+              "typeID": 533,
+              "coordinate": "messages.rowid",
+              "rows": [
+                99944
+              ]
+            },
+            {
+              "typeID": 246,
+              "coordinate": "messages.rowid",
+              "rows": [
+                99962
+              ]
+            },
+            {
+              "typeID": 439,
+              "coordinate": "messages.rowid",
+              "rows": [
+                100092
+              ]
+            },
+            {
+              "typeID": 11355,
+              "coordinate": "messages.rowid",
+              "rows": [
+                100097
+              ]
+            },
+            {
+              "typeID": 597,
+              "coordinate": "messages.rowid",
+              "rows": [
+                100115
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "93641": {
+      "typeID": 93641,
+      "entries": [
+        {
+          "typeID": 3586,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 1957,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 561,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 439,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 603,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 222,
+          "quantity": 2000,
+          "singleton": 0
+        }
+      ],
+      "delivery": "original-station-hangar",
+      "assembly": "packaged-ship-and-loose-equipment",
+      "evidence": [
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission2.lsw",
+            "sha256": "16bf4ce897770aa12b1217c8e2f9d0d1938b3c73cc5fc05df22915dfb033cf47",
+            "bytes": 207308800
+          },
+          "coordinate": "messages.rowid",
+          "openingRows": [
+            8298
+          ],
+          "clientOpenRows": [
+            8299
+          ],
+          "consumedSourceRows": [
+            7981
+          ],
+          "initialRows": [
+            {
+              "typeID": 3586,
+              "coordinate": "messages.rowid",
+              "rows": [
+                8015
+              ]
+            },
+            {
+              "typeID": 1957,
+              "coordinate": "messages.rowid",
+              "rows": [
+                8020
+              ]
+            },
+            {
+              "typeID": 561,
+              "coordinate": "messages.rowid",
+              "rows": [
+                8038
+              ]
+            },
+            {
+              "typeID": 439,
+              "coordinate": "messages.rowid",
+              "rows": [
+                8169
+              ]
+            },
+            {
+              "typeID": 603,
+              "coordinate": "messages.rowid",
+              "rows": [
+                8174
+              ]
+            },
+            {
+              "typeID": 222,
+              "coordinate": "messages.rowid",
+              "rows": [
+                8192
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "93642": {
+      "typeID": 93642,
+      "entries": [
+        {
+          "typeID": 593,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 1968,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 561,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 2454,
+          "quantity": 5,
+          "singleton": 0
+        },
+        {
+          "typeID": 439,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 222,
+          "quantity": 2000,
+          "singleton": 0
+        }
+      ],
+      "delivery": "original-station-hangar",
+      "assembly": "packaged-ship-and-loose-equipment",
+      "evidence": [
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission8.lsw",
+            "sha256": "6c37c1d803edd20c2fdada937b89f374d9ea1f7cc4a932f3ab96104479476ab9",
+            "bytes": 79693824
+          },
+          "coordinate": "messages.rowid",
+          "openingRows": [
+            1513
+          ],
+          "clientOpenRows": [
+            1514
+          ],
+          "consumedSourceRows": [
+            888
+          ],
+          "initialRows": [
+            {
+              "typeID": 593,
+              "coordinate": "messages.rowid",
+              "rows": [
+                893
+              ]
+            },
+            {
+              "typeID": 1968,
+              "coordinate": "messages.rowid",
+              "rows": [
+                911
+              ]
+            },
+            {
+              "typeID": 561,
+              "coordinate": "messages.rowid",
+              "rows": [
+                945
+              ]
+            },
+            {
+              "typeID": 2454,
+              "coordinate": "messages.rowid",
+              "rows": [
+                1396
+              ]
+            },
+            {
+              "typeID": 439,
+              "coordinate": "messages.rowid",
+              "rows": [
+                1401
+              ]
+            },
+            {
+              "typeID": 222,
+              "coordinate": "messages.rowid",
+              "rows": [
+                1419
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "93643": {
+      "typeID": 93643,
+      "entries": [
+        {
+          "typeID": 484,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 12709,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 587,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 439,
+          "quantity": 1,
+          "singleton": 0
+        },
+        {
+          "typeID": 185,
+          "quantity": 2000,
+          "singleton": 0
+        },
+        {
+          "typeID": 22175,
+          "quantity": 1,
+          "singleton": 0
+        }
+      ],
+      "delivery": "original-station-hangar",
+      "assembly": "packaged-ship-and-loose-equipment",
+      "evidence": [
+        {
+          "source": {
+            "path": "Epic Arcs/Visions of Greatness/mission4.lsw",
+            "sha256": "c491d499ad7f2af7df07c3cb2daed75e0bf517c5ea2f129eae157c39188f98aa",
+            "bytes": 226359296
+          },
+          "coordinate": "messages.rowid",
+          "openingRows": [
+            4491
+          ],
+          "clientOpenRows": [
+            4492
+          ],
+          "consumedSourceRows": [
+            4174
+          ],
+          "initialRows": [
+            {
+              "typeID": 484,
+              "coordinate": "messages.rowid",
+              "rows": [
+                4208
+              ]
+            },
+            {
+              "typeID": 12709,
+              "coordinate": "messages.rowid",
+              "rows": [
+                4213
+              ]
+            },
+            {
+              "typeID": 587,
+              "coordinate": "messages.rowid",
+              "rows": [
+                4231
+              ]
+            },
+            {
+              "typeID": 439,
+              "coordinate": "messages.rowid",
+              "rows": [
+                4355
+              ]
+            },
+            {
+              "typeID": 185,
+              "coordinate": "messages.rowid",
+              "rows": [
+                4360
+              ]
+            },
+            {
+              "typeID": 22175,
+              "coordinate": "messages.rowid",
+              "rows": [
+                4378
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "evidence": {
+    "captures": [
+      {
+        "source": {
+          "path": "Epic Arcs/Visions of Greatness/mission1.lsw",
+          "sha256": "122a8bd1ae43898117f02c850b269e55f2b7c8502d0493db735ee6b1a59e30bb",
+          "bytes": 162154496
+        },
+        "sourceAgents": {
+          "17188": {
+            "agentID": 3020233,
+            "evidence": {
+              "request": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  55859
+                ]
+              },
+              "response": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  55868
+                ]
+              },
+              "state": null
+            }
+          }
+        },
+        "agentLocations": [
+          {
+            "agentID": 3020233,
+            "stationID": 60015249,
+            "solarSystemID": 30100032,
+            "stationTypeID": 92885,
+            "evidence": {
+              "request": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  3073
+                ]
+              },
+              "response": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  3091
+                ]
+              }
+            }
+          }
+        ],
+        "messageEvidence": {
+          "coordinate": "messages.rowid",
+          "rows": [
+            3915
+          ]
+        },
+        "statusEvidence": [
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              3913
+            ]
+          },
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              7385
+            ]
+          },
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              57133
+            ]
+          }
+        ]
+      },
+      {
+        "source": {
+          "path": "Epic Arcs/Visions of Greatness/mission2.lsw",
+          "sha256": "16bf4ce897770aa12b1217c8e2f9d0d1938b3c73cc5fc05df22915dfb033cf47",
+          "bytes": 207308800
+        },
+        "sourceAgents": {
+          "17184": {
+            "agentID": 3020235,
+            "evidence": {
+              "request": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  549560
+                ]
+              },
+              "response": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  549732
+                ]
+              },
+              "state": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  549638
+                ]
+              }
+            }
+          }
+        },
+        "agentLocations": [],
+        "messageEvidence": {
+          "coordinate": "messages.rowid",
+          "rows": [
+            3188
+          ]
+        },
+        "statusEvidence": [
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              3186
+            ]
+          },
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              549825
+            ]
+          }
+        ]
+      },
+      {
+        "source": {
+          "path": "Epic Arcs/Visions of Greatness/mission3.lsw",
+          "sha256": "52a9600b140ce1e84d7fb2ec87eb9dbcb4a69b8e0eb2a04e6c02eb3f36d6bcdc",
+          "bytes": 133793792
+        },
+        "sourceAgents": {
+          "17190": {
+            "agentID": 3020235,
+            "evidence": {
+              "request": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  370
+                ]
+              },
+              "response": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  420
+                ]
+              },
+              "state": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  411
+                ]
+              }
+            }
+          }
+        },
+        "agentLocations": [],
+        "messageEvidence": {
+          "coordinate": "messages.rowid",
+          "rows": [
+            594
+          ]
+        },
+        "statusEvidence": [
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              592
+            ]
+          },
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              72774
+            ]
+          }
+        ]
+      },
+      {
+        "source": {
+          "path": "Epic Arcs/Visions of Greatness/mission4.lsw",
+          "sha256": "c491d499ad7f2af7df07c3cb2daed75e0bf517c5ea2f129eae157c39188f98aa",
+          "bytes": 226359296
+        },
+        "sourceAgents": {
+          "17186": {
+            "agentID": 3020237,
+            "evidence": {
+              "request": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  700798
+                ]
+              },
+              "response": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  701059
+                ]
+              },
+              "state": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  700951
+                ]
+              }
+            }
+          }
+        },
+        "agentLocations": [],
+        "messageEvidence": {
+          "coordinate": "messages.rowid",
+          "rows": [
+            1049
+          ]
+        },
+        "statusEvidence": [
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              1047
+            ]
+          },
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              701525
+            ]
+          }
+        ]
+      },
+      {
+        "source": {
+          "path": "Epic Arcs/Visions of Greatness/mission5.lsw",
+          "sha256": "fcd2860572466a3d1030536d6858fa0aa3e007cc2d5422d3602eb725cf48c29a",
+          "bytes": 136480768
+        },
+        "sourceAgents": {
+          "17187": {
+            "agentID": 3020237,
+            "evidence": {
+              "request": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  89561
+                ]
+              },
+              "response": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  89570
+                ]
+              },
+              "state": null
+            }
+          }
+        },
+        "agentLocations": [
+          {
+            "agentID": 3020237,
+            "stationID": 60015233,
+            "solarSystemID": 30100071,
+            "stationTypeID": 2502,
+            "evidence": {
+              "request": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  28051
+                ]
+              },
+              "response": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  28186
+                ]
+              }
+            }
+          }
+        ],
+        "messageEvidence": {
+          "coordinate": "messages.rowid",
+          "rows": [
+            30824
+          ]
+        },
+        "statusEvidence": [
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              30630
+            ]
+          },
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              90358
+            ]
+          }
+        ]
+      },
+      {
+        "source": {
+          "path": "Epic Arcs/Visions of Greatness/mission6.lsw",
+          "sha256": "d6223f4a5713947cd9f2ede828477e0829595fd5af1c32293b7adc3e65865c20",
+          "bytes": 297909248
+        },
+        "sourceAgents": {
+          "17183": {
+            "agentID": 3020234,
+            "evidence": {
+              "request": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  348552
+                ]
+              },
+              "response": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  348720
+                ]
+              },
+              "state": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  348602
+                ]
+              }
+            }
+          },
+          "17187": {
+            "agentID": 3020237,
+            "evidence": {
+              "request": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  89561
+                ]
+              },
+              "response": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  89570
+                ]
+              },
+              "state": null
+            }
+          },
+          "17189": {
+            "agentID": 3020234,
+            "evidence": {
+              "request": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  354603
+                ]
+              },
+              "response": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  354604
+                ]
+              },
+              "state": null
+            }
+          }
+        },
+        "agentLocations": [
+          {
+            "agentID": 3020237,
+            "stationID": 60015233,
+            "solarSystemID": 30100071,
+            "stationTypeID": 2502,
+            "evidence": {
+              "request": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  28051
+                ]
+              },
+              "response": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  28186
+                ]
+              }
+            }
+          },
+          {
+            "agentID": 3020234,
+            "stationID": 60015230,
+            "solarSystemID": 30100078,
+            "stationTypeID": 1932,
+            "evidence": {
+              "request": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  90081
+                ]
+              },
+              "response": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  90119
+                ]
+              }
+            }
+          }
+        ],
+        "messageEvidence": {
+          "coordinate": "messages.rowid",
+          "rows": [
+            30824
+          ]
+        },
+        "statusEvidence": [
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              30630
+            ]
+          },
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              90358
+            ]
+          },
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              96141
+            ]
+          },
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              348769
+            ]
+          }
+        ]
+      },
+      {
+        "source": {
+          "path": "Epic Arcs/Visions of Greatness/mission7.lsw",
+          "sha256": "144d273fa63fd6e39715a29caeca945024a89f6a115b24f2a62ead15881f0c32",
+          "bytes": 161574912
+        },
+        "sourceAgents": {
+          "17189": {
+            "agentID": 3020234,
+            "evidence": {
+              "request": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  3909
+                ]
+              },
+              "response": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  4836
+                ]
+              },
+              "state": null
+            }
+          }
+        },
+        "agentLocations": [],
+        "messageEvidence": {
+          "coordinate": "messages.rowid",
+          "rows": [
+            875
+          ]
+        },
+        "statusEvidence": [
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              873
+            ]
+          },
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              50279
+            ]
+          },
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              55774
+            ]
+          }
+        ]
+      },
+      {
+        "source": {
+          "path": "Epic Arcs/Visions of Greatness/mission8.lsw",
+          "sha256": "6c37c1d803edd20c2fdada937b89f374d9ea1f7cc4a932f3ab96104479476ab9",
+          "bytes": 79693824
+        },
+        "sourceAgents": {
+          "17185": {
+            "agentID": 3020236,
+            "evidence": {
+              "request": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  351594
+                ]
+              },
+              "response": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  351685
+                ]
+              },
+              "state": {
+                "coordinate": "messages.rowid",
+                "rows": [
+                  351672
+                ]
+              }
+            }
+          }
+        },
+        "agentLocations": [],
+        "messageEvidence": {
+          "coordinate": "messages.rowid",
+          "rows": [
+            351785
+          ]
+        },
+        "statusEvidence": [
+          {
+            "coordinate": "messages.rowid",
+            "rows": [
+              351783
+            ]
+          }
+        ]
+      }
+    ],
+    "clientFiles": [
+      {
+        "file": "npcCharacters.jsonl",
+        "sha256": "24cdcc14699c763da69d6581f0a1905c3317e971fea704cc6ed64183b65fb135"
+      },
+      {
+        "file": "npcStations.jsonl",
+        "sha256": "e7dd9de4a6f3c0b283645ed8d70a42bf7a6e45ea8b8501d4e72eb97a0d1220cf"
+      },
+      {
+        "file": "npcCorporations.jsonl",
+        "sha256": "6f6cbfebb286cb25ba8a8bae00786dd3d2222ca842d57b90a6d1e67400074a52"
+      },
+      {
+        "file": "2c3038b3c38e91a1_61aa7c6ea396176c7daa072ebdb9273a",
+        "sha256": "3dc0ccb9687058354e40af268a0383891e12698bbb948a8f2613e636896dce10"
+      }
+    ],
+    "nativeExports": [
+      {
+        "file": "missions.json",
+        "sha256": "edaff6a63dea619e5dbb9b381a168aac5fed67dc0af0542eca38047e2b74d1b0",
+        "sourceSHA256": "74f45cc5b752364add1071e756a73a0d5c0508aec3342f1fffa3b219b8d3eaa3",
+        "loader": "missionsLoader",
+        "loaderSHA256": "cfcb65cab93d5da460184f35490b9332582efa27f029b788fbd014d91aca0349"
+      },
+      {
+        "file": "epicarcs.json",
+        "sha256": "45aa072cf1aac67028d6549a58a3b09234172ba40cac0aa0e89a8a3e04377b80",
+        "sourceSHA256": "c6bc2c80c330c8cce00ded046e051da1a1ba00db608a07ecebe34dd5ee6d985b",
+        "loader": "epicArcsLoader",
+        "loaderSHA256": "23a99a190a37029a9ff6590679d630791bc4f38ca85f57780ab332c3d30e7964"
+      },
+      {
+        "file": "npccharacters.json",
+        "sha256": "42f906a410b9fd52a960b5191f10cdf2b6ff018ab3b934f98efbef3de1a83e39",
+        "sourceSHA256": "5ec4b6982ee14d88d6380cc25ec556bfc226599779b0b281fccee7d71b6a0a30",
+        "loader": "npcCharactersLoader",
+        "loaderSHA256": "43b4ca9c43ac7496e4c42eb609731c5a02d5c33a1af09b7fb0369571fd5fb09c"
+      }
+    ]
+  },
+  "limitations": [
+    "The captured acceptance order agrees with every branch in the installed native arc graph; scene fidelity remains a separate audit.",
+    "Reward quotes are final presentations to the captured pilot, not skill-normalized baselines.",
+    "Client objectives and scene triggers are supplied by the separately audited Visions scene pack, not inferred from mission names."
+  ]
+}

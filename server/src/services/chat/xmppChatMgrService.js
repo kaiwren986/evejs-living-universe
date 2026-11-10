@@ -259,7 +259,7 @@ class XmppChatMgrService extends BaseService {
 
   Handle_CreatePlayerOwnedChannel(args, session) {
     const displayName = normalizeText(args && args[0], "").trim();
-    if (!displayName) {
+    if (!displayName || !normalizePositiveInteger(session && (session.characterID || session.charid))) {
       return null;
     }
 

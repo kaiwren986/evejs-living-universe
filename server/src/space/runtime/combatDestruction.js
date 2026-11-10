@@ -234,7 +234,16 @@ function resolveNpcWreckOwnerContext(entity, options = {}) {
   };
 }
 
-function recordNpcBountyForCombatDestruction(scene, targetEntity, attackerEntity, destroyResult) {
+// The NPC bounty kill, with the Grid bubble the NPC died in: combat
+// destruction reads it before it destroys the Ball, since the Ball leaves the
+// scene's maps at once (doc/FLEET_SHARES.md → NPC bounty at destruction).
+function recordNpcBountyForCombatDestruction(
+  scene,
+  targetEntity,
+  attackerEntity,
+  destroyResult,
+  { gridBubbleID = null } = {},
+) {
   if (
     !scene ||
     !targetEntity ||
@@ -256,6 +265,7 @@ function recordNpcBountyForCombatDestruction(scene, targetEntity, attackerEntity
       solarSystemID: toInt(targetEntity.systemID, toInt(scene.systemID, 0)) || 0,
       scene,
       bountyEventID: destroyResult.data?.deathReceiptKey ? `npc-death:${destroyResult.data.deathReceiptKey}` : undefined,
+      gridBubbleID,
       entity: attackerEntity || null,
     });
   } catch (error) {
@@ -334,13 +344,28 @@ function destroyCombatEntity(scene, entity, options = {}) {
       data: { entity, transientProjectile: true } };
   }
 
+  // An event's own destroy hook removes its NPC from the scene itself, so the
+  // Grid bubble is read before the hook runs, and its bounty recorded when the
+  // hook succeeds (doc/FLEET_SHARES.md → NPC bounty at destruction).
   if (entity.fwOpenFaction || String(entity.dungeonEncounterKey||"").startsWith("fw-open:")) {
+    const gridBubbleID = scene.getGridBubbleIDForEntity(entity);
     const result = lazyRequire("../services/seasons/eventHooks").fw.destroy(scene,entity,options);
-    if (result) return result;
+    if (result) {
+      recordNpcBountyForCombatDestruction(
+        scene, entity, options.attackerEntity || null, result, { gridBubbleID },
+      );
+      return result;
+    }
   }
   if (entity.fabricatorRole) {
+    const gridBubbleID = scene.getGridBubbleIDForEntity(entity);
     const result = lazyRequire("../services/seasons/eventHooks").fabricator.destroy(scene,entity,options);
-    if (result) return result;
+    if (result) {
+      recordNpcBountyForCombatDestruction(
+        scene, entity, options.attackerEntity || null, result, { gridBubbleID },
+      );
+      return result;
+    }
   }
 
   if (entity.homefrontKey) {
@@ -517,8 +542,10 @@ function destroyCombatEntity(scene, entity, options = {}) {
       nativeNpcWreckOwnerContext.ownerCharacterID,
       0,
     );
+    // A ship of the AIR fleet battle killed by another of it leaves no wreck (airCombatPolicy).
+    const airBattleNoWreck = require("../combat/airCombatPolicy").battleKillLeavesNoWreck(entity, options.attackerEntity);
     const destroyShipEntity = entity.nativeNpc === true &&
-      abyssalNpcRuntimePolicy.suppressWreck === true &&
+      (abyssalNpcRuntimePolicy.suppressWreck === true || airBattleNoWreck) &&
       typeof destroyShipEntityWithoutWreck === "function"
       ? destroyShipEntityWithoutWreck
       : destroyShipEntityWithWreck;
@@ -529,10 +556,11 @@ function destroyCombatEntity(scene, entity, options = {}) {
           `enforcement=${abyssalNpcRuntimePolicy.enforcementMode}`,
       );
     }
+    const gridBubbleID = scene.getGridBubbleIDForEntity(entity);
     const destroyResult = destroyShipEntity(scene.systemID, entity, {
       deathReceipt: options.deathReceipt,
       sceneDescriptor: scene.sceneDescriptor || undefined,
-      suppressWreck: abyssalNpcRuntimePolicy.suppressWreck === true,
+      suppressWreck: abyssalNpcRuntimePolicy.suppressWreck === true || airBattleNoWreck,
       terminalDestructionEffectID: DESTRUCTION_EFFECT_EXPLOSION,
       destructionReason: options.destructionReason || "combat",
       skipInsurance: options.skipInsurance === true,
@@ -577,6 +605,7 @@ function destroyCombatEntity(scene, entity, options = {}) {
         entity,
         options.attackerEntity || null,
         destroyResult,
+        { gridBubbleID },
       );
       if (
         entity.nativeNpc === true &&
@@ -614,7 +643,7 @@ function destroyCombatEntity(scene, entity, options = {}) {
         log.warn(
           `[SpaceRuntime] Falling back to transient ship destruction without wreck for ship=${entity.itemID} type=${entity.typeID} error=${destroyResult && destroyResult.errorMsg ? destroyResult.errorMsg : "UNKNOWN"}`,
         );
-        return {
+        const transientResult = {
           success: true,
           data: {
             shipID: entity.itemID,
@@ -627,6 +656,14 @@ function destroyCombatEntity(scene, entity, options = {}) {
             changes: [],
           },
         };
+        recordNpcBountyForCombatDestruction(
+          scene,
+          entity,
+          options.attackerEntity || null,
+          transientResult,
+          { gridBubbleID },
+        );
+        return transientResult;
       }
     }
 
@@ -660,6 +697,15 @@ function destroyCombatEntity(scene, entity, options = {}) {
       });
     }
     return removeResult;
+  }
+
+  // A Mercenary Den leaves its own wreck and, half the time, its infomorphs.
+  const mercenaryDenRuntime = lazyRequire("../services/ship/mercenaryDenRuntime");
+  if (isInventoryBackedDynamicEntity(entity) && mercenaryDenRuntime.isMercenaryDenType(entity)) {
+    return mercenaryDenRuntime.destroyMercenaryDenEntity(scene, entity, {
+      terminalDestructionEffectID: DESTRUCTION_EFFECT_EXPLOSION,
+      destructionNowMs: options.destructionNowMs,
+    });
   }
 
   if (isInventoryBackedDynamicEntity(entity)) {

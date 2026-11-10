@@ -246,11 +246,31 @@ function moveTraffic(scene, entity, slot, state, now) {
   );
   return false;
 }
+// The pack's offsets are from the site, but the shared builders stand anything
+// with a roomKey on its room's anchor. Without this the object lands one whole
+// room offset beyond the pocket, out of every pilot's reach.
+function roomRelative(instance, root, profile) {
+  const anchor = service().homefrontPorts.roomAnchor(
+    root.position,
+    require("../dungeon/dungeonAuthority").getTemplateByID(instance.templateID),
+    profile.roomKey,
+  );
+  const offset = profile.positionOffset;
+  if (!anchor || !offset) return profile;
+  return {
+    ...profile,
+    positionOffset: {
+      x: root.position.x + offset.x - anchor.x,
+      y: root.position.y + offset.y - anchor.y,
+      z: root.position.z + offset.z - anchor.z,
+    },
+  };
+}
 function rocks(scene, instance, root, profiles, state, wave) {
   const hints = {
     exactClientContent: true,
     resourceYieldKind: "ore",
-    miningRocks: profiles,
+    miningRocks: profiles.map((profile) => roomRelative(instance, root, profile)),
     exactContentCaps: { miningRocks: profiles.length },
   };
   const entities = service().homefrontPorts.rocks(
@@ -301,7 +321,7 @@ function containers(
   const hints = {
     homefront: true,
     containers: profiles.map((profileEntry) => ({
-      ...profileEntry,
+      ...roomRelative(instance, root, profileEntry),
       count: 1,
       role: "homefront",
       analyzer: role === "hack" ? "data" : null,

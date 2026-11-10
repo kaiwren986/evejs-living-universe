@@ -596,9 +596,11 @@ async function compensateRejectedSettlement(characterID) {
   }
   const errorMsg = settlement.rejectionError || "REPROCESSING_REJECTED";
   const removed = updateSettlement(characterID, () => null);
-  return removed.success
-    ? { success: true, rejected: true, errorMsg }
-    : removed;
+  if (!removed.success) {
+    return removed;
+  }
+  retireOperationReceipts(settlement);
+  return { success: true, rejected: true, errorMsg };
 }
 
 async function rejectSettlement(characterID, errorMsg) {
@@ -647,10 +649,14 @@ function notifyInventoryChanges(settlement, result, preferredSession = null) {
     for (const change of changes) {
       const item = resolveNotificationItem(change);
       if (item) {
+        // TQ's OnItemsChanged (plural): the client's invCache turns it into
+        // OnMultipleItemChange, which recounts item goals such as the career
+        // Industry part 2 "Reprocess" (the minerals in hangar or ship).
         characterState.syncInventoryItemForSession(
           session,
           item,
           change.previousData || change.previousState || {},
+          { emitItemsChangedBatch: true },
         );
       }
     }
@@ -719,6 +725,75 @@ function buildCompletionResult(settlement) {
 // would double-credit them. It is consumed instead, exactly as a successful
 // commit would have, so the escrow ledger does not leak. Idempotent: a drained
 // location is empty on the next pass.
+// Every custody receipt an operation writes is only read again while its
+// settlement record exists: a replay finds the record, and a new request mints
+// a new sequence. Kept after that, they only grew the receipt ledger, and a
+// community save carried 100,000 of them. Called once the record is gone; a
+// failed retire leaves the receipts for the boot prune.
+function retireOperationReceipts(settlement) {
+  const keys = [];
+  for (const leg of settlement.inputLegs || []) {
+    keys.push(leg.stageKey, leg.returnKey, leg.commitKey);
+    const escrowItemID = toPositiveInt(leg.escrowItemID, 0);
+    if (escrowItemID) {
+      keys.push(
+        `${DURABLE_SETTLEMENT_JOB_PREFIX}${settlement.operationID}:escrow-drain:${escrowItemID}`,
+      );
+    }
+  }
+  for (const leg of settlement.outputLegs || []) {
+    keys.push(leg.grantKey, leg.deliverKey, leg.revokeKey);
+  }
+  try {
+    const result = reprocessingItemCustody.retireReceipts(keys.filter(Boolean));
+    if (!result || result.success !== true) {
+      log.warn(
+        `[ReprocessingSettlement] could not retire receipts operation=` +
+          `${settlement.operationID}: ${(result && result.errorMsg) || "custody error"}`,
+      );
+    }
+  } catch (error) {
+    log.warn(
+      `[ReprocessingSettlement] could not retire receipts operation=` +
+        `${settlement.operationID}: ${error.message}`,
+    );
+  }
+}
+
+// The receipts of operations that finished before retireOperationReceipts
+// existed, or whose retire was lost to a crash. Runs at boot before the escrow
+// sweep, so the sweep receipts it drops are all from earlier processes. A throw
+// at startup would stop the server booting, so failures are only logged.
+function pruneFinishedOperationReceipts() {
+  let result = null;
+  try {
+    const pendingOperationIDs = new Set(
+      listPendingReprocessingSettlements().map((settlement) => String(settlement.operationID)),
+    );
+    result = reprocessingItemCustody.pruneReceipts((idempotencyKey) => {
+      if (!idempotencyKey.startsWith(DURABLE_SETTLEMENT_JOB_PREFIX)) {
+        return false;
+      }
+      const rest = idempotencyKey.slice(DURABLE_SETTLEMENT_JOB_PREFIX.length);
+      if (rest.startsWith("escrow-sweep:")) {
+        return true;
+      }
+      const match = /^(\d+:\d+):/.exec(rest);
+      return Boolean(match) && !pendingOperationIDs.has(match[1]);
+    });
+  } catch (error) {
+    result = { success: false, errorMsg: error.message };
+  }
+  if (!result || result.success !== true) {
+    log.warn(
+      `[ReprocessingSettlement] could not prune finished operation receipts: ` +
+        `${(result && result.errorMsg) || "custody error"}`,
+    );
+    return 0;
+  }
+  return result.removed;
+}
+
 function drainOperationEscrowLeftovers(settlement) {
   const ownerIDs = new Set(
     settlement.inputLegs.map((leg) => toPositiveInt(leg.ownerID, 0)).filter(Boolean),
@@ -1117,6 +1192,7 @@ async function settleReprocessingInternal(characterID, options = {}) {
   if (!removed.success) {
     return removed;
   }
+  retireOperationReceipts(settlement);
   emitCompletion(settlement, completion, options);
   return { success: true, data: completion };
 }
@@ -1245,6 +1321,7 @@ function advanceOperationSequenceWatermark(receiptScan) {
 
 async function reconcileDurableReprocessingSettlements(options = {}) {
   advanceOperationSequenceWatermark(options.receiptScan);
+  const pruned = pruneFinishedOperationReceipts();
   const pending = listPendingReprocessingSettlements();
   if (durableScheduler) {
     await Promise.all(pending.map((settlement) =>
@@ -1258,6 +1335,7 @@ async function reconcileDurableReprocessingSettlements(options = {}) {
     scheduled: durableScheduler ? pending.length : 0,
     pending: pending.length,
     swept: swept.recovered,
+    prunedReceipts: pruned,
   };
 }
 

@@ -44,6 +44,12 @@ function observe(characterID, options = {}) {
     updatedAtMs: matches.reduce((latest, receipt) => Math.max(latest, receipt.completedAtMs), 0) };
 }
 
+// A number for a content key, the same for the same key (the server's FNV-1a text hash),
+// placed above 2^40, where no client dungeon object ID (six or seven digits) can meet it.
+function contentKeyObjectID(contentKey) {
+  return 2 ** 40 + require("../../common/random").hashSeed(contentKey);
+}
+
 function eligibleTarget(attempt, session) {
   if (attempt?.serverAnalyzer !== true || attempt.depotBoard === true || attempt.completed === true) return null;
   const characterID = positive(resolveSessionCharacterID(session));
@@ -56,21 +62,35 @@ function eligibleTarget(attempt, session) {
   const liveEntity = typeof scene.getEntityByID === "function" ? scene.getEntityByID(entity.itemID)
     : scene.staticEntitiesByID?.get(entity.itemID) || scene.dynamicEntities?.get(entity.itemID);
   if (liveEntity !== entity) return null;
-  const instanceID = positive(entity.dungeonSiteInstanceID), objectID = positive(entity.dungeonSourceObjectID || entity.dunObjectID);
+  const instanceID = positive(entity.dungeonSiteInstanceID);
+  let objectID = positive(entity.dungeonSourceObjectID || entity.dunObjectID);
   const instance = instanceID && dungeonRuntime.getInstance(instanceID);
-  if (!instance || !objectID || !["data", "relic"].includes(text(instance.siteFamily)) ||
-      text(instance.siteKind) !== "signature" || instance.runtimeFlags?.missionRuntime === true ||
-      instance.metadata?.missionRuntime === true || instance.metadata?.homefront === true ||
-      instance.ownership?.missionOwnerCharacterID ||
-      positive(instance.solarSystemID) !== positive(scene.systemID)) return null;
   // Authored container identity survives rematerialization; item IDs and scene
   // generations do not. Only an installed template's actual data/relic object
   // can earn a receipt, never an arbitrary scene container with copied flags.
-  const template = dungeonAuthority.getTemplateByID(instance.templateID);
-  const container = template?.populationHints?.containers?.find(candidate => (
+  const template = instance && dungeonAuthority.getTemplateByID(instance.templateID);
+  // Career agent missions are mission sites, but their data and relic containers count: the
+  // Explorer's Data and Relic Training Sites (parts 3 and 4) and the Business chain's Balancing
+  // the Books (4 and 7 of 10). Other mission sites do not.
+  const careerAgentSite = template?.populationHints?.source === "career_agents";
+  const containers = template?.populationHints?.containers || [];
+  let container = objectID ? containers.find(candidate => (
     positive(candidate.dunObjectID || candidate.objectID) === objectID && text(candidate.analyzer) === analyzer
-  ));
-  if (!container || !["data", "relic"].includes(text(template.siteFamily)) ||
+  )) : null;
+  if (!container && !objectID && careerAgentSite && entity.dungeonSiteContentKey) {
+    // A container the career agents pack adds without a client dungeon object (Balancing the
+    // Books (4 of 10)) is identified by its content key, the identity the site's own state keeps
+    // it under; the template must have such a container of this role and analyzer.
+    container = containers.find(candidate => !positive(candidate.dunObjectID || candidate.objectID) &&
+      text(candidate.analyzer) === analyzer && text(candidate.role) === text(entity.dungeonSiteContentRole));
+    if (container) objectID = contentKeyObjectID(entity.dungeonSiteContentKey);
+  }
+  if (!instance || !objectID || instance.metadata?.homefront === true ||
+      positive(instance.solarSystemID) !== positive(scene.systemID)) return null;
+  if (!careerAgentSite && (!["data", "relic"].includes(text(instance.siteFamily)) ||
+      text(instance.siteKind) !== "signature" || instance.runtimeFlags?.missionRuntime === true ||
+      instance.metadata?.missionRuntime === true || instance.ownership?.missionOwnerCharacterID)) return null;
+  if (!container || (!careerAgentSite && !["data", "relic"].includes(text(template.siteFamily))) ||
       template.populationHints?.homefront === true ||
       require("../seasons/eventHooks").depot.getRecord(entity)) return null;
   const shipID = positive(attempt.shipID), currentShipID = positive(session?._space?.shipID || session?.shipid || session?.shipID);

@@ -241,7 +241,9 @@ function advanceStructureTimers(structureID, seconds) {
   };
 }
 
-function seedSovereigntyFlexFuel(structureID, hours = DEFAULT_SOV_FLEX_FUEL_HOURS) {
+// A structure still deploying (options.deploying) gets the fuel without the
+// upkeep and expiry of an online service, and reaches clients later.
+function seedSovereigntyFlexFuel(structureID, hours = DEFAULT_SOV_FLEX_FUEL_HOURS, options = {}) {
   const structure = structureState.getStructureByID(structureID, { refresh: false });
   if (!structure) {
     return {
@@ -286,17 +288,19 @@ function seedSovereigntyFlexFuel(structureID, hours = DEFAULT_SOV_FLEX_FUEL_HOUR
     }
     fuelQuantities.set(typeID, Math.max(currentQuantity, targetQuantity));
   }
-  const fuelExpiresAt = Date.now() + (seededHours * HOUR_MS);
+  const deploying = options.deploying === true;
+  const fuelExpiresAt = deploying ? null : Date.now() + (seededHours * HOUR_MS);
   const updateResult = structureState.updateStructureRecord(structureID, (current) => ({
     ...current,
-    upkeepState: STRUCTURE_UPKEEP_STATE.FULL_POWER,
-    fuelExpiresAt,
+    ...(deploying ? {} : { upkeepState: STRUCTURE_UPKEEP_STATE.FULL_POWER, fuelExpiresAt }),
     liquidOzoneQty: fuelQuantities.get(TYPE_LIQUID_OZONE),
-  }));
+  }), deploying ? { emitLive: false } : {});
   if (!updateResult.success) {
     return updateResult;
   }
-  syncStructureRuntime(updateResult.data);
+  if (!deploying) {
+    syncStructureRuntime(updateResult.data);
+  }
   return {
     success: true,
     data: {
@@ -310,6 +314,33 @@ function seedSovereigntyFlexFuel(structureID, hours = DEFAULT_SOV_FLEX_FUEL_HOUR
   };
 }
 
+// A player's FLEX needs its Hub upgrade already running; nothing is installed,
+// onlined or fuelled for them (the client's CantAnchorMissingUpgrade: "it needs
+// a {needs} to be installed in the solar system's sovereignty hub").
+function requireFlexUpgradeRunning(solarSystemID, definition, identity) {
+  const hubID = normalizePositiveInteger(getHubIDForSolarSystem(solarSystemID), null);
+  if (!hubID) {
+    return { success: false, errorMsg: "HUB_NOT_FOUND" };
+  }
+  const upgradeSnapshot = getHubUpgrades(hubID, identity);
+  const requiredUpgrade =
+    upgradeSnapshot && Array.isArray(upgradeSnapshot.upgrades)
+      ? upgradeSnapshot.upgrades.find(
+        (entry) => Number(entry && entry.typeID) === definition.requiredUpgradeTypeID,
+      ) || null
+      : null;
+  if (!requiredUpgrade || Number(requiredUpgrade.powerState) !== POWER_STATE.POWER_STATE_ONLINE) {
+    return {
+      success: false,
+      errorMsg: "REQUIRED_HUB_UPGRADE_NOT_ONLINE",
+      requiredUpgradeTypeID: definition.requiredUpgradeTypeID,
+    };
+  }
+  return { success: true, data: { hubID, requiredUpgrade } };
+}
+
+// GM and automation only (/sov deploy, sovauto): installs, onlines and fuels
+// the Hub upgrade a FLEX needs.
 function ensureFlexUpgradeOnline(solarSystemID, definition, identity, fuelHours) {
   const hubID = normalizePositiveInteger(getHubIDForSolarSystem(solarSystemID), null);
   if (!hubID) {
@@ -441,12 +472,9 @@ function deploySovereigntyFlexStructure(session, kind, options = {}) {
     1,
     normalizeInteger(options.fuelHours, DEFAULT_SOV_FLEX_FUEL_HOURS),
   );
-  const upgradeResult = ensureFlexUpgradeOnline(
-    solarSystemID,
-    definition,
-    identity,
-    fuelHours,
-  );
+  const upgradeResult = options.retailDeployment === true
+    ? requireFlexUpgradeRunning(solarSystemID, definition, identity)
+    : ensureFlexUpgradeOnline(solarSystemID, definition, identity, fuelHours);
   if (!upgradeResult.success) {
     return upgradeResult;
   }
@@ -494,14 +522,39 @@ function deploySovereigntyFlexStructure(session, kind, options = {}) {
           : {}),
         ...(options.devFlags || {}),
       },
+      // A player's deployment first reaches clients already deploying.
+      createOptions: options.retailDeployment === true ? { emitLive: false } : {},
     },
   );
   if (!seedResult.success) {
     return seedResult;
   }
-  syncStructureRuntime(seedResult.data);
 
   const structureID = seedResult.data.structureID;
+  if (options.retailDeployment === true) {
+    // Retail deploys a FLEX for 45 minutes and leaves its service for the
+    // owner to online. The caller adds it to space in its deploy state.
+    // The owner fuels it (Access Hangar Transfer); nothing is seeded.
+    const deployResult = structureState.startFlexDeployment(structureID, Date.now(), {
+      emitLive: false,
+    });
+    if (!deployResult.success) {
+      return deployResult;
+    }
+    return {
+      success: true,
+      data: {
+        structure: structureState.getStructureByID(structureID, { refresh: false }) || deployResult.data,
+        created: true,
+        serviceOnline: false,
+        definition,
+        hubID: upgradeResult.data.hubID,
+        requiredUpgrade: upgradeResult.data.requiredUpgrade,
+      },
+    };
+  }
+  syncStructureRuntime(seedResult.data);
+
   const anchorResult = structureState.startAnchoring(structureID);
   if (!anchorResult.success) {
     return anchorResult;

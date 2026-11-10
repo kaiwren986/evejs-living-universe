@@ -44,7 +44,8 @@ function metricsFor(event) {
       if (!id(event.solarSystemID) || !id(event.instanceID) || event.family !== "wormhole") return null;
       metric = "scanned-wormholes"; break;
     case "site-entry":
-      if (!id(event.solarSystemID) || !id(event.instanceID) || event.siteKind !== "signature" ||
+      if (!id(event.solarSystemID) || !id(event.instanceID) ||
+          !(event.siteKind === "signature" || event.family === "combat" && event.siteKind === "anomaly") ||
           !["gas", "combat"].includes(event.family)) return null;
       metric = `entered-${event.family}-signatures`; break;
     case "reprocess":

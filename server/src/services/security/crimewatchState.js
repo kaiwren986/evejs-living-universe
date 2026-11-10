@@ -53,13 +53,18 @@ const SAFETY_LEVEL_PARTIAL = 1;
 const SAFETY_LEVEL_FULL = 2;
 
 const WEAPONS_TIMER_STATE_IDLE = 100;
+const WEAPONS_TIMER_STATE_ACTIVE = 101;
 const WEAPONS_TIMER_STATE_TIMER = 102;
 const PVP_TIMER_STATE_IDLE = 200;
+const PVP_TIMER_STATE_ACTIVE = 201;
 const PVP_TIMER_STATE_TIMER = 202;
 const CRIMINAL_TIMER_STATE_IDLE = 300;
+const CRIMINAL_TIMER_STATE_ACTIVE_CRIMINAL = 301;
+const CRIMINAL_TIMER_STATE_ACTIVE_SUSPECT = 302;
 const CRIMINAL_TIMER_STATE_TIMER_CRIMINAL = 303;
 const CRIMINAL_TIMER_STATE_TIMER_SUSPECT = 304;
 const NPC_TIMER_STATE_IDLE = 400;
+const NPC_TIMER_STATE_ACTIVE = 401;
 const NPC_TIMER_STATE_TIMER = 402;
 const DISAPPROVAL_TIMER_STATE_IDLE = 500;
 const DISAPPROVAL_TIMER_STATE_TIMER = 502;
@@ -79,20 +84,49 @@ const SECURITY_STATUS_CAPSULE_AGGRESSION_MODIFIER = -0.25;
 const SECURITY_STATUS_ROUND_DIGITS = 4;
 const SECURITY_STATUS_DUPLICATE_WINDOW_MS = WEAPON_TIMER_DURATION_MS;
 const GROUP_CAPSULE = 29;
+const GROUP_STARGATE = 10;
+const GROUP_STATION = 15;
+const MIN_PLAYER_OWNER_ID = 90_000_000;
+const CONCORD_CORPORATION_ID = 1_000_125;
 const CATEGORY_DEPLOYABLE = 22;
 const GROUP_MOBILE_DEPOT = 1246;
+// Customs Office Gantry (crimewatch/const.py targetGroupsWithSuspectPenaltyInHighSec:
+// groupOrbitalConstructionPlatforms): shooting one in highsec is a suspect act.
+const GROUP_ORBITAL_CONSTRUCTION_PLATFORM = 1106;
+// Corporation property in space with no pilot: orbitals (Customs Offices,
+// gantries, skyhooks) and Upwell structures. The client treats a player-owned
+// one like any other player target (crimewatchSvc.GetSafetyLevelRestrictionForAttackingTarget:
+// not CanAttackFreely, so criminal in highsec unless DoesConcordReact says no).
+const CATEGORY_ORBITAL = 46;
+const CATEGORY_STRUCTURE = 65;
 const GROUP_MOBILE_TRACTOR_UNIT = 1250;
 const PENALTY_CONTRIBUTION_VERSION = 1;
 const THEFT_RECEIPT_STATE_PREPARED = "prepared";
 const THEFT_RECEIPT_STATE_COMMITTED = "committed";
 
 const ONE_AU_IN_METERS = 149_597_870_700;
-const CONCORD_RESPONSE_WARP_ORIGIN_MIN_DISTANCE_METERS = ONE_AU_IN_METERS * 2;
-const CONCORD_RESPONSE_WARP_ORIGIN_MAX_DISTANCE_METERS = ONE_AU_IN_METERS * 3;
-const CONCORD_RESPONSE_WARP_ORIGIN_SEARCH_STEP_METERS = ONE_AU_IN_METERS / 2;
+// EntityWarpIn starts the warp curve five ticks in (evolve.js entityWarpIn), so a
+// responder is on grid about 2 s after leaving from here, off grid.
+const CONCORD_RESPONSE_WARP_ORIGIN_MIN_DISTANCE_METERS = 100_000_000;
+const CONCORD_RESPONSE_WARP_ORIGIN_MAX_DISTANCE_METERS = 200_000_000;
+const CONCORD_RESPONSE_WARP_ORIGIN_SEARCH_STEP_METERS = 50_000_000;
+const CONCORD_RESPONSE_WARP_ORIGIN_CLEARANCE_METERS = 50_000_000;
 const CONCORD_RESPONSE_WARP_ORIGIN_LOCAL_SPAWN_DISTANCE_METERS = 1_000;
 const CONCORD_RESPONSE_WARP_ORIGIN_LOCAL_SPAWN_SPREAD_METERS = 12_000;
 const CONCORD_RESPONSE_WARP_SPEED_AU = 15;
+// Two Police Captains and a Police Commander, as TQ logs show CONCORD standing and
+// as CCP's 2008 Serious Security blog and EVE University describe it. Their own
+// scan resolutions make the disable and the kill: the Captains lock a frigate in
+// about 2 s, and the Commander a battleship in about 15 s and a freighter in about 7 s.
+const CONCORD_RESPONSE_SPAWN_GROUP_ID = "concord_crimewatch_response";
+// Time from dispatch to the Captains' lock, measured in Jita: stopped on grid at
+// 4.5 s, wake at 5.1 s, then their own lock, 2.2 s on a frigate and 0.4 s on a
+// freighter. The published times were measured on gank ships between those.
+const CONCORD_RESPONSE_TRAVEL_MS = 6_000;
+// EVE University, Suicide ganking: a spawn already within 150 km reacts almost at
+// once, and one further away respawns beside the offender, adding about 6 s.
+const CONCORD_RESPONSE_IDLE_SPAWN_RANGE_METERS = 150_000;
+const CONCORD_RESPONSE_IDLE_SPAWN_RELOCATE_MS = 6_000;
 // `client/crime4.txt` showed native EntityShip `EntityWarpIn` finishing its
 // client-side warp phase roughly one second after the acquire packet batch, so
 // the old 3.5s server ingress badly overhung the client and read as "spawn in,
@@ -118,6 +152,17 @@ const lastBroadcastTimerSnapshots = new Map();
 const lastBroadcastFlagSnapshots = new Map();
 const lastBroadcastDisapprovalSnapshots = new Map();
 const recentSecurityPenaltyTargets = new Map();
+// Live module references are deliberately transient. Durable expiries remain
+// finite, so restarting the server cannot leave an active timer stuck forever.
+const moduleCombatActivities = new Map();
+const characterCombatActivities = new Map();
+// Limited engagements the pilots' clients show as ongoing (-1) because an
+// offensive module between the pair is still running. Retail stops the
+// engagement countdown while the fight continues and restarts it when the
+// last module stops (LOGS\Tutorial\Soldier of Fortune\kill 2 capsuleers.lsw,
+// lose 5 ships.lsw: StopTimeout beside PvpTimer 201, StartTimeout beside 202).
+const ongoingLimitedEngagementKeys = new Set();
+const LIMITED_ENGAGEMENT_TIMEOUT_ONGOING = -1;
 
 function getCharacterStateService() {
   return require(path.join(__dirname, "../character/characterState"));
@@ -304,7 +349,7 @@ function buildConcordResponseOriginAnchor(scene, offenderEntity) {
 
   const originAnchor = findSafeWarpOriginAnchor(scene, offenderEntity, {
     direction: fallbackOffsetDirection,
-    clearanceMeters: ONE_AU_IN_METERS,
+    clearanceMeters: CONCORD_RESPONSE_WARP_ORIGIN_CLEARANCE_METERS,
     minDistanceMeters: CONCORD_RESPONSE_WARP_ORIGIN_MIN_DISTANCE_METERS,
     maxDistanceMeters: CONCORD_RESPONSE_WARP_ORIGIN_MAX_DISTANCE_METERS,
     stepMeters: CONCORD_RESPONSE_WARP_ORIGIN_SEARCH_STEP_METERS,
@@ -772,6 +817,7 @@ function removeLimitedEngagement(firstCharacterID, secondCharacterID) {
   }
   limitedEngagements.delete(key);
   hydratedLimitedEngagementKeys.add(key);
+  ongoingLimitedEngagementKeys.delete(key);
   const removeResult = crimewatchRuntimeState.removeLimitedEngagement(
     firstCharacterID,
     secondCharacterID,
@@ -1029,6 +1075,15 @@ function notifyLimitedEngagementChanged(engagement, created) {
   if (!engagement) {
     return 0;
   }
+  // While the fight runs the client shows the engagement as ongoing; a
+  // refresh must not put a countdown back.
+  const key = buildLimitedEngagementKey(
+    engagement.firstCharacterID,
+    engagement.secondCharacterID,
+  );
+  if (!created && ongoingLimitedEngagementKeys.has(key)) {
+    return 0;
+  }
   let notificationCount = 0;
   for (const characterID of [
     engagement.firstCharacterID,
@@ -1051,7 +1106,7 @@ function notifyLimitedEngagementChanged(engagement, created) {
         created
           ? "OnCrimewatchEngagementCreated"
           : "OnCrimewatchEngagementStartTimeout",
-        "clientID",
+        "charid",
         [otherCharacterID, buildFiletimeFromExpiryMs(engagement.expiresAtMs)],
       );
       notificationCount += 1;
@@ -1059,7 +1114,107 @@ function notifyLimitedEngagementChanged(engagement, created) {
       void error;
     }
   }
+  // Created during a fight that is already running: retail follows Created
+  // with StopTimeout (lose 5 ships.lsw).
+  if (
+    created &&
+    !ongoingLimitedEngagementKeys.has(key) &&
+    pairHasRunningModuleCombat(engagement.firstCharacterID, engagement.secondCharacterID)
+  ) {
+    ongoingLimitedEngagementKeys.add(key);
+    notificationCount += notifyLimitedEngagementStopTimeout(engagement);
+  }
   return notificationCount;
+}
+
+function notifyLimitedEngagementStopTimeout(engagement) {
+  let notificationCount = 0;
+  for (const characterID of [
+    engagement.firstCharacterID,
+    engagement.secondCharacterID,
+  ]) {
+    const session = sessionRegistry.findSessionByCharacterID(characterID);
+    const otherCharacterID = getLimitedEngagementOtherCharacterID(
+      engagement,
+      characterID,
+    );
+    if (
+      !session ||
+      !otherCharacterID ||
+      typeof session.sendNotification !== "function"
+    ) {
+      continue;
+    }
+    try {
+      session.sendNotification(
+        "OnCrimewatchEngagementStopTimeout",
+        "charid",
+        [otherCharacterID],
+      );
+      notificationCount += 1;
+    } catch (error) {
+      void error;
+    }
+  }
+  return notificationCount;
+}
+
+function pairHasRunningModuleCombat(firstCharacterID, secondCharacterID) {
+  const activities = characterCombatActivities.get(toPositiveInt(firstCharacterID, 0));
+  if (!activities) return false;
+  const otherCharacterID = toPositiveInt(secondCharacterID, 0);
+  for (const activity of activities) {
+    if (activity.endedAtMs === null && activity.participants.has(otherCharacterID)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function forEachParticipantPair(participants, callback) {
+  const characterIDs = [...participants.keys()];
+  for (let i = 0; i < characterIDs.length; i += 1) {
+    for (let j = i + 1; j < characterIDs.length; j += 1) {
+      const key = buildLimitedEngagementKey(characterIDs[i], characterIDs[j]);
+      if (key) callback(characterIDs[i], characterIDs[j], key);
+    }
+  }
+}
+
+// A module combat activity began: every engaged pair it covers switches to
+// ongoing (StopTimeout) once.
+function markLimitedEngagementsOngoingForParticipants(participants, now) {
+  forEachParticipantPair(participants, (first, second, key) => {
+    if (ongoingLimitedEngagementKeys.has(key)) return;
+    const engagement = getLimitedEngagement(first, second, now);
+    if (!engagement) return;
+    ongoingLimitedEngagementKeys.add(key);
+    notifyLimitedEngagementStopTimeout(engagement);
+  });
+}
+
+// A module combat activity ended: a pair with no other running module
+// restarts its countdown from the stop (StartTimeout with the new expiry).
+function resumeLimitedEngagementTimeoutsForParticipants(participants, now) {
+  forEachParticipantPair(participants, (first, second, key) => {
+    if (!ongoingLimitedEngagementKeys.has(key)) return;
+    if (pairHasRunningModuleCombat(first, second)) return;
+    ongoingLimitedEngagementKeys.delete(key);
+    const existing = getLimitedEngagement(first, second, now);
+    if (!existing) return;
+    createOrRefreshLimitedEngagement(first, second, { now, reason: existing.reason });
+  });
+}
+
+// The countdown is held while the fight runs, so the record is kept fresh at
+// the activity refresh cadence without telling the client anything.
+function holdOngoingLimitedEngagementsForParticipants(participants, now) {
+  forEachParticipantPair(participants, (first, second, key) => {
+    if (!ongoingLimitedEngagementKeys.has(key)) return;
+    const existing = getLimitedEngagement(first, second, now);
+    if (!existing) return;
+    createOrRefreshLimitedEngagement(first, second, { now, reason: existing.reason });
+  });
 }
 
 function notifyLimitedEngagementEnded(firstCharacterID, secondCharacterID) {
@@ -1082,7 +1237,7 @@ function notifyLimitedEngagementEnded(firstCharacterID, secondCharacterID) {
     try {
       session.sendNotification(
         "OnCrimewatchEngagementEnded",
-        "clientID",
+        "charid",
         [otherCharacterID],
       );
       notificationCount += 1;
@@ -1268,26 +1423,14 @@ function getConcordResponseDelayMsForSystem(system) {
   return 0;
 }
 
-function getConcordResponseSpawnGroupIDForSystem(system) {
-  const security = Math.round(getSolarSystemPseudoSecurity(system) * 10) / 10;
-  if (security >= 0.9) {
-    return "concord_crimewatch_response_7";
-  }
-  if (security >= 0.7) {
-    return "concord_crimewatch_response_6";
-  }
-  return "concord_crimewatch_response_5";
-}
-
-function getConcordResponseShipCountForSystem(system) {
-  const groupID = getConcordResponseSpawnGroupIDForSystem(system);
-  if (groupID === "concord_crimewatch_response_7") {
-    return 7;
-  }
-  if (groupID === "concord_crimewatch_response_6") {
-    return 6;
-  }
-  return 5;
+// The published times are when CONCORD first acts on the offender (EVE
+// University, CONCORD and Suicide ganking, community averages CCP never confirmed),
+// so the responders leave early enough for their first lock to land on that time.
+function getConcordResponseDispatchDelayMsForSystem(system) {
+  return Math.max(
+    0,
+    getConcordResponseDelayMsForSystem(system) - CONCORD_RESPONSE_TRAVEL_MS,
+  );
 }
 
 function isCrimewatchConcordResponseEnabled() {
@@ -1380,6 +1523,19 @@ function resolveManualStarbasePilotShip(scene, entity) {
   return ship && getEntityCharacterID(ship) === getEntityCharacterID(entity) ? ship : entity;
 }
 
+// Security status lives on the pilot's ship ball. Kill credit can name a drone
+// or fighter, which has no session; move the live update to the pilot's ship
+// so the slim item, the ship attribute and the pilot's own status all change.
+function resolveSecurityStatusShipEntity(scene, entity, session) {
+  const resolved = resolveManualStarbasePilotShip(scene, entity);
+  if (!resolved || resolved.session || !session) return resolved;
+  const shipID = toPositiveInt(session._space && session._space.shipID, 0);
+  const ship = shipID > 0 && scene && typeof scene.getEntityByID === "function"
+    ? scene.getEntityByID(shipID)
+    : null;
+  return ship && ship.session === session ? ship : resolved;
+}
+
 function roundSecurityStatus(value) {
   return Number(
     toFiniteNumber(value, 0).toFixed(SECURITY_STATUS_ROUND_DIGITS),
@@ -1399,6 +1555,25 @@ function isCapsuleEntity(entity) {
   return toPositiveInt(entity && entity.groupID, 0) === GROUP_CAPSULE;
 }
 
+function isNpcAuthorityStructure(entity) {
+  const groupID = toPositiveInt(entity && (entity.groupID ?? entity.slimGroupID), 0);
+  const ownerID = toPositiveInt(entity && entity.ownerID, 0);
+  // Matches the client's illegalTargetNpcOwnedGroups and IsSystemOrNPC.
+  // A player-owned outpost or structure keeps its existing property rules.
+  return (groupID === GROUP_STATION || groupID === GROUP_STARGATE) &&
+    ownerID > 0 && ownerID < MIN_PLAYER_OWNER_ID &&
+    getEntityCharacterID(entity) === 0;
+}
+
+function getNpcAuthorityAggressionConsequence(scene, entity) {
+  if (!isHighSecuritySystem(scene && scene.system) && !isLowSecuritySystem(scene && scene.system)) {
+    return "none";
+  }
+  return isHighSecuritySystem(scene.system) || Number(entity.ownerID) === CONCORD_CORPORATION_ID
+    ? "criminal"
+    : "suspect";
+}
+
 function isPersonalDeployableEntity(entity) {
   const categoryID = toPositiveInt(
     entity && (entity.categoryID ?? entity.slimCategoryID),
@@ -1411,7 +1586,8 @@ function isPersonalDeployableEntity(entity) {
   return (
     categoryID === CATEGORY_DEPLOYABLE ||
     groupID === GROUP_MOBILE_DEPOT ||
-    groupID === GROUP_MOBILE_TRACTOR_UNIT
+    groupID === GROUP_MOBILE_TRACTOR_UNIT ||
+    groupID === GROUP_ORBITAL_CONSTRUCTION_PLATFORM
   );
 }
 
@@ -1494,15 +1670,28 @@ function setCharacterSecurityStatus(
     };
   }
 
-  const syncResult = synchronizeLiveSecurityStatus(
+  const liveEntity = resolveSecurityStatusShipEntity(
     options.scene || null,
     options.entity || null,
+    options.session || null,
+  );
+  const syncResult = synchronizeLiveSecurityStatus(
+    options.scene || null,
+    liveEntity,
     previousSecurityStatus,
     clampedSecurityStatus,
     options.now,
   );
 
-  if (!options.entity && options.session) {
+  // The live path only reaches the entity's own session. When the entity has
+  // none (a drone or fighter kill whose pilot ship could not be found), the
+  // pilot still has to hear about the change: the client caches its own
+  // security status until this notification or a relog.
+  if (
+    options.session &&
+    syncResult.selfStatusNotified !== true &&
+    (!liveEntity || liveEntity.session !== options.session)
+  ) {
     notifyOwnSecurityStatusUpdate(
       options.session,
       clampedSecurityStatus,
@@ -1934,6 +2123,10 @@ function resolveEntityProtectedPropertyCorporationID(entity) {
     const item = require("../starbase/starbaseCombatRuntime").resolveSpaceItem(entity);
     return item ? resolveProtectedPlayerCorporationID(item.ownerID, item.ownerID) : 0;
   }
+  if ([CATEGORY_ORBITAL, CATEGORY_STRUCTURE].includes(Number(entity.categoryID)) &&
+      getEntityCharacterID(entity) === 0) {
+    return resolveProtectedPlayerCorporationID(entity.ownerID, entity.ownerID);
+  }
   return resolveProtectedPlayerCorporationID(
     entity.ownerID,
     entity.protectedPropertyCorporationID,
@@ -2327,7 +2520,7 @@ function applySecurityStatusPenaltyForAggression(
 
   if (
     getEntityActorKind(attackerEntity) !== "player" ||
-    getEntityActorKind(targetEntity) !== "player"
+    (getEntityActorKind(targetEntity) !== "player" && !isNpcAuthorityStructure(targetEntity))
   ) {
     return {
       success: true,
@@ -2342,7 +2535,7 @@ function applySecurityStatusPenaltyForAggression(
   const targetCharacterID = getEntityCharacterID(targetEntity);
   if (
     !attackerCharacterID ||
-    !targetCharacterID ||
+    (!targetCharacterID && !isNpcAuthorityStructure(targetEntity)) ||
     attackerCharacterID === targetCharacterID
   ) {
     return {
@@ -2379,7 +2572,9 @@ function applySecurityStatusPenaltyForAggression(
     };
   }
 
-  const targetKind = isCapsuleEntity(targetEntity) ? "capsule" : "ship";
+  const targetKind = isNpcAuthorityStructure(targetEntity)
+    ? (Number(targetEntity.groupID ?? targetEntity.slimGroupID) === GROUP_STATION ? "station" : "stargate")
+    : isCapsuleEntity(targetEntity) ? "capsule" : "ship";
   const targetKey = getSecurityPenaltyTargetKey(targetEntity);
   const previousSecurityStatus = getCharacterSecurityStatus(attackerCharacterID, 0);
   const targetSecurityStatus = getEntitySecurityStatus(targetEntity, 0);
@@ -2407,7 +2602,9 @@ function applySecurityStatusPenaltyForAggression(
     systemSecurity *
     (1 + ((targetSecurityStatus - previousSecurityStatus) / 100));
   const nextSecurityStatus = clampSecurityStatus(
-    previousSecurityStatus + ((10 - previousSecurityStatus) * modification),
+    // Retail penalties are a fraction of the remaining distance to -10.
+    // CONCORD.zip's consecutive negative statuses distinguish this from 10-s.
+    previousSecurityStatus + ((10 + previousSecurityStatus) * modification),
   );
 
   if (Number(nextSecurityStatus) === Number(previousSecurityStatus)) {
@@ -2495,7 +2692,16 @@ function applySecurityStatusPenaltyForAggression(
   };
 }
 
-function buildTimerTuple(stateCode, expiresAtMs, now = Date.now()) {
+function hasActiveModuleCombatTimer(characterID, kind) {
+  const activities = characterCombatActivities.get(characterID);
+  return Boolean(activities && [...activities].some((activity) =>
+    activity.endedAtMs === null && activity.participants.get(characterID).kinds.has(kind)));
+}
+
+function buildTimerTuple(stateCode, expiresAtMs, now = Date.now(), active = false) {
+  if (active) {
+    return [stateCode + 1, null];
+  }
   const normalizedExpiry = Math.max(0, Math.trunc(toFiniteNumber(expiresAtMs, 0)));
   if (normalizedExpiry <= now) {
     return [stateCode, null];
@@ -2512,6 +2718,7 @@ function buildWeaponTimerTuple(state, now = Date.now()) {
     WEAPONS_TIMER_STATE_IDLE,
     state && state.weaponTimerExpiresAtMs,
     now,
+    hasActiveModuleCombatTimer(state && state.characterID, "weapons"),
   );
 }
 
@@ -2520,6 +2727,7 @@ function buildPvpTimerTuple(state, now = Date.now()) {
     PVP_TIMER_STATE_IDLE,
     state && state.pvpTimerExpiresAtMs,
     now,
+    hasActiveModuleCombatTimer(state && state.characterID, "pvp"),
   );
 }
 
@@ -2528,6 +2736,7 @@ function buildNpcTimerTuple(state, now = Date.now()) {
     NPC_TIMER_STATE_IDLE,
     state && state.npcTimerExpiresAtMs,
     now,
+    hasActiveModuleCombatTimer(state && state.characterID, "npc"),
   );
 }
 
@@ -2537,6 +2746,14 @@ function buildCriminalTimerTuple(state, now = Date.now()) {
     0,
     Math.trunc(toFiniteNumber(normalizedState.criminalTimerExpiresAtMs, 0)),
   );
+  if (normalizedState.criminal &&
+      hasActiveModuleCombatTimer(normalizedState.characterID, "criminal")) {
+    return [CRIMINAL_TIMER_STATE_ACTIVE_CRIMINAL, null];
+  }
+  if (normalizedState.suspect &&
+      hasActiveModuleCombatTimer(normalizedState.characterID, "suspect")) {
+    return [CRIMINAL_TIMER_STATE_ACTIVE_SUSPECT, null];
+  }
   if (
     normalizedExpiry <= now ||
     (!normalizedState.criminal && !normalizedState.suspect)
@@ -2642,7 +2859,12 @@ function buildClientStatesForSession(session, now = Date.now()) {
     now,
   ).map((engagement) => [
     getLimitedEngagementOtherCharacterID(engagement, characterID),
-    buildFiletimeFromExpiryMs(engagement.expiresAtMs),
+    ongoingLimitedEngagementKeys.has(buildLimitedEngagementKey(
+      engagement.firstCharacterID,
+      engagement.secondCharacterID,
+    ))
+      ? LIMITED_ENGAGEMENT_TIMEOUT_ONGOING
+      : buildFiletimeFromExpiryMs(engagement.expiresAtMs),
   ]);
 
   return [
@@ -2733,6 +2955,14 @@ function notifyKillRightCreated(scene, attackerEntity, targetEntity, record) {
   ) {
     sessions.add(targetEntity.session);
   }
+  // A podded victim may already be in another scene; the kill-rights panel of
+  // both characters must still update.
+  for (const characterID of affectedCharacters) {
+    const session = sessionRegistry.findSessionByCharacterID(characterID);
+    if (session && typeof session.sendNotification === "function") {
+      sessions.add(session);
+    }
+  }
 
   let notificationCount = 0;
   const payload = buildKillRightCreatedPayload(record);
@@ -2741,7 +2971,8 @@ function notifyKillRightCreated(scene, attackerEntity, targetEntity, record) {
     if (!affectedCharacters.has(characterID)) {
       continue;
     }
-    session.sendNotification("OnKillRightCreated", "clientID", payload);
+    // Retail: idtype charid in every capture.
+    session.sendNotification("OnKillRightCreated", "charid", payload);
     notificationCount += 1;
   }
 
@@ -3005,6 +3236,20 @@ function synchronizeSystemDisapprovalNotifications(scene, now = Date.now()) {
   lastBroadcastDisapprovalSnapshots.set(systemID, snapshot);
 }
 
+// Timers keep running while a pilot is docked, and the client only learns that
+// one ended from its On*TimerUpdate (crimewatchSvc keeps the last state it was
+// sent until then). A pilot who docked with a live criminal timer otherwise
+// stayed "criminal" in the client forever: UndockCriminalConfirm on every
+// undock long after the timer ended (real client, Perimeter, 2026-11-07).
+function synchronizeUnplacedSessionTimerNotifications(now = Date.now()) {
+  for (const characterID of [...lastBroadcastTimerSnapshots.keys()]) {
+    const session = sessionRegistry.findSessionByCharacterID(characterID);
+    if (session && !session._space && typeof session.sendNotification === "function") {
+      synchronizeSessionTimerNotifications(null, session, now);
+    }
+  }
+}
+
 function synchronizeSceneClientState(scene, now = Date.now()) {
   if (!scene) {
     return;
@@ -3013,6 +3258,7 @@ function synchronizeSceneClientState(scene, now = Date.now()) {
   for (const session of getSceneSessions(scene)) {
     synchronizeSessionTimerNotifications(scene, session, now);
   }
+  synchronizeUnplacedSessionTimerNotifications(now);
   synchronizeSystemFlagNotifications(scene, now);
   synchronizeSystemDisapprovalNotifications(scene, now);
 }
@@ -3038,7 +3284,7 @@ function ensureConcordResponseRecord(scene, attackerEntity, targetEntity, now) {
           (attackerEntity && attackerEntity.itemID),
         0,
       ),
-      dueAtMs: now + getConcordResponseDelayMsForSystem(scene && scene.system),
+      dueAtMs: now + getConcordResponseDispatchDelayMsForSystem(scene && scene.system),
       lastOffenseAtMs: now,
       respondedAtMs: 0,
       responderEntityIDs: [],
@@ -3070,7 +3316,7 @@ function ensureConcordResponseRecord(scene, attackerEntity, targetEntity, now) {
   if (toFiniteNumber(response.respondedAtMs, 0) <= 0) {
     response.dueAtMs = Math.min(
       Math.max(now, toFiniteNumber(response.dueAtMs, now)),
-      now + getConcordResponseDelayMsForSystem(scene && scene.system),
+      now + getConcordResponseDispatchDelayMsForSystem(scene && scene.system),
     );
   }
   return response;
@@ -3195,7 +3441,16 @@ function evaluateOffensiveAggression(
   let requiredSafetyLevel = SAFETY_LEVEL_FULL;
   let legal = true;
 
-  if (
+  if (attackerCharacterID > 0 && isNpcAuthorityStructure(targetEntity)) {
+    consequence = getNpcAuthorityAggressionConsequence(scene, targetEntity);
+    if (consequence !== "none") {
+      legal = false;
+      requiredSafetyLevel = consequence === "criminal" ? SAFETY_LEVEL_NONE : SAFETY_LEVEL_PARTIAL;
+      reason = consequence === "criminal" ? "CRIMINAL_AUTHORITY_AGGRESSION" : "LOWSEC_AUTHORITY_AGGRESSION";
+    } else {
+      reason = "NOT_EMPIRE_SPACE";
+    }
+  } else if (
     attackerCharacterID > 0 &&
     targetIsPlayerProperty &&
     (targetCharacterID <= 0 || attackerCharacterID !== targetCharacterID)
@@ -3584,6 +3839,149 @@ function triggerHighSecCriminalOffense(scene, attackerEntity, options = {}) {
   };
 }
 
+function buildModuleCombatParticipants(sourceEntity, targetEntity, aggressionResult) {
+  const actor = resolveManualStarbaseAggressor(sourceEntity);
+  const sourceKind = getEntityActorKind(actor);
+  const targetKind = getEntityActorKind(targetEntity);
+  const participants = new Map();
+  const add = (entity, kinds) => {
+    const characterID = getEntityCharacterID(entity);
+    if (!characterID) return;
+    participants.set(characterID, { entity, kinds: new Set(kinds) });
+  };
+  const sourceNpc = sourceKind === ENTITY_TYPE.NPC || sourceKind === ENTITY_TYPE.CONCORD;
+  const targetNpc = targetKind === ENTITY_TYPE.NPC || targetKind === ENTITY_TYPE.CONCORD;
+  if (sourceKind === "player" && (targetNpc || isNpcAuthorityStructure(targetEntity))) {
+    add(actor, ["npc"]);
+  } else if (sourceNpc && targetKind === "player") {
+    add(targetEntity, ["npc"]);
+  } else if (sourceKind === "player" &&
+      (targetKind === "player" || resolveEntityProtectedPropertyCorporationID(targetEntity) > 0) &&
+      getEntityCharacterID(actor) !== getEntityCharacterID(targetEntity)) {
+    add(actor, ["weapons", "pvp"]);
+    add(targetEntity, ["pvp"]);
+  }
+  const reason = aggressionResult && aggressionResult.data && aggressionResult.data.reason;
+  const penalty = {
+    HIGHSEC_PLAYER_AGGRESSION: "criminal",
+    LOWSEC_CAPSULE_AGGRESSION: "criminal",
+    LOWSEC_SHIP_AGGRESSION: "suspect",
+    HIGHSEC_PERSONAL_DEPLOYABLE_AGGRESSION: "suspect",
+    CRIMINAL_AUTHORITY_AGGRESSION: "criminal",
+    LOWSEC_AUTHORITY_AGGRESSION: "suspect",
+  }[reason];
+  const actorParticipant = participants.get(getEntityCharacterID(actor));
+  if (penalty && actorParticipant) actorParticipant.kinds.add(penalty);
+  return participants;
+}
+
+function extendModuleCombatTimers(scene, participants, now, notify = true) {
+  let success = true;
+  for (const [characterID, { entity, kinds }] of participants) {
+    const state = ensureCharacterState(characterID);
+    if (!state) continue;
+    const previous = cloneValue(state);
+    for (const [kind, field, duration] of [
+      ["weapons", "weaponTimerExpiresAtMs", WEAPON_TIMER_DURATION_MS],
+      ["pvp", "pvpTimerExpiresAtMs", PVP_TIMER_DURATION_MS],
+      ["npc", "npcTimerExpiresAtMs", NPC_TIMER_DURATION_MS],
+    ]) {
+      if (kinds.has(kind)) state[field] = Math.max(state[field], now + duration);
+    }
+    if (kinds.has("criminal")) {
+      setNonTheftPenalty(state, "criminal", now + CRIMINAL_TIMER_DURATION_MS);
+    } else if (kinds.has("suspect") &&
+        (!state.criminal || state.criminalTimerExpiresAtMs <= now)) {
+      setNonTheftPenalty(state, "suspect", now + CRIMINAL_TIMER_DURATION_MS);
+    }
+    state.lastKnownSystemID = toPositiveInt(scene && scene.systemID, state.lastKnownSystemID);
+    if (JSON.stringify(previous) !== JSON.stringify(state)) {
+      const result = finalizeCharacterStateMutation(state, { success: true });
+      if (!result.success) {
+        rollbackRejectedCharacterStateMutation(state, previous);
+        success = false;
+        log.warn(`[Crimewatch] Combat timer refresh failed for character=${characterID}`);
+        continue;
+      }
+    }
+    if (notify && entity.session) {
+      try { synchronizeSessionTimerNotifications(scene, entity.session, now); }
+      catch (error) { log.debug(`[Crimewatch] Combat timer delivery failed: ${error.message}`); }
+    }
+  }
+  return success;
+}
+
+function removeModuleCombatActivity(effectState, activity) {
+  moduleCombatActivities.delete(effectState);
+  for (const characterID of activity.participants.keys()) {
+    const activities = characterCombatActivities.get(characterID);
+    if (!activities) continue;
+    activities.delete(activity);
+    if (activities.size === 0) characterCombatActivities.delete(characterID);
+  }
+}
+
+// The retail 101/201/301/302/401 states have no expiry. Hold them for the
+// committed offensive module's lifetime, including a requested final cycle.
+function beginModuleCombatActivity(scene, sourceEntity, targetEntity, effectState, now,
+  aggressionResult = null) {
+  if (!effectState || moduleCombatActivities.has(effectState)) return;
+  const participants = buildModuleCombatParticipants(sourceEntity, targetEntity, aggressionResult);
+  if (participants.size === 0) return;
+  const activity = { scene, sourceEntity, targetEntity, participants,
+    endedAtMs: null, lastRefreshAtMs: now };
+  moduleCombatActivities.set(effectState, activity);
+  for (const characterID of participants.keys()) {
+    if (!characterCombatActivities.has(characterID)) characterCombatActivities.set(characterID, new Set());
+    characterCombatActivities.get(characterID).add(activity);
+  }
+  if (!extendModuleCombatTimers(scene, participants, now)) activity.lastRefreshAtMs = -Infinity;
+  markLimitedEngagementsOngoingForParticipants(participants, now);
+}
+
+function endModuleCombatActivity(effectState, now) {
+  const activity = moduleCombatActivities.get(effectState);
+  if (!activity) return;
+  activity.endedAtMs ??= now;
+  if (extendModuleCombatTimers(activity.scene, activity.participants, activity.endedAtMs)) {
+    removeModuleCombatActivity(effectState, activity);
+  }
+  resumeLimitedEngagementTimeoutsForParticipants(activity.participants, activity.endedAtMs);
+}
+
+// A disposed scene never ticks again, so its activities are ended here: the
+// pilots' countdowns start from the disposal, and none is left showing an
+// active timer until a restart.
+function disposeSceneCombatActivities(scene, now = Date.now()) {
+  for (const [effectState, activity] of [...moduleCombatActivities]) {
+    if (activity.scene !== scene) continue;
+    endModuleCombatActivity(effectState, now);
+    removeModuleCombatActivity(effectState, activity);
+  }
+}
+
+function refreshModuleCombatActivities(scene, now) {
+  for (const [effectState, activity] of moduleCombatActivities) {
+    if (activity.scene !== scene) continue;
+    const { sourceEntity, targetEntity } = activity;
+    if (activity.endedAtMs !== null ||
+        sourceEntity.activeModuleEffects?.get(effectState.moduleID) !== effectState ||
+        scene.getEntityByID(sourceEntity.itemID) !== sourceEntity ||
+        scene.getEntityByID(targetEntity.itemID) !== targetEntity) {
+      endModuleCombatActivity(effectState, now);
+      continue;
+    }
+    // Avoid a durable write on every subsecond simulation step. The live
+    // source is checked on every step; countdowns are committed again at stop.
+    if (now - activity.lastRefreshAtMs >= 1_000 &&
+        extendModuleCombatTimers(scene, activity.participants, now)) {
+      activity.lastRefreshAtMs = now;
+      holdOngoingLimitedEngagementsForParticipants(activity.participants, now);
+    }
+  }
+}
+
 function recordPvpActivity(scene, actorEntity, now = Date.now()) {
   const characterID = getEntityCharacterID(actorEntity);
   const state = characterID && ensureCharacterState(characterID);
@@ -3877,6 +4275,50 @@ function recordHomefrontIntrusion(characterID, systemID, now = Date.now()) {
   );
 }
 
+function recordNpcAuthorityAggression(scene, attackerEntity, targetEntity, now) {
+  const characterID = getEntityCharacterID(attackerEntity);
+  const state = ensureCharacterState(characterID);
+  if (!state) return { success: false, errorMsg: "CHARACTER_NOT_FOUND" };
+  const previousState = cloneValue(state);
+  const consequence = getNpcAuthorityAggressionConsequence(scene, targetEntity);
+  state.npcTimerExpiresAtMs = Math.max(state.npcTimerExpiresAtMs, now + NPC_TIMER_DURATION_MS);
+  state.lastKnownSystemID = toPositiveInt(scene.systemID, state.lastKnownSystemID);
+  if (consequence === "criminal" ||
+      (consequence === "suspect" && (!state.criminal || state.criminalTimerExpiresAtMs <= now))) {
+    setNonTheftPenalty(state, consequence, now + CRIMINAL_TIMER_DURATION_MS);
+  }
+  if (consequence === "criminal") state.lastCriminalAtMs = now;
+  const persistenceResult = finalizeCharacterStateMutation(state, { success: true });
+  if (!persistenceResult.success) {
+    rollbackRejectedCharacterStateMutation(state, previousState);
+    return persistenceResult;
+  }
+  const response = consequence === "criminal"
+    ? scheduleConcordResponse(scene, attackerEntity, now, targetEntity)
+    : null;
+  const securityStatusPenalty = consequence === "none"
+    ? { data: { applied: false, reason: "NOT_EMPIRE_SPACE" } }
+    : applySecurityStatusPenaltyForAggression(scene, attackerEntity, targetEntity, now);
+  return {
+    success: true,
+    data: {
+      applied: consequence !== "none",
+      reason: consequence === "criminal"
+        ? "CRIMINAL_AUTHORITY_AGGRESSION"
+        : consequence === "suspect" ? "LOWSEC_AUTHORITY_AGGRESSION" : "NOT_EMPIRE_SPACE",
+      characterID,
+      systemID: scene.systemID,
+      npcTimerExpiresAtMs: state.npcTimerExpiresAtMs,
+      criminalTimerExpiresAtMs: state.criminalTimerExpiresAtMs,
+      concordResponseDueAtMs: response ? response.dueAtMs : 0,
+      securityStatusPenalty: securityStatusPenalty.data || {
+        applied: false, reason: securityStatusPenalty.errorMsg || "NOT_APPLIED",
+      },
+      killRight: { created: false, reason: "NO_PLAYER_VICTIM" },
+    },
+  };
+}
+
 function recordHighSecCriminalAggression(scene, attackerEntity, targetEntity, now = Date.now()) {
   attackerEntity = resolveManualStarbaseAggressor(attackerEntity);
   if (!scene || !attackerEntity || !targetEntity) {
@@ -3897,8 +4339,16 @@ function recordHighSecCriminalAggression(scene, attackerEntity, targetEntity, no
     };
   }
 
+  if (getEntityActorKind(attackerEntity) === "player" && isNpcAuthorityStructure(targetEntity)) {
+    return recordNpcAuthorityAggression(scene, attackerEntity, targetEntity, now);
+  }
   const targetProtectedPropertyCorporationID =
     resolveEntityProtectedPropertyCorporationID(targetEntity);
+  const npcParticipants = buildModuleCombatParticipants(attackerEntity, targetEntity, null);
+  if ([...npcParticipants.values()].some(({ kinds }) => kinds.has("npc")) &&
+      !extendModuleCombatTimers(scene, npcParticipants, now, false)) {
+    return { success: false, errorMsg: "CRIMEWATCH_STATE_PERSIST_FAILED" };
+  }
   if (
     getEntityActorKind(attackerEntity) !== "player" ||
     (
@@ -4069,7 +4519,7 @@ function recordHighSecCriminalAggression(scene, attackerEntity, targetEntity, no
         now + CRIMINAL_TIMER_DURATION_MS,
       );
 
-      return finalizeCharacterStateMutation(state, {
+      const persistenceResult = finalizeCharacterStateMutation(state, {
         success: true,
         data: {
           applied: true,
@@ -4081,6 +4531,15 @@ function recordHighSecCriminalAggression(scene, attackerEntity, targetEntity, no
           pvpTimerExpiresAtMs: state.pvpTimerExpiresAtMs,
         },
       });
+      if (!persistenceResult.success) return persistenceResult;
+      const securityStatusPenalty = applySecurityStatusPenaltyForAggression(
+        scene, attackerEntity, targetEntity, now,
+      );
+      persistenceResult.data.securityStatusPenalty = securityStatusPenalty.data || {
+        applied: false,
+        reason: securityStatusPenalty.errorMsg || "NOT_APPLIED",
+      };
+      return persistenceResult;
     }
 
     return {
@@ -4316,7 +4775,7 @@ function spawnConcordResponders(scene, offenderEntity, response) {
     entityScopeMetadata: buildChildEntityScopeMetadata(offenderEntity),
     entityType: ENTITY_TYPE.CONCORD,
     runtimeKind: "nativeCombat",
-    spawnGroupQuery: getConcordResponseSpawnGroupIDForSystem(scene.system),
+    spawnGroupQuery: CONCORD_RESPONSE_SPAWN_GROUP_ID,
     anchorDescriptor: {
       kind: "coordinates",
       position: responseOriginAnchor.position,
@@ -4416,6 +4875,52 @@ function spawnConcordResponders(scene, offenderEntity, response) {
       .filter((entityID) => entityID > 0),
     ingressCompleteAtMs: groupedWakeAtMs,
   };
+}
+
+// targetDroneBandwidthMultiplier (3661) takes the target's drone bandwidth to 0 once
+// a ship carrying it has the lock: its drones leave its control and none can launch.
+function suppressOffenderDrones(scene, offenderEntity, responderEntityIDs) {
+  if (offenderEntity.droneBandwidthSuppressed === true) {
+    return;
+  }
+  const { typeHasEffectName } = require(path.join(__dirname, "../fitting/liveFittingState"));
+  const suppressed = responderEntityIDs.some((responderEntityID) => {
+    const responder = scene.getEntityByID(responderEntityID);
+    return responder &&
+      typeHasEffectName(responder.typeID, "targetDroneBandwidthMultiplier") &&
+      scene.getTargetsForEntity(responder).includes(offenderEntity.itemID);
+  });
+  if (suppressed) {
+    offenderEntity.droneBandwidthSuppressed = true;
+    require(path.join(__dirname, "../drone/droneRuntime")).handleControllerLost(scene, offenderEntity);
+  }
+}
+
+// A spawn whose offender is no longer a ship it can act on: each spawn handles
+// one offender at a time, so only such a spawn is free for the next one.
+function findIdleConcordSpawn(scene, responseMap, response, offenderEntity) {
+  const idle = [...responseMap.values()].filter((other) => {
+    if (other === response || getActiveResponderEntityIDs(scene, other).length === 0) {
+      return false;
+    }
+    const target = resolveCurrentOffenderEntity(
+      scene,
+      toPositiveInt(other.offenderCharacterID, 0),
+      toPositiveInt(other.offenderEntityID, 0),
+    );
+    return !target || (isCapsuleEntity(target) && !isCrimewatchConcordPodKillEnabled());
+  });
+  if (idle.length === 0) {
+    return null;
+  }
+  const rows = idle.map((other) => ({
+    response: other,
+    distanceMeters: Math.min(...getActiveResponderEntityIDs(scene, other).map((entityID) => {
+      const responder = scene.getEntityByID(entityID);
+      return magnitude(subtractVectors(responder.position, offenderEntity.position));
+    })),
+  }));
+  return rows.sort((left, right) => left.distanceMeters - right.distanceMeters)[0];
 }
 
 function retaskResponders(scene, offenderEntityID, responderEntityIDs, options = {}) {
@@ -4546,7 +5051,7 @@ function restoreConcordResponsesForActiveCriminals(scene, now = Date.now()) {
     }
     const originalDueAtMs =
       toFiniteNumber(state.lastCriminalAtMs, 0) +
-      getConcordResponseDelayMsForSystem(scene.system);
+      getConcordResponseDispatchDelayMsForSystem(scene.system);
     if (originalDueAtMs > 0) {
       response.dueAtMs = Math.min(
         toFiniteNumber(response.dueAtMs, now),
@@ -4563,6 +5068,7 @@ function tickScene(scene, now = Date.now()) {
     return;
   }
 
+  refreshModuleCombatActivities(scene, now);
   pruneAllCharacterStates(now);
   pruneExpiredLimitedEngagements(now);
   synchronizeSceneClientState(scene, now);
@@ -4607,6 +5113,31 @@ function tickScene(scene, now = Date.now()) {
       offenderEntityID,
     );
     response.responderEntityIDs = getActiveResponderEntityIDs(scene, response);
+    if (
+      offenderEntity &&
+      response.responderEntityIDs.length === 0 &&
+      toFiniteNumber(response.respondedAtMs, 0) <= 0 &&
+      !(isCapsuleEntity(offenderEntity) && !allowConcordPodKill)
+    ) {
+      const idleSpawn = findIdleConcordSpawn(scene, responseMap, response, offenderEntity);
+      if (idleSpawn && idleSpawn.distanceMeters <= CONCORD_RESPONSE_IDLE_SPAWN_RANGE_METERS) {
+        response.responderEntityIDs = getActiveResponderEntityIDs(scene, idleSpawn.response);
+        idleSpawn.response.responderEntityIDs = [];
+        response.respondedAtMs = now;
+        response.currentTargetEntityID = offenderEntity.itemID;
+        retaskResponders(scene, offenderEntity.itemID, response.responderEntityIDs, {
+          allowPodKill: allowConcordPodKill,
+        });
+        response.nextRetaskAtMs = now + CONCORD_RESPONSE_RETASK_INTERVAL_MS;
+        continue;
+      }
+      if (idleSpawn && toFiniteNumber(response.dueAtMs, 0) <= now) {
+        clearConcordResponders(scene, idleSpawn.response.responderEntityIDs);
+        idleSpawn.response.responderEntityIDs = [];
+        response.dueAtMs = now + CONCORD_RESPONSE_IDLE_SPAWN_RELOCATE_MS;
+        continue;
+      }
+    }
     if (
       toFiniteNumber(response.respondedAtMs, 0) <= 0 &&
       toFiniteNumber(response.dueAtMs, 0) > now
@@ -4673,15 +5204,27 @@ function tickScene(scene, now = Date.now()) {
         }
       }
       response.respondedAtMs = now;
-      response.nextRetaskAtMs = Math.max(
-        now,
-        toFiniteNumber(response.ingressCompleteAtMs, now),
-      );
+      response.nextRetaskAtMs = now + CONCORD_RESPONSE_RETASK_INTERVAL_MS;
       continue;
     }
 
     if (toFiniteNumber(response.nextRetaskAtMs, 0) > now) {
       continue;
+    }
+
+    // The warp's estimate includes the deceleration curve's long tail, about 8 s
+    // after the ship has really stopped. Acting on the estimate left the whole
+    // response parked on grid, so it ends when the last responder lands.
+    if (toFiniteNumber(response.ingressCompleteAtMs, 0) > now) {
+      if (response.responderEntityIDs.some((responderEntityID) => (
+        scene.getEntityByID(responderEntityID)?.mode === "WARP"
+      ))) {
+        response.nextRetaskAtMs = now + CONCORD_RESPONSE_RETASK_INTERVAL_MS;
+        continue;
+      }
+      for (const responderEntityID of response.responderEntityIDs) {
+        getNpcRuntime().scheduleNpcController(responderEntityID, now);
+      }
     }
 
     response.currentTargetEntityID = offenderEntity.itemID;
@@ -4701,6 +5244,7 @@ function tickScene(scene, now = Date.now()) {
     retaskResponders(scene, offenderEntity.itemID, response.responderEntityIDs, {
       allowPodKill: allowConcordPodKill,
     });
+    suppressOffenderDrones(scene, offenderEntity, response.responderEntityIDs);
     response.nextRetaskAtMs = now + CONCORD_RESPONSE_RETASK_INTERVAL_MS;
   }
 
@@ -4792,8 +5336,11 @@ function hasActiveWeaponTimer(characterID, now = Date.now()) {
 }
 
 function resetCrimewatchRuntimeCacheForTests() {
+  moduleCombatActivities.clear();
+  characterCombatActivities.clear();
   characterCrimewatchState.clear();
   limitedEngagements.clear();
+  ongoingLimitedEngagementKeys.clear();
   hydratedLimitedEngagementKeys.clear();
   allLimitedEngagementsHydrated = false;
   systemConcordResponses.clear();
@@ -4816,13 +5363,18 @@ module.exports = {
   SAFETY_LEVEL_PARTIAL,
   SAFETY_LEVEL_FULL,
   WEAPONS_TIMER_STATE_IDLE,
+  WEAPONS_TIMER_STATE_ACTIVE,
   WEAPONS_TIMER_STATE_TIMER,
   PVP_TIMER_STATE_IDLE,
+  PVP_TIMER_STATE_ACTIVE,
   PVP_TIMER_STATE_TIMER,
   CRIMINAL_TIMER_STATE_IDLE,
+  CRIMINAL_TIMER_STATE_ACTIVE_CRIMINAL,
+  CRIMINAL_TIMER_STATE_ACTIVE_SUSPECT,
   CRIMINAL_TIMER_STATE_TIMER_CRIMINAL,
   CRIMINAL_TIMER_STATE_TIMER_SUSPECT,
   NPC_TIMER_STATE_IDLE,
+  NPC_TIMER_STATE_ACTIVE,
   NPC_TIMER_STATE_TIMER,
   DISAPPROVAL_TIMER_STATE_IDLE,
   DISAPPROVAL_TIMER_STATE_TIMER,
@@ -4834,6 +5386,9 @@ module.exports = {
   LIMITED_ENGAGEMENT_DURATION_MS,
   PENALTY_CONTRIBUTION_VERSION,
   buildClientStatesForSession,
+  beginModuleCombatActivity,
+  disposeSceneCombatActivities,
+  endModuleCombatActivity,
   buildSystemCriminalFlagUpdatePayload,
   clearAllCrimewatchState,
   commitContainerTheft,
@@ -4845,8 +5400,7 @@ module.exports = {
   getCharacterCrimewatchState,
   getCharacterSecurityStatus,
   getConcordResponseDelayMsForSystem,
-  getConcordResponseShipCountForSystem,
-  getConcordResponseSpawnGroupIDForSystem,
+  getConcordResponseDispatchDelayMsForSystem,
   getLimitedEngagement,
   getSafetyLevel,
   hasActiveLimitedEngagement,
@@ -4856,6 +5410,7 @@ module.exports = {
   hasActiveWeaponTimer,
   isLegalCorporationFriendlyFire,
   isPersonalDeployableEntity,
+  isNpcAuthorityStructure,
   listLimitedEngagementsForCharacter,
   recordWeaponTimer,
   recordPvpActivity,

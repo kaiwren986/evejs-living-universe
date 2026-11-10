@@ -33,9 +33,11 @@ const {
 } = require(path.join(__dirname, "../_shared/stationStaticData"));
 const {
   getStructureByID,
+  isDockingServiceOnline,
 } = require(path.join(__dirname, "../structure/structureState"));
 const {
   STRUCTURE_SERVICE_ID,
+  STRUCTURE_SERVICE_STATE,
 } = require(path.join(__dirname, "../structure/structureConstants"));
 const {
   characterHasStructureService,
@@ -577,7 +579,10 @@ function resolveRepairContext(session) {
     ) {
       return {
         success: false,
-        errorMsg: "REPAIR_OFFLINE",
+        errorMsg: structure && isDockingServiceOnline(structure) && structure.hasQuantumCore === true &&
+          Number(structure.serviceStates && structure.serviceStates[String(STRUCTURE_REPAIR_SERVICE_ID)]) === STRUCTURE_SERVICE_STATE.ONLINE
+          ? "REPAIR_ACCESS_DENIED"
+          : "REPAIR_OFFLINE",
       };
     }
   }
@@ -615,6 +620,11 @@ function throwRepairError(errorMsg, values = {}) {
     case "REPAIR_OFFLINE":
       throwWrappedUserError("CustomNotify", {
         notify: "The repair service is offline at this structure.",
+      });
+      break;
+    case "REPAIR_ACCESS_DENIED":
+      throwWrappedUserError("CustomNotify", {
+        notify: "You do not have access to the repair service at this structure.",
       });
       break;
     case "REPAIR_STATION_ONLY":
@@ -896,7 +906,7 @@ function buildRepairExecutionTargets(context, itemReferences = []) {
       itemID,
       item,
       quote,
-      fullCost: round2(Math.ceil(toFiniteNumber(quote.damage, 0)) * toFiniteNumber(quote.costToRepairOneUnitOfDamage, 0)),
+      fullCost: Math.ceil(toFiniteNumber(quote.damage, 0)) * toFiniteNumber(quote.costToRepairOneUnitOfDamage, 0),
     });
   }
 
@@ -1291,7 +1301,12 @@ async function executeRepairPlan(context, targets, options = {}) {
     targets.reduce((sum, target) => sum + toFiniteNumber(target && target.fullCost, 0), 0),
   );
 
-  if (allowPartial && hasModule && payment + 0.0001 < totalFullCost) {
+  // The client pays the plain sum of ceil(damage) * unit cost over its quote
+  // rows. Only the total is settled in cents, so compare it in cents: rounding
+  // row by row made a full payment look a fraction of a cent short.
+  const paidInFull = !allowPartial || round2(payment) >= totalFullCost;
+
+  if (allowPartial && hasModule && !paidInFull) {
     return {
       success: false,
       errorMsg: "MODULE_PARTIAL_REPAIR",
@@ -1324,19 +1339,19 @@ async function executeRepairPlan(context, targets, options = {}) {
     }
 
     const fullCost = Math.max(0, toFiniteNumber(target.fullCost, 0));
-    const chargeAmount = Math.min(remainingBudget, fullCost);
+    const chargeAmount = paidInFull ? fullCost : Math.min(remainingBudget, fullCost);
     if (!(chargeAmount > 0)) {
       continue;
     }
 
     // Paying the complete quoted price repairs the complete health snapshot.
-    // The ISK quote is rounded to cents (and quoted HP to six decimals), so
-    // dividing it back by unitCost can otherwise leave fractional damage and
+    // Quoted HP is rounded to six decimals and the client prices whole HP, so
+    // dividing the price back by unitCost can otherwise leave fractional damage and
     // repeatedly charge a pilot who requests a full repair.
     const repairAmount = chargeAmount >= fullCost
       ? getItemHealthSnapshot(target.item).damage
       : Math.min(damage, chargeAmount / unitCost);
-    remainingBudget = round2(Math.max(0, remainingBudget - chargeAmount));
+    remainingBudget = Math.max(0, remainingBudget - chargeAmount);
     if (!(repairAmount > 0)) {
       continue;
     }
@@ -1344,7 +1359,7 @@ async function executeRepairPlan(context, targets, options = {}) {
     repairPlan.push({
       itemID: toInt(target.itemID, 0),
       repairAmount,
-      chargeAmount: round2(chargeAmount),
+      chargeAmount,
     });
   }
 

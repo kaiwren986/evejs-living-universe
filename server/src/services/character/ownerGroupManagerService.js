@@ -7,8 +7,11 @@ const {
   normalizeNumber,
   normalizeText,
   buildKeyVal,
+  buildDict,
+  buildList,
   extractDictEntries,
 } = require(path.join(__dirname, "../_shared/serviceHelpers"));
+const sessionRegistry = require(path.join(__dirname, "../chat/sessionRegistry"));
 const {
   throwWrappedUserError,
 } = require(path.join(__dirname, "../../common/machoErrors"));
@@ -17,6 +20,10 @@ const bookmarkRuntime = require(path.join(__dirname, "../bookmark/bookmarkRuntim
 const { resolveSessionCharacterID } = require("../_shared/sessionIdentity");
 const { peekCharacterRecord } = require("./characterState");
 const { getCorporationRecord, getAllianceRecord } = require("../corporation/corporationState");
+const {
+  snapshotDockingAccessForGroup,
+  notifyStructureAccessChanged,
+} = require("../structure/structureProfilesState");
 const {
   buildBookmarkText,
 } = require(path.join(__dirname, "../bookmark/bookmarkPayloads"));
@@ -161,6 +168,69 @@ function buildMemberKeyVal(member) {
     ["memberID", member.memberID],
     ["membershipType", member.membershipType != null ? member.membershipType : 0],
   ]);
+}
+
+// ownergroupConst change codes read by accessGroupsController.OnOwnerGroupsUpdated.
+const GROUP_MEMBER_ADDED = 2;
+const GROUP_MEMBERTYPE_CHANGED = 3;
+const GROUP_MEMBER_REMOVED = 4;
+const GROUP_NAME_CHANGED = 5;
+const GROUP_DESCRIPTION_CHANGED = 6;
+const GROUP_DELETED = 7;
+const GROUP_CHANGED_FOR_LISTENER = 8;
+
+// Everyone who can list the group: its creator and its direct members.
+function collectGroupListenerIDs(groupID) {
+  const listenerIDs = new Set();
+  const group = accessGroupStore.getGroup(groupID);
+  if (!group) {
+    return listenerIDs;
+  }
+  if (normalizeNumber(group.creatorID, 0) > 0) {
+    listenerIDs.add(normalizeNumber(group.creatorID, 0));
+  }
+  for (const member of Array.isArray(group.members) ? group.members : []) {
+    const memberID = normalizeNumber(member && member.memberID, 0);
+    if (memberID > 0) listenerIDs.add(memberID);
+  }
+  return listenerIDs;
+}
+
+/**
+ * The client keeps its group list and member lists for the whole session
+ * (accessGroupsController) and drops them only on OnOwnerGroupsUpdated
+ * ({groupID: [changeCodes]}). Characters whose own membership changed also
+ * get GROUP_CHANGED_FOR_LISTENER so their "my groups" list is reloaded.
+ * No retail capture exists; charid matches the per-character fan-out.
+ */
+function notifyOwnerGroupsUpdated(groupID, listenerIDs, changeCodes, changedMemberIDs = []) {
+  const numericGroupID = normalizeNumber(groupID, 0);
+  if (numericGroupID <= 0 || !listenerIDs || listenerIDs.size <= 0) {
+    return 0;
+  }
+  const changedForListener = new Set(
+    (changedMemberIDs || []).map((memberID) => normalizeNumber(memberID, 0)),
+  );
+  let sent = 0;
+  for (const session of sessionRegistry.getSessions()) {
+    const characterID = normalizeNumber(resolveSessionCharacterID(session), 0);
+    if (characterID <= 0 || !listenerIDs.has(characterID) ||
+        typeof session.sendNotification !== "function") {
+      continue;
+    }
+    const codes = changedForListener.has(characterID)
+      ? [...changeCodes, GROUP_CHANGED_FOR_LISTENER]
+      : [...changeCodes];
+    try {
+      session.sendNotification("OnOwnerGroupsUpdated", "charid", [
+        buildDict([[numericGroupID, buildList(codes)]]),
+      ]);
+      sent += 1;
+    } catch (error) {
+      log.debug(`[OwnerGroupManager] OnOwnerGroupsUpdated to client ${session.clientID} failed: ${error && error.message}`);
+    }
+  }
+  return sent;
 }
 
 class OwnerGroupManagerService extends BaseService {
@@ -308,8 +378,12 @@ class OwnerGroupManagerService extends BaseService {
     log.info(`[OwnerGroupManager] Delete char=${charID} group=${groupID}`);
 
     requireGroupMembership(session, groupID, MEMBERSHIP_TYPE_ADMIN);
+    const accessSnapshot = snapshotDockingAccessForGroup(groupID);
+    const listenerIDs = collectGroupListenerIDs(groupID);
     accessGroupStore.removeGroup(groupID);
     bookmarkRuntime.deleteAccessGroup(groupID);
+    notifyStructureAccessChanged(accessSnapshot);
+    notifyOwnerGroupsUpdated(groupID, listenerIDs, [GROUP_DELETED]);
     return null;
   }
 
@@ -332,6 +406,7 @@ class OwnerGroupManagerService extends BaseService {
     requireGroupMembership(session, groupID, MEMBERSHIP_TYPE_ADMIN);
     accessGroupStore.updateName(groupID, newName);
     bookmarkRuntime.updateAccessGroup(groupID, { name: newName });
+    notifyOwnerGroupsUpdated(groupID, collectGroupListenerIDs(groupID), [GROUP_NAME_CHANGED]);
     return null;
   }
 
@@ -345,6 +420,11 @@ class OwnerGroupManagerService extends BaseService {
     requireGroupMembership(session, groupID, MEMBERSHIP_TYPE_ADMIN);
     accessGroupStore.updateDescription(groupID, newDesc);
     bookmarkRuntime.updateAccessGroup(groupID, { description: newDesc });
+    notifyOwnerGroupsUpdated(
+      groupID,
+      collectGroupListenerIDs(groupID),
+      [GROUP_DESCRIPTION_CHANGED],
+    );
     return null;
   }
 
@@ -383,9 +463,17 @@ class OwnerGroupManagerService extends BaseService {
 
     requireMemberChanges(session, groupID, Object.keys(membershipDict),
       new Map(Object.entries(membershipDict).map(([memberID, type]) => [Number(memberID), type])));
+    const accessSnapshot = snapshotDockingAccessForGroup(groupID);
     const failed = accessGroupStore.addMembers(groupID, membershipDict);
     if (failed.length <= 0) {
       bookmarkRuntime.addAccessGroupMembers(groupID, membershipDict);
+      notifyStructureAccessChanged(accessSnapshot);
+      notifyOwnerGroupsUpdated(
+        groupID,
+        collectGroupListenerIDs(groupID),
+        [GROUP_MEMBER_ADDED],
+        Object.keys(membershipDict),
+      );
     }
     return { type: "list", items: failed };
   }
@@ -401,9 +489,14 @@ class OwnerGroupManagerService extends BaseService {
     );
 
     requireMemberChanges(session, groupID, memberIDs, null, true);
+    const accessSnapshot = snapshotDockingAccessForGroup(groupID);
+    // Removed members can no longer be found in the group afterwards.
+    const listenerIDs = collectGroupListenerIDs(groupID);
     const failed = accessGroupStore.deleteMembers(groupID, memberIDs);
     if (failed.length <= 0) {
       bookmarkRuntime.deleteAccessGroupMembers(groupID, memberIDs);
+      notifyStructureAccessChanged(accessSnapshot);
+      notifyOwnerGroupsUpdated(groupID, listenerIDs, [GROUP_MEMBER_REMOVED], memberIDs);
     }
     return { type: "list", items: failed };
   }
@@ -424,12 +517,20 @@ class OwnerGroupManagerService extends BaseService {
     );
 
     requireMemberChanges(session, groupID, memberIDs, membershipType);
+    const accessSnapshot = snapshotDockingAccessForGroup(groupID);
     const failed = accessGroupStore.updateMembershipTypes(groupID, memberIDs, membershipType);
     if (failed.length <= 0) {
       bookmarkRuntime.updateAccessGroupMembershipTypes(
         groupID,
         memberIDs,
         membershipType,
+      );
+      notifyStructureAccessChanged(accessSnapshot);
+      notifyOwnerGroupsUpdated(
+        groupID,
+        collectGroupListenerIDs(groupID),
+        [GROUP_MEMBERTYPE_CHANGED],
+        memberIDs,
       );
     }
     return { type: "list", items: failed };

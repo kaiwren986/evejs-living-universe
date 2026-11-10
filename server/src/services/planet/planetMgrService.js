@@ -22,8 +22,17 @@ const {
   getActiveShipItem,
   grantItemsToCharacterLocation,
   createSpaceItemForCharacter,
+  moveItemToLocation,
+  moveItemToLocationIdempotent,
   removeInventoryItem,
 } = require(path.join(__dirname, "../inventory/itemStore"));
+
+// A placed command centre stays an item, moved to the planet in this flag
+// (inventorycommon const.py flagSpecializedCommandCenterHold); its item ID is
+// the pin's. Golden log "Setup Barren Planet Full": the colony's first
+// UserUpdateNetwork brings one OnItemsChanged moving the centre from the
+// ship's hold to the planet, and no planet notice.
+const FLAG_SPECIALIZED_COMMAND_CENTER_HOLD = 148;
 const {
   buildBoundObjectResponse,
   buildDbRowset,
@@ -70,7 +79,7 @@ const PLANETS_FOR_CHAR_COLUMNS = [
   ["planetID", 0x03],
   ["typeID", 0x03],
   ["numberOfPins", 0x03],
-  ["celestialIndex", 0x03],
+  ["celestialIndex", 0x11], // UI1 in the retail colony-summary descriptor.
 ];
 const PI_LAUNCH_DETAILS_COLUMNS = [
   ["launchID", 0x03],
@@ -714,7 +723,7 @@ function isCommandCenterSourceItem(item, pin, characterID, shipID) {
   );
 }
 
-function syncInventoryChanges(session, changes = []) {
+function syncInventoryChanges(session, changes = [], options = {}) {
   for (const change of Array.isArray(changes) ? changes : []) {
     if (!change || !change.item) {
       continue;
@@ -723,7 +732,7 @@ function syncInventoryChanges(session, changes = []) {
       session,
       change.item,
       change.previousData || {},
-      { emitCfgLocation: true },
+      { emitCfgLocation: true, ...options },
     );
   }
 }
@@ -959,6 +968,36 @@ function consumePlacedCommandCenterItems(
           `source item in ship ${shipID}; charged=0`,
         );
       }
+      continue;
+    }
+
+    // A single centre moves to the planet as TQ does; a stack gives one up.
+    const singleItem =
+      toInt(sourceItem.singleton, 0) === 1 ||
+      toInt(sourceItem.stacksize ?? sourceItem.quantity, 0) === 1;
+    if (singleItem) {
+      const moveResult = operationKey
+        ? moveItemToLocationIdempotent(pinID, planetID, FLAG_SPECIALIZED_COMMAND_CENTER_HOLD, null, {
+            receiptKey: `${operationKey}:command-center:${pinID}`,
+            fingerprint: {
+              operation: "pi-command-center-place",
+              ownerID: characterID,
+              planetID,
+              pinID,
+              typeID: toInt(pin.typeID, 0),
+            },
+          })
+        : moveItemToLocation(pinID, planetID, FLAG_SPECIALIZED_COMMAND_CENTER_HOLD);
+      if (!moveResult.success) {
+        log.warn(
+          `[PlanetMgr] Failed to place command center itemID=${pinID}: ${moveResult.errorMsg || "UNKNOWN"}`,
+        );
+        continue;
+      }
+      // TQ tells the client with OnItemsChanged, as the golden log shows.
+      syncInventoryChanges(session, moveResult.data && moveResult.data.changes, {
+        emitItemsChangedBatch: true,
+      });
       continue;
     }
 
@@ -1436,6 +1475,18 @@ class PlanetMgrService extends BaseService {
   Handle_UserAbandonPlanet(args, session) {
     const planetID = this._resolvePlanetID(args, session, { allowArgs: false });
     log.debug(`[PlanetMgr] UserAbandonPlanet planetID=${planetID || "unknown"}`);
+    // The command centre placed on the planet goes with the colony.
+    const abandoned = planetRuntimeStore.getColony(planetID, session && session.characterID);
+    for (const pin of (abandoned && Array.isArray(abandoned.pins) ? abandoned.pins : [])) {
+      const pinItem = findItemById(toInt(pin && (pin.pinID ?? pin.id), 0));
+      if (
+        pinItem &&
+        toInt(pinItem.locationID, 0) === toInt(planetID, 0) &&
+        toInt(pinItem.flagID, 0) === FLAG_SPECIALIZED_COMMAND_CENTER_HOLD
+      ) {
+        removeInventoryItem(pinItem.itemID, { removeContents: true });
+      }
+    }
     const result = planetRuntimeStore.abandonColony(
       planetID,
       session && session.characterID,

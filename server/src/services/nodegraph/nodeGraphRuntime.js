@@ -3,7 +3,7 @@
 const crypto = require("node:crypto");
 const authority = require("./nodeGraphAuthority");
 const effects = require("./nodeGraphEffects");
-const { LIMITS, NODE_PORTS, UNSAFE_KEYS, safeValue, compareValues, graphError } = require("./nodeGraphCompiler");
+const { LIMITS, NODE_PORTS, UNSAFE_KEYS, safeValue, parseLiteralValue, compareValues, graphError } = require("./nodeGraphCompiler");
 const { resolveSessionCharacterID } = require("../_shared/sessionIdentity");
 const { buildDict, buildList } = require("../_shared/serviceHelpers");
 function clientValue(value) {
@@ -86,7 +86,7 @@ function createNodeGraphRuntime(options = {}) {
       if (extension?.supports && !extension.supports({ graphID, node, ownerKey })) throw graphError("NODEGRAPH_ATOM_CONTEXT_UNSUPPORTED", `${graphID}/${node.nodeID}/${node.atomID}`);
       if (node.nodeTypeID === 4 && node.atomID === 364 && node.atomParameters.skill_points !== undefined && node.atomParameters.skill_points !== null && node.atomParameters.skill_points !== 0) throw graphError("NODEGRAPH_SKILL_COMPENSATION_UNSUPPORTED");
       if (node.nodeTypeID === 5 && node.nodeParameters.validate_on_start) throw graphError("NODEGRAPH_EVENT_START_VALIDATION_UNSUPPORTED");
-      if (node.nodeTypeID === 19 && (node.nodeParameters.property_path || node.nodeParameters.object_path)) throw graphError("NODEGRAPH_PROPERTY_WRITE_UNSUPPORTED");
+      if ([19, 65].includes(node.nodeTypeID) && (node.nodeParameters.property_path || node.nodeParameters.object_path)) throw graphError("NODEGRAPH_PROPERTY_WRITE_UNSUPPORTED");
       if (node.nodeTypeID === 39) {
         const clientID = node.nodeParameters.node_graph_id;
         if (!Number.isSafeInteger(clientID)) throw graphError("NODEGRAPH_DYNAMIC_CLIENT_GRAPH_UNSUPPORTED");
@@ -363,10 +363,30 @@ function createNodeGraphRuntime(options = {}) {
         }
         break;
       case 18: case 30: break;
-      case 19:
+      case 19: {
         if (p.property_path || p.object_path) throw graphError("NODEGRAPH_PROPERTY_WRITE_UNSUPPORTED");
-        writeBlackboard(root, p.blackboard_key, p.blackboard_value, Boolean(p.force_scatter));
-        state.outputs = { blackboard_value: p.blackboard_value ?? null }; output(root, instance, node); break;
+        // Native BlackboardWriteNode literal_eval()s string values. Use the
+        // existing bounded data parser, never evaluate client-authored code.
+        const value = parseLiteralValue(p.blackboard_value ?? null);
+        writeBlackboard(root, p.blackboard_key, value, Boolean(p.force_scatter));
+        state.outputs = { blackboard_value: value }; output(root, instance, node); break;
+      }
+      case 65: {
+        // Native DecrementBlackboardValue (64 is increment): absent keys use
+        // default_value or0, but an existing None/string is not a number.
+        // Nested object writes retain the existing serialized-runtime boundary.
+        if (!p.blackboard_key) break;
+        if (p.property_path || p.object_path) throw graphError("NODEGRAPH_PROPERTY_WRITE_UNSUPPORTED");
+        const fallback = p.default_value;
+        const defaultValue = !fallback || Array.isArray(fallback) && !fallback.length ||
+          fallback && typeof fallback === "object" && !Object.keys(fallback).length ? 0 : fallback;
+        const current = Object.hasOwn(root.blackboard, p.blackboard_key) ? root.blackboard[p.blackboard_key] : defaultValue;
+        if (!["number", "boolean"].includes(typeof current)) throw graphError("NODEGRAPH_BLACKBOARD_NUMBER_INVALID");
+        const value = Number(current) - 1;
+        if (!Number.isFinite(value)) throw graphError("NODEGRAPH_BLACKBOARD_NUMBER_INVALID");
+        writeBlackboard(root, p.blackboard_key, value, true);
+        output(root, instance, node); break;
+      }
       case 20: break;
       case 21: {
         if (task.port !== "changed" && wasActive) break;

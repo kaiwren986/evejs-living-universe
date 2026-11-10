@@ -32,6 +32,7 @@ const {
   createWarNegotiation,
   getNegotiationRecord,
   listNegotiationsForOwner,
+  requireWarOffer,
   updateWarNegotiation,
 } = require(path.join(__dirname, "./warNegotiationRuntimeState"));
 const {
@@ -66,6 +67,7 @@ function getAuthorizedPendingNegotiation(warNegotiationID, typeID, ownerField, s
   const negotiation = getNegotiationRecord(warNegotiationID);
   if (
     !negotiation ||
+    negotiation.walletSettlement ||
     Number(negotiation.warNegotiationTypeID) !== Number(typeID) ||
     Number(negotiation.negotiationState) !== WAR_NEGOTIATION_STATE_NEW ||
     Number(negotiation[ownerField]) !== Number(resolveWarEntityID(session))
@@ -161,17 +163,13 @@ class WarRegistryService extends BaseService {
 
   Handle_CreateWarAllyOffer(args, session) {
     const warID = args && args.length > 0 ? Number(args[0]) || 0 : 0;
-    const iskValue = args && args.length > 1 ? Number(args[1]) || 0 : 0;
+    const amount = args && args.length > 1 ? args[1] : 0;
     const defenderID = args && args.length > 2 ? Number(args[2]) || 0 : 0;
     const description = args && args.length > 3 ? String(args[3] || "") : "";
-    const war = getWarRecord(warID);
-    const ownerID = resolveWarEntityID(session);
-    if (!war || !ownerID) {
-      return null;
-    }
-    if (defenderID && defenderID !== Number(war.againstID)) {
-      throwWrappedUserError("CrpAccessDenied");
-    }
+    const { authority, war, iskValue } = requireWarOffer(
+      session, warID, WAR_NEGOTIATION_TYPE_ALLY_OFFER, amount, defenderID,
+    );
+    const ownerID = authority.warEntityID;
     createWarNegotiation({
       warID,
       warNegotiationTypeID: WAR_NEGOTIATION_TYPE_ALLY_OFFER,
@@ -181,7 +179,7 @@ class WarRegistryService extends BaseService {
       againstID: Number(war.againstID || 0),
       iskValue,
       description,
-      createdByCharacterID: resolveCharacterID(session),
+      createdByCharacterID: authority.characterID,
     });
     return null;
   }
@@ -212,17 +210,16 @@ class WarRegistryService extends BaseService {
 
   Handle_CreateSurrenderNegotiation(args, session) {
     const warID = args && args.length > 0 ? Number(args[0]) || 0 : 0;
-    const iskValue = args && args.length > 1 ? Number(args[1]) || 0 : 0;
+    const amount = args && args.length > 1 ? args[1] : 0;
     const description = args && args.length > 2 ? String(args[2] || "") : "";
-    const war = getWarRecord(warID);
-    const ownerID = resolveWarEntityID(session);
-    if (
-      !war ||
-      !ownerID ||
-      (Number(ownerID) !== Number(war.declaredByID) && Number(ownerID) !== Number(war.againstID))
-    ) {
-      return null;
-    }
+    const currentAuthority = requireWarAuthority(session);
+    const currentWar = getWarRecord(warID);
+    if (!currentWar || ![Number(currentWar.declaredByID), Number(currentWar.againstID)]
+      .includes(currentAuthority.warEntityID)) return null;
+    const { authority, war, iskValue } = requireWarOffer(
+      session, warID, WAR_NEGOTIATION_TYPE_SURRENDER_OFFER, amount,
+    );
+    const ownerID = authority.warEntityID;
     const counterpartyID =
       ownerID === Number(war.declaredByID || 0)
         ? Number(war.againstID || 0)
@@ -238,7 +235,7 @@ class WarRegistryService extends BaseService {
       description,
       ownerID1AccountKey:
         (session && (session.corpAccountKey || session.corpaccountkey)) || 1000,
-      createdByCharacterID: resolveCharacterID(session),
+      createdByCharacterID: authority.characterID,
     });
     return null;
   }
@@ -254,15 +251,9 @@ class WarRegistryService extends BaseService {
   }
 
   async Handle_AcceptAllyNegotiation(args, session) {
-    const authority = requireWarAuthority(session);
+    requireWarAuthority(session);
     const warNegotiationID = args && args.length > 0 ? Number(args[0]) || 0 : 0;
-    await acceptAllyNegotiation(warNegotiationID, {
-      ...session,
-      corporationID: authority.corporationID,
-      corpid: authority.corporationID,
-      allianceID: authority.allianceID || 0,
-      allianceid: authority.allianceID || 0,
-    });
+    await acceptAllyNegotiation(warNegotiationID, session);
     return null;
   }
 
@@ -310,15 +301,9 @@ class WarRegistryService extends BaseService {
   }
 
   async Handle_AcceptSurrender(args, session) {
-    const authority = requireWarAuthority(session);
+    requireWarAuthority(session);
     const warNegotiationID = args && args.length > 0 ? Number(args[0]) || 0 : 0;
-    await acceptSurrender(warNegotiationID, {
-      ...session,
-      corporationID: authority.corporationID,
-      corpid: authority.corporationID,
-      allianceID: authority.allianceID || 0,
-      allianceid: authority.allianceID || 0,
-    });
+    await acceptSurrender(warNegotiationID, session);
     return null;
   }
 
@@ -350,7 +335,9 @@ class WarRegistryService extends BaseService {
     const warID = args && args.length > 0 ? Number(args[0]) || 0 : 0;
     const state = args && args.length > 1 ? args[1] : false;
     const war = getWarRecord(warID);
-    if (!war || Number(war.againstID) !== Number(resolveWarEntityID(session))) {
+    if (!war || war.timeFinished || war.retracted || Number(war.mutual) !== 0 ||
+        ![false, true, 0, 1].includes(state) ||
+        Number(war.againstID) !== Number(resolveWarEntityID(session))) {
       return null;
     }
     updateWarRecord(warID, (war) => {

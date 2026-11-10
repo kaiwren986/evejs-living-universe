@@ -29,6 +29,7 @@ const {
 
 const OPERATOR_KIND = "asteroidBeltRat";
 const DEFAULT_LANDING_RADIUS_METERS = 250_000;
+const OCCUPIED_SITE_CHECK_INTERVAL_MS = 30_000;
 
 const STANDARD_POOL_QUERY_BY_FACTION = Object.freeze({
   blood: "blood",
@@ -252,6 +253,7 @@ const SECURITY_PROFILES = Object.freeze([
 ]);
 
 const beltStateByKey = new Map();
+let lastSceneCheckAtMs = new WeakMap();
 
 let nowProvider = () => Date.now();
 let randomProvider = () => Math.random();
@@ -520,7 +522,24 @@ function isOnlineNullsecSkyhook(scene, entity) {
 }
 
 function isRatAnchorForScene(scene, entity) {
-  return isAsteroidBeltEntity(entity) || isOnlineNullsecSkyhook(scene, entity);
+  return isAsteroidBeltEntity(entity) || isOnlineNullsecSkyhook(scene, entity) ||
+    isOreAnomalyEntity(entity);
+}
+
+function isOreAnomalyEntity(entity) {
+  // Only public universe ore anomalies without authored defenders use lazy
+  // belt rats. Mission mining pockets, AIR, ice and defended sites keep their
+  // own encounter authority.
+  return Boolean(
+    entity && toPositiveInt(entity.itemID, 0) > 0 &&
+    entity.kind === "universeAnomalySite" &&
+    entity.signalTrackerUniverseSeededSite === true &&
+    entity.signalTrackerAnomalySite === true &&
+    entity.signalTrackerSiteFamily === "ore" &&
+    Number(entity.dungeonEncounterPlanCount || 0) === 0 &&
+    !entity.airNpeInstanceID && !entity.abyssalRunID &&
+    entity.instanceScope !== "private"
+  );
 }
 
 function squareDistance(left, right) {
@@ -554,7 +573,7 @@ function findNearestBeltForEntity(scene, entity, options = {}) {
   let nearest = null;
   let nearestDistanceSq = Number.POSITIVE_INFINITY;
   for (const belt of getBeltEntitiesForScene(scene)) {
-    if (Number(belt.groupID) === 4736 && !canEntitiesInteractLocally(entity, belt)) {
+    if (!canEntitiesInteractLocally(entity, belt)) {
       continue;
     }
     const distanceSq = squareDistance(entity.position, belt.position);
@@ -1121,7 +1140,8 @@ function spawnBeltRatGroup(scene, session, beltEntity, state, plan, options = {}
     toPositiveInt(session && session._space && session._space.shipID, 0),
   );
   const spawnSiteID = `${state.key}:${state.spawnSequence + 1}`;
-  const anchorKind = Number(beltEntity.groupID) === 4736 ? "skyhook" : "asteroidBelt";
+  const anchorKind = Number(beltEntity.groupID) === 4736 ? "skyhook" :
+    isOreAnomalyEntity(beltEntity) ? "oreAnomaly" : "asteroidBelt";
   const context = {
     systemID: toPositiveInt(scene && scene.systemID, toPositiveInt(plan && plan.systemID, 0)),
     scene,
@@ -1346,7 +1366,7 @@ function maybeSpawnForSessionArrival(scene, session, shipEntity, options = {}) {
     const targetEntity = scene.getEntityByID(targetEntityID);
     if (isAsteroidBeltEntity(targetEntity)) {
       beltEntity = targetEntity;
-    } else if (isOnlineNullsecSkyhook(scene, targetEntity) &&
+    } else if ((isOnlineNullsecSkyhook(scene, targetEntity) || isOreAnomalyEntity(targetEntity)) &&
         canEntitiesInteractLocally(shipEntity, targetEntity)) {
       const landingRadius = resolveBeltRatConfig(options).landingRadiusMeters +
         Math.max(0, toFiniteNumber(targetEntity.radius, 0));
@@ -1368,8 +1388,46 @@ function maybeSpawnForSessionArrival(scene, session, shipEntity, options = {}) {
   return maybeSpawnForBeltArrival(scene, session, beltEntity, options);
 }
 
+function tickScene(scene, nowMs, options = {}) {
+  const result = { success: true, checked: 0, spawned: 0 };
+  if (!scene || !(scene.dynamicEntities instanceof Map) ||
+      (scene.sceneKind && scene.sceneKind !== "solarSystem")) return result;
+  const resolvedConfig = resolveBeltRatConfig(options);
+  if (!resolvedConfig.enabled) return result;
+  const now = toFiniteNumber(nowMs, nowProvider());
+  const previous = lastSceneCheckAtMs.get(scene);
+  if (previous !== undefined && now - previous < OCCUPIED_SITE_CHECK_INTERVAL_MS) return result;
+  lastSceneCheckAtMs.set(scene, now);
+  const anchors = getBeltEntitiesForScene(scene);
+  const occupied = new Map();
+  for (const ship of scene.dynamicEntities.values()) {
+    const session = ship && ship.session;
+    if (ship?.kind !== "ship" || ship.nativeNpc === true || !session ||
+        !ship.position || ship.mode === "WARP" || ship.removed || ship.destroyed ||
+        toPositiveInt(session._space?.shipID, 0) !== toPositiveInt(ship.itemID, 0)) continue;
+    for (const anchor of anchors) {
+      if (occupied.has(anchor.itemID) || !canEntitiesInteractLocally(ship, anchor)) continue;
+      const radius = resolvedConfig.landingRadiusMeters + Math.max(0, toFiniteNumber(anchor.radius, 0));
+      if (squareDistance(ship.position, anchor.position) <= radius * radius) {
+        occupied.set(anchor.itemID, { anchor, ship, session });
+      }
+    }
+  }
+  for (const { anchor, ship, session } of occupied.values()) {
+    const attempt = maybeSpawnForBeltArrival(scene, session, anchor, {
+      ...options, nowMs: now, preferredTargetID: ship.itemID,
+      broadcast: true, source: "occupiedMiningSite",
+    });
+    result.checked += 1;
+    if (attempt.spawned) result.spawned += 1;
+    if (!attempt.success) result.success = false;
+  }
+  return result;
+}
+
 function resetForTests() {
   beltStateByKey.clear();
+  lastSceneCheckAtMs = new WeakMap();
   nowProvider = () => Date.now();
   randomProvider = () => Math.random();
 }
@@ -1391,6 +1449,7 @@ module.exports = {
   findNearestBeltForEntity,
   maybeSpawnForBeltArrival,
   maybeSpawnForSessionArrival,
+  tickScene,
   _testing: {
     resetForTests,
     configureForTests,

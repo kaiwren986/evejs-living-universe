@@ -1128,6 +1128,20 @@ function listActiveDungeonGasSiteDefinitions(systemID) {
       if (gasTypeRecords.length <= 0) {
         return null;
       }
+      // Exact dungeon clouds are placed and depleted by the dungeon owner.
+      // The composition-derived population is only a fallback, not extra stock.
+      const hints = template && template.populationHints;
+      const defaultYieldKind = String(hints?.resourceYieldKind || hints?.resourceFamily || hints?.siteFamily || "ore").trim().toLowerCase() || "ore";
+      const authoredGasRocks = hints?.exactClientContent === true &&
+        Array.isArray(hints.miningRocks) && hints.miningRocks.some((rock) => {
+          if (!rock || typeof rock !== "object" || toInt(rock.count, 1) <= 0) return false;
+          const typeID = toInt(rock.typeID || rock.oreTypeID || rock.objectiveTypeID, 0);
+          const quantity = Number(rock.quantity ?? rock.remainingQuantity ?? rock.quantityPerRock);
+          const yieldKind = String(rock.yieldKind || defaultYieldKind).trim().toLowerCase() || defaultYieldKind;
+          return yieldKind === "gas" && Number.isFinite(quantity) && quantity >= 0 &&
+            gasTypeRecords.some((type) => toInt(type.typeID, 0) === typeID);
+        });
+      if (authoredGasRocks) return null;
 
       const desiredMemberCount = Math.max(
         gasTypeRecords.length,

@@ -53,6 +53,9 @@ const {
 const nativeNpcStore = require(path.join(__dirname, "./nativeNpcStore"));
 const {
   isDestructibleNpcSentry,
+  isEmpireSentry,
+  EMPIRE_SENTRY_TYPE_IDS,
+  STATIONARY_SENTRY_BEHAVIOR_OVERRIDES,
   buildNpcSentryBehaviorOverrides,
   applyStationaryNpcSentryState,
   applyNpcSentryRuntimePolicy,
@@ -60,6 +63,9 @@ const {
 const {
   ENTITY_TYPE,
 } = require(path.join(__dirname, "../entityConstants"));
+
+// Only materializeEmpireSentry may reuse an existing scenery Ball's identity.
+const EMPIRE_SENTRY_MATERIALIZATION = Symbol("empireSentryMaterialization");
 
 const ABYSSAL_RUN_SCOPE_FIELDS = Object.freeze([
   "abyssalRunID",
@@ -655,7 +661,6 @@ function resolveAuthoredModuleQuantity(moduleEntry) {
   return Math.max(1, authoredQuantity, explicitFlagCount);
 }
 
-const TRANSIENT_CONCORD_TARGETING_SCAN_RESOLUTION = 5_000;
 const TRANSIENT_CONCORD_TARGETING_RANGE_METERS = 250_000;
 const MIN_NATIVE_NPC_LOCK_SLOTS = 1;
 
@@ -670,17 +675,14 @@ function applyTransientConcordCombatOverrides(entity, entityRecord) {
     return entity;
   }
 
-  entity.scanResolution = Math.max(
-    toFiniteNumber(entity.scanResolution, 0),
-    TRANSIENT_CONCORD_TARGETING_SCAN_RESOLUTION,
-  );
+  // Scan resolution stays the type's own: Captain 1,000 and Commander 60 are what
+  // make the Captains disable first and the Commander's kill come later.
   entity.maxTargetRange = Math.max(
     toFiniteNumber(entity.maxTargetRange, 0),
     TRANSIENT_CONCORD_TARGETING_RANGE_METERS,
   );
   entity.cloakingTargetingDelay = 0;
   if (entity.passiveDerivedState && typeof entity.passiveDerivedState === "object") {
-    entity.passiveDerivedState.scanResolution = entity.scanResolution;
     entity.passiveDerivedState.maxTargetRange = entity.maxTargetRange;
     entity.passiveDerivedState.cloakingTargetingDelay = 0;
   }
@@ -1289,6 +1291,7 @@ function buildNativeRuntimeShipSpec(entityRecord) {
     capitalClassID: entityRecord.capitalClassID || null,
     capitalRarity: entityRecord.capitalRarity || null,
     nativeNpc: true,
+    ...(entityRecord.empireSentry === true ? { empireSentry: true } : {}),
     nativeNpcOccupied: true,
     transient: entityRecord.transient === true,
     selectionKind: entityRecord.selectionKind || null,
@@ -1337,6 +1340,7 @@ function applyNativeRuntimeNpcPresentation(entity, entityRecord, definition = nu
     return entity;
   }
   entity.nativeNpc = true;
+  if (entityRecord.empireSentry === true) entity.empireSentry = true;
   entity.nativeNpcOccupied = true;
   entity.selectionKind = entityRecord.selectionKind || null;
   entity.selectionID = entityRecord.selectionID || null;
@@ -1473,13 +1477,50 @@ function syncNativeAmbientIdleState(scene, entity, controller, definition) {
   ) === true;
 }
 
+// Captured noncombat companions use the existing idle orbit owner so its next
+// AI think cannot undo the scene's command. Transient anchor IDs are rebound
+// by the dungeon after cold materialization, never promoted to new inventory.
+function setDungeonCompanionOrbit(entity, target, options = {}) {
+  const instanceID = toPositiveInt(entity?.dungeonSiteInstanceID, 0);
+  const scene = spaceRuntime.findSceneContainingDynamicEntity(entity?.itemID);
+  const controller = getControllerByEntityID(entity?.itemID);
+  const record = nativeNpcStore.getNativeEntity(entity?.itemID);
+  const range = Number(options.rangeMeters), speed = Number(options.speedFraction ?? 1);
+  if (!instanceID || entity?.nativeNpc !== true || !scene || !controller || !record ||
+      scene.getEntityByID(entity.itemID) !== entity || scene.getEntityByID(target?.itemID) !== target ||
+      Number(target?.dungeonSiteInstanceID) !== instanceID || Number(record.dungeonSiteInstanceID) !== instanceID ||
+      Number(record.systemID) !== Number(scene.systemID) || entity.itemID === target?.itemID ||
+      !Number.isFinite(range) || range <= 0 || !Number.isFinite(speed) || speed <= 0 || speed > 1) {
+    return { success: false, errorMsg: "DUNGEON_COMPANION_ORBIT_SCOPE_INVALID" };
+  }
+  if (entity.mode === "WARP") return { success: false, errorMsg: "DUNGEON_COMPANION_IN_WARP" };
+  const samePolicy = controller.anchorID === target.itemID && controller.behaviorOverrides?.idleAnchorOrbit === true &&
+    controller.behaviorOverrides.idleAnchorOrbitDistanceMeters === range;
+  if (!samePolicy || !["ORBIT", "FOLLOW"].includes(entity.mode) || Number(entity.targetEntityID) !== Number(target.itemID) ||
+      Math.abs(Number(entity.speedFraction) - speed) > 1e-6) {
+    if (!scene.orbitShipEntity(entity, target.itemID, range, { speedFraction: speed })) {
+      return { success: false, errorMsg: "DUNGEON_COMPANION_ORBIT_REFUSED" };
+    }
+  }
+  controller.anchorID = target.itemID;
+  entity.anchorID = target.itemID;
+  controller.behaviorOverrides = { ...controller.behaviorOverrides, idleAnchorOrbit: true,
+    idleAnchorOrbitDistanceMeters: range, returnToHomeWhenIdle: false,
+    autoAggro: false, autoActivateWeapons: false };
+  controller.manualOrder = null;
+  controller.currentTargetID = 0;
+  controller.preferredTargetID = 0;
+  controller.returningHome = false;
+  return { success: true, duplicate: samePolicy };
+}
+
 function registerNativeRuntimeController(entityRecord, controllerRecord, definition) {
   const runtimeKind = String(controllerRecord && controllerRecord.runtimeKind || "nativeAmbient").trim() || "nativeAmbient";
   return registerController({
     ...cloneValue(controllerRecord),
     behaviorProfile: cloneValue(definition && definition.behaviorProfile || {}),
     behaviorOverrides: normalizeBehaviorOverrides(
-      isDestructibleNpcSentry(entityRecord)
+      isDestructibleNpcSentry(entityRecord) || isEmpireSentry(entityRecord)
         ? buildNpcSentryBehaviorOverrides(controllerRecord.behaviorOverrides)
         : controllerRecord.behaviorOverrides,
     ),
@@ -1531,6 +1572,10 @@ function materializeNativeRuntimeEntity(scene, entityRecord, controllerRecord, d
       errorMsg: scopeResolution.errorMsg,
     };
   }
+  // Older saved civilians can still have the default hostile NPC presentation.
+  const friendlyPresentation = require("../../services/incursion/incursionFriendlyActors").npcPresentationOverrides(entityRecord) ||
+    require("../../services/dungeon/careerLessonRuntime").npcPresentationOverrides(entityRecord);
+  if (friendlyPresentation) entityRecord = { ...entityRecord, ...friendlyPresentation };
   const entityScopeMetadata = scopeResolution.data.metadata;
   if (existingEntity) {
     const controller = registerNativeRuntimeController(entityRecord, controllerRecord, definition);
@@ -1553,16 +1598,32 @@ function materializeNativeRuntimeEntity(scene, entityRecord, controllerRecord, d
     };
   }
 
+  // Native birth remains durable at its intended landing pose. Only the live
+  // projection starts off-grid; a cold recovery can then recover the same NPC
+  // at its destination without recreating its birth or replaying its arrival.
+  const warpLanding = options.warpIn === true ? cloneVector(entityRecord.position) : null;
+  const warpOrigin = warpLanding
+    ? require("./npcWarpOrigins").findSafeWarpOriginAnchor(scene, entityRecord)
+    : null;
   const spawnResult = spaceRuntime.spawnDynamicShip(
     scene.sceneDescriptor || scene.systemID,
     buildNativeRuntimeShipSpec(entityRecord),
     {
       sceneDescriptor: scene.sceneDescriptor || undefined,
       persistSpaceState: false,
-      broadcast: options.broadcast !== false,
+      broadcast: warpLanding ? false : options.broadcast !== false,
       initialPublication: options.initialPublication,
       suppressInitialPublication: options.suppressInitialPublication === true,
-      runtimeEntityMetadata: options.runtimeEntityMetadata,
+      runtimeEntityMetadata: warpLanding ? {
+        ...options.runtimeEntityMetadata,
+        position: warpOrigin.position,
+        velocity: { x: 0, y: 0, z: 0 },
+        direction: warpOrigin.direction,
+        targetPoint: warpOrigin.position,
+        mode: "STOP",
+        speedFraction: 0,
+        nativeNpcInitialWarpLanding: { position: warpLanding, pending: true },
+      } : options.runtimeEntityMetadata,
       excludedSession: options.excludedSession || null,
       entityScopeMetadata,
     },
@@ -1583,11 +1644,43 @@ function materializeNativeRuntimeEntity(scene, entityRecord, controllerRecord, d
   if (runtimeKind === "nativeAmbient") {
     syncNativeAmbientIdleState(scene, entity, controller, definition);
   }
+  let warpIngress;
+  if (warpLanding) {
+    const removeFailedProjection = (failure) => {
+      if (scene.getEntityByID(entity.itemID) === entity) {
+        scene.removeDynamicEntity(entity.itemID, { broadcast: false, persistSpaceState: false });
+        unregisterController(entity.itemID);
+      }
+      if (typeof options.onWarpInRefused === "function") options.onWarpInRefused(failure);
+    };
+    let warpResult;
+    try {
+      warpResult = require("./npcRuntime").warpToPoint(entity.itemID, warpLanding, {
+        forceImmediateStart: true,
+        useNativeWarpProfile: true,
+        suppressCompletionStopUpdates: true,
+        stopDistance: 0,
+        onRefusedWhenApplied: removeFailedProjection,
+      });
+    } catch (error) {
+      warpResult = { success: false, errorMsg: error.message || "NPC_WARP_INGRESS_FAILED" };
+    }
+    if (!warpResult.success) {
+      removeFailedProjection(warpResult);
+      return warpResult;
+    }
+    // Keep the identity of this ingress, not just a destination that a later
+    // AI warp might also use. A queued order has no destination object yet.
+    entity.nativeNpcInitialWarpLanding.pending = entity.mode !== "WARP";
+    entity.nativeNpcInitialWarpLanding.warpDestination = entity.warpDestination;
+    warpIngress = warpResult.data;
+  }
   return {
     success: true,
     data: {
       entity,
       controller,
+      ...(warpIngress ? { warpIngress } : {}),
     },
   };
 }
@@ -1607,14 +1700,27 @@ function materializeStoredNativeController(scene, entityID, options = {}) {
       errorMsg: "NPC_NOT_FOUND",
     };
   }
-
   const entityRecord = nativeNpcStore.getNativeEntity(normalizedEntityID);
+  if (entityRecord?.nativeDeathWreck) {
+    const settled = require("./nativeNpcDeathWrecks").settle(scene, entityRecord);
+    return settled.success
+      ? { success: true, data: { entity: null, controller: null, retired: true } }
+      : settled;
+  }
   const controllerRecord = nativeNpcStore.getNativeController(normalizedEntityID);
   if (!entityRecord || !controllerRecord) {
     return {
       success: false,
       errorMsg: "NPC_NOT_FOUND",
     };
+  }
+  if (isRequiredActorRecord(entityRecord)) {
+    const instance = require("../../services/dungeon/dungeonRuntime").getInstance(entityRecord.dungeonSiteInstanceID);
+    const retired = instance?.spawnState?.requiredActorRetirements?.[entityRecord.dungeonSiteContentKey];
+    if (!instance || entityRecord.dungeonSiteContentRole !== REQUIRED_ACTOR_ACTIVE ||
+        retired || Number(entityRecord.conditionState?.damage) >= 1) {
+      return { success: false, errorMsg: "REQUIRED_ACTOR_NOT_ACTIVE" };
+    }
   }
   const sceneAuthority = validateStoredNativeControllerSceneAuthority(
     scene,
@@ -1662,24 +1768,35 @@ function materializeStoredNativeController(scene, entityID, options = {}) {
 }
 
 function buildStoredEntityRecordFromRuntimeEntity(entityRecord, runtimeEntity) {
+  // A scene can be collected during the initial ingress. The native store
+  // does not serialize the Destiny warp curve, so persisting its off-grid
+  // intermediate pose would strand this NPC after the next materialization.
+  const ingress = runtimeEntity?.nativeNpcInitialWarpLanding;
+  const destination = runtimeEntity?.warpDestination;
+  const sameQueuedDestination = ingress?.pending && destination &&
+    ["x", "y", "z"].every(axis => destination.targetPoint?.[axis] === ingress.position[axis]);
+  const initialWarp = ingress && (runtimeEntity.mode === "WARP" &&
+    (ingress.warpDestination === destination || sameQueuedDestination) ||
+    ingress.pending && runtimeEntity.mode === "STOP" && !destination);
+  const warpLanding = initialWarp ? ingress.position : null;
   return {
     ...cloneValue(entityRecord || {}),
-    position: cloneVector(runtimeEntity && runtimeEntity.position),
-    velocity: cloneVector(runtimeEntity && runtimeEntity.velocity),
+    position: cloneVector(warpLanding || runtimeEntity && runtimeEntity.position),
+    velocity: warpLanding ? { x: 0, y: 0, z: 0 } : cloneVector(runtimeEntity && runtimeEntity.velocity),
     direction: normalizeVector(
       runtimeEntity && runtimeEntity.direction,
       entityRecord && entityRecord.direction,
     ),
     targetPoint: cloneVector(
-      runtimeEntity && runtimeEntity.targetPoint,
+      warpLanding || runtimeEntity && runtimeEntity.targetPoint,
       runtimeEntity && runtimeEntity.position,
     ),
-    mode: String(
+    mode: warpLanding ? "STOP" : String(
       (runtimeEntity && runtimeEntity.mode) ||
         (entityRecord && entityRecord.mode) ||
         "STOP",
     ),
-    speedFraction: toFiniteNumber(
+    speedFraction: warpLanding ? 0 : toFiniteNumber(
       runtimeEntity && runtimeEntity.speedFraction,
       entityRecord && entityRecord.speedFraction,
     ),
@@ -1776,6 +1893,330 @@ function buildStoredControllerRecordFromRuntimeController(controllerRecord, runt
   };
 }
 
+const REQUIRED_ACTOR_PREPARING = "required_actor_preparing";
+const REQUIRED_ACTOR_ACTIVE = "required_actor";
+
+// The admitted encounter assigns this binding at birth. Unrelated native NPCs
+// retain their existing persistence lifecycle and never acquire this outbox.
+function bindNpcOperation(entity, operationID) {
+  const database = require("../../gameStore");
+  const stored = nativeNpcStore.getNativeEntity(entity?.itemID);
+  if (!entity?.nativeNpc || !stored || !/^[A-Za-z0-9:_-]{1,180}$/.test(operationID || "") ||
+      !(Number(entity.dungeonSiteInstanceID) > 0) || !entity.dungeonSiteContentKey ||
+      Number(stored.typeID) !== Number(entity.typeID) ||
+      Number(stored.dungeonSiteInstanceID) !== Number(entity.dungeonSiteInstanceID) ||
+      stored.dungeonSiteContentKey !== entity.dungeonSiteContentKey ||
+      stored.incursionOperationID && stored.incursionOperationID !== operationID) {
+    return { success: false, errorMsg: "INCURSION_NPC_BINDING_MISMATCH" };
+  }
+  const result = nativeNpcStore.upsertNativeEntity({ ...buildStoredEntityRecordFromRuntimeEntity(stored, entity),
+    incursionOperationID: operationID, transient: false }, { transient: false });
+  if (!result.success) return result;
+  database.setTransientPath("npcEntities", `/entities/${entity.itemID}`, false);
+  const flushed = database.flushTableSync("npcEntities");
+  if (!flushed.success) return { ...flushed, errorMsg: "INCURSION_NPC_BINDING_PENDING" };
+  entity.incursionOperationID = operationID;
+  return { success: true, durable: true };
+}
+
+function commitIncursionDamageOutcome({ scene, entity, sourceEntity, event, previousConditionState } = {}) {
+  if (!entity?.incursionOperationID) return { success: true, handled: false };
+  const database = require("../../gameStore"), carrier = require("../../services/inventory/incursionCombatOutcomes");
+  let accepted = false;
+  const refuse = errorMsg => {
+    if (!accepted && previousConditionState) entity.conditionState = cloneValue(previousConditionState);
+    return { success: false, handled: true, accepted, errorMsg };
+  };
+  try {
+    if (!previousConditionState) return refuse("INCURSION_NPC_HEALTH_PREIMAGE_REQUIRED");
+    const normalized = carrier.normalizeEvent({ ...event, destroyed: Number(entity.conditionState?.damage) >= 1 });
+    if (normalized.kind !== "damage" || normalized.operationID !== entity.incursionOperationID ||
+        Number(entity.dungeonSiteInstanceID) !== normalized.instanceID ||
+        Number(entity.itemID) !== normalized.targetEntityID || Number(entity.typeID) !== normalized.targetTypeID ||
+        entity.dungeonSiteContentKey !== normalized.targetKey || normalized.targetCharacterID !== 0) {
+      return refuse("INCURSION_NPC_OUTCOME_SCOPE_MISMATCH");
+    }
+    const key = carrier.storageKey(normalized.eventID), raw = database.read("npcEntities", "/");
+    if (!raw.success) return refuse(raw.errorMsg);
+    const root = raw.data, ledger = root.incursionOutcomes || {}, existing = ledger[key];
+    if (existing) {
+      if (!require("node:util").isDeepStrictEqual(existing.event, normalized)) return refuse("INCURSION_COMBAT_OUTCOME_CONFLICT");
+      accepted = true;
+      const live = nativeNpcStore.getNativeEntity(entity.itemID);
+      entity.conditionState = cloneValue(live?.conditionState || existing.conditionState);
+      const flushed = database.flushTableSync("npcEntities");
+      return { success: true, handled: true, accepted: true, duplicate: true,
+        durable: flushed.success === true, pending: flushed.success !== true, receipt: cloneValue(existing) };
+    }
+    const stored = nativeNpcStore.getNativeEntity(entity.itemID);
+    if (!entity.nativeNpc || !stored || stored.incursionOperationID !== normalized.operationID ||
+        Number(stored.typeID) !== normalized.targetTypeID || Number(stored.dungeonSiteInstanceID) !== normalized.instanceID ||
+        stored.dungeonSiteContentKey !== normalized.targetKey || stored.transient !== false ||
+        database.isTransientPath("npcEntities", `/entities/${entity.itemID}`)) return refuse("INCURSION_NPC_OUTCOME_OWNER_MISMATCH");
+    if (normalized.deathPosition && ["x", "y", "z"].some(axis => normalized.deathPosition[axis] !== entity.position?.[axis]))
+      return refuse("INCURSION_DEATH_POSITION_MISMATCH");
+    if (stored.incursionDeathEventID) {
+      // A retry of the original event returned above. A new event ID cannot
+      // create another wreck for an already committed native death.
+      entity.conditionState = cloneValue(stored.conditionState);
+      return { success: false, handled: true, accepted: false, errorMsg: "INCURSION_NPC_DEATH_ALREADY_COMMITTED" };
+    }
+    const outcomeCount = Object.values(ledger).filter(row => row.event?.operationID === normalized.operationID).length;
+    if (outcomeCount >= 65536)
+      return refuse("INCURSION_COMBAT_OUTCOME_CAPACITY");
+    // Same-tick kills need the health owner's commit order, not event-ID or
+    // projection order, to locate the last destroyed member of a drop group.
+    const after = buildStoredEntityRecordFromRuntimeEntity(stored, entity);
+    const deathWreckPlan = require("./incursionDeathWrecks").prepare({ scene, entity, sourceEntity, stored: after, event: normalized });
+    const receipt = { version: 1, event: normalized, acknowledged: false, conditionState: cloneValue(entity.conditionState),
+      ...(deathWreckPlan ? { deathWreckPlan } : {}),
+      ...(normalized.deathPosition ? { ordinal: outcomeCount + 1 } : {}) };
+    const next = { ...root, entities: { ...root.entities,
+      [entity.itemID]: { ...after, ...(deathWreckPlan ? { incursionDeathEventID: normalized.eventID } : {}) } },
+    incursionOutcomes: { ...ledger, [key]: receipt } };
+    const saved = database.write("npcEntities", "/", next, { knownChangedPaths: [`/entities/${entity.itemID}`, `/incursionOutcomes/${key}`] });
+    if (!saved.success) return refuse(saved.errorMsg || "INCURSION_COMBAT_WRITE_FAILED");
+    accepted = true;
+    const flushed = database.flushTableSync("npcEntities");
+    return { success: true, handled: true, accepted: true, duplicate: false,
+      durable: flushed.success === true, pending: flushed.success !== true, receipt: cloneValue(receipt) };
+  } catch (error) {
+    if (accepted) return { success: true, handled: true, accepted: true, durable: false, pending: true, errorMsg: error.message };
+    return refuse(error.message);
+  }
+}
+
+function isRequiredActorRecord(record) {
+  return record?.transient === false && record.dungeonMaterializedSiteContent === true &&
+    [REQUIRED_ACTOR_PREPARING, REQUIRED_ACTOR_ACTIVE].includes(record.dungeonSiteContentRole);
+}
+
+// The same native-NPC table owns the support cadence, frozen pulse recipients
+// and their HP. Retaining only the latest cycle per source bounds this journal;
+// old cycle callbacks are fenced, and offline time never queues a heal backlog.
+function readNativeNpcAbilityState(entityID) {
+  const result = require("../../gameStore").read("npcEntities", `/nativeAbilityState/${Number(entityID)}`);
+  return result.success && result.data ? cloneValue(result.data) : null;
+}
+function reserveNativeNpcAbilityCycle({ scene, source, effectID, nowMs, targetIDs = [], random = Math.random } = {}) {
+  const policy = require("./nativeNpcAbilities"), database = require("../../gameStore");
+  try {
+    if (!policy.live(source) || !source.nativeNpc || scene?.getEntityByID?.(source.itemID) !== source ||
+        !Number.isSafeInteger(nowMs) || nowMs <= 0) throw new Error("NPC_ABILITY_SOURCE_INVALID");
+    const inputs = effectID === 3855 ? policy.shieldInputs(source)
+      : effectID === 4656 ? policy.ecmInputs(source, policy.bossPlayers(scene, source).length) : null;
+    if (!inputs) throw new Error("NPC_ABILITY_POLICY_INVALID");
+    const raw = database.read("npcEntities", "/");
+    if (!raw.success) throw new Error(raw.errorMsg);
+    const root = raw.data, stored = root.entities?.[source.itemID];
+    if (!stored || stored.transient === true) return { success: true, handled: false, inputs };
+    if (Number(stored.typeID) !== Number(source.typeID) || Number(stored.systemID) !== Number(scene.systemID) ||
+        Number(stored.dungeonSiteInstanceID || 0) !== Number(source.dungeonSiteInstanceID || 0)) throw new Error("NPC_ABILITY_OWNER_MISMATCH");
+    const states = root.nativeAbilityState || {}, state = cloneValue(states[source.itemID] || {});
+    const key = String(effectID), prior = state[key];
+    if (prior && (prior.version !== inputs.version || prior.typeID !== Number(source.typeID))) throw new Error("NPC_ABILITY_IDENTITY_CONFLICT");
+    if (prior && (nowMs < prior.nextAtMs || nowMs <= prior.atMs)) {
+      const sameCycle = nowMs === prior.atMs;
+      const flushed = database.flushTableSync("npcEntities");
+      return { success: true, handled: true, durable: flushed.success === true,
+        pending: flushed.success !== true, duplicate: !sameCycle, cycle: sameCycle ? cloneValue(prior) : null, inputs };
+    }
+    if (effectID === 3855 && (!Array.isArray(targetIDs) || targetIDs.length > inputs.maxTargets ||
+        new Set(targetIDs).size !== targetIDs.length || targetIDs.some(id => !Number.isSafeInteger(id) || id <= 0 ||
+          !policy.shieldEligible(source, scene.getEntityByID(id), inputs)))) throw new Error("NPC_SHIELD_RECIPIENTS_INVALID");
+    // The first ECM activation only arms its interval. Subsequent reservations
+    // occur before lock-break publication. A crash can skip a transient burst,
+    // but cannot restart its timer or replay a catch-up storm on reconnect.
+    const armedOnly = effectID === 4656 && !prior;
+    const fired = !armedOnly && (inputs.chance >= 1 || inputs.chance > 0 && Number(random()) < inputs.chance);
+    const cycle = { version: inputs.version, typeID: Number(source.typeID), effectID, atMs: nowMs,
+      nextAtMs: nowMs + inputs.durationMs, fired, armedOnly,
+      targetIDs: effectID === 3855 && fired ? [...targetIDs] : [], applied: {} };
+    state[key] = cycle;
+    const saved = database.write("npcEntities", "/", { ...root, nativeAbilityState: { ...states, [source.itemID]: state } },
+      { knownChangedPaths: [`/nativeAbilityState/${source.itemID}`] });
+    if (!saved.success) throw new Error(saved.errorMsg || "NPC_ABILITY_WRITE_FAILED");
+    const flushed = database.flushTableSync("npcEntities");
+    return { success: true, handled: true, durable: flushed.success === true, pending: flushed.success !== true,
+      duplicate: false, inputs, cycle: cloneValue(cycle) };
+  } catch (error) { return { success: false, handled: true, errorMsg: error.message }; }
+}
+function commitNativeNpcShieldRepair({ scene, source, target, cycleAtMs, previousConditionState } = {}) {
+  const database = require("../../gameStore");
+  let accepted = false;
+  try {
+    const policy = require("./nativeNpcAbilities"), inputs = policy.shieldInputs(source);
+    if (!inputs || !policy.live(source) || !policy.live(target) || !target?.nativeNpc || !previousConditionState ||
+        scene?.getEntityByID?.(source.itemID) !== source || scene?.getEntityByID?.(target.itemID) !== target ||
+        !policy.sameScope(source, target)) throw new Error("NPC_SHIELD_REPAIR_SCOPE_INVALID");
+    const raw = database.read("npcEntities", "/");
+    if (!raw.success) throw new Error(raw.errorMsg);
+    const root = raw.data, sourceRecord = root.entities?.[source.itemID], stored = root.entities?.[target.itemID];
+    if (!sourceRecord || sourceRecord.transient === true || !stored || stored.transient === true) return { success: true, handled: false };
+    if (Number(sourceRecord.typeID) !== Number(source.typeID) || Number(sourceRecord.systemID) !== Number(scene.systemID) ||
+        Number(sourceRecord.dungeonSiteInstanceID || 0) !== Number(source.dungeonSiteInstanceID || 0)) throw new Error("NPC_SHIELD_REPAIR_SOURCE_MISMATCH");
+    const state = root.nativeAbilityState?.[source.itemID], cycle = state?.[3855];
+    if (!cycle || cycle.version !== inputs.version || cycle.typeID !== Number(source.typeID) || !cycle.fired ||
+        cycle.atMs !== cycleAtMs || !cycle.targetIDs.includes(Number(target.itemID))) {
+      // A completed newer pulse is a fence, never permission to apply an old HP
+      // preimage. Restore the current owner state rather than a stale caller.
+      target.conditionState = cloneValue(stored.conditionState);
+      return { success: true, handled: true, duplicate: true, durable: true };
+    }
+    if (cycle.applied[target.itemID]) {
+      target.conditionState = cloneValue(stored.conditionState);
+      const flushed = database.flushTableSync("npcEntities");
+      return { success: true, handled: true, duplicate: true, durable: flushed.success === true, pending: !flushed.success };
+    }
+    if (Number(stored.typeID) !== Number(target.typeID) || Number(stored.systemID) !== Number(scene.systemID) ||
+        Number(stored.dungeonSiteInstanceID || 0) !== Number(target.dungeonSiteInstanceID || 0)) throw new Error("NPC_SHIELD_REPAIR_OWNER_MISMATCH");
+    const before = Number(previousConditionState.shieldCharge), after = Number(target.conditionState?.shieldCharge);
+    const capacity = Number(target.shieldCapacity), healed = (after - before) * capacity;
+    if (!Number.isFinite(healed) || !(before >= 0 && before <= 1) || healed < -0.000001 || healed > inputs.amount + 0.000001 ||
+        before >= 1 - inputs.damageThreshold || after > 1 ||
+        ["armorDamage", "damage"].some(key => target.conditionState?.[key] !== previousConditionState[key])) throw new Error("NPC_SHIELD_REPAIR_AMOUNT_INVALID");
+    const nextState = cloneValue(state);
+    nextState[3855].applied[target.itemID] = { amount: Math.max(0, healed), atMs: cycleAtMs };
+    const saved = database.write("npcEntities", "/", { ...root,
+      entities: { ...root.entities, [target.itemID]: buildStoredEntityRecordFromRuntimeEntity(stored, target) },
+      nativeAbilityState: { ...root.nativeAbilityState, [source.itemID]: nextState } },
+    { knownChangedPaths: [`/entities/${target.itemID}`, `/nativeAbilityState/${source.itemID}`] });
+    if (!saved.success) throw new Error(saved.errorMsg || "NPC_SHIELD_REPAIR_WRITE_FAILED");
+    accepted = true;
+    const flushed = database.flushTableSync("npcEntities");
+    return { success: true, handled: true, accepted, duplicate: false, durable: flushed.success === true, pending: !flushed.success };
+  } catch (error) {
+    if (!accepted && target && previousConditionState) target.conditionState = cloneValue(previousConditionState);
+    return { success: accepted, handled: true, accepted, pending: accepted, durable: false, errorMsg: error.message };
+  }
+}
+function commitIncursionLogisticsRepair(request, calculate) {
+  let accepted = false, held = false;
+  const presentation = require("../../services/incursion/incursionRepairPresentation");
+  try {
+    const database = require("../../gameStore"), support = require("../../services/incursion/incursionLogisticsSupport");
+    const scope = support.validateRequest(request);
+    if (scope.pulse.domain !== "npc") throw new Error("INCURSION_SUPPORT_HEALTH_DOMAIN_INVALID");
+    const raw = database.read("npcEntities", "/"); if (!raw.success) throw new Error(raw.errorMsg);
+    const root = raw.data, ledger = root.incursionSupportHealth || {}, current = root.entities?.[request.targetID];
+    const result = support.healthCommit(request, ledger[request.sourceKey], snapshot => {
+      if (!current || Number(current.conditionState?.damage) >= 1 || current.transient !== false || Number(current.typeID) !== snapshot.typeID || Number(current.ownerID) !== snapshot.ownerID ||
+          Number(current.systemID) !== scope.instance.solarSystemID || current.incursionOperationID !== scope.operation.identity.operationID ||
+          current.dungeonMaterializedSiteContent !== true || current.dungeonSiteContentRole !== "required_actor" ||
+          Number(current.dungeonSiteID) !== Number(scope.instance.metadata.siteID) ||
+          current.dungeonSiteContentKey !== snapshot.actorKey || Number(current.dungeonSiteInstanceID) !== scope.instance.instanceID ||
+          database.isTransientPath("npcEntities", `/entities/${request.targetID}`)) return { skipped: true };
+      return calculate(current);
+    });
+    if (result.skipped) return { success: true, durable: true, skipped: true };
+    if (!result.duplicate) {
+      presentation.hold(request, scope.target, result.receipt.before); held = true;
+      const saved = database.write("npcEntities", "/", { ...root,
+        entities: { ...root.entities, [request.targetID]: { ...current, conditionState: cloneValue(result.receipt.after) } },
+        incursionSupportHealth: { ...ledger, [request.sourceKey]: result.state } },
+      { knownChangedPaths: [`/entities/${request.targetID}`, `/incursionSupportHealth/${request.sourceKey}`] });
+      if (!saved.success) throw new Error(saved.errorMsg || "INCURSION_SUPPORT_HEALTH_WRITE_FAILED");
+    }
+    accepted = true;
+    const flushed = database.flushTableSync("npcEntities");
+    if (flushed.success) presentation.release(request);
+    return { success: true, accepted, duplicate: result.duplicate, durable: flushed.success === true, pending: flushed.success !== true, receipt: result.receipt };
+  } catch (error) { return { success: accepted, accepted, pending: accepted, errorMsg: error.message }; }
+  finally { if (held && !accepted) presentation.release(request); }
+}
+
+function consumeNativeNpcBurst({ scene, source, cycleAtMs } = {}) {
+  try {
+    const database = require("../../gameStore"), policy = require("./nativeNpcAbilities");
+    if (!policy.bossEnabled(source) || !policy.live(source) || scene?.getEntityByID?.(source.itemID) !== source) throw new Error("NPC_BURST_SOURCE_INVALID");
+    const raw = database.read("npcEntities", "/");
+    if (!raw.success) throw new Error(raw.errorMsg);
+    const root = raw.data, state = root.nativeAbilityState?.[source.itemID], cycle = state?.[4656];
+    if (!cycle || cycle.version !== policy.BOSS_VERSION || cycle.atMs !== cycleAtMs || !cycle.fired || cycle.published) {
+      return { success: true, duplicate: true, consumed: false };
+    }
+    const next = cloneValue(state); next[4656].published = true;
+    const saved = database.write("npcEntities", "/", { ...root,
+      nativeAbilityState: { ...root.nativeAbilityState, [source.itemID]: next } },
+    { knownChangedPaths: [`/nativeAbilityState/${source.itemID}`] });
+    if (!saved.success) throw new Error(saved.errorMsg);
+    const flushed = database.flushTableSync("npcEntities");
+    return { success: flushed.success === true, consumed: flushed.success === true,
+      pending: flushed.success !== true, errorMsg: flushed.success ? undefined : "NPC_BURST_COMMIT_PENDING" };
+  } catch (error) { return { success: false, consumed: false, errorMsg: error.message }; }
+}
+
+// Only the dungeon owner assigns this scoped role to declared required arc
+// actors. Health remains owned by native NPC rows, not inventory ships.
+function persistRequiredDungeonActor(entity, options = {}) {
+  const entityID = toPositiveInt(entity?.itemID, 0);
+  const record = nativeNpcStore.getNativeEntity(entityID);
+  const storedController = nativeNpcStore.getNativeController(entityID);
+  const scene = spaceRuntime.findSceneContainingDynamicEntity(entityID);
+  if (!isRequiredActorRecord(record) || !storedController || storedController.transient === true ||
+      !scene || scene.getEntityByID(entityID) !== entity || entity.nativeNpc !== true ||
+      record.dungeonSiteContentRole !== entity.dungeonSiteContentRole ||
+      Number(record.typeID) !== Number(entity.typeID) ||
+      Number(record.dungeonSiteInstanceID) !== Number(entity.dungeonSiteInstanceID) ||
+      Number(record.dungeonSiteID) !== Number(entity.dungeonSiteID) ||
+      record.dungeonSiteContentKey !== entity.dungeonSiteContentKey ||
+      record.dungeonSiteContentRole === REQUIRED_ACTOR_PREPARING && options.birth !== true) {
+    return { success: false, errorMsg: "REQUIRED_ACTOR_OWNER_MISMATCH" };
+  }
+  if (record.dungeonSiteContentRole === REQUIRED_ACTOR_ACTIVE && Number(entity.conditionState?.damage) >= 1) {
+    // Commit the existing required-actor terminal journal before making fatal
+    // native health durable. Cold recovery may finish deletion from this proof;
+    // an absent or merely damaged native row never supplies a death receipt.
+    const retirement = retireRequiredDungeonActor(entity, "destroyed", scene.getCurrentSimTimeMs());
+    if (!retirement.success) return retirement;
+  }
+  const entityResult = nativeNpcStore.upsertNativeEntity(
+    buildStoredEntityRecordFromRuntimeEntity(record, entity), { transient: false });
+  if (!entityResult.success) return entityResult;
+  const controllerResult = nativeNpcStore.upsertNativeController(
+    buildStoredControllerRecordFromRuntimeController(storedController,
+      getControllerByEntityID(entityID) || storedController), { transient: false });
+  if (!controllerResult.success) return controllerResult;
+  const tables = ["npcEntities", "npcRuntimeControllers"];
+  if (options.birth === true) tables.push("npcModules", "npcCargo");
+  const flushed = require("../../gameStore").flushTablesSync(tables);
+  if (!flushed.success) return { ...flushed, errorMsg: "REQUIRED_ACTOR_NATIVE_FLUSH_PENDING" };
+  if (options.birth === true) {
+    // A preparing row is not proof of a completed native birth. Promote only
+    // after its whole native bundle is durable, before encounter publication.
+    const activated = nativeNpcStore.upsertNativeEntity({
+      ...nativeNpcStore.getNativeEntity(entityID), dungeonSiteContentRole: REQUIRED_ACTOR_ACTIVE,
+    }, { transient: false });
+    if (!activated.success) return activated;
+    const committed = require("../../gameStore").flushTableSync("npcEntities");
+    if (!committed.success) return committed;
+    entity.dungeonSiteContentRole = REQUIRED_ACTOR_ACTIVE;
+  }
+  return { success: true, durable: true };
+}
+
+function retireRequiredDungeonActor(entityOrRecord, reason, nowMs = Date.now()) {
+  const entityID = toPositiveInt(entityOrRecord?.itemID || entityOrRecord?.entityID, 0);
+  const record = nativeNpcStore.getNativeEntity(entityID);
+  if (!isRequiredActorRecord(record)) return { success: true, handled: false };
+  const runtime = require("../../services/dungeon/dungeonRuntime");
+  const instance = runtime.getInstance(record.dungeonSiteInstanceID);
+  if (!instance || Number(instance.solarSystemID) !== Number(record.systemID) ||
+      Number(instance.metadata?.siteID) !== Number(record.dungeonSiteID)) {
+    return { success: false, errorMsg: "REQUIRED_ACTOR_INSTANCE_MISMATCH" };
+  }
+  const retired = { ...(instance.spawnState?.requiredActorRetirements || {}) };
+  const existing = retired[record.dungeonSiteContentKey];
+  if (existing && Number(existing.entityID) !== entityID) return { success: false, errorMsg: "REQUIRED_ACTOR_KEY_REUSED" };
+  retired[record.dungeonSiteContentKey] = existing || { entityID, typeID: record.typeID,
+    contentKey: record.dungeonSiteContentKey, reason, retiredAtMs: Math.max(1, Number(nowMs) || Date.now()) };
+  try {
+    runtime.mergeSpawnState(instance.instanceID, { requiredActorRetirements: retired },
+      { durable: true, force: true, nowMs });
+    return { success: true, handled: true };
+  } catch (error) { return { success: false, errorMsg: error.message || "REQUIRED_ACTOR_RETIREMENT_PENDING" }; }
+}
+
 function dematerializeNativeController(controller, options = {}) {
   const entityID = toPositiveInt(
     controller && (controller.entityID || controller.itemID),
@@ -1794,11 +2235,12 @@ function dematerializeNativeController(controller, options = {}) {
   const runtimeController = getControllerByEntityID(entityID) || controller || null;
   if (options.persistState !== false) {
     const storedEntityRecord = nativeNpcStore.getNativeEntity(entityID);
+    const transient = !isRequiredActorRecord(storedEntityRecord) && storedEntityRecord?.transient !== false;
     if (storedEntityRecord && runtimeEntity) {
       nativeNpcStore.upsertNativeEntity(
         buildStoredEntityRecordFromRuntimeEntity(storedEntityRecord, runtimeEntity),
         {
-          transient: true,
+          transient,
         },
       );
     }
@@ -1811,12 +2253,16 @@ function dematerializeNativeController(controller, options = {}) {
           runtimeController,
         ),
         {
-          transient: true,
+          transient,
         },
       );
     }
   }
 
+  if (options.persistState !== false && runtimeEntity?.dungeonSiteContentRole === REQUIRED_ACTOR_ACTIVE) {
+    const persisted = persistRequiredDungeonActor(runtimeEntity);
+    if (!persisted.success) return persisted;
+  }
   if (runtimeEntity) {
     spaceRuntime.removeDynamicEntity(systemID, entityID, {
       allowSessionOwned: true,
@@ -1854,6 +2300,19 @@ function spawnNativeNpcEntityInContext(context, definition, options = {}) {
     };
   }
 
+  const scenery = options[EMPIRE_SENTRY_MATERIALIZATION];
+  if (scenery && (options.transient !== true ||
+      scenery.kind !== "sentryGun" ||
+      !EMPIRE_SENTRY_TYPE_IDS.has(Number(scenery.typeID)) ||
+      Number(definition?.profile?.shipTypeID) !== Number(scenery.typeID) ||
+      !Number.isSafeInteger(scenery.itemID) || scenery.itemID < 8_420_000_000_000_000 ||
+      scenery.itemID >= 8_440_000_000_000_000 ||
+      scene.staticEntitiesByID?.get(scenery.itemID) !== scenery ||
+      scene.dynamicEntities?.has(scenery.itemID) ||
+      nativeNpcStore.getNativeEntity(scenery.itemID))) {
+    return { success: false, errorMsg: "EMPIRE_SENTRY_IDENTITY_INVALID" };
+  }
+
   const hardwareValidation = validateNpcHardwareDefinition(definition);
   if (!hardwareValidation.success) {
     return hardwareValidation;
@@ -1876,9 +2335,9 @@ function spawnNativeNpcEntityInContext(context, definition, options = {}) {
       ? String(options.slimNameOverride || "")
       : identity.slimName;
   const nameIDOverride = toPositiveInt(options.nameIDOverride ?? options.nameID, 0);
-  const entityIDResult = nativeNpcStore.allocateEntityID({
-    transient: options.transient === true,
-  });
+  const entityIDResult = scenery
+    ? { success: true, data: scenery.itemID }
+    : nativeNpcStore.allocateEntityID({ transient: options.transient === true });
   if (!entityIDResult.success || !entityIDResult.data) {
     return entityIDResult;
   }
@@ -1909,7 +2368,9 @@ function spawnNativeNpcEntityInContext(context, definition, options = {}) {
     slimName,
     suppressSlimName,
     nameID: nameIDOverride || null,
-    ownerID: ownerIDOverride || identity.ownerID,
+    // fallbackOwnerID: the spawner's owner for a profile that names none (the ambient entity
+    // profiles); the client counts an NPC as a hostile target only with an NPC owner.
+    ownerID: ownerIDOverride || identity.ownerID || toPositiveInt(options.fallbackOwnerID, 0),
     corporationID: identity.corporationID,
     allianceID: identity.allianceID,
     warFactionID: identity.warFactionID,
@@ -1922,6 +2383,7 @@ function spawnNativeNpcEntityInContext(context, definition, options = {}) {
     hostileResponseThreshold: identity.hostileResponseThreshold,
     friendlyResponseThreshold: identity.friendlyResponseThreshold,
     nativeNpc: true,
+    ...(scenery ? { empireSentry: true } : {}),
     nativeNpcOccupied: true,
     transient: options.transient === true,
     selectionKind: String(options.selectionKind || "").trim() || null,
@@ -1965,7 +2427,14 @@ function spawnNativeNpcEntityInContext(context, definition, options = {}) {
     },
     ...scopeResolution.data.metadata,
   };
-  if (isDestructibleNpcSentry(entityRecord)) {
+  Object.assign(entityRecord, require("../../services/incursion/incursionFriendlyActors").npcPresentationOverrides(entityRecord),
+    require("../../services/dungeon/careerLessonRuntime").npcPresentationOverrides(entityRecord));
+  if (scenery) {
+    entityRecord.radius = scenery.radius;
+    entityRecord.bounty = 0;
+    entityRecord.lootTableID = null;
+  }
+  if (isDestructibleNpcSentry(entityRecord) || isEmpireSentry(entityRecord)) {
     entityRecord.nativeNpcSentry = true;
     applyStationaryNpcSentryState(entityRecord);
   }
@@ -2016,18 +2485,44 @@ function spawnNativeNpcEntityInContext(context, definition, options = {}) {
     },
   };
   if (options.materializeRuntime !== false) {
-    materializeResult = materializeNativeRuntimeEntity(
-      scene,
-      entityRecord,
-      controllerRecord,
-      definition,
-      options,
-    );
+    try {
+      if (scenery) {
+        const removal = scene.removeStaticEntity(scenery.itemID, { broadcast: false });
+        if (!removal.success) {
+          nativeNpcStore.removeNativeEntityCascade(entityRecord.entityID);
+          return removal;
+        }
+      }
+      materializeResult = materializeNativeRuntimeEntity(
+        scene,
+        entityRecord,
+        controllerRecord,
+        definition,
+        options,
+      );
+    } catch (error) {
+      if (!scenery) throw error;
+      materializeResult = { success: false,
+        errorMsg: error.message || "EMPIRE_SENTRY_MATERIALIZATION_FAILED" };
+    }
     if (!materializeResult.success || !materializeResult.data) {
       nativeNpcStore.removeNativeEntityCascade(entityRecord.entityID);
+      if (scenery) {
+        // A failed promotion must leave the original public scenery available.
+        unregisterController(scenery.itemID);
+        if (scene.dynamicEntities.has(scenery.itemID)) {
+          scene.removeDynamicEntity(scenery.itemID, { broadcast: false });
+        }
+        scene.addStaticEntity(scenery);
+      }
       return materializeResult;
     }
 
+    if (scenery && scenery.targetedBy instanceof Set) {
+      // Promotion keeps the same Ball: existing observers' incoming locks must
+      // keep the matching reverse index on its new native runtime host.
+      materializeResult.data.entity.targetedBy = scenery.targetedBy;
+    }
     if (
       options.skipInitialBehaviorTick !== true &&
       options.deferInitialBehaviorTick !== true
@@ -2054,6 +2549,68 @@ function spawnNativeNpcEntityInContext(context, definition, options = {}) {
       definition,
     },
   };
+}
+
+function materializeEmpireSentry(scene, scenery) {
+  if (!scene || !scenery) return { success: false, errorMsg: "EMPIRE_SENTRY_NOT_FOUND" };
+  const existing = scene.dynamicEntities?.get(scenery.itemID);
+  if (existing && isEmpireSentry(existing) && existing.nativeNpc === true) {
+    return { success: true, data: { entity: existing,
+      controller: getControllerByEntityID(existing.itemID), duplicate: true } };
+  }
+  if (scenery.empireSentry !== true || scenery.kind !== "sentryGun" ||
+      !EMPIRE_SENTRY_TYPE_IDS.has(Number(scenery.typeID)) ||
+      scene.staticEntitiesByID?.get(scenery.itemID) !== scenery) {
+    return { success: false, errorMsg: "EMPIRE_SENTRY_IDENTITY_INVALID" };
+  }
+  const type = resolveItemByTypeID(scenery.typeID);
+  const profile = type && resolveNpcProfile(type.name);
+  const definition = profile?.success && buildNpcDefinition(profile.data.profileID);
+  if (!definition || Number(definition.profile.shipTypeID) !== Number(scenery.typeID)) {
+    return { success: false, errorMsg: "EMPIRE_SENTRY_PROFILE_MISSING" };
+  }
+  definition.profile = { ...definition.profile,
+    corporationID: toPositiveInt(scenery.corporationID, 0),
+    factionID: toPositiveInt(scenery.factionID, 0),
+    entityType: ENTITY_TYPE.NPC, securityStatus: 0, bounty: 0,
+    hostileResponseThreshold: -11, friendlyResponseThreshold: -11,
+    preferredTargetMode: "none" };
+  definition.behaviorProfile = { ...definition.behaviorProfile,
+    ...STATIONARY_SENTRY_BEHAVIOR_OVERRIDES,
+    autoAggro: false, autoActivateWeapons: true, allowPodKill: false,
+    allowTargetSwitching: false, leashRangeMeters: 0 };
+  definition.lootTable = null;
+  const metadata = { empireSentry: true };
+  for (const key of ["empireSentryAnchorID", "empireSentryAnchorKind", "staticVisibilityScope",
+    "suppressSlimName", "suppressSlimCorporationID", "suppressSlimDunRotation",
+    "destinyBootstrapDelivery", "destinyBallMode", "destinyForceFree", "destinyBallFlags",
+    "dunRotation", "graphicID", "slimGraphicID"]) {
+    if (Object.hasOwn(scenery, key)) metadata[key] = scenery[key];
+  }
+  const runtimeState = require("../runtime/state");
+  const previousRuntimeEntityID = runtimeState.nextRuntimeEntityID;
+  try {
+    return spawnNativeNpcEntityInContext({ scene, systemID: scene.systemID,
+      anchorEntity: scenery, anchorKind: scenery.empireSentryAnchorKind || "sentry",
+      anchorLabel: scenery.itemName || "Empire Sentry" }, definition, {
+      [EMPIRE_SENTRY_MATERIALIZATION]: scenery,
+      transient: true, runtimeKind: "nativeCombat", broadcast: false,
+      skipInitialBehaviorTick: true, suppressInitialPublication: true,
+      ownerIDOverride: scenery.ownerID, suppressSlimName: scenery.suppressSlimName !== false,
+      preferredTargetID: 0, behaviorOverrides: definition.behaviorProfile,
+      anchorID: scenery.empireSentryAnchorID || 0,
+      anchorKind: scenery.empireSentryAnchorKind || "sentry",
+      runtimeEntityMetadata: metadata,
+      spawnStateOverride: { position: scenery.position, direction: scenery.direction,
+        velocity: { x: 0, y: 0, z: 0 }, mode: "STOP", maxVelocity: 0 },
+    });
+  } finally {
+    // Reusing a reserved scenery ID must not advance ordinary runtime allocation.
+    // Preserve any nested allocation should a future spawn hook actually make one.
+    if (runtimeState.nextRuntimeEntityID === scenery.itemID + 1) {
+      runtimeState.nextRuntimeEntityID = previousRuntimeEntityID;
+    }
+  }
 }
 
 function spawnNativeDefinitionsInContext(context, selectionResult, options = {}) {
@@ -2290,6 +2847,12 @@ function destroyNativeNpcController(controller, options = {}) {
         : null
     ) ||
     spaceRuntime.ensureScene(systemID);
+  const deathRecord = nativeNpcStore.getNativeEntity(entityID);
+  if (deathRecord?.nativeDeathWreck) {
+    // Suppressing new wrecks during beacon cleanup must still finish an
+    // already accepted death and publish its original earned wreck.
+    return require("./nativeNpcDeathWrecks").settle(scene, deathRecord);
+  }
   const runtimeEntity = scene ? scene.getEntityByID(entityID) : null;
   const destructionContext = captureNativeNpcDestructionContext(
     entityID,
@@ -2313,6 +2876,30 @@ function destroyNativeNpcController(controller, options = {}) {
       },
     };
   }
+  // A completed AIR escape belongs to the lesson journal before the transient
+  // NPC can disappear. Combat uses a synthetic destruction controller; explicit
+  // broadcast/admin destruction must not become a cinematic departure receipt.
+  if (runtimeEntity?.nativeNpc === true && runtimeEntity.airEncounterSlot === "escort:0" &&
+      runtimeEntity.airNpeOwnerCharacterID > 0 && getControllerByEntityID(entityID) === controller &&
+      controller.manualOrder?.type === "warpOff" && controller.warpOffOrdered === true && controller.warpOffSeenLeaving === true &&
+      String(runtimeEntity.mode || "").toUpperCase() !== "WARP" && !scene.hasQueuedMovementChange(runtimeEntity) &&
+      runtimeEntity.destroying !== true && runtimeEntity.destructionState !== "destroying" &&
+      options.broadcast !== true && options.suppressWreck !== true && options.destructionReason == null) {
+    try {
+      require("../../services/npe/airFleetBattle").recordCompletedDeparture(scene, runtimeEntity, controller);
+    } catch (error) {
+      // WarpOff's caller ignores a refused destroy result. The live registered
+      // controller is still enumerated on later ticks: use its normal scheduling
+      // owner to defer this retry, without a timer or an exception escaping tickScene.
+      require("./npcService").scheduleNpcController(entityID, scene.getCurrentSimTimeMs() +
+        Math.max(50, toFiniteNumber(controller.behaviorProfile?.thinkIntervalMs, 250)));
+      log.warn(`[AirFleetBattle] ${entityID} departure commit refused: ${error.message}`);
+      return { success: false, errorMsg: "AIR_DEPARTURE_COMMIT_FAILED", cause: error.message };
+    }
+  }
+  const retirement = retireRequiredDungeonActor(runtimeEntity || nativeNpcStore.getNativeEntity(entityID),
+    "destroyed", options.nowMs);
+  if (!retirement.success) return retirement;
   if (runtimeEntity) {
     runtimeEntity.destructionState = "destroying";
     runtimeEntity.destroying = true;
@@ -2374,7 +2961,8 @@ function destroyNativeNpcController(controller, options = {}) {
   }
 
   unregisterController(entityID);
-  nativeNpcStore.removeNativeEntityCascade(entityID);
+  const retired = nativeNpcStore.removeNativeEntityCascade(entityID);
+  if (!retired.success) return retired;
   let objectiveNotificationResult = normalizeNpcObjectiveNotificationResult(null, "not-tracked");
   if (destructionContext.abyssalAuthorityValid !== true) {
     objectiveNotificationResult = normalizeNpcObjectiveNotificationResult(
@@ -2432,7 +3020,18 @@ function destroyNativeNpcController(controller, options = {}) {
 }
 
 module.exports = {
+  commitIncursionLogisticsRepair,
+  materializeEmpireSentry,
+  bindNpcOperation,
+  commitIncursionDamageOutcome,
+  readNativeNpcAbilityState,
+  reserveNativeNpcAbilityCycle,
+  commitNativeNpcShieldRepair,
+  consumeNativeNpcBurst,
   isNativeAmbientRuleOptions,
+  setDungeonCompanionOrbit,
+  persistRequiredDungeonActor,
+  retireRequiredDungeonActor,
   materializeStoredNativeController,
   dematerializeNativeController,
   spawnNativeDefinitionsInContext,

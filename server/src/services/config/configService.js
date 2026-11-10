@@ -405,9 +405,22 @@ function buildAgentOwnerRow(ownerID) {
   ];
 }
 
+// An ID past 2^53 (a command node's, 9988400000367006) arrives as a BigInt,
+// which JSON.stringify refuses. A throw in a debug line answered the client
+// None, and cfg.evelocations.Prime raised on it.
+function formatRequestedIDs(ids) {
+  return JSON.stringify(ids, (key, value) => (typeof value === "bigint" ? value.toString() : value));
+}
+
 class ConfigService extends BaseService {
   constructor() {
     super("config");
+  }
+
+  // Builds the universe location index at boot, so the first GetMultiLocationsEx
+  // of a login does not stall every pilot for the half second it takes.
+  static warmStaticLocationRows() {
+    return getStaticLocationRowsById().size;
   }
 
   /**
@@ -420,7 +433,7 @@ class ConfigService extends BaseService {
     const rawArg = args && args.length > 0 ? args[0] : [];
     const requestedIds = extractList(rawArg);
     log.debug(
-      `[ConfigService] GetMultiOwnersEx: ${JSON.stringify(requestedIds)}`,
+      `[ConfigService] GetMultiOwnersEx: ${formatRequestedIDs(requestedIds)}`,
     );
 
     const characterResult = database.read("characters", "/")
@@ -528,7 +541,7 @@ class ConfigService extends BaseService {
     const rawArg = args && args.length > 0 ? args[0] : [];
     const requestedIds = extractList(rawArg);
     log.debug(
-      `[ConfigService] GetMultiLocationsEx: ${JSON.stringify(requestedIds)}`,
+      `[ConfigService] GetMultiLocationsEx: ${formatRequestedIDs(requestedIds)}`,
     );
 
     const characterResult = database.read("characters", "/")
@@ -814,7 +827,7 @@ class ConfigService extends BaseService {
     const rawArg = args && args.length > 0 ? args[0] : [];
     const allianceIDs = extractList(rawArg);
     log.debug(
-      `[ConfigService] GetMultiAllianceShortNamesEx: ${JSON.stringify(allianceIDs)}`,
+      `[ConfigService] GetMultiAllianceShortNamesEx: ${formatRequestedIDs(allianceIDs)}`,
     );
 
     const rows = allianceIDs
@@ -838,7 +851,7 @@ class ConfigService extends BaseService {
     const rawArg = args && args.length > 0 ? args[0] : [];
     const requestedIds = extractList(rawArg);
     log.debug(
-      `[ConfigService] GetMultiCorpTickerNamesEx: ${JSON.stringify(requestedIds)}`,
+      `[ConfigService] GetMultiCorpTickerNamesEx: ${formatRequestedIDs(requestedIds)}`,
     );
 
     const rows = [];

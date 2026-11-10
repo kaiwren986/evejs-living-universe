@@ -35,6 +35,7 @@ const {
   isAnsiblexStructure,
   getActiveJumpBridgeDestination,
   getJumpBridgeDestinationSolarSystemID,
+  isJumpBridgeServiceAvailable,
 } = require("../../services/structure/structureJumpBridgeLinks");
 const path = require("path");
 const {
@@ -93,6 +94,8 @@ const structureState = require(path.join(
   "../services/structure/structureState",
 ));
 const {
+  STRUCTURE_SERVICE_ID,
+  STRUCTURE_SERVICE_STATE,
   STRUCTURE_STATE,
 } = require(path.join(
   runtimeEntryDirname,
@@ -431,10 +434,80 @@ function listJumpBridgeLinkCandidates(structure) {
   );
 }
 
+// A FLEX structure's graphic animates on the slim's activationState, which the
+// client copies into the ActivationState controller variable
+// (clientControllerRegistry.py DefaultSetup), on load and on every slim change.
+// The Ansiblex's Structure_Gate controller plays Inactive (0), Active_Unlinked
+// (1) or Active_Linked (2); the Tenebrex's Generic_ActivationState_TwoState_01a
+// plays Inactive (0) or Active (1). Without the field the client sets 0, so an
+// online, linked gate stays dark. Other structures send none.
+const FLEX_ACTIVATION_SERVICE_ID_BY_TYPE_ID = Object.freeze({
+  35840: STRUCTURE_SERVICE_ID.CYNO_BEACON,
+  35841: STRUCTURE_SERVICE_ID.JUMP_BRIDGE,
+  37534: STRUCTURE_SERVICE_ID.CYNO_JAMMER,
+});
+
+function resolveFlexActivationState(structure, jumpBridgeCandidates, jumpDestination) {
+  const serviceID = FLEX_ACTIVATION_SERVICE_ID_BY_TYPE_ID[toInt(structure && structure.typeID, 0)];
+  if (!serviceID) {
+    return null;
+  }
+  if (isAnsiblexStructure(structure)) {
+    if (jumpDestination) {
+      return 2;
+    }
+    return isJumpBridgeServiceAvailable(structure, jumpBridgeCandidates) ? 1 : 0;
+  }
+  return toInt(structure.serviceStates && structure.serviceStates[serviceID], 0) ===
+    STRUCTURE_SERVICE_STATE.ONLINE
+    ? 1
+    : 0;
+}
+
+// An Upwell structure's slim lists its fitted modules as (itemID, typeID,
+// flagID), the way a ship's does: every low, medium and high slot module, and
+// of the service modules only the Standup Moon Drill. TQ golden logs (every
+// categoryID 65 slimItem in LOGS, e.g. CONCORD\0.5 Sec Space.lsw: Athanor
+// modules=[(1055752106020, 45009, 164)]) never list another service module,
+// a rig or a charge. The client fits hardpoints from this list, and the moon
+// extraction effect fires from the drill found here (MultiEffect.py
+// EvePhasePlayer.GetTurretSet looks the module up in ball.modules).
+const STRUCTURE_SLIM_SERVICE_MODULE_TYPE_IDS = new Set([45009]);
+const CHARGE_CATEGORY_ID = 8;
+
+function buildStructureSlimModuleTuples(structureID) {
+  const numericStructureID = toInt(structureID, 0);
+  if (numericStructureID <= 0) {
+    return [];
+  }
+  const isSlotFlag = (flagID) => (
+    SLOT_FAMILY_FLAGS.low.includes(flagID) ||
+    SLOT_FAMILY_FLAGS.med.includes(flagID) ||
+    SLOT_FAMILY_FLAGS.high.includes(flagID)
+  );
+  return listFittedItemsForLocation(numericStructureID)
+    .filter((item) => {
+      const flagID = toInt(item && item.flagID, 0);
+      if (isSlotFlag(flagID)) {
+        return toInt(item.categoryID, 0) !== CHARGE_CATEGORY_ID;
+      }
+      return SLOT_FAMILY_FLAGS.service.includes(flagID) &&
+        STRUCTURE_SLIM_SERVICE_MODULE_TYPE_IDS.has(toInt(item.typeID, 0));
+    })
+    .map((item) => [
+      toInt(item.itemID, 0),
+      toInt(item.typeID, 0),
+      toInt(item.flagID, 0),
+    ]);
+}
+
 function buildStaticStructureEntity(structure) {
   const typeRecord = structureState.getStructureTypeByID(structure && structure.typeID);
-  const jumpDestination = isAnsiblexStructure(structure)
-    ? getActiveJumpBridgeDestination(structure, listJumpBridgeLinkCandidates(structure))
+  const jumpBridgeCandidates = isAnsiblexStructure(structure)
+    ? listJumpBridgeLinkCandidates(structure)
+    : null;
+  const jumpDestination = jumpBridgeCandidates
+    ? getActiveJumpBridgeDestination(structure, jumpBridgeCandidates)
     : null;
   const effectiveHitpoints = resolveStructureEffectiveHitpoints(structure);
   const entosisCapture =
@@ -520,6 +593,8 @@ function buildStaticStructureEntity(structure) {
       toInt(structure.state, 0) === STRUCTURE_STATE.ANCHOR_VULNERABLE,
     stateStartedAt: structure.stateStartedAt || null,
     stateEndsAt: structure.stateEndsAt || null,
+    deployStartedAt: structure.deployStartedAt || null,
+    deployEndsAt: structure.deployEndsAt || null,
     timerPausedAt: structure.timerPausedAt || null,
     upkeepState: structure.upkeepState,
     deedState: structure.hasQuantumCore === true ? 1 : 0,
@@ -528,10 +603,11 @@ function buildStaticStructureEntity(structure) {
     targetSolarsystemID: jumpDestination ? jumpDestination.solarSystemID : null,
     destinationID: jumpDestination ? jumpDestination.structureID : null,
     destinationSolarSystemID: jumpDestination ? jumpDestination.solarSystemID : null,
+    activationState: resolveFlexActivationState(structure, jumpBridgeCandidates, jumpDestination),
     unanchoring: structure.unanchoring || null,
     repairing: structureState.resolveStructureRepairingValue(structure),
     docked: structureState.countCharactersDockedInStructure(structure.structureID),
-    modules: [],
+    modules: buildStructureSlimModuleTuples(structure.structureID),
     // The moon a refinery or Metenox is bound to, and the Metenox's last
     // harvest (the hour its fuel cycle last ran). destiny sends them as the
     // drill slim fields.
@@ -576,6 +652,8 @@ function buildStaticStructureEntity(structure) {
     ),
     conditionState: normalizeShipConditionState(structure.conditionState),
     passiveDerivedState: passiveResourceState,
+    // Combat and locking read the live signature, independently of geometry.
+    signatureRadius: toFiniteNumber(passiveResourceState.signatureRadius, 0),
     tetheringRange: toFiniteNumber(structure.tetheringRange, 0),
     tetherRepairEffectMode:
       structure &&
@@ -660,9 +738,11 @@ function buildStaticPlanetOrbitalEntity(orbital) {
     level: Math.max(0, toInt(orbital && orbital.level, 0)),
     orbitalState: toInt(orbital && orbital.state, planetOrbitalState.ORBITAL_STATE.ANCHORED),
     ...(typeID === 81080 ? {
-      skyhook_state:
+      ...require("../../services/planet/planetOrbitalReinforcement").getSkyhookPresentation(
+        orbital,
         [planetOrbitalState.ORBITAL_STATE.IDLE, planetOrbitalState.ORBITAL_STATE.OPERATING]
-          .includes(Number(orbital && orbital.state)) && !orbital.destroyedAtMs ? 210 : 0,
+          .includes(Number(orbital && orbital.state)) && !orbital.destroyedAtMs,
+      ),
       component_activate: [
         [planetOrbitalState.ORBITAL_STATE.IDLE, planetOrbitalState.ORBITAL_STATE.OPERATING]
           .includes(Number(orbital && orbital.state)) && !orbital.destroyedAtMs,

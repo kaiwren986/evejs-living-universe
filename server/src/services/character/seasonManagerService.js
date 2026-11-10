@@ -25,6 +25,12 @@ const gallenteCombat = require("../seasons/gallenteCombatCatalog");
 const homefront = require("../seasons/gallenteHomefrontCatalog");
 const gallenteFw = require("../seasons/gallenteFwCatalog");
 const gallenteExploration = require("../seasons/gallenteExplorationCatalog");
+const warpath = require("../seasons/warpathMissionRuntime");
+const warpathPayloads = require("../seasons/warpathMissionPayloads");
+
+function warpathModel(session) {
+  return campaignTrail.isEnabled() ? null : warpath.getModel(session);
+}
 
 function activeTrail(session) {
   if (!getCharacterID(session)) return false;
@@ -131,6 +137,8 @@ class SeasonManagerService extends BaseService {
 
   Handle_get_season_data_for_character(args, session) {
     log.debug("[SeasonManager] get_season_data_for_character called");
+    const model = warpathModel(session);
+    if (model) return warpathPayloads.buildSeason(model.state);
     if (activeTrail(session)) {
       trailPayloads.primeLocalization(session);
       const candidate = campaignTrail.getCandidate(trailState(session));
@@ -142,6 +150,7 @@ class SeasonManagerService extends BaseService {
 
   Handle_select_season(args, session) {
     recordAuditEvent("select_season", args, session);
+    if (warpathModel(session)) return false;
     if (!activeTrail(session)) return null;
     const runtime = require("../seasons/campaignTrailRuntime");
     const state = runtime.selectCandidate(session, args && args[0]);
@@ -158,6 +167,11 @@ class SeasonManagerService extends BaseService {
 
   Handle_get_character_progress_by_character_id(args, session) {
     recordAuditEvent("get_character_progress_by_character_id", args, session);
+    const model = warpathModel(session);
+    if (model) {
+      warpath.observeProgress(session, model.state);
+      return warpathPayloads.buildProgress(model.state, model.characterID);
+    }
     if (activeTrail(session)) {
       trailPayloads.primeLocalization(session);
       const state = trailState(session);
@@ -171,6 +185,9 @@ class SeasonManagerService extends BaseService {
 
   Handle_get_challenge(args, session) {
     recordAuditEvent("get_challenge", args, session);
+    const model = warpathModel(session);
+    if (model) return warpath.challengeID(model.state) === Number(args?.[0])
+      ? warpathPayloads.buildChallenge(model.state, model.characterID) : null;
     if (activeTrail(session)) {
       const step = campaignTrail.STEPS.find((entry) => entry.challengeID === Number(args && args[0]));
       const state = trailState(session);
@@ -199,13 +216,16 @@ class SeasonManagerService extends BaseService {
     return null;
   }
 
-  Handle_get_max_active_challenges() {
+  Handle_get_max_active_challenges(args, session) {
+    if (warpathModel(session)) return 1;
     if (campaignTrail.isEnabled()) return 8;
     return DEFAULT_MAX_ACTIVE_CHALLENGES;
   }
 
   Handle_challenge_is_dormant(args, session) {
     recordAuditEvent("challenge_is_dormant", args, session);
+    const model = warpathModel(session);
+    if (model) return warpath.challengeID(model.state) !== Number(args?.[0]);
     if (activeTrail(session)) {
       const state = trailState(session);
       const current = campaignTrail.getActiveStep(state);
@@ -226,7 +246,9 @@ class SeasonManagerService extends BaseService {
     return null;
   }
 
-  Handle_get_season_end_time() {
+  Handle_get_season_end_time(args, session) {
+    const model = warpathModel(session);
+    if (model) return trailPayloads.filetime(model.state.endsAtMs);
     if (campaignTrail.isEnabled() || campaignTrail.canClaim()) return trailPayloads.filetime(campaignTrail.END_TIME);
     return buildFiletimeLong(currentFileTime());
   }
@@ -238,12 +260,18 @@ class SeasonManagerService extends BaseService {
 
   Handle_fill_up_and_return_challenges_for_character(args, session) {
     recordAuditEvent("fill_up_and_return_challenges_for_character", args, session);
+    const model = warpathModel(session);
+    if (model) {
+      warpath.observeProgress(session, model.state);
+      return warpathPayloads.buildChallenges(model.state, model.characterID);
+    }
     if (activeTrail(session)) return trailPayloads.activeChallenges(trailState(session), getCharacterID(session));
     return buildEmptyChallengeDict();
   }
 
   Handle_claim_challenge_rewards(args, session) {
     recordAuditEvent("claim_challenge_rewards", args, session);
+    if (warpath.ownsChallengeID(args?.[0])) return warpath.claim(session, args[0]);
     // Only a persisted server-verified arrival can be claimed.
     if (activeTrail(session)) return require("../seasons/campaignTrailRuntime")
       .claimChallenge(session, args && args[0]);
@@ -253,6 +281,7 @@ class SeasonManagerService extends BaseService {
 
   Handle_claim_goal_reward(args, session) {
     recordAuditEvent("claim_goal_reward", args, session);
+    if (warpathModel(session)) return false;
     if (activeTrail(session)) {
       if (!args || args[0] === undefined || args[0] === null) return false;
       return require("../seasons/campaignTrailRuntime").claimGoalReward(session, args[0]);
@@ -262,6 +291,7 @@ class SeasonManagerService extends BaseService {
 
   Handle_process_client_event(args, session, kwargs) {
     recordAuditEvent("process_client_event", args, session, kwargs);
+    if (warpathModel(session)) return null;
     if (activeTrail(session)) return null;
     const progress =
       kwargs && Object.prototype.hasOwnProperty.call(kwargs, "amount")

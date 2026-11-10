@@ -36,10 +36,15 @@ const {
   syncSovereigntyStructureRuntime,
 } = require(path.join(__dirname, "./sovSpaceInterop"));
 
+// Client static data 3396210 (fsd spacecomponentsbytype): type 32458
+// entosisSovereigntyHub captureTimeSeconds 595, defensiveRegenRate 0.2; type
+// 34832 entosisCommandNode captureTimeSeconds 235, defensiveRegenRate 0.04.
+// The client's entosis timer (entosis/ui/entosisController.py) divides by the
+// same captureTimeSeconds, so the server must use these values.
 const OWNED_HUB_CAPTURE_TIME_SECONDS = 595;
-const COMMAND_NODE_CAPTURE_TIME_SECONDS = 240;
+const COMMAND_NODE_CAPTURE_TIME_SECONDS = 235;
 const DEFENDER_REGEN_RATE = 0.2;
-const COMMAND_NODE_DEFENDER_REGEN_RATE = 0.4;
+const COMMAND_NODE_DEFENDER_REGEN_RATE = 0.04;
 const INITIAL_CAMPAIGN_DEFENDER_SCORE = 0.6;
 const NODE_SCORE_DELTA = 0.07;
 const INITIAL_COMMAND_NODE_COUNT = 4;
@@ -1283,11 +1288,27 @@ function reconcileActiveCampaign(target, campaign, nowMs) {
   return success({ repairedNodeCount: campaign.nodeIDs.length });
 }
 
+// A node's ID is its Hub's ID times 1000 plus a sequence. A player-launched Hub
+// has an inventory itemID (9988400000367), which makes that past 2^53: unsafe
+// as a JS number (odd values round), refused by safe-integer checks, and the
+// node never became a ball, so nobody could warp to it. Such a Hub uses its ID
+// modulo 10^12 instead, which keeps nodes under 10^15; the loop still skips any
+// ID already taken.
+const COMMAND_NODE_ID_HUB_MODULUS = 1_000_000_000_000;
+
+function getCommandNodeIDBase(targetID) {
+  const hubID = Number(targetID);
+  return Number.isSafeInteger(hubID * 1000 + 999_999)
+    ? hubID * 1000
+    : (hubID % COMMAND_NODE_ID_HUB_MODULUS) * 1000;
+}
+
 function allocateNodeID(campaign) {
   let sequence = Math.max(1, normalizeInteger(campaign.nextNodeSequence, 1));
   let nodeID;
+  const base = getCommandNodeIDBase(campaign.targetID);
   do {
-    nodeID = Number(campaign.targetID) * 1000 + sequence;
+    nodeID = base + sequence;
     sequence += 1;
   } while (
     findSovereigntyStructureByID(nodeID) ||
@@ -1898,10 +1919,8 @@ function buildNodeLiveState(node, campaign, runtime) {
     return { scoringTeamID: null, scoringRate: 0, isBlocked: true };
   }
   if (teams.length === 0) {
-    // Command nodes defensively regenerate while idle. CCP's published .40
-    // component attribute is the best available primary-source value; a TQ
-    // golden is still needed to confirm its exact normalized slim-rate mapping
-    // after the later 240-second base-time change.
+    // Command nodes defensively regenerate while idle at the component's
+    // defensiveRegenRate (0.04 in client static data 3396210).
     const controllingTeamID = Number(
       node && node.nodeState && node.nodeState.controllingTeamID ||
         campaign.defenderAllianceID,
@@ -2205,6 +2224,15 @@ function finishCampaign(target, campaign, result, nowMs) {
         "SOVEREIGNTY_CAMPAIGN_DESTROYED_NOTIFICATION_MARK_FAILED",
       );
     }
+    // Lost sovereignty (41 alliance, 42 corporation). Keyed by the campaign
+    // epoch, so a replayed outcome reuses the same notifications.
+    campaignNotifications.notifySovClaimLost({
+      allianceID: campaign.defenderAllianceID,
+      corporationID: target.defenderCorporationID,
+      solarSystemID: target.solarSystemID,
+      eventKey: campaign.campaignEpoch,
+      created: unixMsToFiletimeString(nowMs),
+    });
   }
   return campaign;
 }
@@ -2513,6 +2541,7 @@ module.exports = {
   clearOwnedHubVulnerabilityState,
   forceCommandNodeCapture,
   _testing: {
+    getCommandNodeIDBase,
     spawnExtraCommandNodes,
     captureCommandNodeForTeam: forceCommandNodeCapture,
     setCampaignRandomSource,

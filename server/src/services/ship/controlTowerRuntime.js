@@ -558,7 +558,14 @@ function getControlTowerFuelRequirements(item) {
   }
   const typeRecord = resolveItemByTypeID(item.typeID);
   const raceID = toInt(item.raceID, toInt(typeRecord && typeRecord.raceID, 0));
-  const fuelBlockTypeID = toInt(CONTROL_TOWER_FUEL_BLOCK_BY_RACE_ID[raceID], 0);
+  const nativeResources = require("../starbase/controlTowerResourceAuthority.json")
+    .resourcesByTypeID[String(item.typeID)];
+  if (!nativeResources) return null;
+  const fuel = nativeResources.find(row => row.purpose === 1 && !row.factionID);
+  // Some unpublished/native test towers have no normal fuel definition.
+  // Do not invent a race/size-based payment for those unsupported towers.
+  if (!fuel) return null;
+  const fuelBlockTypeID = fuel.resourceTypeID;
   const towerSize = Math.min(
     3,
     Math.max(
@@ -586,14 +593,11 @@ function getControlTowerFuelRequirements(item) {
   // faction, not the constellation/region. Never replace an explicit owner
   // such as CONCORD with the surrounding empire to manufacture a charter.
   const factionID = toInt(system && system.factionID, 0);
-  const charterRequired = Number.isFinite(security) &&
-    security >= CONTROL_TOWER_CHARTER_SECURITY_THRESHOLD;
-  const charterTypeID =
-    // controlTowerResources in the target SDE uses 0.45, which covers the
-    // rounded 0.5 systems presented by the client without misclassifying 0.4.
-    charterRequired
-      ? toInt(CONTROL_TOWER_CHARTER_BY_FACTION_ID[factionID], 0)
-      : 0;
+  const eligibleCharters = nativeResources.filter(row => row.purpose === 1 &&
+    row.factionID && Number.isFinite(security) && security >= row.minSecurityLevel);
+  const charterRequired = eligibleCharters.length > 0;
+  const charter = eligibleCharters.find(row => row.factionID === factionID);
+  const charterTypeID = charter ? charter.resourceTypeID : 0;
 
   return {
     raceID,
@@ -602,11 +606,11 @@ function getControlTowerFuelRequirements(item) {
     security: Number.isFinite(security) ? security : null,
     factionID,
     fuelBlockTypeID,
-    fuelBlockQuantity: 10 * (2 ** (towerSize - 1)),
+    fuelBlockQuantity: fuel.quantity,
     charterRequired,
     charterAvailable: !charterRequired || charterTypeID > 0,
     charterTypeID,
-    charterQuantity: charterTypeID > 0 ? 1 : 0,
+    charterQuantity: charter ? charter.quantity : 0,
     fuelPeriodMs: Math.max(
       0,
       toInt(

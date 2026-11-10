@@ -1,0 +1,4046 @@
+{
+  "schemaVersion": 1,
+  "appliesToAgentLevels": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "contextsByAgentID": {
+    "3008451": {
+      "agentID": 3008451,
+      "agentTypeID": 2,
+      "missionKind": "encounter",
+      "factionID": 500001,
+      "corporationID": 1000002,
+      "solarSystemID": 30002776,
+      "regionID": 10000033,
+      "spaceFactionID": 500001,
+      "captureID": "bf7c2c14381b53f50c9fe87677048bee4aad35c3c68b9b893c2c671433b8de40",
+      "families": [
+        "after the seven \"replacement\"",
+        "alluring emanations",
+        "athran exigency",
+        "avenge a fallen comrade",
+        "break their will",
+        "cargo delivery",
+        "carrying aimeds",
+        "corporate records",
+        "denial of reconnaissance",
+        "drone detritus",
+        "eliminate a pirate nuisance",
+        "eliminate the pirate campers",
+        "escaped spy",
+        "fair play - to the rescue",
+        "for the birds",
+        "furrier fiasco",
+        "gone berserk",
+        "interstellar railroad",
+        "lights out",
+        "onslaught",
+        "pirate aggression",
+        "pirate intrusion",
+        "rogue drone harassment",
+        "seek and destroy",
+        "smuggler interception",
+        "soft drink wars",
+        "the blockade",
+        "the disgruntled employee",
+        "the drone infestation",
+        "the guristas spies",
+        "the hidden stash",
+        "the roving rogue drones",
+        "the score",
+        "unauthorized military presence",
+        "undue attention - poking around",
+        "what's in a name - change of address",
+        "worlds collide"
+      ]
+    },
+    "3008494": {
+      "agentID": 3008494,
+      "agentTypeID": 2,
+      "missionKind": "encounter",
+      "factionID": 500001,
+      "corporationID": 1000002,
+      "solarSystemID": 30005001,
+      "regionID": 10000064,
+      "spaceFactionID": 500004,
+      "captureID": "9f0ada9eed27e02316917ab5eb0d0d32b20b0e9d5970de0881ede402a9ff5137",
+      "families": [
+        "after the seven \"replacement\"",
+        "alluring emanations",
+        "athran exigency",
+        "avenge a fallen comrade",
+        "break their will",
+        "cargo delivery",
+        "carrying aimeds",
+        "corporate records",
+        "denial of reconnaissance",
+        "drone detritus",
+        "eliminate a pirate nuisance",
+        "escaped spy",
+        "fair play - to the rescue",
+        "for the birds",
+        "furrier fiasco",
+        "gone berserk",
+        "interstellar railroad",
+        "lights out",
+        "onslaught",
+        "pirate aggression",
+        "pirate intrusion",
+        "rogue drone harassment",
+        "seek and destroy",
+        "smuggler interception",
+        "soft drink wars",
+        "the blockade",
+        "the disgruntled employee",
+        "the drone infestation",
+        "the hidden stash",
+        "the roving rogue drones",
+        "the score",
+        "the serpentis spies",
+        "unauthorized military presence",
+        "undue attention - poking around",
+        "what's in a name - change of address",
+        "worlds collide"
+      ]
+    },
+    "3009905": {
+      "agentID": 3009905,
+      "agentTypeID": 2,
+      "missionKind": "encounter",
+      "factionID": 500004,
+      "corporationID": 1000120,
+      "solarSystemID": 30002660,
+      "regionID": 10000032,
+      "spaceFactionID": 500004,
+      "captureID": "76cde4012ac50056b45d443dcc6e67c776bc8e93a218c894dd70b22d76ea52b0",
+      "families": [
+        "after the seven \"replacement\"",
+        "alluring emanations",
+        "avenge a fallen comrade",
+        "break their will",
+        "cargo delivery",
+        "closing the gate",
+        "eliminate a pirate nuisance",
+        "eliminate the pirate campers",
+        "encounter at station 464",
+        "escaped terrorist",
+        "fair play - to the rescue",
+        "for the honor of rouvenor",
+        "freedom and commerce",
+        "furrier fiasco",
+        "gone berserk",
+        "in the shadow of war",
+        "lost records",
+        "mysterious sightings",
+        "onslaught",
+        "patriotic measures",
+        "pirate aggression",
+        "pirate intrusion",
+        "rogue drone harassment",
+        "seek and destroy",
+        "smuggler interception",
+        "soft drink wars",
+        "the blockade",
+        "the disgruntled employee",
+        "the drone infestation",
+        "the hidden stash",
+        "the mordus headhunters",
+        "the roving rogue drones",
+        "the score",
+        "the serpentis spies",
+        "unauthorized military presence",
+        "violent expulsion",
+        "worlds collide"
+      ]
+    },
+    "3009912": {
+      "agentID": 3009912,
+      "agentTypeID": 2,
+      "missionKind": "encounter",
+      "factionID": 500004,
+      "corporationID": 1000121,
+      "solarSystemID": 30002660,
+      "regionID": 10000032,
+      "spaceFactionID": 500004,
+      "captureID": "cc64bf0cf8c13a3db6a3f7a9d4e6405dceda5b07b453f0c334c7c41e6657cd34",
+      "families": [
+        "after the seven \"replacement\"",
+        "alluring emanations",
+        "avenge a fallen comrade",
+        "break their will",
+        "cargo delivery",
+        "carrying aimeds",
+        "closing the gate",
+        "eliminate a pirate nuisance",
+        "eliminate the pirate campers",
+        "encounter at station 464",
+        "escaped terrorist",
+        "fair play - to the rescue",
+        "for the honor of rouvenor",
+        "freedom and commerce",
+        "furrier fiasco",
+        "gone berserk",
+        "in the shadow of war",
+        "lost records",
+        "mysterious sightings",
+        "onslaught",
+        "patriotic measures",
+        "pirate aggression",
+        "pirate intrusion",
+        "rogue drone harassment",
+        "seek and destroy",
+        "smuggler interception",
+        "soft drink wars",
+        "the blockade",
+        "the disgruntled employee",
+        "the drone infestation",
+        "the hidden stash",
+        "the mordus headhunters",
+        "the roving rogue drones",
+        "the score",
+        "the serpentis spies",
+        "unauthorized military presence",
+        "violent expulsion",
+        "worlds collide"
+      ]
+    },
+    "3012077": {
+      "agentID": 3012077,
+      "agentTypeID": 2,
+      "missionKind": "encounter",
+      "factionID": 500001,
+      "corporationID": 1000035,
+      "solarSystemID": 30000143,
+      "regionID": 10000002,
+      "spaceFactionID": 500001,
+      "captureID": "c02886e9048fa7015b664e34021d8163e35c937d00ce7dfe994154644b6cb386",
+      "families": [
+        "after the seven \"replacement\"",
+        "alluring emanations",
+        "athran exigency",
+        "avenge a fallen comrade",
+        "break their will",
+        "cargo delivery",
+        "carrying aimeds",
+        "corporate records",
+        "denial of reconnaissance",
+        "drone detritus",
+        "eliminate a pirate nuisance",
+        "eliminate the pirate campers",
+        "escaped spy",
+        "fair play - to the rescue",
+        "for the birds",
+        "furrier fiasco",
+        "gone berserk",
+        "interstellar railroad",
+        "lights out",
+        "onslaught",
+        "pirate aggression",
+        "pirate intrusion",
+        "rogue drone harassment",
+        "seek and destroy",
+        "smuggler interception",
+        "soft drink wars",
+        "the blockade",
+        "the disgruntled employee",
+        "the drone infestation",
+        "the guristas spies",
+        "the hidden stash",
+        "the roving rogue drones",
+        "the score",
+        "unauthorized military presence",
+        "undue attention - poking around",
+        "violent expulsion",
+        "what's in a name - change of address",
+        "worlds collide"
+      ]
+    },
+    "3014146": {
+      "agentID": 3014146,
+      "agentTypeID": 2,
+      "missionKind": "encounter",
+      "factionID": 500002,
+      "corporationID": 1000054,
+      "solarSystemID": 30001394,
+      "regionID": 10000016,
+      "spaceFactionID": 500001,
+      "captureID": "fe372ddf906e1070e3470e8f0d71ca93e7722d0876f7d44a4b62cf9fdb03b35d",
+      "families": [
+        "after the seven \"replacement\"",
+        "alluring emanations",
+        "an ancient roster",
+        "avenge a fallen comrade",
+        "break their will",
+        "cargo delivery",
+        "carrying aimeds",
+        "eliminate a pirate nuisance",
+        "eliminate the pirate campers",
+        "escaped killer",
+        "fair play - to the rescue",
+        "for justice",
+        "furrier fiasco",
+        "gone berserk",
+        "mysterious sightings",
+        "onslaught",
+        "pirate aggression",
+        "pirate intrusion",
+        "rogue drone harassment",
+        "secret pickup",
+        "seek and destroy",
+        "smuggler interception",
+        "soft drink wars",
+        "the blockade",
+        "the disgruntled employee",
+        "the drone infestation",
+        "the guristas spies",
+        "the hidden stash",
+        "the mordus headhunters",
+        "the roving rogue drones",
+        "the score",
+        "unauthorized military presence",
+        "violent expulsion",
+        "worlds collide"
+      ]
+    },
+    "3014667": {
+      "agentID": 3014667,
+      "agentTypeID": 2,
+      "missionKind": "encounter",
+      "factionID": 500003,
+      "corporationID": 1000075,
+      "solarSystemID": 30001394,
+      "regionID": 10000016,
+      "spaceFactionID": 500001,
+      "captureID": "02d0254bc5ebfada498e647ca8d2e2bc8309fe4dc5a04f5666571173adf0fd1e",
+      "families": [
+        "after the seven \"replacement\"",
+        "alluring emanations",
+        "athran exigency",
+        "avenge a fallen comrade",
+        "break their will",
+        "cargo delivery",
+        "carrying aimeds",
+        "eliminate a pirate nuisance",
+        "eliminate the pirate campers",
+        "escaped dissident",
+        "fair play - to the rescue",
+        "flame of peace - heresy",
+        "forbidden cloning",
+        "furrier fiasco",
+        "get the relic",
+        "gone berserk",
+        "interstellar railroad",
+        "letters from dalamaid",
+        "onslaught",
+        "pirate aggression",
+        "pirate intrusion",
+        "rogue drone harassment",
+        "seek and destroy",
+        "smuggler interception",
+        "soft drink wars",
+        "the blockade",
+        "the disgruntled employee",
+        "the drone infestation",
+        "the guristas spies",
+        "the hidden stash",
+        "the roving rogue drones",
+        "the score",
+        "threat from afar",
+        "unauthorized military presence",
+        "what's in a name - change of address",
+        "worlds collide"
+      ]
+    },
+    "3015641": {
+      "agentID": 3015641,
+      "agentTypeID": 2,
+      "missionKind": "encounter",
+      "factionID": 500004,
+      "corporationID": 1000121,
+      "solarSystemID": 30002660,
+      "regionID": 10000032,
+      "spaceFactionID": 500004,
+      "captureID": "8ee7968c8945c2c309843a8b422bee496cb0ddef13ee315dabaf26f471565121",
+      "families": [
+        "after the seven \"replacement\"",
+        "alluring emanations",
+        "avenge a fallen comrade",
+        "break their will",
+        "cargo delivery",
+        "carrying aimeds",
+        "closing the gate",
+        "eliminate a pirate nuisance",
+        "eliminate the pirate campers",
+        "encounter at station 464",
+        "escaped terrorist",
+        "fair play - to the rescue",
+        "for the honor of rouvenor",
+        "freedom and commerce",
+        "furrier fiasco",
+        "gone berserk",
+        "in the shadow of war",
+        "lost records",
+        "mysterious sightings",
+        "onslaught",
+        "patriotic measures",
+        "pirate aggression",
+        "pirate intrusion",
+        "rogue drone harassment",
+        "seek and destroy",
+        "smuggler interception",
+        "soft drink wars",
+        "the blockade",
+        "the disgruntled employee",
+        "the drone infestation",
+        "the hidden stash",
+        "the mordus headhunters",
+        "the roving rogue drones",
+        "the score",
+        "the serpentis spies",
+        "unauthorized military presence",
+        "violent expulsion",
+        "worlds collide"
+      ]
+    },
+    "3020239": {
+      "agentID": 3020239,
+      "agentTypeID": 2,
+      "missionKind": "encounter",
+      "factionID": 500016,
+      "corporationID": 1000130,
+      "solarSystemID": 30100038,
+      "regionID": 10001004,
+      "spaceFactionID": 500006,
+      "captureID": "53f0c44778e1faaabc5401e469a41debc31a2137f12ab560e30449bd325c7433",
+      "families": [
+        "after the seven \"replacement\"",
+        "alluring emanations",
+        "cargo delivery",
+        "carrying aimeds",
+        "eliminate the pirate campers",
+        "fair play - to the rescue",
+        "furrier fiasco",
+        "gone berserk",
+        "mysterious sightings",
+        "onslaught",
+        "pirate aggression",
+        "pirate intrusion",
+        "rogue drone harassment",
+        "smuggler interception",
+        "the disgruntled employee",
+        "the drone infestation",
+        "the mordus headhunters",
+        "the roving rogue drones",
+        "the score",
+        "unauthorized military presence"
+      ]
+    }
+  },
+  "families": {
+    "the guristas spies": {
+      "mode": "fixed_observed_enemy",
+      "bySpaceFactionID": {
+        "500001": [
+          500010
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500010
+        ],
+        "500002": [
+          500010
+        ],
+        "500003": [
+          500010
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500010
+      ],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 875,
+          "dungeonID": 213,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 875,
+          "dungeonID": 213,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 875,
+          "dungeonID": 213,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 875,
+          "dungeonID": 213,
+          "enemyFactionID": 500010
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "eliminate a pirate nuisance": {
+      "mode": "space",
+      "bySpaceFactionID": {
+        "500001": [
+          500010
+        ],
+        "500004": [
+          500020
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500010,
+          500020
+        ],
+        "500002": [
+          500010
+        ],
+        "500003": [
+          500010
+        ],
+        "500004": [
+          500020
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500010,
+        500020
+      ],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 916,
+          "dungeonID": 233,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 919,
+          "dungeonID": 236,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 919,
+          "dungeonID": 236,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 919,
+          "dungeonID": 236,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 916,
+          "dungeonID": 233,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 916,
+          "dungeonID": 233,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 916,
+          "dungeonID": 233,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 919,
+          "dungeonID": 236,
+          "enemyFactionID": 500020
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "the disgruntled employee": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 921,
+          "dungeonID": 229,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 921,
+          "dungeonID": 229,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2211,
+          "dungeonID": 229,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2211,
+          "dungeonID": 229,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 921,
+          "dungeonID": 229,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 2211,
+          "dungeonID": 229,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 921,
+          "dungeonID": 229,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2211,
+          "dungeonID": 229,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 2211,
+          "dungeonID": 229,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "seek and destroy": {
+      "mode": "space",
+      "bySpaceFactionID": {
+        "500001": [
+          500010
+        ],
+        "500004": [
+          500020
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500010,
+          500020
+        ],
+        "500002": [
+          500010
+        ],
+        "500003": [
+          500010
+        ],
+        "500004": [
+          500020
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500010,
+        500020
+      ],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 922,
+          "dungeonID": 185,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 934,
+          "dungeonID": 201,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 934,
+          "dungeonID": 201,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 934,
+          "dungeonID": 201,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 922,
+          "dungeonID": 185,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 922,
+          "dungeonID": 185,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 922,
+          "dungeonID": 185,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 934,
+          "dungeonID": 201,
+          "enemyFactionID": 500020
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "avenge a fallen comrade": {
+      "mode": "agent_faction",
+      "bySpaceFactionID": {
+        "500001": [
+          500010,
+          500011,
+          500012
+        ],
+        "500004": [
+          500010,
+          500020
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500010
+        ],
+        "500002": [
+          500011
+        ],
+        "500003": [
+          500012
+        ],
+        "500004": [
+          500020
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500010,
+        500011,
+        500012,
+        500020
+      ],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 1182,
+          "dungeonID": 283,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 1182,
+          "dungeonID": 283,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 1178,
+          "dungeonID": 279,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 1178,
+          "dungeonID": 279,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 1182,
+          "dungeonID": 283,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 1181,
+          "dungeonID": 282,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 1183,
+          "dungeonID": 284,
+          "enemyFactionID": 500012
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 1178,
+          "dungeonID": 279,
+          "enemyFactionID": 500020
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "the drone infestation": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 1214,
+          "dungeonID": 305,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 1214,
+          "dungeonID": 305,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 1214,
+          "dungeonID": 305,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 1214,
+          "dungeonID": 305,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 1214,
+          "dungeonID": 305,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 1214,
+          "dungeonID": 305,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 1214,
+          "dungeonID": 305,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 1214,
+          "dungeonID": 305,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 1214,
+          "dungeonID": 305,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "rogue drone harassment": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 1218,
+          "dungeonID": 310,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 1218,
+          "dungeonID": 310,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 1570,
+          "dungeonID": 310,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 1570,
+          "dungeonID": 310,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 1218,
+          "dungeonID": 310,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 1570,
+          "dungeonID": 310,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 1218,
+          "dungeonID": 310,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 1570,
+          "dungeonID": 310,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 1570,
+          "dungeonID": 310,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "the hidden stash": {
+      "mode": "space",
+      "bySpaceFactionID": {
+        "500001": [
+          500010
+        ],
+        "500004": [
+          500020
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500010,
+          500020
+        ],
+        "500002": [
+          500010
+        ],
+        "500003": [
+          500010
+        ],
+        "500004": [
+          500020
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500010,
+        500020
+      ],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 1228,
+          "dungeonID": 316,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 1227,
+          "dungeonID": 315,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 1227,
+          "dungeonID": 315,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 1227,
+          "dungeonID": 315,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 1228,
+          "dungeonID": 316,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 1228,
+          "dungeonID": 316,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 1228,
+          "dungeonID": 316,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 1227,
+          "dungeonID": 315,
+          "enemyFactionID": 500020
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "the roving rogue drones": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 1237,
+          "dungeonID": 309,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 1237,
+          "dungeonID": 309,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 1237,
+          "dungeonID": 309,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 1237,
+          "dungeonID": 309,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 1237,
+          "dungeonID": 309,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 1237,
+          "dungeonID": 309,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 1237,
+          "dungeonID": 309,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 1237,
+          "dungeonID": 309,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 1237,
+          "dungeonID": 309,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "pirate aggression": {
+      "mode": "agent_faction",
+      "bySpaceFactionID": {
+        "500001": [
+          500011,
+          500019
+        ],
+        "500004": [
+          500011,
+          500019
+        ],
+        "500006": [
+          500011
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500019
+        ],
+        "500002": [
+          500011
+        ],
+        "500003": [
+          500019
+        ],
+        "500004": [
+          500011
+        ],
+        "500016": [
+          500011
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500011,
+        500019
+      ],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2235,
+          "dungeonID": 769,
+          "enemyFactionID": 500019
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 2235,
+          "dungeonID": 769,
+          "enemyFactionID": 500019
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2236,
+          "dungeonID": 770,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2236,
+          "dungeonID": 770,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2235,
+          "dungeonID": 769,
+          "enemyFactionID": 500019
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 2236,
+          "dungeonID": 770,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 2235,
+          "dungeonID": 769,
+          "enemyFactionID": 500019
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2236,
+          "dungeonID": 770,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 2236,
+          "dungeonID": 770,
+          "enemyFactionID": 500011
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "eliminate the pirate campers": {
+      "mode": "agent_faction",
+      "bySpaceFactionID": {
+        "500001": [
+          500019,
+          500020
+        ],
+        "500004": [
+          500020
+        ],
+        "500006": [
+          500020
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500019
+        ],
+        "500002": [
+          500020
+        ],
+        "500003": [
+          500019
+        ],
+        "500004": [
+          500020
+        ],
+        "500016": [
+          500020
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500019,
+        500020
+      ],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2248,
+          "dungeonID": 778,
+          "enemyFactionID": 500019
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2249,
+          "dungeonID": 779,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2249,
+          "dungeonID": 779,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2248,
+          "dungeonID": 778,
+          "enemyFactionID": 500019
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 2249,
+          "dungeonID": 779,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 2248,
+          "dungeonID": 778,
+          "enemyFactionID": 500019
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2249,
+          "dungeonID": 779,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 2249,
+          "dungeonID": 779,
+          "enemyFactionID": 500020
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "worlds collide": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2337,
+          "dungeonID": 840,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 2340,
+          "dungeonID": 842,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2340,
+          "dungeonID": 842,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2340,
+          "dungeonID": 842,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2337,
+          "dungeonID": 840,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 2337,
+          "dungeonID": 840,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 2337,
+          "dungeonID": 840,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2340,
+          "dungeonID": 842,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "pirate intrusion": {
+      "mode": "agent_faction",
+      "bySpaceFactionID": {
+        "500001": [
+          500011,
+          500012
+        ],
+        "500004": [
+          500011,
+          500012
+        ],
+        "500006": [
+          500011
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500012
+        ],
+        "500002": [
+          500011
+        ],
+        "500003": [
+          500012
+        ],
+        "500004": [
+          500011
+        ],
+        "500016": [
+          500011
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500011,
+        500012
+      ],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2356,
+          "dungeonID": 995,
+          "enemyFactionID": 500012
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 2356,
+          "dungeonID": 995,
+          "enemyFactionID": 500012
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2357,
+          "dungeonID": 994,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2357,
+          "dungeonID": 994,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2356,
+          "dungeonID": 995,
+          "enemyFactionID": 500012
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 2357,
+          "dungeonID": 994,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 2356,
+          "dungeonID": 995,
+          "enemyFactionID": 500012
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2357,
+          "dungeonID": 994,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 2357,
+          "dungeonID": 994,
+          "enemyFactionID": 500011
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "unauthorized military presence": {
+      "mode": "fixed_observed_enemy",
+      "bySpaceFactionID": {
+        "500001": [
+          500010
+        ],
+        "500004": [
+          500010
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500010
+        ],
+        "500003": [
+          500010
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500010
+      ],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2389,
+          "dungeonID": 943,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 2389,
+          "dungeonID": 943,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2390,
+          "dungeonID": 944,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2390,
+          "dungeonID": 944,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2389,
+          "dungeonID": 943,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 2390,
+          "dungeonID": 944,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 2389,
+          "dungeonID": 943,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2390,
+          "dungeonID": 944,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 2390,
+          "dungeonID": 944,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "the score": {
+      "mode": "agent_faction",
+      "bySpaceFactionID": {
+        "500001": [
+          500010,
+          500011
+        ],
+        "500004": [
+          500010,
+          500011
+        ],
+        "500006": [
+          500011
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500010
+        ],
+        "500002": [
+          500011
+        ],
+        "500003": [
+          500010
+        ],
+        "500004": [
+          500011
+        ],
+        "500016": [
+          500011
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500010,
+        500011
+      ],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2391,
+          "dungeonID": 921,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 2391,
+          "dungeonID": 921,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2407,
+          "dungeonID": 918,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2407,
+          "dungeonID": 918,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2391,
+          "dungeonID": 921,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 2407,
+          "dungeonID": 918,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 2391,
+          "dungeonID": 921,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2407,
+          "dungeonID": 918,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 2407,
+          "dungeonID": 918,
+          "enemyFactionID": 500011
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "gone berserk": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2504,
+          "dungeonID": 875,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 2504,
+          "dungeonID": 875,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2504,
+          "dungeonID": 875,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2504,
+          "dungeonID": 875,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2504,
+          "dungeonID": 875,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 2504,
+          "dungeonID": 875,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 2504,
+          "dungeonID": 875,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2504,
+          "dungeonID": 875,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 2504,
+          "dungeonID": 875,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "smuggler interception": {
+      "mode": "agent_faction",
+      "bySpaceFactionID": {
+        "500001": [
+          500012,
+          500020
+        ],
+        "500004": [
+          500012,
+          500020
+        ],
+        "500006": [
+          500020
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500012
+        ],
+        "500002": [
+          500020
+        ],
+        "500003": [
+          500012
+        ],
+        "500004": [
+          500020
+        ],
+        "500016": [
+          500020
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500012,
+        500020
+      ],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2545,
+          "dungeonID": 968,
+          "enemyFactionID": 500012
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 2545,
+          "dungeonID": 968,
+          "enemyFactionID": 500012
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2541,
+          "dungeonID": 969,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2541,
+          "dungeonID": 969,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2545,
+          "dungeonID": 968,
+          "enemyFactionID": 500012
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 2541,
+          "dungeonID": 969,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 2545,
+          "dungeonID": 968,
+          "enemyFactionID": 500012
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2541,
+          "dungeonID": 969,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 2541,
+          "dungeonID": 969,
+          "enemyFactionID": 500020
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "the blockade": {
+      "mode": "space",
+      "bySpaceFactionID": {
+        "500001": [
+          500010
+        ],
+        "500004": [
+          500020
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500010,
+          500020
+        ],
+        "500002": [
+          500010
+        ],
+        "500003": [
+          500010
+        ],
+        "500004": [
+          500020
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500010,
+        500020
+      ],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2925,
+          "dungeonID": 1940,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 2927,
+          "dungeonID": 1942,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2927,
+          "dungeonID": 1942,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2927,
+          "dungeonID": 1942,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2925,
+          "dungeonID": 1940,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 2925,
+          "dungeonID": 1940,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 2925,
+          "dungeonID": 1940,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2927,
+          "dungeonID": 1942,
+          "enemyFactionID": 500020
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "cargo delivery": {
+      "mode": "agent_faction",
+      "bySpaceFactionID": {
+        "500001": [
+          500011,
+          500012
+        ],
+        "500004": [
+          500011,
+          500012
+        ],
+        "500006": [
+          500011
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500012
+        ],
+        "500002": [
+          500011
+        ],
+        "500003": [
+          500012
+        ],
+        "500004": [
+          500011
+        ],
+        "500016": [
+          500011
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500011,
+        500012
+      ],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2962,
+          "dungeonID": 1983,
+          "enemyFactionID": 500012
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 2962,
+          "dungeonID": 1983,
+          "enemyFactionID": 500012
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2959,
+          "dungeonID": 1982,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2959,
+          "dungeonID": 1982,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 2962,
+          "dungeonID": 1983,
+          "enemyFactionID": 500012
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 2959,
+          "dungeonID": 1982,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 2962,
+          "dungeonID": 1983,
+          "enemyFactionID": 500012
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2959,
+          "dungeonID": 1982,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 2959,
+          "dungeonID": 1982,
+          "enemyFactionID": 500011
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "break their will": {
+      "mode": "agent_faction",
+      "bySpaceFactionID": {
+        "500001": [
+          500010,
+          500011,
+          500012,
+          500019
+        ],
+        "500004": [
+          500010,
+          500020
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500010
+        ],
+        "500002": [
+          500011
+        ],
+        "500003": [
+          500012,
+          500019
+        ],
+        "500004": [
+          500020
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500010,
+        500011,
+        500012,
+        500019,
+        500020
+      ],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 3062,
+          "dungeonID": 2026,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 3062,
+          "dungeonID": 2026,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 3065,
+          "dungeonID": 2028,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 3065,
+          "dungeonID": 2028,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 3062,
+          "dungeonID": 2026,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 3064,
+          "dungeonID": 2025,
+          "enemyFactionID": 500011
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 3061,
+          "dungeonID": 2029,
+          "enemyFactionID": 500012
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 3063,
+          "dungeonID": 2027,
+          "enemyFactionID": 500019
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 3065,
+          "dungeonID": 2028,
+          "enemyFactionID": 500020
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "soft drink wars": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4661,
+          "dungeonID": 2493,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 4661,
+          "dungeonID": 2493,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4662,
+          "dungeonID": 2494,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4662,
+          "dungeonID": 2494,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4661,
+          "dungeonID": 2493,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 4663,
+          "dungeonID": 2496,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 4659,
+          "dungeonID": 2492,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4662,
+          "dungeonID": 2494,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "corporate records": {
+      "mode": "fixed_observed_enemy",
+      "bySpaceFactionID": {
+        "500001": [
+          500010
+        ],
+        "500004": [
+          500010
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500010
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500010
+      ],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4708,
+          "dungeonID": 2513,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 4708,
+          "dungeonID": 2513,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4708,
+          "dungeonID": 2513,
+          "enemyFactionID": 500010
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "for the birds": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4714,
+          "dungeonID": 2553,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 4714,
+          "dungeonID": 2553,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4714,
+          "dungeonID": 2553,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "undue attention - poking around": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4722,
+          "dungeonID": 2517,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 4722,
+          "dungeonID": 2517,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4722,
+          "dungeonID": 2517,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "drone detritus": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4728,
+          "dungeonID": 2523,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 4728,
+          "dungeonID": 2523,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4728,
+          "dungeonID": 2523,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "carrying aimeds": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4752,
+          "dungeonID": 2543,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 4752,
+          "dungeonID": 2543,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4752,
+          "dungeonID": 2543,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4752,
+          "dungeonID": 2543,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 4752,
+          "dungeonID": 2543,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 4752,
+          "dungeonID": 2543,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4752,
+          "dungeonID": 2543,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 4752,
+          "dungeonID": 2543,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "furrier fiasco": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4815,
+          "dungeonID": 2551,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 4815,
+          "dungeonID": 2551,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4815,
+          "dungeonID": 2551,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4815,
+          "dungeonID": 2551,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4815,
+          "dungeonID": 2551,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 4815,
+          "dungeonID": 2551,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 4815,
+          "dungeonID": 2551,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4815,
+          "dungeonID": 2551,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 4815,
+          "dungeonID": 2551,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "escaped spy": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4817,
+          "dungeonID": 2568,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 4817,
+          "dungeonID": 2568,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4817,
+          "dungeonID": 2568,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "lights out": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4885,
+          "dungeonID": 2628,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 4885,
+          "dungeonID": 2628,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4885,
+          "dungeonID": 2628,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "athran exigency": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 13464,
+          "dungeonID": 2695,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 13464,
+          "dungeonID": 2695,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 13464,
+          "dungeonID": 2695,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 13464,
+          "dungeonID": 2695,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "interstellar railroad": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 13490,
+          "dungeonID": 2734,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 13490,
+          "dungeonID": 2734,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 13490,
+          "dungeonID": 2734,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 13490,
+          "dungeonID": 2734,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "fair play - to the rescue": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 13496,
+          "dungeonID": 2719,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 13496,
+          "dungeonID": 2719,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13496,
+          "dungeonID": 2719,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13496,
+          "dungeonID": 2719,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 13496,
+          "dungeonID": 2719,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 13496,
+          "dungeonID": 2719,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 13496,
+          "dungeonID": 2719,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13496,
+          "dungeonID": 2719,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 13496,
+          "dungeonID": 2719,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "what's in a name - change of address": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 13523,
+          "dungeonID": 2782,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 13523,
+          "dungeonID": 2782,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 13523,
+          "dungeonID": 2782,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 13523,
+          "dungeonID": 2782,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "alluring emanations": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 13735,
+          "dungeonID": 3030,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 13735,
+          "dungeonID": 3030,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13735,
+          "dungeonID": 3030,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13735,
+          "dungeonID": 3030,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 13735,
+          "dungeonID": 3030,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 13735,
+          "dungeonID": 3030,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 13735,
+          "dungeonID": 3030,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13735,
+          "dungeonID": 3030,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 13735,
+          "dungeonID": 3030,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "denial of reconnaissance": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 13777,
+          "dungeonID": 3087,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 13777,
+          "dungeonID": 3087,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 13777,
+          "dungeonID": 3087,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "onslaught": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 15168,
+          "dungeonID": 4257,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 15168,
+          "dungeonID": 4257,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 15170,
+          "dungeonID": 4257,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 15170,
+          "dungeonID": 4257,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 15168,
+          "dungeonID": 4257,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 15170,
+          "dungeonID": 4257,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 15168,
+          "dungeonID": 4257,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 15170,
+          "dungeonID": 4257,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 15170,
+          "dungeonID": 4257,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "after the seven \"replacement\"": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3008451,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 15169,
+          "dungeonID": 4250,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 15169,
+          "dungeonID": 4250,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 15169,
+          "dungeonID": 4250,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 15169,
+          "dungeonID": 4250,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 15169,
+          "dungeonID": 4250,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 15169,
+          "dungeonID": 4250,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 15169,
+          "dungeonID": 4250,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 15169,
+          "dungeonID": 4250,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 15169,
+          "dungeonID": 4250,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "the serpentis spies": {
+      "mode": "fixed_observed_enemy",
+      "bySpaceFactionID": {
+        "500004": [
+          500020
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500020
+        ],
+        "500004": [
+          500020
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500020
+      ],
+      "observations": [
+        {
+          "agentID": 3008494,
+          "factionID": 500001,
+          "spaceFactionID": 500004,
+          "missionID": 895,
+          "dungeonID": 221,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 895,
+          "dungeonID": 221,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 895,
+          "dungeonID": 221,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 895,
+          "dungeonID": 221,
+          "enemyFactionID": 500020
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "the mordus headhunters": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2550,
+          "dungeonID": 987,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2550,
+          "dungeonID": 987,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 2550,
+          "dungeonID": 987,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 2550,
+          "dungeonID": 987,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 2550,
+          "dungeonID": 987,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "in the shadow of war": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4703,
+          "dungeonID": 2505,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4703,
+          "dungeonID": 2505,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4703,
+          "dungeonID": 2505,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "lost records": {
+      "mode": "fixed_observed_enemy",
+      "bySpaceFactionID": {
+        "500004": [
+          500020
+        ]
+      },
+      "byAgentFactionID": {
+        "500004": [
+          500020
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500020
+      ],
+      "observations": [
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4709,
+          "dungeonID": 2514,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4709,
+          "dungeonID": 2514,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4709,
+          "dungeonID": 2514,
+          "enemyFactionID": 500020
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "for the honor of rouvenor": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4715,
+          "dungeonID": 2554,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4715,
+          "dungeonID": 2554,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4715,
+          "dungeonID": 2554,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "violent expulsion": {
+      "mode": "agent_faction",
+      "bySpaceFactionID": {
+        "500001": [
+          500012,
+          500020
+        ],
+        "500004": [
+          500010
+        ]
+      },
+      "byAgentFactionID": {
+        "500001": [
+          500020
+        ],
+        "500002": [
+          500012
+        ],
+        "500004": [
+          500010
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500010,
+        500012,
+        500020
+      ],
+      "observations": [
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4750,
+          "dungeonID": 2548,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4750,
+          "dungeonID": 2548,
+          "enemyFactionID": 500010
+        },
+        {
+          "agentID": 3012077,
+          "factionID": 500001,
+          "spaceFactionID": 500001,
+          "missionID": 4749,
+          "dungeonID": 2547,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 4751,
+          "dungeonID": 2549,
+          "enemyFactionID": 500012
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4750,
+          "dungeonID": 2548,
+          "enemyFactionID": 500010
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "escaped terrorist": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4818,
+          "dungeonID": 2569,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4818,
+          "dungeonID": 2569,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4818,
+          "dungeonID": 2569,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "freedom and commerce": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4901,
+          "dungeonID": 2638,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4901,
+          "dungeonID": 2638,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 4901,
+          "dungeonID": 2638,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "mysterious sightings": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13486,
+          "dungeonID": 2718,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13486,
+          "dungeonID": 2718,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 13486,
+          "dungeonID": 2718,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13486,
+          "dungeonID": 2718,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3020239,
+          "factionID": 500016,
+          "spaceFactionID": 500006,
+          "missionID": 13486,
+          "dungeonID": 2718,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "patriotic measures": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13511,
+          "dungeonID": 2745,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13511,
+          "dungeonID": 2745,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13511,
+          "dungeonID": 2745,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "closing the gate": {
+      "mode": "fixed_observed_enemy",
+      "bySpaceFactionID": {
+        "500004": [
+          500020
+        ]
+      },
+      "byAgentFactionID": {
+        "500004": [
+          500020
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500020
+      ],
+      "observations": [
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13755,
+          "dungeonID": 3050,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13755,
+          "dungeonID": 3050,
+          "enemyFactionID": 500020
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13755,
+          "dungeonID": 3050,
+          "enemyFactionID": 500020
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "encounter at station 464": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3009905,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13780,
+          "dungeonID": 3090,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3009912,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13780,
+          "dungeonID": 3090,
+          "enemyFactionID": null
+        },
+        {
+          "agentID": 3015641,
+          "factionID": 500004,
+          "spaceFactionID": 500004,
+          "missionID": 13780,
+          "dungeonID": 3090,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "an ancient roster": {
+      "mode": "fixed_observed_enemy",
+      "bySpaceFactionID": {
+        "500001": [
+          500011
+        ]
+      },
+      "byAgentFactionID": {
+        "500002": [
+          500011
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500011
+      ],
+      "observations": [
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 4701,
+          "dungeonID": 2515,
+          "enemyFactionID": 500011
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "for justice": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 4716,
+          "dungeonID": 2555,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "escaped killer": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 4819,
+          "dungeonID": 2570,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "secret pickup": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3014146,
+          "factionID": 500002,
+          "spaceFactionID": 500001,
+          "missionID": 4908,
+          "dungeonID": 2634,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "threat from afar": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 2232,
+          "dungeonID": 768,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "flame of peace - heresy": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 4667,
+          "dungeonID": 2497,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "get the relic": {
+      "mode": "fixed_observed_enemy",
+      "bySpaceFactionID": {
+        "500001": [
+          500012
+        ]
+      },
+      "byAgentFactionID": {
+        "500003": [
+          500012
+        ]
+      },
+      "observedEnemyFactionIDs": [
+        500012
+      ],
+      "observations": [
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 4702,
+          "dungeonID": 2511,
+          "enemyFactionID": 500012
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "letters from dalamaid": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 4713,
+          "dungeonID": 2500,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "escaped dissident": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 4816,
+          "dungeonID": 2562,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    },
+    "forbidden cloning": {
+      "mode": "unknown_native_enemy",
+      "bySpaceFactionID": {},
+      "byAgentFactionID": {},
+      "observedEnemyFactionIDs": [],
+      "observations": [
+        {
+          "agentID": 3014667,
+          "factionID": 500003,
+          "spaceFactionID": 500001,
+          "missionID": 13814,
+          "dungeonID": 3096,
+          "enemyFactionID": null
+        }
+      ],
+      "validationTODO": "TODO: Infer per-family eligibility/variant behavior from finite L1 captures. Apply as a baseline for L1-5, not proven higher-level parity. Absence is not proof of exclusion; higher-level-only families remain available. Preserve native restrictions and exact-context TQ exceptions."
+    }
+  },
+  "modalPirateBySpaceFactionID": {
+    "500001": {
+      "enemyFactionID": 500010,
+      "frequencies": [
+        {
+          "enemy": 500010,
+          "count": 32
+        },
+        {
+          "enemy": 500012,
+          "count": 13
+        },
+        {
+          "enemy": 500011,
+          "count": 7
+        },
+        {
+          "enemy": 500019,
+          "count": 7
+        },
+        {
+          "enemy": 500020,
+          "count": 3
+        }
+      ]
+    },
+    "500004": {
+      "enemyFactionID": 500020,
+      "frequencies": [
+        {
+          "enemy": 500020,
+          "count": 38
+        },
+        {
+          "enemy": 500011,
+          "count": 12
+        },
+        {
+          "enemy": 500010,
+          "count": 8
+        },
+        {
+          "enemy": 500012,
+          "count": 3
+        },
+        {
+          "enemy": 500019,
+          "count": 1
+        }
+      ]
+    },
+    "500006": {
+      "enemyFactionID": 500011,
+      "frequencies": [
+        {
+          "enemy": 500011,
+          "count": 4
+        },
+        {
+          "enemy": 500020,
+          "count": 2
+        }
+      ]
+    }
+  },
+  "selectionRules": {
+    "immediateExactIDRepeat": "exclude_previous_ID_when_alternative_exists",
+    "sameTitleDifferentID": "allowed",
+    "weights": "uniform_per_admitted_ID"
+  },
+  "validationTODOs": [
+    "TODO: No adjacent identical IDs in captured L1 runs. Apply the same per-character/agent rule to L2-5 until captures establish exceptions or deeper history. Single-choice pools permit their only ID.",
+    "TODO: Cohort priority is same corporation/system, faction/system, system, corporation/region, faction/region, region, corporation/space, faction/space, space, faction, corporation. This is an evidence-based projection hierarchy, not a client eligibility table.",
+    "TODO: Finite observed families supply projected L1 pools and shared-family eligibility at L2-5. Do not discard higher-level-only families just because no L1 equivalent was captured. Mission weights remain unmeasured.",
+    "TODO: Prefer measured agent/location offers, then native restrictions and captured family patterns. New locations, Exordium-specific rules, security bands and higher-level variant differences still need captures."
+  ],
+  "inputs": [
+    {
+      "file": "securityMissionOfferObservations.json",
+      "sha256": "a73f668c1bc7608e89a9e45712f5b3bc7a0b95580ce12ce90103843654aee097"
+    },
+    {
+      "file": "systems.jsonl",
+      "sha256": "3984ea9a8e66d80ac1b087cd1a62f7d620f8d0d06dcf3ec2f84cd15c4ed4bc1d"
+    },
+    {
+      "file": "dungeons.json",
+      "sha256": "f90e474fd43708aadd6769c0aee4f42427d7c6ddb92449a0e64f9371d039bf21"
+    }
+  ]
+}

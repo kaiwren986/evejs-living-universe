@@ -1,6 +1,7 @@
 "use strict";
 
 const path = require("path");
+const { isDeepStrictEqual } = require("node:util");
 
 // Phase 0 / 0.C pilot: this domain reaches gameStore through an ownership-scoped
 // repository instead of the raw store. In strict mode a write to any table this
@@ -22,7 +23,6 @@ const {
   normalizeText,
 } = require(path.join(__dirname, "../_shared/serviceHelpers"));
 const {
-  NOTIFICATION_GROUP,
   NOTIFICATION_TYPE,
 } = require(path.join(__dirname, "./notificationConstants"));
 const { notificationDataYaml } = require(path.join(__dirname, "./notificationYaml"));
@@ -516,6 +516,34 @@ function sendNotificationDeletedEvent(characterID, notificationIDs, options = {}
   }
 }
 
+function persistDurableNotification(state, record) {
+  // Reused keys must write too: a previous rejected write can leave the
+  // cache containing a row which has never reached storage.
+  if (persistState(state)?.success !== true ||
+      repo.flushTableSync(NOTIFICATIONS_TABLE)?.success !== true) {
+    return { success: false, errorMsg: "NOTIFICATION_PERSISTENCE_PENDING" };
+  }
+  const persisted = require(path.join(__dirname, "../../gameStore")).readPersisted(
+    NOTIFICATIONS_TABLE, `/boxes/${record.receiverID}/byID/${record.notificationID}`,
+  );
+  return persisted?.success === true && isDeepStrictEqual(persisted.data, record)
+    ? null : { success: false, errorMsg: "NOTIFICATION_NOT_DURABLE" };
+}
+
+function publishDurableNotification(state, record, options) {
+  const failure = persistDurableNotification(state, record);
+  if (failure) return failure;
+  if (options.emitLive !== false && record.liveEmitted !== true) {
+    sendNotificationReceivedEvent(record, {
+      excludeSession: options.excludeSession || null,
+      extraSessions: options.extraSessions || [],
+    });
+    record.liveEmitted = true;
+    return persistDurableNotification(state, record);
+  }
+  return null;
+}
+
 function createNotification(characterID, options = {}) {
   const numericCharacterID = toPositiveInteger(characterID, 0);
   const typeID = toPositiveInteger(options.typeID, 0);
@@ -544,7 +572,10 @@ function createNotification(characterID, options = {}) {
       // the caller's flag alone: replaying a durable job re-runs its
       // emitLive:true call too, and a replay must stay silent rather than
       // deliver the same notice to the client twice.
-      if (options.emitLive === true && existing.liveEmitted !== true) {
+      if (options.requireDurable === true) {
+        const failure = publishDurableNotification(state, existing, options);
+        if (failure) return failure;
+      } else if (options.emitLive === true && existing.liveEmitted !== true) {
         sendNotificationReceivedEvent(existing, {
           excludeSession: options.excludeSession || null,
           extraSessions: options.extraSessions || [],
@@ -561,13 +592,13 @@ function createNotification(characterID, options = {}) {
     }
   }
   const notificationID = allocateNotificationID(state);
-  // Recorded with the row rather than after it, so the flag costs no extra
-  // write. It is server-side bookkeeping only; buildNotificationDTO does not
-  // carry it to the client.
+  // Durable callers first commit an undelivered row, then publish and record
+  // delivery. Other callers retain their existing single-write behavior.
+  // The flag is server-side bookkeeping and is absent from the client DTO.
   const willEmitLive = options.emitLive !== false;
   const record = ensureNotificationShape({
     notificationID,
-    liveEmitted: willEmitLive,
+    liveEmitted: options.requireDurable === true ? false : willEmitLive,
     typeID,
     senderID: Math.trunc(normalizeNumber(options.senderID, 0)),
     receiverID: numericCharacterID,
@@ -590,8 +621,10 @@ function createNotification(characterID, options = {}) {
   if (!writeResult || !writeResult.success) {
     return { success: false, errorMsg: "WRITE_ERROR" };
   }
-
-  if (willEmitLive) {
+  if (options.requireDurable === true) {
+    const failure = publishDurableNotification(state, record, options);
+    if (failure) return failure;
+  } else if (willEmitLive) {
     sendNotificationReceivedEvent(record, {
       excludeSession: options.excludeSession || null,
       extraSessions: options.extraSessions || [],

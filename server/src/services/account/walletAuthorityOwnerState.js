@@ -42,9 +42,11 @@ const CHARACTER_FIELDS = Object.freeze([
   "plexVaultTransactions",
   "walletOperationReceipts",
   "nodeGraphWalletReceipts",
+  "incursionWalletReceipts",
   "freelanceWalletReceipts",
   "contractWalletReceipts",
   "campaignWalletReceipts",
+  "discoveryWalletReceipts",
   "walletAuthorityReceipts",
 ]);
 

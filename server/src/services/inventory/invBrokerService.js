@@ -67,6 +67,10 @@ const {
   createInventoryMoveBatch,
 } = require(path.join(__dirname, "./itemStore"));
 const invBrokerItemCustody = require(path.join(__dirname, "./invBrokerItemCustody"));
+const { getRescueDestination, limitRescueCargoQuantity } = require("./missionRescueCargo");
+const fracturedLegacyCargo = require("./fracturedLegacyCargo");
+const incursionCargo = require("../incursion/incursionCargo");
+const incursionFactoryCustody = require("./incursionFactoryCustody");
 const deliveryItemCustody = require(path.join(__dirname, "./deliveryItemCustody"));
 const itemCustody = require(path.join(__dirname, "./itemCustody"));
 const hackingContainerState = require(path.join(
@@ -108,6 +112,8 @@ const {
   getRequiredSlotFamily,
   getSlotFlagsForFamily,
   getShipHardpointCounts,
+  getFittedEffectSlotsUsed,
+  getItemEffectSlotUsage,
   typeHasEffectName,
   isStrategicCruiserType,
 } = require(path.join(__dirname, "../fitting/liveFittingState"));
@@ -155,6 +161,7 @@ const {
   isDroneItemRecord,
   isFighterItemRecord,
   isFighterTubeFlag,
+  listHostFighterOccupancy,
 } = require(path.join(__dirname, "../fighter/fighterInventory"));
 const runtime = require(path.join(__dirname, "../../space/runtime"));
 const {
@@ -166,6 +173,7 @@ const starbaseInventoryRuntime = require("../starbase/starbaseInventoryRuntime")
 const starbaseProcessingInventory = require("../starbase/starbaseProcessingInventory");
 const worldData = require(path.join(__dirname, "../../space/worldData"));
 const nativeNpcStore = require(path.join(__dirname, "../../space/npc/nativeNpcStore"));
+const { isMaterializedMissionCargoContainer } = require("./materializedMissionCargoContainer");
 const nativeNpcWreckService = require(path.join(__dirname, "../../space/npc/nativeNpcWreckService"));
 const {
   canEntitiesInteractLocally,
@@ -1220,6 +1228,10 @@ class InvBrokerService extends BaseService {
       return false;
     }
 
+    // Native cargo hulls are containers by persisted materialization contract,
+    // even when their unchanged type belongs to a collidable-structure group.
+    if (isMaterializedMissionCargoContainer(item) || incursionFactoryCustody.isFactory(item)) return true;
+
     const metadata = getItemMetadata(item.typeID, item.itemName);
     // Type metadata is authoritative when it is present. Some old persisted
     // rows carry a stale categoryID (including categoryShip on type 23 cans),
@@ -1325,6 +1337,13 @@ class InvBrokerService extends BaseService {
   }
 
   _ensureItemMoveInvariant(sourceItemDescriptor, destination) {
+    const factorySource = findItemById(sourceItemDescriptor?.item?.locationID);
+    if (incursionFactoryCustody.isFactory(factorySource) && !require("../incursion/incursionFactory").canWithdraw(factorySource)) {
+      throwWrappedUserError("CustomNotify", { notify: "The MTAC factory is no longer active." });
+    }
+    if (incursionFactoryCustody.isFactory(findItemById(destination?.locationID))) {
+      throwWrappedUserError("CustomNotify", { notify: "The MTAC factory is withdrawal-only." });
+    }
     const processingDeposit = starbaseProcessingInventory.validateProcessingDeposit(sourceItemDescriptor?.item, destination);
     if (!processingDeposit.success) this._throwSpaceContainerScopeAccessError(processingDeposit.errorMsg);
     const towerDeposit = starbaseInventoryRuntime.validateTowerBayDeposit(sourceItemDescriptor?.item, destination);
@@ -2738,23 +2757,19 @@ class InvBrokerService extends BaseService {
     return requestedQuantity;
   }
 
-  _resolveAppliedMoveQuantity(item, destination, requestedQuantity = null) {
+  _resolveAppliedMoveQuantity(item, destination, requestedQuantity = null, session = null) {
     const resolvedQuantity = this._resolveMoveQuantity(
       item,
       destination,
       requestedQuantity,
     );
-    if (resolvedQuantity !== null && resolvedQuantity !== undefined) {
-      return Math.max(1, Number(resolvedQuantity) || 1);
-    }
-
-    if (!item) {
-      return 0;
-    }
-
-    return Number(item.singleton) === 1
-      ? 1
-      : Math.max(1, Number(item.stacksize ?? item.quantity ?? 1) || 1);
+    const appliedQuantity = resolvedQuantity !== null && resolvedQuantity !== undefined
+      ? Math.max(1, Number(resolvedQuantity) || 1)
+      : !item ? 0 : Number(item.singleton) === 1
+        ? 1 : Math.max(1, Number(item.stacksize ?? item.quantity ?? 1) || 1);
+    const rescueDestination = session && destination
+      ? getRescueDestination(session, findItemById(destination.locationID)) : null;
+    return limitRescueCargoQuantity(rescueDestination, item, appliedQuantity);
   }
 
   _getStackableQuantity(item) {
@@ -3139,10 +3154,15 @@ class InvBrokerService extends BaseService {
       );
     }
 
+    // Boarding a non-dockable FLEX from space keeps a remote too: the one the
+    // client opened on the structure from its ship to fuel it (a "container"
+    // bind). invCache keys it on the structure and the board leaves locationid
+    // alone, so clientDogmaLocation.LoadItemsInLocation lists the fitting
+    // through it.
     return Boolean(
       requestedFlag === null &&
       boundContext &&
-      boundContext.kind === "stationHangar" &&
+      (boundContext.kind === "stationHangar" || boundContext.kind === "container") &&
       this._isControlledStructureInventoryID(
         session,
         boundContext.inventoryID,
@@ -3788,6 +3808,10 @@ class InvBrokerService extends BaseService {
     );
     const containerRecord = this._getSpaceScopeInventoryRecord(numericContainerID);
     if (require("../sovereignty/skyhookRaidRuntime").isSealedRaidContainer(containerRecord)) return "CONTAINER_NOT_VISIBLE";
+    const analysisBeacon = require("../ship/mobileAnalysisBeaconRuntime");
+    const analysisBeaconState = analysisBeacon.getMobileAnalysisBeaconStateFromItem(containerRecord);
+    const analysisBeaconError = analysisBeacon.getBeaconCargoAccessError(session, containerRecord);
+    if (analysisBeaconError) return analysisBeaconError;
     const isPersistedSpaceItem = this._isPersistedSpaceInventoryRecord(containerRecord);
     const isStarbaseCorporateHangar =
       isStarbaseCorporateHangarArrayType(containerRecord);
@@ -3828,7 +3852,8 @@ class InvBrokerService extends BaseService {
       (
         this._isSpaceContainerLikeInventoryItem(containerRecord) ||
         this._isWreckInventoryItem(containerRecord) ||
-        this._isMobileTractorUnitInventoryItem(containerRecord)
+        this._isMobileTractorUnitInventoryItem(containerRecord) ||
+        analysisBeaconState
       )
     );
     const requiresExactScenePresence = Boolean(
@@ -3867,7 +3892,8 @@ class InvBrokerService extends BaseService {
     if (
       targetEntity.kind !== "container" &&
       targetEntity.kind !== "wreck" &&
-      !targetIsMobileTractorUnit
+      !targetIsMobileTractorUnit &&
+      !analysisBeaconState
     ) {
       return null;
     }
@@ -5350,12 +5376,13 @@ class InvBrokerService extends BaseService {
       destination,
       requestedQuantity,
     );
-    const moveQuantity =
+    const rescueDestination = getRescueDestination(session, findItemById(destination.locationID));
+    const moveQuantity = limitRescueCargoQuantity(rescueDestination, item,
       resolvedQuantity === null || resolvedQuantity === undefined
         ? availableQuantity
-        : Math.max(1, Number(resolvedQuantity) || 1);
+        : Math.max(1, Number(resolvedQuantity) || 1));
     const requiredVolume =
-      this._getItemMoveVolume(item, moveQuantity) +
+      (moveQuantity > 0 ? this._getItemMoveVolume(item, moveQuantity) : 0) +
       Math.max(0, Number(additionalRequiredVolume) || 0);
     if (requiredVolume <= 0) {
       return { success: true };
@@ -5722,10 +5749,8 @@ class InvBrokerService extends BaseService {
       if (!typeHasEffectName(item.typeID, hardpoint.effectName)) {
         continue;
       }
-      const used = currentFittedItems.filter((fittedItem) => (
-        fittedItem && typeHasEffectName(fittedItem.typeID, hardpoint.effectName)
-      )).length;
-      if (used >= hardpoint.count) {
+      const used = getFittedEffectSlotsUsed(currentFittedItems, hardpoint.effectName);
+      if (used + getItemEffectSlotUsage(item, hardpoint.effectName) > hardpoint.count) {
         return {
           success: false,
           errorMsg: hardpoint.errorMsg,
@@ -6635,7 +6660,10 @@ class InvBrokerService extends BaseService {
         change.previousData || {},
         {
           emitCfgLocation: true,
-          emitItemsChangedBatch: touchesStarbaseStorage,
+          // announceItemsChanged: the mover's own copy as TQ's OnItemsChanged, keeping the
+          // per-item side effects; the client recounts item goals only on its
+          // OnMultipleItemChange (career Industry part 5: "Retrieve" the crate into cargo).
+          emitItemsChangedBatch: touchesStarbaseStorage || options.announceItemsChanged === true,
         },
       );
     }
@@ -7485,6 +7513,25 @@ class InvBrokerService extends BaseService {
     if (deduped.length === 0) {
       return 0;
     }
+    // A skipped online-state change still decides how the client is told about the fit: the module's
+    // last state in this batch (a fit left offline for CPU, powergrid or missing skills is followed by
+    // its offline stamp). The move is emitted with that state, so the client does not show the module
+    // online and take the pilot's next click on it as "take offline".
+    const finalItemByID = new Map();
+    for (const change of normalized) {
+      const itemID = this._normalizeInventoryId(change.item.itemID, 0);
+      if (itemID > 0) finalItemByID.set(itemID, change.item);
+    }
+    for (let index = 0; index < deduped.length; index += 1) {
+      const itemID = this._normalizeInventoryId(deduped[index].item.itemID, 0);
+      const finalItem = finalItemByID.get(itemID);
+      if (finalItem && finalItem !== deduped[index].item && finalItem.moduleState) {
+        deduped[index] = {
+          ...deduped[index],
+          item: { ...deduped[index].item, moduleState: { ...finalItem.moduleState } },
+        };
+      }
+    }
     this._primeDroneBayDogmaForFittingChanges(session, deduped);
 
     let fittingShipID = 0;
@@ -7799,35 +7846,6 @@ class InvBrokerService extends BaseService {
     );
   }
 
-  _listFighterTubeItems(ownerID, locationID, excludedItemID = 0) {
-    const numericOwnerID =
-      ownerID === null || ownerID === undefined
-        ? null
-        : this._normalizeInventoryId(ownerID, 0);
-    const numericLocationID = this._normalizeInventoryId(locationID, 0);
-    const numericExcludedItemID = this._normalizeInventoryId(excludedItemID, 0);
-    const tubeItems = [];
-
-    for (const tubeFlagID of FIGHTER_TUBE_FLAGS) {
-      for (const tubeItem of listContainerItems(
-        numericOwnerID,
-        numericLocationID,
-        tubeFlagID,
-      )) {
-        if (
-          numericExcludedItemID > 0 &&
-          this._normalizeInventoryId(tubeItem && tubeItem.itemID, 0) ===
-            numericExcludedItemID
-        ) {
-          continue;
-        }
-        tubeItems.push(tubeItem);
-      }
-    }
-
-    return tubeItems;
-  }
-
   _validateShipBayMove(session, shipRecord, item, destination) {
     if (
       !shipRecord ||
@@ -7927,11 +7945,7 @@ class InvBrokerService extends BaseService {
         };
       }
 
-      const occupiedTubeItems = this._listFighterTubeItems(
-        this._getCharacterId(session),
-        shipRecord.itemID,
-        item.itemID,
-      );
+      const occupiedTubeItems = listHostFighterOccupancy(shipRecord.itemID, { excludeItemID: item.itemID });
       if (
         !canLoadFighterTypeIntoHostTube(
           shipRecord.typeID,
@@ -8059,11 +8073,7 @@ class InvBrokerService extends BaseService {
         };
       }
 
-      const occupiedTubeItems = this._listFighterTubeItems(
-        structureOwnerID,
-        structure.structureID,
-        item.itemID,
-      );
+      const occupiedTubeItems = listHostFighterOccupancy(structure.structureID, { excludeItemID: item.itemID });
       if (
         !canLoadFighterTypeIntoHostTube(
           structure.typeID,
@@ -8751,6 +8761,13 @@ class InvBrokerService extends BaseService {
       0,
     );
     const deny = (errorMsg, details = {}) => ({ errorMsg, ...details });
+    if (direction === "take" && isFighterItemRecord(start) &&
+        Number(start.flagID) === 0 && start.spaceState &&
+        Number(start.fighterState?.controllerID) > 0) {
+      return deny("FIGHTER_RECALL_REQUIRED", {
+        notify: "Recall the fighter squadron to its launch tube before moving it through inventory.",
+      });
+    }
     let locationID = this._normalizeInventoryId(start && start.locationID, 0);
     let flagID = this._normalizeInventoryId(start && start.flagID, 0);
     let heldItemID = this._normalizeInventoryId(start && start.itemID, 0);
@@ -8889,6 +8906,11 @@ class InvBrokerService extends BaseService {
           : null;
       }
       if (container && this._isPersistedSpaceInventoryRecord(container)) {
+        if (require("../ship/mobileAnalysisBeaconRuntime").getMobileAnalysisBeaconStateFromItem(container)) {
+          if (direction === "put") return deny("CONTAINER_READ_ONLY");
+          const errorMsg = this._getSpaceContainerScopeAccessError(session, container.itemID);
+          return errorMsg ? deny(errorMsg) : null;
+        }
         // Containers, wrecks and deployables in space keep their own range,
         // visibility, room and loot-right checks.
         return null;
@@ -9021,6 +9043,10 @@ class InvBrokerService extends BaseService {
 
     destination = this._normalizeAuditContainerMoveDestination(destination);
     const sourceItem = sourceItemDescriptor.item;
+    const rescueSource = getRescueDestination(session, findItemById(sourceItem.locationID));
+    if (rescueSource && sourceItem.typeID === rescueSource.policy.typeID) {
+      return { success: false, errorMsg: "RESCUE_CARGO_DELIVERED" };
+    }
     if (isDirectSpaceUnanchoredStructureHullInventoryRecord(sourceItem)) {
       return {
         success: false,
@@ -9066,6 +9092,18 @@ class InvBrokerService extends BaseService {
         ) > 0,
     };
 
+    const rescueDestination = getRescueDestination(session, findItemById(destination.locationID));
+    const isRescueCargo = rescueDestination && sourceItem.typeID === rescueDestination.policy.typeID;
+    // A native wreck transfers to the pilot, so it cannot hand over: loot to the ship first.
+    if (isRescueCargo && sourceItemDescriptor.sourceKind === "nativeWreck") {
+      throwWrappedUserError("CustomNotify", { notify: "Loot this cargo into your ship first, then hand it over." });
+    }
+    if (isRescueCargo) {
+      // Final read after existing access/custody checks; zero must never reach
+      // an item owner where it could be interpreted as a whole-stack request.
+      quantity = limitRescueCargoQuantity(rescueDestination, sourceItem, quantity);
+      if (quantity <= 0) return { success: false, errorMsg: "RESCUE_CARGO_QUANTITY_SATISFIED" };
+    }
     if (sourceItemDescriptor.sourceKind === "nativeWreck") {
       return this._recordAuditContainerAutoLockMove(
         session,
@@ -9136,6 +9174,9 @@ class InvBrokerService extends BaseService {
       );
     }
 
+    if (isRescueCargo) {
+      return moveInventoryItem(rescueDestination.item.ownerID, destination.locationID, 0);
+    }
     const starbaseCorporateHangarDestination = findItemById(
       this._normalizeInventoryId(destination.locationID, 0),
     );
@@ -9317,6 +9358,10 @@ class InvBrokerService extends BaseService {
     ) {
       return true;
     }
+    // Neutral factory stock is acquired by the pilot when looted, including
+    // directly into a nearby jetcan. Earlier destination branches retain the
+    // ownership rules for corporation bays and other pilots' ship holds.
+    if (sourceItem.typeID === 3501 && incursionFactoryCustody.isFactory(findItemById(sourceItem.locationID))) return true;
     if (starbaseInventoryRuntime.isBatteryAmmoInventory(findItemById(sourceItem.locationID)) ||
         starbaseProcessingInventory.isProcessingStorage(findItemById(sourceItem.locationID)) ||
         starbaseInventoryRuntime.isTowerBay(findItemById(sourceItem.locationID))) {
@@ -10016,6 +10061,11 @@ class InvBrokerService extends BaseService {
   }
 
   _resolveContainerItems(session, requestedFlag, boundContext) {
+    if (boundContext?.kind === "incursionCargoReceiver") return [];
+    if (boundContext?.kind === "fracturedLegacyReceiver") {
+      return requestedFlag === null || requestedFlag === undefined || Number(requestedFlag) === ITEM_FLAGS.CARGO_HOLD
+        ? fracturedLegacyCargo.listReceived(session, boundContext.inventoryID) : [];
+    }
     const stationId = this._getStationId(session);
     const charId = this._getCharacterId(session);
     const numericFlag =
@@ -10391,6 +10441,20 @@ class InvBrokerService extends BaseService {
   }
 
   _calculateCapacity(session, boundContext, requestedFlag = null) {
+    if (incursionFactoryCustody.isFactory(findItemById(boundContext?.inventoryID))) {
+      if (requestedFlag != null && Number(requestedFlag) !== ITEM_FLAGS.CARGO_HOLD) return this._buildCapacityInfo(0, 0);
+      const used = listContainerItems(null, boundContext.inventoryID, null).reduce((sum, item) => sum + getInventoryItemUnitVolume(item) * item.quantity, 0);
+      return this._buildCapacityInfo(7500, used);
+    }
+    if (boundContext?.kind === "incursionCargoReceiver") {
+      if (requestedFlag !== null && Number(requestedFlag) !== ITEM_FLAGS.CARGO_HOLD) return this._buildCapacityInfo(0, 0);
+      const result = incursionCargo.capacity(session, boundContext.inventoryID);
+      return this._buildCapacityInfo(result.capacity, result.used);
+    }
+    if (boundContext?.kind === "fracturedLegacyReceiver") {
+      const received = fracturedLegacyCargo.listReceived(session, boundContext.inventoryID);
+      return this._buildCapacityInfo(4000, received.reduce((sum, item) => sum + Number(item.quantity), 0));
+    }
     if (
       this._isUnanchoredStructureHullInventoryID(
         boundContext && boundContext.inventoryID,
@@ -10941,6 +11005,18 @@ class InvBrokerService extends BaseService {
     const charId = this._getCharacterId(session);
     const stationId = this._getStationId(session);
     const boundContext = this._getBoundContext(session);
+    if (incursionCargo.isReceiver(session, numericItemId)) {
+      if (!incursionCargo.resolveReceiver(session, numericItemId)) throwWrappedUserError("FakeItemNotFound");
+      return this._makeBoundSubstruct({ inventoryID: numericItemId,
+        locationID: Number(session._space?.systemID || session.solarsystemid),
+        flagID: ITEM_FLAGS.CARGO_HOLD, kind: "incursionCargoReceiver" }, session);
+    }
+    if (fracturedLegacyCargo.isReceiver(session, numericItemId)) {
+      if (!fracturedLegacyCargo.resolveReceiver(session, numericItemId)) throwWrappedUserError("FakeItemNotFound");
+      return this._makeBoundSubstruct({ inventoryID: numericItemId,
+        locationID: Number(session._space?.systemID || session.solarsystemid),
+        flagID: ITEM_FLAGS.CARGO_HOLD, kind: "fracturedLegacyReceiver" }, session);
+    }
     const inventoryTrade = this._getTradeInventoryService()?.getInventoryTrade(numericItemId, session);
     if (inventoryTrade) {
       return this._makeBoundSubstruct({ inventoryID: numericItemId,
@@ -10980,6 +11056,21 @@ class InvBrokerService extends BaseService {
         args,
         itemid: numericItemId,
       });
+      // Sites contain decorative copies of real containers (the AIR item-retrieval site has
+      // three "[AIR] Bowhead Wreck", only one with cargo). FakeItemNotFound reaches the player
+      // as "The item is no longer within your reach", which reads as "too far away".
+      const scene = numericItemId > 0 ? runtime.getSceneForSession(session) : null;
+      const scenery = scene && (
+        (scene.staticEntitiesByID && scene.staticEntitiesByID.get(numericItemId)) ||
+        scene.getEntityByID(numericItemId)
+      );
+      if (scenery && scenery.dungeonMaterializedEnvironment === true) {
+        const name = String(scenery.slimName || scenery.itemName || "").trim() || "This object";
+        throwWrappedUserError("CustomNotify", {
+          notify: `${name} is part of the site's scenery and holds no cargo. ` +
+            "Look for another one: a wreck you can open has \"Open Cargo\" in its right-click menu.",
+        });
+      }
       throwWrappedUserError("FakeItemNotFound");
     }
     if (ancestorSafetyWrap) {
@@ -11001,6 +11092,13 @@ class InvBrokerService extends BaseService {
     const spaceScopeError = this._getSpaceContainerScopeAccessError(session, numericItemId, { towerManagementRead: true });
     if (spaceScopeError) {
       this._throwSpaceContainerScopeAccessError(spaceScopeError, "open");
+    }
+    // A site guide may have something to say about this container (the exploration tour's
+    // Exploration Supplies); that must never keep the pilot from opening it.
+    try {
+      require(path.join(__dirname, "../dungeon/dungeonTrackingRuntime")).onSiteContainerOpened(session, numericItemId);
+    } catch (error) {
+      log.warn(`[InvBroker] site guide on container open failed itemID=${numericItemId}: ${error && error.message}`);
     }
     const mobileTractorUnitOpenError =
       this._getMobileTractorUnitCargoAccessError(session, numericItemId);
@@ -11673,6 +11771,14 @@ class InvBrokerService extends BaseService {
   Handle_GetItem(args, session) {
     if (this._getBoundContext(session)?.kind === "tradeInventory") return this._dispatchTradeInventory("GetItem", args, session);
     const boundContext = this._getBoundContext(session);
+    if (boundContext?.kind === "incursionCargoReceiver") {
+      const item = incursionCargo.receiverItem(session, boundContext.inventoryID);
+      return item ? this._buildInvItem(session, item) : null;
+    }
+    if (boundContext?.kind === "fracturedLegacyReceiver") {
+      const item = fracturedLegacyCargo.receiverItem(session, boundContext.inventoryID);
+      return item ? this._buildInvItem(session, item) : null;
+    }
     const itemID =
       args && args.length > 0
         ? args[0]
@@ -12628,7 +12734,7 @@ class InvBrokerService extends BaseService {
             }),
           });
         } else {
-          this._emitInventoryMoveChanges(session, allChanges);
+          this._emitInventoryMoveChanges(session, allChanges, { announceItemsChanged: true });
         }
         this._refreshBallparkShipPresentation(session, allChanges);
         this._refreshBallparkInventoryPresentation(session, allChanges);
@@ -12675,6 +12781,19 @@ class InvBrokerService extends BaseService {
       log.debug(
         `[InvBroker] Add rejected itemID=${itemID} source=${sourceLocationID} error=SOURCE_LOCATION_MISMATCH`,
       );
+      return null;
+    }
+    // The scientist's cargo is a handover into NPC custody, never player loot.
+    if (fracturedLegacyCargo.isReceiver(session, item.locationID)) return null;
+    if (incursionCargo.isReceiver(session, item.locationID)) return null;
+    if (boundContext.kind === "incursionCargoReceiver" || incursionCargo.isReceiver(session, boundContext.inventoryID)) {
+      if (Number(requestedFlag) === ITEM_FLAGS.CARGO_HOLD) incursionCargo.tryDeliver(session, boundContext.inventoryID, item, quantity);
+      return null;
+    }
+    if (boundContext.kind === "fracturedLegacyReceiver") {
+      const result = Number(requestedFlag) === ITEM_FLAGS.CARGO_HOLD
+        ? fracturedLegacyCargo.tryDeliver(session, boundContext.inventoryID, item, quantity) : null;
+      if (result?.success) this._emitInventoryMoveChanges(session, result.changes, { emitItemsChangedBatch: true });
       return null;
     }
     if (this._hasAssetSafetyRecoverySource([itemID])) {
@@ -13087,6 +13206,7 @@ class InvBrokerService extends BaseService {
       item,
       destination,
       quantity,
+      session,
     );
     const capacityCheck = this._checkCapacityForMove(
       session,
@@ -13162,7 +13282,7 @@ class InvBrokerService extends BaseService {
       sourceItemDescriptor,
       sourceLocationID,
       destination,
-      quantity,
+      appliedQuantity,
     );
     const isStructureCoreInstallMove = this._isStructureCoreInstallMove(
       item,
@@ -13213,6 +13333,7 @@ class InvBrokerService extends BaseService {
           Number(destination.flagID) === ITEM_FLAGS.SPECIALIZED_PLANETARY_COMMODITIES_HOLD;
         this._emitInventoryMoveChanges(session, moveChanges, {
           emitItemsChangedBatch,
+          announceItemsChanged: true,
           idType:
             isPlayerSpaceContainerLootMove
               ? "shipid"
@@ -13266,7 +13387,15 @@ class InvBrokerService extends BaseService {
       maybeExpireEmptySpaceContainer(session, cid);
     }
     this._maybeCompleteMaterializedDungeonSitesForSources(session, sourceContainerIDs);
-    return this._resolveMovedItemID(moveResult, itemID, destination);
+    // Rescue handover keeps NPC custody at flag0 even when Add was asked
+    // for cargo flag5. Resolve the actual delivered split, as for audit cans.
+    const rescueResultDestination = getRescueDestination(
+      session, findItemById(destination.locationID),
+    );
+    const resultDestination = rescueResultDestination &&
+      item.typeID === rescueResultDestination.policy.typeID
+      ? { ...destination, flagID: 0 } : destination;
+    return this._resolveMovedItemID(moveResult, itemID, resultDestination);
   }
 
   // MultiAdd is the client's Loot All gesture, so it owes the loot window the
@@ -13454,6 +13583,8 @@ class InvBrokerService extends BaseService {
       return null;
     }
     if (
+      boundContext.kind === "fracturedLegacyReceiver" || boundContext.kind === "incursionCargoReceiver" ||
+      incursionCargo.isReceiver(session, boundContext.inventoryID) ||
       require("../homefront/homefrontHooks").cargo.isReceiver(
         session,
         boundContext.inventoryID,
@@ -13921,6 +14052,7 @@ class InvBrokerService extends BaseService {
           item,
           destination,
           quantity,
+          session,
         );
         const capacityCheck = this._checkCapacityForMove(
           session,
@@ -14025,7 +14157,7 @@ class InvBrokerService extends BaseService {
           sourceItemDescriptor,
           sourceLocationID,
           destination,
-          quantity,
+          appliedQuantity,
         );
         movedCount += 1;
         allChanges.push(...(moveResult.data.changes || []));
@@ -14330,6 +14462,12 @@ class InvBrokerService extends BaseService {
       flagID: this._isInventoryBindFlag(requestedFlag) ? requestedFlag : null,
       kind: "boundInventory",
     };
+    if (incursionCargo.isReceiver(session, inventoryID)) {
+      if (!incursionCargo.resolveReceiver(session, inventoryID)) throwWrappedUserError("FakeItemNotFound");
+      initialBoundContext.kind = "incursionCargoReceiver";
+      initialBoundContext.locationID = Number(session._space?.systemID || session.solarsystemid);
+      initialBoundContext.flagID = ITEM_FLAGS.CARGO_HOLD;
+    }
     this._rememberBoundContext(idString, initialBoundContext);
     this._rememberSessionBoundContext(session, idString, initialBoundContext, now);
 
