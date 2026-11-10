@@ -34,18 +34,18 @@ class CrewLinkWindow(Window):
         footer = Container(parent=self.content, align=uiconst.TOBOTTOM, height=28, padTop=6)
         Button(parent=footer, align=uiconst.CENTERLEFT, label='Refresh', func=self.OnRefresh)
         Button(parent=footer, align=uiconst.CENTERLEFT, left=110, label='Ping server', func=self.OnPing)
-        self.footnote = EveLabelSmall(parent=self.content, align=uiconst.TOBOTTOM, padTop=4, text='')
+        self.noteLabel = EveLabelSmall(parent=self.content, align=uiconst.TOBOTTOM, padTop=4, text='')
 
         asks = Container(parent=self.content, align=uiconst.TOBOTTOM, height=28, padTop=8)
         for index, (topic, label) in enumerate(QUESTIONS):
             Button(parent=asks, align=uiconst.CENTERLEFT, left=index * 135, label=label,
                    func=self.OnAsk, args=(topic,))
 
-        self.header = EveLabelLarge(parent=self.content, align=uiconst.TOTOP, text='Contacting the server...')
-        self.details = EveLabelMedium(parent=self.content, align=uiconst.TOTOP, padTop=4, text='')
-        self.crew = EveLabelMedium(parent=self.content, align=uiconst.TOTOP, padTop=8, text='')
-        self.speaker = EveLabelMediumBold(parent=self.content, align=uiconst.TOTOP, padTop=12, text='')
-        self.speech = EveLabelMedium(parent=self.content, align=uiconst.TOTOP, padTop=2, text='')
+        self.pilotLabel = EveLabelLarge(parent=self.content, align=uiconst.TOTOP, text='Contacting the server...')
+        self.shipLabel = EveLabelMedium(parent=self.content, align=uiconst.TOTOP, padTop=4, text='')
+        self.crewLabel = EveLabelMedium(parent=self.content, align=uiconst.TOTOP, padTop=8, text='')
+        self.speakerLabel = EveLabelMediumBold(parent=self.content, align=uiconst.TOTOP, padTop=12, text='')
+        self.speechLabel = EveLabelMedium(parent=self.content, align=uiconst.TOTOP, padTop=2, text='')
         API.spawn(self.Refresh)
 
     def Refresh(self):
@@ -54,21 +54,21 @@ class CrewLinkWindow(Window):
         if status.get('shipTypeName') and status.get('shipName') != status.get('shipTypeName'):
             ship = '%s (%s)' % (ship, status.get('shipTypeName'))
         where = 'docked in' if status.get('docked') else 'in space,'
-        self.header.text = status.get('characterName') or 'Unknown pilot'
-        self.details.text = 'Flying %s, %s %s' % (ship, where, status.get('solarSystemName') or 'an unknown system')
-        self.crew.text = '<br>'.join(status.get('crew') or [])
-        self.footnote.text = 'Server %s, bridge v%s' % (status.get('serverVersion'), status.get('bridgeVersion'))
+        self.pilotLabel.text = status.get('characterName') or 'Unknown pilot'
+        self.shipLabel.text = 'Flying %s, %s %s' % (ship, where, status.get('solarSystemName') or 'an unknown system')
+        self.crewLabel.text = '<br>'.join(status.get('crew') or [])
+        self.noteLabel.text = 'Server %s, bridge v%s' % (status.get('serverVersion'), status.get('bridgeVersion'))
         API.log('status shown for %s' % status.get('characterName'))
 
     def OnAsk(self, topic, *args):
         API.spawn(self._Ask, topic)
 
     def _Ask(self, topic):
-        self.speaker.text = ''
-        self.speech.text = '<color=0x88ffffff>...</color>'
+        self.speakerLabel.text = ''
+        self.speechLabel.text = '<color=0x88ffffff>...</color>'
         answer = API.call('AskCrew', topic)
-        self.speaker.text = '%s, %s' % (answer.get('speaker'), answer.get('role'))
-        self.speech.text = answer.get('text') or ''
+        self.speakerLabel.text = '%s, %s' % (answer.get('speaker'), answer.get('role'))
+        self.speechLabel.text = answer.get('text') or ''
         API.log('crew answered %s via %s' % (topic, answer.get('source')))
 
     def OnRefresh(self, *args):
@@ -82,7 +82,7 @@ class CrewLinkWindow(Window):
         started = blue.os.GetWallclockTime()
         answer = API.call('Ping', u'Hello from the Crew Link window')
         elapsed_ms = (blue.os.GetWallclockTime() - started) / 10000
-        self.footnote.text = '%s  (%d ms)' % (answer, elapsed_ms)
+        self.noteLabel.text = '%s  (%d ms)' % (answer, elapsed_ms)
         API.log('ping answered in %d ms' % elapsed_ms)
 
 
