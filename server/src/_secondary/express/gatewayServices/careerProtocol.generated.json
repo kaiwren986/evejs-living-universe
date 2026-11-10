@@ -1,0 +1,484 @@
+{
+  "source": {
+    "build": 3396210,
+    "authority": "Supported client serialized career descriptors",
+    "files": [
+      {
+        "path": "eve_public/career/goal_pb2.py",
+        "sha256": "7352ed6fedd3d6d57e6a76f17b0f7f135d79551df5318a3c11200cc58258a52a"
+      },
+      {
+        "path": "eve_public/career/goal/api/notices_pb2.py",
+        "sha256": "14ae27f85e569c92ba381f0015c6d2225457bc4ba6e8d33338610979e4978f78"
+      },
+      {
+        "path": "eve_public/career/goal/api/requests_pb2.py",
+        "sha256": "0e4f7880f07763ebf40324939b9fda150a3f4d54777af47af8f43ce9b7d8ef71"
+      },
+      {
+        "path": "eve_public/fulfillment/offer_pb2.py",
+        "sha256": "ec67f3ee9741a9dcaf5f92b8e217cbde7891ddba954b9c9ae2d01c1284c1772a"
+      },
+      {
+        "path": "eve_public/inventory/generic_item_type_pb2.py",
+        "sha256": "502dee0fe2a47e3b4541717e69b927a308172ce0fb2daf1a3c3dbddc0e1b456f"
+      },
+      {
+        "path": "eve_public/isk/isk_pb2.py",
+        "sha256": "22403e53e13651e1001080fe34c6948ebe43d708342982c24a15801e34666b39"
+      },
+      {
+        "path": "eve_public/localization/message_pb2.py",
+        "sha256": "f28644ffe523afee07d7c0e0f47a1ae343480f5acd91e8f6cea912e24dd02ce2"
+      },
+      {
+        "path": "eve_public/ui/annotation_pb2.py",
+        "sha256": "9fc23925273e7224f18279f25df4dbd0c3577fe8c2f6ef63fd4a5dd0ad0561bf"
+      },
+      {
+        "path": "google/protobuf/timestamp_pb2.py",
+        "sha256": "ccf002fcb7aeea1997ab1be96a02c8c8aa27459a33788f95f399d710dc68fb7e"
+      }
+    ]
+  },
+  "schema": {
+    "nested": {
+      "eve_public": {
+        "nested": {
+          "career": {
+            "nested": {
+              "goal": {
+                "options": {
+                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/career/goal"
+                },
+                "nested": {
+                  "api": {
+                    "options": {
+                      "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/career/goal/api"
+                    },
+                    "nested": {
+                      "GetDefinitionsRequest": {
+                        "fields": {}
+                      },
+                      "GetDefinitionsResponse": {
+                        "fields": {
+                          "goals": {
+                            "rule": "repeated",
+                            "type": ".eve_public.career.goal.api.GetDefinitionsResponse.Goal",
+                            "id": 1
+                          }
+                        },
+                        "nested": {
+                          "Goal": {
+                            "fields": {
+                              "goal": {
+                                "type": ".eve_public.career.goal.Identifier",
+                                "id": 1
+                              },
+                              "attributes": {
+                                "type": ".eve_public.career.goal.Attributes",
+                                "id": 2
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "GetAllRequest": {
+                        "fields": {}
+                      },
+                      "GetAllResponse": {
+                        "fields": {
+                          "goals": {
+                            "rule": "repeated",
+                            "type": ".eve_public.career.goal.api.GetAllResponse.Goal",
+                            "id": 1
+                          }
+                        },
+                        "nested": {
+                          "Goal": {
+                            "oneofs": {
+                              "completed": {
+                                "oneof": [
+                                  "not_completed",
+                                  "completed_time"
+                                ]
+                              }
+                            },
+                            "fields": {
+                              "goal": {
+                                "type": ".eve_public.career.goal.Identifier",
+                                "id": 1
+                              },
+                              "progress": {
+                                "type": "uint32",
+                                "id": 2
+                              },
+                              "not_completed": {
+                                "type": "bool",
+                                "id": 3
+                              },
+                              "completed_time": {
+                                "type": ".google.protobuf.Timestamp",
+                                "id": 4
+                              },
+                              "reward_label_states": {
+                                "rule": "repeated",
+                                "type": ".eve_public.career.goal.api.GetAllResponse.Goal.RewardLabelState",
+                                "id": 5
+                              }
+                            },
+                            "nested": {
+                              "RewardLabelState": {
+                                "oneofs": {
+                                  "claimed": {
+                                    "oneof": [
+                                      "claimed_time",
+                                      "not_claimed"
+                                    ]
+                                  }
+                                },
+                                "fields": {
+                                  "label": {
+                                    "type": ".eve_public.career.goal.RewardLabel",
+                                    "id": 1
+                                  },
+                                  "claimed_time": {
+                                    "type": ".google.protobuf.Timestamp",
+                                    "id": 2
+                                  },
+                                  "not_claimed": {
+                                    "type": "bool",
+                                    "id": 3
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "ClaimRewardRequest": {
+                        "fields": {
+                          "goal": {
+                            "type": ".eve_public.career.goal.Identifier",
+                            "id": 1
+                          },
+                          "label": {
+                            "type": ".eve_public.career.goal.RewardLabel",
+                            "id": 2
+                          }
+                        }
+                      },
+                      "ClaimRewardResponse": {
+                        "fields": {}
+                      },
+                      "CompletedNotice": {
+                        "fields": {
+                          "goal": {
+                            "type": ".eve_public.career.goal.Identifier",
+                            "id": 1
+                          }
+                        }
+                      },
+                      "ProgressedNotice": {
+                        "fields": {
+                          "goal": {
+                            "type": ".eve_public.career.goal.Identifier",
+                            "id": 1
+                          },
+                          "amount": {
+                            "type": "uint32",
+                            "id": 2
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "Identifier": {
+                    "fields": {
+                      "uuid": {
+                        "type": "bytes",
+                        "id": 1
+                      }
+                    }
+                  },
+                  "Attributes": {
+                    "fields": {
+                      "name": {
+                        "type": ".eve_public.localization.message.Identifier",
+                        "id": 1
+                      },
+                      "description": {
+                        "type": ".eve_public.localization.message.Identifier",
+                        "id": 2
+                      },
+                      "progress": {
+                        "type": "uint32",
+                        "id": 3,
+                        "options": {
+                          "deprecated": true
+                        }
+                      },
+                      "target": {
+                        "type": "uint32",
+                        "id": 4
+                      },
+                      "reward": {
+                        "type": ".eve_public.fulfillment.offer.Identifier",
+                        "id": 5,
+                        "options": {
+                          "deprecated": true
+                        }
+                      },
+                      "ui_annotations": {
+                        "rule": "repeated",
+                        "type": ".eve_public.ui.Annotation",
+                        "id": 6
+                      },
+                      "threat": {
+                        "type": "uint32",
+                        "id": 7
+                      },
+                      "completed": {
+                        "type": "bool",
+                        "id": 8,
+                        "options": {
+                          "deprecated": true
+                        }
+                      },
+                      "career": {
+                        "type": ".eve_public.career.goal.Attributes.Career",
+                        "id": 9
+                      },
+                      "career_points": {
+                        "type": "uint32",
+                        "id": 10
+                      },
+                      "claimed": {
+                        "type": "bool",
+                        "id": 11,
+                        "options": {
+                          "deprecated": true
+                        }
+                      },
+                      "rewards": {
+                        "rule": "repeated",
+                        "type": ".eve_public.career.goal.Reward",
+                        "id": 12
+                      }
+                    },
+                    "nested": {
+                      "Career": {
+                        "values": {
+                          "CAREER_UNSPECIFIED": 0,
+                          "CAREER_EXPLORATION": 1,
+                          "CAREER_INDUSTRIALIST": 2,
+                          "CAREER_ENFORCER": 3,
+                          "CAREER_SOLDIER_OF_FORTUNE": 4
+                        }
+                      }
+                    }
+                  },
+                  "Reward": {
+                    "fields": {
+                      "reward_type": {
+                        "type": ".eve_public.career.goal.RewardType",
+                        "id": 1
+                      },
+                      "reward_label": {
+                        "type": ".eve_public.career.goal.RewardLabel",
+                        "id": 2
+                      }
+                    }
+                  },
+                  "RewardType": {
+                    "oneofs": {
+                      "type": {
+                        "oneof": [
+                          "item",
+                          "isk",
+                          "skill_points"
+                        ]
+                      }
+                    },
+                    "fields": {
+                      "item": {
+                        "type": ".eve_public.career.goal.ItemRewardType",
+                        "id": 1
+                      },
+                      "isk": {
+                        "type": ".eve_public.isk.Currency",
+                        "id": 2
+                      },
+                      "skill_points": {
+                        "type": "uint32",
+                        "id": 3
+                      }
+                    }
+                  },
+                  "ItemRewardType": {
+                    "fields": {
+                      "identifier": {
+                        "type": ".eve_public.inventory.genericitemtype.Identifier",
+                        "id": 1
+                      },
+                      "quantity": {
+                        "type": "uint32",
+                        "id": 2
+                      }
+                    }
+                  },
+                  "RewardLabel": {
+                    "values": {
+                      "REWARD_LABEL_UNSPECIFIED": 0,
+                      "REWARD_LABEL_ALPHA": 1,
+                      "REWARD_LABEL_OMEGA": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "fulfillment": {
+            "nested": {
+              "offer": {
+                "options": {
+                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/fulfillment/offer"
+                },
+                "nested": {
+                  "Identifier": {
+                    "options": {
+                      "deprecated": true
+                    },
+                    "fields": {
+                      "store_offer": {
+                        "type": "string",
+                        "id": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "inventory": {
+            "nested": {
+              "genericitemtype": {
+                "options": {
+                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/inventory/genericitemtype"
+                },
+                "nested": {
+                  "Identifier": {
+                    "fields": {
+                      "sequential": {
+                        "type": "uint64",
+                        "id": 1
+                      }
+                    }
+                  },
+                  "Attributes": {
+                    "fields": {
+                      "name": {
+                        "type": "string",
+                        "id": 2
+                      },
+                      "description": {
+                        "type": "string",
+                        "id": 3
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "isk": {
+            "options": {
+              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/isk"
+            },
+            "nested": {
+              "Currency": {
+                "fields": {
+                  "units": {
+                    "type": "sint64",
+                    "id": 1
+                  },
+                  "nanos": {
+                    "type": "sint32",
+                    "id": 2
+                  }
+                }
+              }
+            }
+          },
+          "localization": {
+            "nested": {
+              "message": {
+                "options": {
+                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/localization/message"
+                },
+                "nested": {
+                  "Identifier": {
+                    "fields": {
+                      "sequential": {
+                        "type": "uint32",
+                        "id": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "ui": {
+            "options": {
+              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/ui"
+            },
+            "nested": {
+              "Annotation": {
+                "fields": {
+                  "key": {
+                    "type": "string",
+                    "id": 1
+                  },
+                  "value": {
+                    "type": "string",
+                    "id": 2
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "google": {
+        "nested": {
+          "protobuf": {
+            "options": {
+              "java_package": "com.google.protobuf",
+              "java_outer_classname": "TimestampProto",
+              "java_multiple_files": true,
+              "go_package": "google.golang.org/protobuf/types/known/timestamppb",
+              "cc_enable_arenas": true,
+              "objc_class_prefix": "GPB",
+              "csharp_namespace": "Google.Protobuf.WellKnownTypes"
+            },
+            "nested": {
+              "Timestamp": {
+                "fields": {
+                  "seconds": {
+                    "type": "int64",
+                    "id": 1
+                  },
+                  "nanos": {
+                    "type": "int32",
+                    "id": 2
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

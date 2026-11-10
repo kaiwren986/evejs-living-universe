@@ -1,0 +1,5881 @@
+{
+  "version": {
+    "raw": "1.0.3",
+    "major": 1,
+    "minor": 0,
+    "patch": 3,
+    "prerelease_tags": [],
+    "build_tags": []
+  },
+  "generatedAt": "2026-07-21T00:49:49.612Z",
+  "source": {
+    "generatorScript": "scripts\\DataSync\\sync-achievement-parity-data.js",
+    "reportPath": "<generated>",
+    "reportGenerator": "scripts\\DataSync\\export-achievement-definitions.py",
+    "clientCodeRoot": "<generated>",
+    "observedTextLogPath": null,
+    "achievementCacheRoot": "<generated>",
+    "achievementSourceMode": "client-sde-derived",
+    "clientSdeOutputRoot": "<generated>",
+    "sourceCcpCacheRoot": null,
+    "achievementVersionPath": "<generated>",
+    "achievementDataPath": "<generated>",
+    "normalizedAchievementDataPath": "<generated>",
+    "upstreamAchievementVersion": "1.0.3",
+    "publishedAchievementVersion": "1.0.3",
+    "publishedVersionOverride": null
+  },
+  "counts": {
+    "root_count": 3,
+    "category_count_including_roots": 12,
+    "category_count_excluding_roots": 9,
+    "achievement_count": 38,
+    "contribution_method_count": 32,
+    "achievement_milestone_count": 87,
+    "category_milestone_count": 0,
+    "reward_count": 73,
+    "observed_name_count": 0,
+    "normalized_achievement_milestone_target_count": 1,
+    "archived_achievement_count": 0,
+    "time_limited_achievement_count": 4,
+    "achievement_category_points_total": 1650
+  },
+  "rewardTypeCounts": {
+    "ITEM": 20,
+    "SP": 10,
+    "TITLE": 43
+  },
+  "progressModeCounts": {
+    "CHECKLIST": 1,
+    "CUMULATIVE": 30,
+    "SET": 7
+  },
+  "implementedMethodIds": [
+    "0fd986fb-c415-563a-9f07-3cd5984fb49e",
+    "6c192d1e-cb2c-5a06-a664-80e8e15aa90b",
+    "5f290484-2864-5562-ab89-3e4f89e81464",
+    "bc91bad3-4a8b-5296-a5d3-087a89f5ef9d",
+    "c5cf8c21-4e10-5aaa-829f-1b9420ae93e1",
+    "9f139ef3-d073-5c8d-9395-4fa9f207692d",
+    "b84f272c-e789-5355-8da8-e6586cf04fd5",
+    "f280d00d-5c68-54ed-a1d0-e7b532f4e235",
+    "9f622ab2-6fd6-55cf-946c-13fde15f638f",
+    "b1d1f64b-15f0-55c6-825e-785f249f7d8f"
+  ],
+  "roots": [
+    {
+      "root": "GOALS",
+      "id": "a0c0f329-1218-5cef-a4d1-931b95cd56a5",
+      "internal_name": "goals",
+      "display_name": "Goals",
+      "category_count_including_root": 1,
+      "category_count_excluding_root": 0,
+      "achievement_count": 0
+    },
+    {
+      "root": "CHALLENGES",
+      "id": "d436cdf1-e77c-527e-9081-3f4d39dce702",
+      "internal_name": "challenges",
+      "display_name": "Challenges",
+      "category_count_including_root": 5,
+      "category_count_excluding_root": 4,
+      "achievement_count": 34
+    },
+    {
+      "root": "TIME_LIMITED",
+      "id": "af639814-a4b2-5d15-bf89-0961c7244151",
+      "internal_name": "time_limited",
+      "display_name": "Time Limited",
+      "category_count_including_root": 6,
+      "category_count_excluding_root": 5,
+      "achievement_count": 4
+    }
+  ],
+  "categories": [
+    {
+      "id": "a0c0f329-1218-5cef-a4d1-931b95cd56a5",
+      "internal_name": "goals",
+      "display_name": "Goals",
+      "name_message_id": 1041595,
+      "description_message_id": 1041596,
+      "icon_id": "placeholder",
+      "root": "GOALS",
+      "depth": 0,
+      "parent_category_id": null,
+      "ui_annotations": {},
+      "milestones": [],
+      "category_path_ids": [
+        "a0c0f329-1218-5cef-a4d1-931b95cd56a5"
+      ],
+      "category_path_internal_names": [
+        "goals"
+      ],
+      "category_path_display_names": [
+        "Goals"
+      ],
+      "child_category_ids": [],
+      "child_achievement_ids": []
+    },
+    {
+      "id": "d436cdf1-e77c-527e-9081-3f4d39dce702",
+      "internal_name": "challenges",
+      "display_name": "Challenges",
+      "name_message_id": 1037741,
+      "description_message_id": 1037742,
+      "icon_id": "trophy",
+      "root": "CHALLENGES",
+      "depth": 0,
+      "parent_category_id": null,
+      "ui_annotations": {},
+      "milestones": [],
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702"
+      ],
+      "category_path_internal_names": [
+        "challenges"
+      ],
+      "category_path_display_names": [
+        "Challenges"
+      ],
+      "child_category_ids": [
+        "90302796-1c92-569b-be8a-7aabb7c5248d",
+        "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed",
+        "3bea6213-77ba-5d19-9a55-2dafb109c9b4",
+        "dea82d45-4f28-50e1-94a6-e0a817fa9902"
+      ],
+      "child_achievement_ids": []
+    },
+    {
+      "id": "90302796-1c92-569b-be8a-7aabb7c5248d",
+      "internal_name": "combat_challenges",
+      "display_name": "Combat Challenges",
+      "name_message_id": 1037758,
+      "description_message_id": 1037759,
+      "icon_id": "ongoing_conflicts",
+      "root": "CHALLENGES",
+      "depth": 1,
+      "parent_category_id": "d436cdf1-e77c-527e-9081-3f4d39dce702",
+      "ui_annotations": {},
+      "milestones": [],
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "90302796-1c92-569b-be8a-7aabb7c5248d"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "combat_challenges"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Combat Challenges"
+      ],
+      "child_category_ids": [],
+      "child_achievement_ids": [
+        "84f1f320-7972-5a9d-b987-57893edeafc5",
+        "8ec7f0f6-c251-5e6d-b303-241e80aabee1",
+        "b6d118b8-d749-5467-8245-e9f951e6bc27",
+        "b1338175-fae8-50d5-97b1-2ab5be17f69d",
+        "d8356c59-a0ec-553b-8301-9d6b7236139f",
+        "ffd4ffad-3dcc-58ca-95f0-fc07c9b5ef81",
+        "e6e736a1-f85d-5a5e-87c3-271110ad3c70",
+        "fafd0ae9-ce09-58ee-ae3a-533a7958bc62",
+        "b9e578c2-b357-5d09-bb6a-844065f90906",
+        "ab6c7da0-6907-5d09-83d2-53b0c9a1a348"
+      ]
+    },
+    {
+      "id": "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed",
+      "internal_name": "exploration",
+      "display_name": "Exploration",
+      "name_message_id": 1037743,
+      "description_message_id": 1037744,
+      "icon_id": "solar_system",
+      "root": "CHALLENGES",
+      "depth": 1,
+      "parent_category_id": "d436cdf1-e77c-527e-9081-3f4d39dce702",
+      "ui_annotations": {},
+      "milestones": [],
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "exploration"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Exploration"
+      ],
+      "child_category_ids": [],
+      "child_achievement_ids": [
+        "f89547de-49f1-52dc-becd-2e15d2638d11",
+        "99e01b75-ba87-55ef-a833-23dc0d29db9e",
+        "ac4057a7-b330-535f-82c5-92e6121c2547",
+        "8b482fab-42fa-581a-bb8b-3405c59258c7",
+        "c1928dd0-0ee2-50be-ac84-e1de1157e349",
+        "512079b9-cfa4-5666-b8c7-e86b6b8b16e1",
+        "e1788923-db4c-55c4-a64e-bbc7bb3083ac",
+        "90b1a88f-c283-5dde-a264-c384d9d45168",
+        "a368306d-5248-55f5-a3a0-93d3b1597847",
+        "f60f6df9-d0b4-5663-9870-9e87e79acd8e"
+      ]
+    },
+    {
+      "id": "3bea6213-77ba-5d19-9a55-2dafb109c9b4",
+      "internal_name": "industry",
+      "display_name": "Industry",
+      "name_message_id": 1041593,
+      "description_message_id": 1041594,
+      "icon_id": "production",
+      "root": "CHALLENGES",
+      "depth": 1,
+      "parent_category_id": "d436cdf1-e77c-527e-9081-3f4d39dce702",
+      "ui_annotations": {},
+      "milestones": [],
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "3bea6213-77ba-5d19-9a55-2dafb109c9b4"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "industry"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Industry"
+      ],
+      "child_category_ids": [],
+      "child_achievement_ids": [
+        "67c4d338-f89a-5239-b0cf-6670fe3014db",
+        "08eba9d2-c3da-58aa-beda-69a91c003648",
+        "eca1419c-20a1-5e87-9164-a0fbd6f2ea71",
+        "4807c0f3-36e7-5449-b586-47e089ca992b",
+        "8f16fa5e-5621-579a-8e55-441f2c5b0eb0",
+        "3bb1549d-46bd-59ff-be7f-0a9652d5efcb",
+        "534841dd-aa20-53e8-9a3c-8fb539f7bf40",
+        "eb621aa7-0fde-5b84-bfc5-aecfbeb4a0bd",
+        "5d010d2f-72c8-563f-a55a-2446e5c9da22",
+        "62875a0b-59f7-5d19-a3fb-c4bc80a4d887",
+        "82be3551-2b0e-5bc7-bbbc-21b7f812274b"
+      ]
+    },
+    {
+      "id": "dea82d45-4f28-50e1-94a6-e0a817fa9902",
+      "internal_name": "other",
+      "display_name": "Other",
+      "name_message_id": 1042566,
+      "description_message_id": 1042567,
+      "icon_id": "trophy",
+      "root": "CHALLENGES",
+      "depth": 1,
+      "parent_category_id": "d436cdf1-e77c-527e-9081-3f4d39dce702",
+      "ui_annotations": {},
+      "milestones": [],
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "dea82d45-4f28-50e1-94a6-e0a817fa9902"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "other"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Other"
+      ],
+      "child_category_ids": [],
+      "child_achievement_ids": [
+        "8739d8d8-4e1e-5bca-b870-8f1357fa1dc7",
+        "37e5d7f6-8bcc-5e64-b703-0423e8fa5894",
+        "7ff3bdfc-9e4f-5177-a132-3f0beed3b699"
+      ]
+    },
+    {
+      "id": "af639814-a4b2-5d15-bf89-0961c7244151",
+      "internal_name": "time_limited",
+      "display_name": "Time Limited",
+      "name_message_id": 1037682,
+      "description_message_id": 1037683,
+      "icon_id": "hourglass",
+      "root": "TIME_LIMITED",
+      "depth": 0,
+      "parent_category_id": null,
+      "ui_annotations": {},
+      "milestones": [],
+      "category_path_ids": [
+        "af639814-a4b2-5d15-bf89-0961c7244151"
+      ],
+      "category_path_internal_names": [
+        "time_limited"
+      ],
+      "category_path_display_names": [
+        "Time Limited"
+      ],
+      "child_category_ids": [
+        "19dd6b14-7ddf-5b11-a732-c703e3a36688"
+      ],
+      "child_achievement_ids": []
+    },
+    {
+      "id": "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+      "internal_name": "campaigns",
+      "display_name": "Campaigns",
+      "name_message_id": 1042784,
+      "description_message_id": 1042785,
+      "icon_id": "campaign",
+      "root": "TIME_LIMITED",
+      "depth": 1,
+      "parent_category_id": "af639814-a4b2-5d15-bf89-0961c7244151",
+      "ui_annotations": {
+        "custom_ui_class": "military_campaigns"
+      },
+      "milestones": [],
+      "category_path_ids": [
+        "af639814-a4b2-5d15-bf89-0961c7244151",
+        "19dd6b14-7ddf-5b11-a732-c703e3a36688"
+      ],
+      "category_path_internal_names": [
+        "time_limited",
+        "campaigns"
+      ],
+      "category_path_display_names": [
+        "Time Limited",
+        "Campaigns"
+      ],
+      "child_category_ids": [
+        "934b7f7a-8348-582a-92ed-ea40f5144dd1",
+        "c3006731-ce9e-5e7b-8a7d-d1d1199875a8",
+        "ded4fa10-a147-5854-92e8-390c1843872a",
+        "78206993-8874-5e40-97ee-35503c609cc0"
+      ],
+      "child_achievement_ids": []
+    },
+    {
+      "id": "934b7f7a-8348-582a-92ed-ea40f5144dd1",
+      "internal_name": "2026_q2_amarr_campaign",
+      "display_name": "2026 Q2 Amarr Campaign",
+      "name_message_id": 1042790,
+      "description_message_id": 1042791,
+      "icon_id": "amarr_logo",
+      "root": "TIME_LIMITED",
+      "depth": 2,
+      "parent_category_id": "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+      "ui_annotations": {
+        "campaign_faction_style": "amarr"
+      },
+      "milestones": [],
+      "category_path_ids": [
+        "af639814-a4b2-5d15-bf89-0961c7244151",
+        "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+        "934b7f7a-8348-582a-92ed-ea40f5144dd1"
+      ],
+      "category_path_internal_names": [
+        "time_limited",
+        "campaigns",
+        "2026_q2_amarr_campaign"
+      ],
+      "category_path_display_names": [
+        "Time Limited",
+        "Campaigns",
+        "2026 Q2 Amarr Campaign"
+      ],
+      "child_category_ids": [],
+      "child_achievement_ids": [
+        "e68a8d17-8556-5c9a-b961-312b9c3682d6"
+      ]
+    },
+    {
+      "id": "c3006731-ce9e-5e7b-8a7d-d1d1199875a8",
+      "internal_name": "2026_q2_caldari_campaign",
+      "display_name": "2026 Q2 Caldari Campaign",
+      "name_message_id": 1042792,
+      "description_message_id": 1042793,
+      "icon_id": "caldari_logo",
+      "root": "TIME_LIMITED",
+      "depth": 2,
+      "parent_category_id": "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+      "ui_annotations": {
+        "campaign_faction_style": "caldari"
+      },
+      "milestones": [],
+      "category_path_ids": [
+        "af639814-a4b2-5d15-bf89-0961c7244151",
+        "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+        "c3006731-ce9e-5e7b-8a7d-d1d1199875a8"
+      ],
+      "category_path_internal_names": [
+        "time_limited",
+        "campaigns",
+        "2026_q2_caldari_campaign"
+      ],
+      "category_path_display_names": [
+        "Time Limited",
+        "Campaigns",
+        "2026 Q2 Caldari Campaign"
+      ],
+      "child_category_ids": [],
+      "child_achievement_ids": [
+        "0638d0a9-85be-5d14-a6ea-9ab1977acbe3"
+      ]
+    },
+    {
+      "id": "ded4fa10-a147-5854-92e8-390c1843872a",
+      "internal_name": "2026_q2_gallente_campaign",
+      "display_name": "2026 Q2 Gallente Campaign",
+      "name_message_id": 1042794,
+      "description_message_id": 1042795,
+      "icon_id": "gallente_logo",
+      "root": "TIME_LIMITED",
+      "depth": 2,
+      "parent_category_id": "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+      "ui_annotations": {
+        "campaign_faction_style": "gallente"
+      },
+      "milestones": [],
+      "category_path_ids": [
+        "af639814-a4b2-5d15-bf89-0961c7244151",
+        "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+        "ded4fa10-a147-5854-92e8-390c1843872a"
+      ],
+      "category_path_internal_names": [
+        "time_limited",
+        "campaigns",
+        "2026_q2_gallente_campaign"
+      ],
+      "category_path_display_names": [
+        "Time Limited",
+        "Campaigns",
+        "2026 Q2 Gallente Campaign"
+      ],
+      "child_category_ids": [],
+      "child_achievement_ids": [
+        "6f72150b-77cb-5f2c-9b80-f1f641812e82"
+      ]
+    },
+    {
+      "id": "78206993-8874-5e40-97ee-35503c609cc0",
+      "internal_name": "2026_q2_minmatar_campaign",
+      "display_name": "2026 Q2 Minmatar Campaign",
+      "name_message_id": 1042796,
+      "description_message_id": 1042797,
+      "icon_id": "minmatar_logo",
+      "root": "TIME_LIMITED",
+      "depth": 2,
+      "parent_category_id": "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+      "ui_annotations": {
+        "campaign_faction_style": "minmatar"
+      },
+      "milestones": [],
+      "category_path_ids": [
+        "af639814-a4b2-5d15-bf89-0961c7244151",
+        "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+        "78206993-8874-5e40-97ee-35503c609cc0"
+      ],
+      "category_path_internal_names": [
+        "time_limited",
+        "campaigns",
+        "2026_q2_minmatar_campaign"
+      ],
+      "category_path_display_names": [
+        "Time Limited",
+        "Campaigns",
+        "2026 Q2 Minmatar Campaign"
+      ],
+      "child_category_ids": [],
+      "child_achievement_ids": [
+        "bff2c999-4d90-5d58-9128-0203e20bad49"
+      ]
+    }
+  ],
+  "achievements": [
+    {
+      "id": "84f1f320-7972-5a9d-b987-57893edeafc5",
+      "internal_name": "combat_catching_rats",
+      "display_name": "Combat Catching Rats",
+      "display_description": null,
+      "name_message_id": 1042407,
+      "description_message_id": 1042408,
+      "flavor_text_message_id": 1042409,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "90302796-1c92-569b-be8a-7aabb7c5248d",
+      "parent_category_internal_name": "combat_challenges",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "90302796-1c92-569b-be8a-7aabb7c5248d"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "combat_challenges"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Combat Challenges"
+      ],
+      "contribution": {
+        "method_id": "bc91bad3-4a8b-5296-a5d3-087a89f5ef9d",
+        "parameters": [
+          {
+            "key": "security_class",
+            "matchers": [
+              {
+                "value_type": "security_class",
+                "values": [
+                  "low_sec"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "0083fed8-fd3c-59a1-a051-b67c65265c65",
+          "internal_name": "combat_catching_rats_m1",
+          "cumulated_target": 1000,
+          "category_points": 10,
+          "rewards": []
+        },
+        {
+          "id": "18c0ea14-e1be-5cde-a260-4d8b7bbf0f60",
+          "internal_name": "combat_catching_rats_m2",
+          "cumulated_target": 12000,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "11235d5d-d1f3-5225-bbeb-8bc375a87800",
+          "internal_name": "combat_catching_rats_m3",
+          "cumulated_target": 60000,
+          "category_points": 25,
+          "rewards": [
+            {
+              "id": "07754add-921f-53cc-9349-aad45ab4a442",
+              "internal_name": "combat_catching_rats_m3_r1",
+              "payload_type": "TITLE",
+              "title_id": "280052ef-6ccc-5b51-aa0f-85e54c6e16b0"
+            },
+            {
+              "id": "219b1f88-e2ce-532e-ab8a-aff9d55d833a",
+              "internal_name": "combat_catching_rats_m3_r2",
+              "payload_type": "SP",
+              "amount": 100000
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "8ec7f0f6-c251-5e6d-b303-241e80aabee1",
+      "internal_name": "combat_complex_warfare",
+      "display_name": "Combat Complex Warfare",
+      "display_description": null,
+      "name_message_id": 1042445,
+      "description_message_id": 1042446,
+      "flavor_text_message_id": 1042447,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "90302796-1c92-569b-be8a-7aabb7c5248d",
+      "parent_category_internal_name": "combat_challenges",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "90302796-1c92-569b-be8a-7aabb7c5248d"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "combat_challenges"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Combat Challenges"
+      ],
+      "contribution": {
+        "method_id": "4365644b-ae5b-54d0-9b2c-8418f23ced25",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "1fc86021-aee1-5b86-8f7b-6bd17b7ee30e",
+          "internal_name": "combat_complex_warfare_m1",
+          "cumulated_target": 5,
+          "category_points": 10,
+          "rewards": []
+        },
+        {
+          "id": "f9a3518f-3dae-5fbe-b5e6-27573b55ee6b",
+          "internal_name": "combat_complex_warfare_m2",
+          "cumulated_target": 50,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "4c1e1544-d6f8-518b-85c6-bb8bd385ffa7",
+          "internal_name": "combat_complex_warfare_m3",
+          "cumulated_target": 500,
+          "category_points": 25,
+          "rewards": [
+            {
+              "id": "2e65b91c-dae7-52f8-852a-0559b7fad846",
+              "internal_name": "combat_complex_warfare_m3_r1",
+              "payload_type": "TITLE",
+              "title_id": "5c968724-f3b8-564b-8452-6bd790f80baf"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "b6d118b8-d749-5467-8245-e9f951e6bc27",
+      "internal_name": "combat_deadliest_game",
+      "display_name": "Combat Deadliest Game",
+      "display_description": null,
+      "name_message_id": 1042425,
+      "description_message_id": 1042426,
+      "flavor_text_message_id": 1042427,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "90302796-1c92-569b-be8a-7aabb7c5248d",
+      "parent_category_internal_name": "combat_challenges",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "90302796-1c92-569b-be8a-7aabb7c5248d"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "combat_challenges"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Combat Challenges"
+      ],
+      "contribution": {
+        "method_id": "c5cf8c21-4e10-5aaa-829f-1b9420ae93e1",
+        "parameters": [
+          {
+            "key": "security_class",
+            "matchers": [
+              {
+                "value_type": "security_class",
+                "values": [
+                  "low_sec"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "e6e42f4e-db22-5b31-a4e5-2e5313e200ca",
+          "internal_name": "combat_deadliest_game_m1",
+          "cumulated_target": 50,
+          "category_points": 10,
+          "rewards": [
+            {
+              "id": "a5770e7c-5369-5ac0-a80a-9176127e2a13",
+              "internal_name": "combat_cdeadliest_game_m1_r1",
+              "payload_type": "SP",
+              "amount": 10000
+            }
+          ]
+        },
+        {
+          "id": "0d05cbf8-3eca-5505-bb2b-1aae081d046c",
+          "internal_name": "combat_deadliest_game_m2",
+          "cumulated_target": 300,
+          "category_points": 15,
+          "rewards": [
+            {
+              "id": "d5c4f509-fdb0-53d1-a948-c96a560b2f94",
+              "internal_name": "combat_deadliest_game_m2_r1",
+              "payload_type": "SP",
+              "amount": 15000
+            }
+          ]
+        },
+        {
+          "id": "dacec882-94b2-5f94-abd0-b4f6ac5dfe79",
+          "internal_name": "combat_deadliest_game_m3",
+          "cumulated_target": 750,
+          "category_points": 25,
+          "rewards": [
+            {
+              "id": "0dcc17c4-8ab2-5bde-a5e6-549a9db99500",
+              "internal_name": "combat_deadliest_game_m3_r1",
+              "payload_type": "TITLE",
+              "title_id": "787d46e9-c2b1-5937-bf19-894a7dd075b0"
+            },
+            {
+              "id": "b6965da2-ab29-556b-b300-e17be36f2abe",
+              "internal_name": "combat_deadliest_game_m3_r2",
+              "payload_type": "SP",
+              "amount": 75000
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "b1338175-fae8-50d5-97b1-2ab5be17f69d",
+      "internal_name": "combat_enter_the_abyss",
+      "display_name": "Combat Enter THE Abyss",
+      "display_description": null,
+      "name_message_id": 1042802,
+      "description_message_id": 1042803,
+      "flavor_text_message_id": 1042804,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "90302796-1c92-569b-be8a-7aabb7c5248d",
+      "parent_category_internal_name": "combat_challenges",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "90302796-1c92-569b-be8a-7aabb7c5248d"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "combat_challenges"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Combat Challenges"
+      ],
+      "contribution": {
+        "method_id": "2c695d07-b170-5b1a-a27b-b49c11e75fdd",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "ca74e029-8894-5313-b007-5ffd85081671",
+          "internal_name": "combat_enter_the_abyss_m1",
+          "cumulated_target": 200,
+          "category_points": 50,
+          "rewards": [
+            {
+              "id": "2ff0641e-fb11-5bc6-86c2-f5164e59239a",
+              "internal_name": "combat_enter_the_abyss_m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "4da8aae2-6116-59b4-96c1-9549b550d906"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "d8356c59-a0ec-553b-8301-9d6b7236139f",
+      "internal_name": "combat_faction_supremacy",
+      "display_name": "Combat Faction Supremacy",
+      "display_description": null,
+      "name_message_id": 1042428,
+      "description_message_id": 1042429,
+      "flavor_text_message_id": 1042430,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "90302796-1c92-569b-be8a-7aabb7c5248d",
+      "parent_category_internal_name": "combat_challenges",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "90302796-1c92-569b-be8a-7aabb7c5248d"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "combat_challenges"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Combat Challenges"
+      ],
+      "contribution": {
+        "method_id": "5691bcdd-b9fb-5e41-8719-294abb3ffe38",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "0153cb0e-1778-5377-a30e-81d33b03a6b6",
+          "internal_name": "combat_faction_supremacy_m1",
+          "cumulated_target": 50,
+          "category_points": 10,
+          "rewards": []
+        },
+        {
+          "id": "a666de31-7571-5bb3-8b87-dfdd65bbaecf",
+          "internal_name": "combat_faction_supremacy_m2",
+          "cumulated_target": 250,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "9546a63f-1996-52e6-bbc0-c2e04196dffc",
+          "internal_name": "combat_faction_supremacy_m3",
+          "cumulated_target": 1000,
+          "category_points": 25,
+          "rewards": [
+            {
+              "id": "1d08cd65-eda4-5499-bcc2-f3fbbf5aaa56",
+              "internal_name": "combat_faction_supremacy_m3_r1",
+              "payload_type": "TITLE",
+              "title_id": "d496d572-cc4a-5926-ad2a-9c0a7f912f09"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "ffd4ffad-3dcc-58ca-95f0-fc07c9b5ef81",
+      "internal_name": "combat_high_noon",
+      "display_name": "Combat High Noon",
+      "display_description": null,
+      "name_message_id": 1042448,
+      "description_message_id": 1042449,
+      "flavor_text_message_id": 1042450,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "90302796-1c92-569b-be8a-7aabb7c5248d",
+      "parent_category_internal_name": "combat_challenges",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "90302796-1c92-569b-be8a-7aabb7c5248d"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "combat_challenges"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Combat Challenges"
+      ],
+      "contribution": {
+        "method_id": "756e3c48-59ff-5e27-b975-ad332d6c6277",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "0910238c-f20b-5700-a56e-bd1fbe96c722",
+          "internal_name": "combat_high_noon_m1",
+          "cumulated_target": 1,
+          "category_points": 10,
+          "rewards": []
+        },
+        {
+          "id": "b86031f3-e4ed-5d10-867c-3089f5dabbe6",
+          "internal_name": "combat_high_noon_m2",
+          "cumulated_target": 300,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "ff845d98-b4bb-5cdf-ad37-077786e4ab3c",
+          "internal_name": "combat_high_noon_m3",
+          "cumulated_target": 1200,
+          "category_points": 25,
+          "rewards": [
+            {
+              "id": "e6630ede-686e-5d89-9c10-8bea59f0a658",
+              "internal_name": "combat_high_noon_m3_r1",
+              "payload_type": "TITLE",
+              "title_id": "ea02e0bf-46d9-503c-b667-62e5cc8f9a7e"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "e6e736a1-f85d-5a5e-87c3-271110ad3c70",
+      "internal_name": "combat_safety_red",
+      "display_name": "Combat Safety RED",
+      "display_description": null,
+      "name_message_id": 1042422,
+      "description_message_id": 1042423,
+      "flavor_text_message_id": 1042424,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "90302796-1c92-569b-be8a-7aabb7c5248d",
+      "parent_category_internal_name": "combat_challenges",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "90302796-1c92-569b-be8a-7aabb7c5248d"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "combat_challenges"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Combat Challenges"
+      ],
+      "contribution": {
+        "method_id": "c5cf8c21-4e10-5aaa-829f-1b9420ae93e1",
+        "parameters": [
+          {
+            "key": "security_class",
+            "matchers": [
+              {
+                "value_type": "security_class",
+                "values": [
+                  "high_sec"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "37296093-de4c-5387-85ff-1c803d0b7df8",
+          "internal_name": "combat_safety_red_m1",
+          "cumulated_target": 5,
+          "category_points": 10,
+          "rewards": []
+        },
+        {
+          "id": "bfa14ce0-6231-572d-9477-7f145daa3062",
+          "internal_name": "combat_safety_red_m2",
+          "cumulated_target": 50,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "55784043-f2ea-5fd9-91c3-bdd2b25591c1",
+          "internal_name": "combat_safety_red_m3",
+          "cumulated_target": 500,
+          "category_points": 25,
+          "rewards": [
+            {
+              "id": "652f1052-0f64-5723-a418-6cc5cfca4b44",
+              "internal_name": "combat_safety_red_m3_r1",
+              "payload_type": "TITLE",
+              "title_id": "c543fc07-d6bf-5c23-bf3a-0a8086240cff"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "fafd0ae9-ce09-58ee-ae3a-533a7958bc62",
+      "internal_name": "combat_ship_happens",
+      "display_name": "Combat Ship Happens",
+      "display_description": null,
+      "name_message_id": 1037766,
+      "description_message_id": 1037767,
+      "flavor_text_message_id": 1037768,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "90302796-1c92-569b-be8a-7aabb7c5248d",
+      "parent_category_internal_name": "combat_challenges",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "90302796-1c92-569b-be8a-7aabb7c5248d"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "combat_challenges"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Combat Challenges"
+      ],
+      "contribution": {
+        "method_id": "9f139ef3-d073-5c8d-9395-4fa9f207692d",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "da0b54fc-c7db-5a2a-ade2-6742bbd38069",
+          "internal_name": "combat_ship_happens_m1",
+          "cumulated_target": 5,
+          "category_points": 10,
+          "rewards": []
+        },
+        {
+          "id": "9b6f25fb-51c5-5571-8269-500a4aa8e62c",
+          "internal_name": "combat_ship_happens_m2",
+          "cumulated_target": 50,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "b9ede682-40dd-527e-b89b-d701a935b177",
+          "internal_name": "combat_ship_happens_m3",
+          "cumulated_target": 500,
+          "category_points": 25,
+          "rewards": [
+            {
+              "id": "ead8cff4-e243-53d5-a4e8-a9bb3cb319bb",
+              "internal_name": "combat_ship_happens_m3_r1",
+              "payload_type": "TITLE",
+              "title_id": "d95904d0-e8cb-547c-85f5-fb2d4583d91d"
+            },
+            {
+              "id": "fc488e99-6c8c-570e-8f74-52afdf037d07",
+              "internal_name": "combat_ship_happens_m3_r2",
+              "payload_type": "SP",
+              "amount": 100000
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "b9e578c2-b357-5d09-bb6a-844065f90906",
+      "internal_name": "combat_signature_sweeper",
+      "display_name": "Combat Signature Sweeper",
+      "display_description": null,
+      "name_message_id": 1042559,
+      "description_message_id": 1042560,
+      "flavor_text_message_id": 1042561,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "90302796-1c92-569b-be8a-7aabb7c5248d",
+      "parent_category_internal_name": "combat_challenges",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "90302796-1c92-569b-be8a-7aabb7c5248d"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "combat_challenges"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Combat Challenges"
+      ],
+      "contribution": {
+        "method_id": "f07b3d8b-2299-5eef-abab-683ab8869fb2",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "b4c0c418-b268-57e0-9d94-3dbecfcb82c4",
+          "internal_name": "combat_signature_sweeper_m1",
+          "cumulated_target": 30,
+          "category_points": 10,
+          "rewards": []
+        },
+        {
+          "id": "9496541d-2e61-5455-b483-2335c7d40051",
+          "internal_name": "combat_signature_sweeper_m2",
+          "cumulated_target": 1000,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "1fd8ef1a-0a69-51d8-8d8c-8282ec701bd3",
+          "internal_name": "combat_signature_sweeper_m3",
+          "cumulated_target": 5000,
+          "category_points": 25,
+          "rewards": [
+            {
+              "id": "82a7132c-0dbe-58d4-8eff-a07d4c9c28ab",
+              "internal_name": "combat_signature_sweeper_m3_r1",
+              "payload_type": "TITLE",
+              "title_id": "e9ee7f69-2793-566f-bedf-1f17ec31340d"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "ab6c7da0-6907-5d09-83d2-53b0c9a1a348",
+      "internal_name": "combat_threat_elimination",
+      "display_name": "Combat Threat Elimination",
+      "display_description": null,
+      "name_message_id": 1042308,
+      "description_message_id": 1042309,
+      "flavor_text_message_id": 1042310,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "90302796-1c92-569b-be8a-7aabb7c5248d",
+      "parent_category_internal_name": "combat_challenges",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "90302796-1c92-569b-be8a-7aabb7c5248d"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "combat_challenges"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Combat Challenges"
+      ],
+      "contribution": {
+        "method_id": "bc91bad3-4a8b-5296-a5d3-087a89f5ef9d",
+        "parameters": [
+          {
+            "key": "security_class",
+            "matchers": [
+              {
+                "value_type": "security_class",
+                "values": [
+                  "high_sec"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "07f618f6-ad9b-5962-badb-faa40ddd7848",
+          "internal_name": "combat_threat_elimination_m1",
+          "cumulated_target": 100,
+          "category_points": 10,
+          "rewards": []
+        },
+        {
+          "id": "e53c5690-b80d-5867-81ec-b4fe5bd92345",
+          "internal_name": "combat_threat_elimination_m2",
+          "cumulated_target": 10000,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "1daca314-b19d-5d59-8094-54aa2803fb3c",
+          "internal_name": "combat_threat_elimination_m3",
+          "cumulated_target": 50000,
+          "category_points": 25,
+          "rewards": [
+            {
+              "id": "1af7d586-74a9-543b-a8e4-9adca5fb8119",
+              "internal_name": "combat_threat_elimination_m3_r1",
+              "payload_type": "TITLE",
+              "title_id": "d9be46c6-d9f1-5d0c-a136-ace0490f3b73"
+            },
+            {
+              "id": "babe06a1-d8df-58fb-986f-8f1cd0b4b1ff",
+              "internal_name": "combat_threat_elimination_m3_r2",
+              "payload_type": "SP",
+              "amount": 50000
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "f89547de-49f1-52dc-becd-2e15d2638d11",
+      "internal_name": "exploration_amarr_exploration",
+      "display_name": "Exploration Amarr Exploration",
+      "display_description": null,
+      "name_message_id": 1042775,
+      "description_message_id": 1042776,
+      "flavor_text_message_id": 1042777,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed",
+      "parent_category_internal_name": "exploration",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "exploration"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Exploration"
+      ],
+      "contribution": {
+        "method_id": "0fd986fb-c415-563a-9f07-3cd5984fb49e",
+        "parameters": [
+          {
+            "key": "location",
+            "matchers": [
+              {
+                "value_type": "region",
+                "values": [
+                  "10000038",
+                  "10000036",
+                  "10000043",
+                  "10000020",
+                  "10000052",
+                  "10000065",
+                  "10000049",
+                  "10000054"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "376dfb9f-ffb4-5a33-8ea4-4681fdafee0f",
+          "internal_name": "exploration_amarr_exploration_m1",
+          "cumulated_target": 689,
+          "category_points": 50,
+          "rewards": [
+            {
+              "id": "357c18ad-8f93-5ed3-ac7a-6a4188a3f428",
+              "internal_name": "exploration_amarr_exploration_m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "8b8ea592-d9b9-5303-bcd1-61fbfab2f260"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "99e01b75-ba87-55ef-a833-23dc0d29db9e",
+      "internal_name": "exploration_caldari_exploration",
+      "display_name": "Exploration Caldari Exploration",
+      "display_description": null,
+      "name_message_id": 1042781,
+      "description_message_id": 1042782,
+      "flavor_text_message_id": 1042783,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed",
+      "parent_category_internal_name": "exploration",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "exploration"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Exploration"
+      ],
+      "contribution": {
+        "method_id": "0fd986fb-c415-563a-9f07-3cd5984fb49e",
+        "parameters": [
+          {
+            "key": "location",
+            "matchers": [
+              {
+                "value_type": "region",
+                "values": [
+                  "10000016",
+                  "10000069",
+                  "10000033",
+                  "10000002"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "33aff3f0-737d-5dd3-a0a3-42d289ebe82a",
+          "internal_name": "exploration_caldari_exploration_m1",
+          "cumulated_target": 310,
+          "category_points": 50,
+          "rewards": [
+            {
+              "id": "90b7c088-f7f6-5bdc-a214-3661bcb15660",
+              "internal_name": "exploration_caldari_exploration_m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "56868334-ce73-5f44-9b0b-269a6d751bba"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "ac4057a7-b330-535f-82c5-92e6121c2547",
+      "internal_name": "exploration_empire_exploration",
+      "display_name": "Exploration Empire Exploration",
+      "display_description": null,
+      "name_message_id": 1043871,
+      "description_message_id": 1043872,
+      "flavor_text_message_id": 1043873,
+      "icon_id": "solar_system",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed",
+      "parent_category_internal_name": "exploration",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "exploration"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Exploration"
+      ],
+      "contribution": {
+        "method_id": "5f290484-2864-5562-ab89-3e4f89e81464",
+        "parameters": [
+          {
+            "key": "achievement",
+            "matchers": [
+              {
+                "value_type": "achievement",
+                "values": [
+                  "f89547de-49f1-52dc-becd-2e15d2638d11",
+                  "99e01b75-ba87-55ef-a833-23dc0d29db9e",
+                  "c1928dd0-0ee2-50be-ac84-e1de1157e349",
+                  "e1788923-db4c-55c4-a64e-bbc7bb3083ac"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "b3fdfdc2-9d84-516b-81e6-749ef303bc4b",
+          "internal_name": "exploration_empire_exploration_m1",
+          "cumulated_target": 4,
+          "category_points": 50,
+          "rewards": [
+            {
+              "id": "e5c63908-e4bb-5ff2-bcaf-f4d2225aa0bb",
+              "internal_name": "exploration_empire_exploration_m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "92e86620-3458-5425-b4f3-059dffdacb31"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "8b482fab-42fa-581a-bb8b-3405c59258c7",
+      "internal_name": "exploration_firewall_down",
+      "display_name": "Exploration Firewall Down",
+      "display_description": null,
+      "name_message_id": 1042556,
+      "description_message_id": 1042557,
+      "flavor_text_message_id": 1042558,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed",
+      "parent_category_internal_name": "exploration",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "exploration"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Exploration"
+      ],
+      "contribution": {
+        "method_id": "e3802899-6a71-5ecd-97c4-e891af63281f",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "0871d14d-a94e-5af7-a4d1-43fb75d7b72a",
+          "internal_name": "exploration_firewall_down_m1",
+          "cumulated_target": 50,
+          "category_points": 10,
+          "rewards": []
+        },
+        {
+          "id": "c0906539-0b38-524c-842e-ef1f628a9953",
+          "internal_name": "exploration_firewall_down_m2",
+          "cumulated_target": 500,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "17d5d492-ee93-55b9-881d-de3ee31ca6da",
+          "internal_name": "exploration_firewall_down_m3",
+          "cumulated_target": 3000,
+          "category_points": 25,
+          "rewards": [
+            {
+              "id": "eb3c405f-5a05-54c7-a22e-bc0b66dbd985",
+              "internal_name": "exploration_firewall_down_m3_r1",
+              "payload_type": "TITLE",
+              "title_id": "7975535d-3b41-5b01-bca2-6b9fd19418d0"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "c1928dd0-0ee2-50be-ac84-e1de1157e349",
+      "internal_name": "exploration_gallente_exploration",
+      "display_name": "Exploration Gallente Exploration",
+      "display_description": null,
+      "name_message_id": 1042778,
+      "description_message_id": 1042779,
+      "flavor_text_message_id": 1042780,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed",
+      "parent_category_internal_name": "exploration",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "exploration"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Exploration"
+      ],
+      "contribution": {
+        "method_id": "0fd986fb-c415-563a-9f07-3cd5984fb49e",
+        "parameters": [
+          {
+            "key": "location",
+            "matchers": [
+              {
+                "value_type": "region",
+                "values": [
+                  "10000048",
+                  "10000064",
+                  "10000068",
+                  "10000044",
+                  "10000037",
+                  "10000032"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "fb037ba6-1b16-5645-9d7c-5141c4a51eea",
+          "internal_name": "exploration_gallente_exploration_m1",
+          "cumulated_target": 383,
+          "category_points": 50,
+          "rewards": [
+            {
+              "id": "f8ae04ed-4349-5225-bf6b-8fbad8cbef7e",
+              "internal_name": "exploration_gallente_exploration_m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "15ebcdeb-329a-54d5-8e31-eba467ed874b"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "512079b9-cfa4-5666-b8c7-e86b6b8b16e1",
+      "internal_name": "exploration_historic_wanderer",
+      "display_name": "Exploration Historic Wanderer",
+      "display_description": null,
+      "name_message_id": 1043864,
+      "description_message_id": 1043865,
+      "flavor_text_message_id": 1043866,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed",
+      "parent_category_internal_name": "exploration",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "exploration"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Exploration"
+      ],
+      "contribution": {
+        "method_id": "3dee9808-0242-5d3f-8c1b-a6f8b6143cb4",
+        "parameters": [
+          {
+            "key": "dungeon_archetype",
+            "matchers": [
+              {
+                "value_type": "archetype",
+                "values": [
+                  "2"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "2fcbe777-81d6-5312-bb07-4e8b0e410217",
+          "internal_name": "exploration_historic_wanderer_m1",
+          "cumulated_target": 5,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "faae46c0-f835-59db-a368-c190b431ba67",
+          "internal_name": "exploration_historic_wanderer_m2",
+          "cumulated_target": 20,
+          "category_points": 35,
+          "rewards": [
+            {
+              "id": "0e7bada6-f908-5b4d-8ee6-ecb9193e4d60",
+              "internal_name": "exploration_historic_wanderer_m2_r1",
+              "payload_type": "TITLE",
+              "title_id": "31db9ea2-a3fc-5223-b598-080198cfc65d"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "e1788923-db4c-55c4-a64e-bbc7bb3083ac",
+      "internal_name": "exploration_minmatar_exploration",
+      "display_name": "Exploration Minmatar Exploration",
+      "display_description": null,
+      "name_message_id": 1042786,
+      "description_message_id": 1042787,
+      "flavor_text_message_id": 1042788,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed",
+      "parent_category_internal_name": "exploration",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "exploration"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Exploration"
+      ],
+      "contribution": {
+        "method_id": "0fd986fb-c415-563a-9f07-3cd5984fb49e",
+        "parameters": [
+          {
+            "key": "location",
+            "matchers": [
+              {
+                "value_type": "region",
+                "values": [
+                  "10000042",
+                  "10000030",
+                  "10000028",
+                  "10000001"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "6d4b4c4d-2b50-5759-850c-abd51ba0b3ca",
+          "internal_name": "exploration_minmatar_exploration_m1",
+          "cumulated_target": 395,
+          "category_points": 50,
+          "rewards": [
+            {
+              "id": "85d29034-222d-55da-a010-b17ab9ff5020",
+              "internal_name": "exploration_minmatar_exploration_m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "f92e6f2d-a7a4-51be-9ecb-cb3f1b31ef2c"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "90b1a88f-c283-5dde-a264-c384d9d45168",
+      "internal_name": "exploration_signature_resolved",
+      "display_name": "Exploration Signature Resolved",
+      "display_description": null,
+      "name_message_id": 1042562,
+      "description_message_id": 1042563,
+      "flavor_text_message_id": 1042564,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed",
+      "parent_category_internal_name": "exploration",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "exploration"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Exploration"
+      ],
+      "contribution": {
+        "method_id": "edefd4c8-b655-5da4-a74b-22283f66d88b",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "7015f7fd-2599-55a2-a06c-7d6ecc1baf60",
+          "internal_name": "exploration_signature_resolved_m1",
+          "cumulated_target": 100,
+          "category_points": 10,
+          "rewards": []
+        },
+        {
+          "id": "33f310f8-90a4-5e84-80a2-2707f4a85fa8",
+          "internal_name": "exploration_signature_resolved_m2",
+          "cumulated_target": 2000,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "fe8660e2-f152-5017-9391-9720f2ff0f39",
+          "internal_name": "exploration_signature_resolved_m3",
+          "cumulated_target": 10000,
+          "category_points": 25,
+          "rewards": [
+            {
+              "id": "05895d5b-6c47-5200-a1e2-a8733b46447c",
+              "internal_name": "exploration_signature_resolved_m3_r1",
+              "payload_type": "TITLE",
+              "title_id": "3dfdc192-e990-5a1d-8a7c-d5d4649e3df6"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "a368306d-5248-55f5-a3a0-93d3b1597847",
+      "internal_name": "exploration_stellar_exploration",
+      "display_name": "Exploration Stellar Exploration",
+      "display_description": null,
+      "name_message_id": 1042719,
+      "description_message_id": 1042720,
+      "flavor_text_message_id": 1042721,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed",
+      "parent_category_internal_name": "exploration",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "exploration"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Exploration"
+      ],
+      "contribution": {
+        "method_id": "0fd986fb-c415-563a-9f07-3cd5984fb49e",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "504713ce-6b8e-5164-b815-ea1165f6e045",
+          "internal_name": "exploration_stellar_exploration_m1",
+          "cumulated_target": 30,
+          "category_points": 50,
+          "rewards": [
+            {
+              "id": "b2548f58-bdd6-5ce6-8f90-0f7e3090c336",
+              "internal_name": "exploration_stellar_exploration_m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "e305d38a-e7f7-546f-b403-4a388986e6b7"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "f60f6df9-d0b4-5663-9870-9e87e79acd8e",
+      "internal_name": "Exploration_Starbound",
+      "display_name": "Exploration Starbound",
+      "display_description": null,
+      "name_message_id": 1041557,
+      "description_message_id": 1041558,
+      "flavor_text_message_id": 1041559,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed",
+      "parent_category_internal_name": "exploration",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "exploration"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Exploration"
+      ],
+      "contribution": {
+        "method_id": "6c192d1e-cb2c-5a06-a664-80e8e15aa90b",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "b640ba1a-7de3-5b62-b8fa-6b18c730d239",
+          "internal_name": "Exploration_Starbound__m1",
+          "cumulated_target": 75,
+          "category_points": 10,
+          "rewards": []
+        },
+        {
+          "id": "25f31761-04bc-5064-be8d-e17297d7fcb8",
+          "internal_name": "Exploration_Starbound__m2",
+          "cumulated_target": 400,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "60a5f564-b02c-5db5-83e9-fcc368c2af6f",
+          "internal_name": "Exploration_Starbound__m3",
+          "cumulated_target": 1750,
+          "category_points": 25,
+          "rewards": [
+            {
+              "id": "b2053dbd-fae1-5d64-aec3-4d208267a26d",
+              "internal_name": "Exploration_Starbound_m3_r1",
+              "payload_type": "TITLE",
+              "title_id": "c894a0d1-262b-552c-a46c-27496c74374e"
+            },
+            {
+              "id": "00645cb6-abb8-50c7-babf-7f08959232c7",
+              "internal_name": "Exploration_Starbound_m3_m3_r2",
+              "payload_type": "SP",
+              "amount": 75000
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "67c4d338-f89a-5239-b0cf-6670fe3014db",
+      "internal_name": "Industry_Calm_Down_Miner",
+      "display_name": "Industry Calm Down Miner",
+      "display_description": null,
+      "name_message_id": 1041580,
+      "description_message_id": 1041581,
+      "flavor_text_message_id": 1041582,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "3bea6213-77ba-5d19-9a55-2dafb109c9b4",
+      "parent_category_internal_name": "industry",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "3bea6213-77ba-5d19-9a55-2dafb109c9b4"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "industry"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Industry"
+      ],
+      "contribution": {
+        "method_id": "b84f272c-e789-5355-8da8-e6586cf04fd5",
+        "parameters": [
+          {
+            "key": "mineable_ore_type",
+            "matchers": [
+              {
+                "value_type": "ore_group",
+                "values": [
+                  "4755",
+                  "4756",
+                  "4757",
+                  "4758",
+                  "4759",
+                  "4513",
+                  "4514",
+                  "4515",
+                  "4516",
+                  "4029",
+                  "4030",
+                  "4031",
+                  "450",
+                  "451",
+                  "453",
+                  "454",
+                  "455",
+                  "456",
+                  "457",
+                  "458",
+                  "459",
+                  "460",
+                  "461",
+                  "462",
+                  "467",
+                  "468",
+                  "469",
+                  "4568",
+                  "4857",
+                  "4915",
+                  "5083",
+                  "5084",
+                  "5085",
+                  "5086"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "a2aa9601-20eb-5ca3-b5e8-c91be8af659d",
+          "internal_name": "Industry_Calm_Down_Miner_m1",
+          "cumulated_target": 2500000,
+          "category_points": 50,
+          "rewards": [
+            {
+              "id": "8337a14a-0d56-5fb7-ae07-34bbbdfa5ae9",
+              "internal_name": "Industry_Calm_Down_Miner__m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "f3e5b56f-b163-5e25-b4da-7f3709c801d0"
+            },
+            {
+              "id": "5fc522c1-56e0-52fc-8538-35b99bc313fc",
+              "internal_name": "Industry_Calm_Down_Miner_m1_r2",
+              "payload_type": "SP",
+              "amount": 10000
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "08eba9d2-c3da-58aa-beda-69a91c003648",
+      "internal_name": "Industry_Moonfall",
+      "display_name": "Industry Moonfall",
+      "display_description": null,
+      "name_message_id": 1041572,
+      "description_message_id": 1041573,
+      "flavor_text_message_id": 1041574,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "3bea6213-77ba-5d19-9a55-2dafb109c9b4",
+      "parent_category_internal_name": "industry",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "3bea6213-77ba-5d19-9a55-2dafb109c9b4"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "industry"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Industry"
+      ],
+      "contribution": {
+        "method_id": "b84f272c-e789-5355-8da8-e6586cf04fd5",
+        "parameters": [
+          {
+            "key": "mineable_ore_type",
+            "matchers": [
+              {
+                "value_type": "ore_group",
+                "values": [
+                  "1920",
+                  "1921",
+                  "1922",
+                  "1923",
+                  "1884"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "5f12d165-c436-54d7-b1d3-3bd75a3e6e10",
+          "internal_name": "Industry_Moonfall_m1",
+          "cumulated_target": 1000000,
+          "category_points": 50,
+          "rewards": [
+            {
+              "id": "833ea84b-c039-5b00-9372-d3a0302fdd99",
+              "internal_name": "Industry_Moonfall__m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "0c231769-621e-53d5-bd49-ce07a7b4a544"
+            },
+            {
+              "id": "35fe43fb-ac03-53b4-98e1-2e61cdc31a33",
+              "internal_name": "Industry_Moonfall__m1_r2",
+              "payload_type": "SP",
+              "amount": 10000
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "eca1419c-20a1-5e87-9164-a0fbd6f2ea71",
+      "internal_name": "Industry_huff_and_puff",
+      "display_name": "Industry Huff AND Puff",
+      "display_description": null,
+      "name_message_id": 1041586,
+      "description_message_id": 1041587,
+      "flavor_text_message_id": 1041588,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "3bea6213-77ba-5d19-9a55-2dafb109c9b4",
+      "parent_category_internal_name": "industry",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "3bea6213-77ba-5d19-9a55-2dafb109c9b4"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "industry"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Industry"
+      ],
+      "contribution": {
+        "method_id": "b84f272c-e789-5355-8da8-e6586cf04fd5",
+        "parameters": [
+          {
+            "key": "mineable_ore_type",
+            "matchers": [
+              {
+                "value_type": "ore_group",
+                "values": [
+                  "711"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "5234d835-0ae5-525d-8774-0a9c02a47cf7",
+          "internal_name": "Industry_huff_and_puff_m1",
+          "cumulated_target": 1000000,
+          "category_points": 50,
+          "rewards": [
+            {
+              "id": "2e4d308f-949c-58fd-9654-5bb5b1c74992",
+              "internal_name": "Industry_huff_and_puff__m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "3a13f167-1408-598e-8e64-8e3c3a60d80a"
+            },
+            {
+              "id": "73465cdc-e30e-5501-8a56-c23ad4b82c73",
+              "internal_name": "Industry_huff_and_puff_m1_r2",
+              "payload_type": "SP",
+              "amount": 10000
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "4807c0f3-36e7-5449-b586-47e089ca992b",
+      "internal_name": "Industry_architect_of_war",
+      "display_name": "Industry Architect OF WAR",
+      "display_description": null,
+      "name_message_id": 1042578,
+      "description_message_id": 1042579,
+      "flavor_text_message_id": 1042580,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "3bea6213-77ba-5d19-9a55-2dafb109c9b4",
+      "parent_category_internal_name": "industry",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "3bea6213-77ba-5d19-9a55-2dafb109c9b4"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "industry"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Industry"
+      ],
+      "contribution": {
+        "method_id": "f280d00d-5c68-54ed-a1d0-e7b532f4e235",
+        "parameters": [
+          {
+            "key": "output_item_type",
+            "matchers": [
+              {
+                "value_type": "item_group",
+                "values": [
+                  "27"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "d4f03b7f-c41f-5ffc-953a-a322a9104fff",
+          "internal_name": "Industry_architect_of_war_m1",
+          "cumulated_target": 50,
+          "category_points": 50,
+          "rewards": [
+            {
+              "id": "a342e996-5279-5c82-a862-7c1e51b82cc5",
+              "internal_name": "Industry_architect_of_war__m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "9d492967-3d07-59b0-8f75-44c4714b5e00"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "8f16fa5e-5621-579a-8e55-441f2c5b0eb0",
+      "internal_name": "Industry_assembly_line",
+      "display_name": "Industry Assembly Line",
+      "display_description": null,
+      "name_message_id": 1042572,
+      "description_message_id": 1042573,
+      "flavor_text_message_id": 1042574,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "3bea6213-77ba-5d19-9a55-2dafb109c9b4",
+      "parent_category_internal_name": "industry",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "3bea6213-77ba-5d19-9a55-2dafb109c9b4"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "industry"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Industry"
+      ],
+      "contribution": {
+        "method_id": "f280d00d-5c68-54ed-a1d0-e7b532f4e235",
+        "parameters": [
+          {
+            "key": "output_item_type",
+            "matchers": [
+              {
+                "value_type": "item_group",
+                "values": [
+                  "26"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "81139c48-d4fc-5fd6-9a89-f2d9c7b369ef",
+          "internal_name": "Industry_assembly_line_m1",
+          "cumulated_target": 100,
+          "category_points": 50,
+          "rewards": [
+            {
+              "id": "010711f4-c6b9-5893-ae87-0568c55c937f",
+              "internal_name": "Industry_assembly_line__m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "5522946b-2b17-556f-817c-0b98af3ca6bc"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "3bb1549d-46bd-59ff-be7f-0a9652d5efcb",
+      "internal_name": "industry_deep_pockets",
+      "display_name": "Industry Deep Pockets",
+      "display_description": null,
+      "name_message_id": 1042458,
+      "description_message_id": 1042459,
+      "flavor_text_message_id": 1042460,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "3bea6213-77ba-5d19-9a55-2dafb109c9b4",
+      "parent_category_internal_name": "industry",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "3bea6213-77ba-5d19-9a55-2dafb109c9b4"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "industry"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Industry"
+      ],
+      "contribution": {
+        "method_id": "0e210216-e983-582d-abb5-d3fd2fe11876",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "7fcdeff5-c5d3-5752-b5e9-a24a1a66c158",
+          "internal_name": "industry_deep_pockets_m1",
+          "cumulated_target": 5000000,
+          "category_points": 10,
+          "rewards": []
+        },
+        {
+          "id": "861594a3-87fc-5108-9bbf-d13cec1f4ec3",
+          "internal_name": "industry_deep_pockets_m2",
+          "cumulated_target": 1000000000,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "6de56d4c-9054-5d4b-852a-fdae52e4e296",
+          "internal_name": "industry_deep_pockets_m3",
+          "cumulated_target": 1410065408,
+          "category_points": 25,
+          "rewards": [
+            {
+              "id": "814531ec-fd5a-5688-8bde-17e04d541a83",
+              "internal_name": "industry_deep_pockets_m3_r1",
+              "payload_type": "TITLE",
+              "title_id": "c67dfd0c-f482-567c-b5a1-91487ec902ff"
+            }
+          ],
+          "raw_cumulated_target": 10000000000,
+          "cumulated_target_value_type_code": 2
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "534841dd-aa20-53e8-9a3c-8fb539f7bf40",
+      "internal_name": "industry_marginal_victory",
+      "display_name": "Industry Marginal Victory",
+      "display_description": null,
+      "name_message_id": 1042453,
+      "description_message_id": 1042454,
+      "flavor_text_message_id": 1042455,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "3bea6213-77ba-5d19-9a55-2dafb109c9b4",
+      "parent_category_internal_name": "industry",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "3bea6213-77ba-5d19-9a55-2dafb109c9b4"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "industry"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Industry"
+      ],
+      "contribution": {
+        "method_id": "c70994ff-ed5a-5a0e-9b4b-96150bdd1edc",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "2c1db2b1-9091-56d4-b36d-49919deab9d0",
+          "internal_name": "industry_marginal_victory_m1",
+          "cumulated_target": 1000000,
+          "category_points": 10,
+          "rewards": []
+        },
+        {
+          "id": "576d7e3a-e1c3-59bc-a02f-48828adebdbe",
+          "internal_name": "industry_marginal_victory_m2",
+          "cumulated_target": 500000000,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "d30332cc-1b51-5e32-b1f0-08d179b4c858",
+          "internal_name": "industry_marginal_victory_m3",
+          "cumulated_target": 2500000000,
+          "category_points": 25,
+          "rewards": [
+            {
+              "id": "ec4c31c4-3a6a-5118-8412-6b61286bb17b",
+              "internal_name": "industry_marginal_victory_m3_r1",
+              "payload_type": "TITLE",
+              "title_id": "ca489be9-8261-572b-856f-5268b5764f90"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "eb621aa7-0fde-5b84-bfc5-aecfbeb4a0bd",
+      "internal_name": "Industry_master_manufacturer",
+      "display_name": "Industry Master Manufacturer",
+      "display_description": null,
+      "name_message_id": 1042575,
+      "description_message_id": 1042576,
+      "flavor_text_message_id": 1042577,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "3bea6213-77ba-5d19-9a55-2dafb109c9b4",
+      "parent_category_internal_name": "industry",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "3bea6213-77ba-5d19-9a55-2dafb109c9b4"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "industry"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Industry"
+      ],
+      "contribution": {
+        "method_id": "f280d00d-5c68-54ed-a1d0-e7b532f4e235",
+        "parameters": [
+          {
+            "key": "output_item_type",
+            "matchers": [
+              {
+                "value_type": "item_group",
+                "values": [
+                  "1201",
+                  "419"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "acab59d4-cb18-567c-874f-7c4909834572",
+          "internal_name": "Industry_master_manufacturer_m1",
+          "cumulated_target": 75,
+          "category_points": 50,
+          "rewards": [
+            {
+              "id": "9b118d98-7b86-52a8-8eb1-9c6be7978ee1",
+              "internal_name": "Industry_master_manufacturer__m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "00851de7-b7ca-5136-871e-d07429563c06"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "5d010d2f-72c8-563f-a55a-2446e5c9da22",
+      "internal_name": "industry_material_recovery",
+      "display_name": "Industry Material Recovery",
+      "display_description": null,
+      "name_message_id": 1042818,
+      "description_message_id": 1042819,
+      "flavor_text_message_id": 1042820,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "3bea6213-77ba-5d19-9a55-2dafb109c9b4",
+      "parent_category_internal_name": "industry",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "3bea6213-77ba-5d19-9a55-2dafb109c9b4"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "industry"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Industry"
+      ],
+      "contribution": {
+        "method_id": "9f622ab2-6fd6-55cf-946c-13fde15f638f",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "ad5ae222-613b-5ad3-aac7-4a8c568f2c1d",
+          "internal_name": "industry_material_recovery_m1",
+          "cumulated_target": 10000,
+          "category_points": 10,
+          "rewards": []
+        },
+        {
+          "id": "50608bff-1a90-5b6a-876b-586b24541888",
+          "internal_name": "industry_material_recovery_m2",
+          "cumulated_target": 200000,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "668d43db-02c4-5eb2-a6ff-5e8dd158e77b",
+          "internal_name": "industry_material_recovery_m3",
+          "cumulated_target": 500000,
+          "category_points": 25,
+          "rewards": [
+            {
+              "id": "a5685cc1-7957-5fdd-be08-a2c42466916e",
+              "internal_name": "industry_material_recovery_m3_r1",
+              "payload_type": "TITLE",
+              "title_id": "866ce4bb-e75c-5e41-a109-34a676b63d18"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "62875a0b-59f7-5d19-a3fb-c4bc80a4d887",
+      "internal_name": "industry_reduce_reuse_recycle",
+      "display_name": "Industry Reduce Reuse Recycle",
+      "display_description": null,
+      "name_message_id": 1042822,
+      "description_message_id": 1042823,
+      "flavor_text_message_id": 1042824,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "3bea6213-77ba-5d19-9a55-2dafb109c9b4",
+      "parent_category_internal_name": "industry",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "3bea6213-77ba-5d19-9a55-2dafb109c9b4"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "industry"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Industry"
+      ],
+      "contribution": {
+        "method_id": "c133a532-97d5-55bf-9ba6-0f853e614c8a",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "184b70e7-105b-5d8f-9790-cbee5241e791",
+          "internal_name": "industry_reduce_reuse_recycle_m1",
+          "cumulated_target": 500,
+          "category_points": 50,
+          "rewards": [
+            {
+              "id": "e026289c-6560-559d-b71a-1f9eaa6300e8",
+              "internal_name": "industry_reduce_reuse_recycle_m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "4c6968af-3084-5277-9f3f-f0ac1bcc3b99"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "82be3551-2b0e-5bc7-bbbc-21b7f812274b",
+      "internal_name": "Industry_titan_of_industry",
+      "display_name": "Industry Titan OF Industry",
+      "display_description": null,
+      "name_message_id": 1042581,
+      "description_message_id": 1042582,
+      "flavor_text_message_id": 1042583,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "3bea6213-77ba-5d19-9a55-2dafb109c9b4",
+      "parent_category_internal_name": "industry",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "3bea6213-77ba-5d19-9a55-2dafb109c9b4"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "industry"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Industry"
+      ],
+      "contribution": {
+        "method_id": "f280d00d-5c68-54ed-a1d0-e7b532f4e235",
+        "parameters": [
+          {
+            "key": "output_item_type",
+            "matchers": [
+              {
+                "value_type": "item_group",
+                "values": [
+                  "30"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "2195bc08-c836-51e2-ba7e-a8ac8ce1d468",
+          "internal_name": "Industry_titan_of_industry_m1",
+          "cumulated_target": 1,
+          "category_points": 50,
+          "rewards": [
+            {
+              "id": "6d004f9f-d673-5476-b5eb-971f3ed3bdd8",
+              "internal_name": "Industry_titan_of_industry_m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "45473135-b454-5ebc-bd60-c2dec0bc0b7a"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "8739d8d8-4e1e-5bca-b870-8f1357fa1dc7",
+      "internal_name": "other_epic_initiate",
+      "display_name": "Other Epic Initiate",
+      "display_description": null,
+      "name_message_id": 1043930,
+      "description_message_id": 1043931,
+      "flavor_text_message_id": 1043932,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "dea82d45-4f28-50e1-94a6-e0a817fa9902",
+      "parent_category_internal_name": "other",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "dea82d45-4f28-50e1-94a6-e0a817fa9902"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "other"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Other"
+      ],
+      "contribution": {
+        "method_id": "b1d1f64b-15f0-55c6-825e-785f249f7d8f",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "a87c7fb3-a1ed-532f-a3d3-d7563f7792f7",
+          "internal_name": "other_epic_initiate_m1",
+          "cumulated_target": 3,
+          "category_points": 15,
+          "rewards": []
+        },
+        {
+          "id": "02b156d9-275e-515f-9f1f-b53d7f362d6b",
+          "internal_name": "other_epic_initiate_m2",
+          "cumulated_target": 15,
+          "category_points": 35,
+          "rewards": [
+            {
+              "id": "6788afb6-7828-549a-beff-3afdaed537ad",
+              "internal_name": "other_epic_initiate_m2_r1",
+              "payload_type": "TITLE",
+              "title_id": "aec9b88f-813b-5d27-86d1-d6059590bf99"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "37e5d7f6-8bcc-5e64-b703-0423e8fa5894",
+      "internal_name": "other_one_way_ticket",
+      "display_name": "Other ONE WAY Ticket",
+      "display_description": null,
+      "name_message_id": 1046818,
+      "description_message_id": 1046819,
+      "flavor_text_message_id": 1046820,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "dea82d45-4f28-50e1-94a6-e0a817fa9902",
+      "parent_category_internal_name": "other",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "dea82d45-4f28-50e1-94a6-e0a817fa9902"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "other"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Other"
+      ],
+      "contribution": {
+        "method_id": "0efaba2b-ce71-5ea3-b978-0b468f343e25",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "9c18f762-3791-50e6-8b0d-e6e38908171d",
+          "internal_name": "other_one_way_ticket_m1",
+          "cumulated_target": 1,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "1ce0b14b-234f-522b-a97e-f897afd91b71",
+              "internal_name": "other_one_way_ticket_m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "c236b11b-ea9a-5deb-88b8-b9cbe2a67e20"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "7ff3bdfc-9e4f-5177-a132-3f0beed3b699",
+      "internal_name": "other_peer_reviewed",
+      "display_name": "Other Peer Reviewed",
+      "display_description": null,
+      "name_message_id": 1042825,
+      "description_message_id": 1042826,
+      "flavor_text_message_id": 1042827,
+      "icon_id": "",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": null,
+      "release_date_iso_utc": null,
+      "expiration_date_unix_ms": null,
+      "expiration_date_iso_utc": null,
+      "tags": [],
+      "ui_annotations": {},
+      "archived": false,
+      "root": "CHALLENGES",
+      "parent_category_id": "dea82d45-4f28-50e1-94a6-e0a817fa9902",
+      "parent_category_internal_name": "other",
+      "category_path_ids": [
+        "d436cdf1-e77c-527e-9081-3f4d39dce702",
+        "dea82d45-4f28-50e1-94a6-e0a817fa9902"
+      ],
+      "category_path_internal_names": [
+        "challenges",
+        "other"
+      ],
+      "category_path_display_names": [
+        "Challenges",
+        "Other"
+      ],
+      "contribution": {
+        "method_id": "9f224345-20a0-51c5-93e2-0c2e3fc261f6",
+        "parameters": []
+      },
+      "milestones": [
+        {
+          "id": "01da5f52-d52c-54e5-be99-4e0b257e0f19",
+          "internal_name": "other_peer_reviewed_m1",
+          "cumulated_target": 200,
+          "category_points": 15,
+          "rewards": [
+            {
+              "id": "8192ef20-1149-54d7-931f-b2d0e0ea3d55",
+              "internal_name": "other_peer_reviewed_m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "2053b64b-499c-56f0-b5bd-9a328dfe9a5d"
+            }
+          ]
+        },
+        {
+          "id": "5544fd69-5c64-55bc-806e-e7b0d93ccc53",
+          "internal_name": "other_peer_reviewed_m2",
+          "cumulated_target": 2000,
+          "category_points": 35,
+          "rewards": [
+            {
+              "id": "e44acd50-d357-5270-8dc0-1bf645eac87b",
+              "internal_name": "other_peer_reviewed_m2_r1",
+              "payload_type": "TITLE",
+              "title_id": "519fb4c8-2634-5d61-92b8-9ed437cd4f59"
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "e68a8d17-8556-5c9a-b961-312b9c3682d6",
+      "internal_name": "2026_q2_amarr_achievement",
+      "display_name": "2026 Q2 Amarr Achievement",
+      "display_description": null,
+      "name_message_id": 1044145,
+      "description_message_id": 1044146,
+      "flavor_text_message_id": 1044147,
+      "icon_id": "ongoing_conflicts",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": 1781002800000,
+      "release_date_iso_utc": "2026-06-09T11:00:00+00:00",
+      "expiration_date_unix_ms": 1790766000000,
+      "expiration_date_iso_utc": "2026-09-30T11:00:00+00:00",
+      "tags": [],
+      "ui_annotations": {
+        "icon_inner_frame": "amarr"
+      },
+      "archived": false,
+      "root": "TIME_LIMITED",
+      "parent_category_id": "934b7f7a-8348-582a-92ed-ea40f5144dd1",
+      "parent_category_internal_name": "2026_q2_amarr_campaign",
+      "category_path_ids": [
+        "af639814-a4b2-5d15-bf89-0961c7244151",
+        "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+        "934b7f7a-8348-582a-92ed-ea40f5144dd1"
+      ],
+      "category_path_internal_names": [
+        "time_limited",
+        "campaigns",
+        "2026_q2_amarr_campaign"
+      ],
+      "category_path_display_names": [
+        "Time Limited",
+        "Campaigns",
+        "2026 Q2 Amarr Campaign"
+      ],
+      "contribution": {
+        "method_id": "c513762c-d8f2-58bb-82c8-b833caf3aeb6",
+        "parameters": [
+          {
+            "key": "campaign_name",
+            "matchers": [
+              {
+                "value_type": "campaign_name",
+                "values": [
+                  "2026_q2_amarr_campaign",
+                  "2026_q2_amarr_campaign_qa_testing",
+                  "2026_q2_amarr_campaign_shortking"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "06f792bd-a76e-5b10-81f5-09a8b22c8587",
+          "internal_name": "2026_q2_amarr_achievement_m1",
+          "cumulated_target": 3,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "224fdabf-a76e-545a-9b7f-366325ac41e1",
+              "internal_name": "2026_q2_amarr_achievement_m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "c8f86c5e-869f-54c7-b117-7feffed9255c"
+            },
+            {
+              "id": "b8a540ad-150f-5183-9fb4-f99e1513d760",
+              "internal_name": "2026_q2_amarr_achievement_m1_r2",
+              "payload_type": "ITEM",
+              "type_id": 93705,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "a30efe9e-77a8-54b7-b487-c2fa75b7d00e",
+          "internal_name": "2026_q2_amarr_achievement_m2",
+          "cumulated_target": 5,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "cad5a22f-551b-5f64-b877-40e460d72580",
+              "internal_name": "2026_q2_amarr_achievement_m2_r1",
+              "payload_type": "ITEM",
+              "type_id": 93658,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "0559de52-1ef4-50e9-96c8-e3693a39d54b",
+          "internal_name": "2026_q2_amarr_achievement_m3",
+          "cumulated_target": 10,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "10e86258-f9b1-5e40-9536-7a740075d9a3",
+              "internal_name": "2026_q2_amarr_achievement_m3_r1",
+              "payload_type": "ITEM",
+              "type_id": 93657,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "016fcc35-31d5-5fc2-ac8b-bcab58984c96",
+          "internal_name": "2026_q2_amarr_achievement_m4",
+          "cumulated_target": 15,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "1a985476-0172-5b1a-b38b-5be28a1ebcde",
+              "internal_name": "2026_q2_amarr_achievement_m4_r1",
+              "payload_type": "ITEM",
+              "type_id": 93707,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "0d4f3ff3-07a8-5a8c-ba52-8962caef2dff",
+          "internal_name": "2026_q2_amarr_achievement_m5",
+          "cumulated_target": 20,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "1f4f4983-6dae-51b8-8516-2848102f6930",
+              "internal_name": "2026_q2_amarr_achievement_m5_r1",
+              "payload_type": "TITLE",
+              "title_id": "c711a83b-058b-5317-89b1-88ea897f46df"
+            },
+            {
+              "id": "050b0817-a6c7-5991-8e1d-b774b9064d46",
+              "internal_name": "2026_q2_amarr_achievement_m5_r2",
+              "payload_type": "ITEM",
+              "type_id": 93708,
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "0638d0a9-85be-5d14-a6ea-9ab1977acbe3",
+      "internal_name": "2026_q2_caldari_achievement",
+      "display_name": "2026 Q2 Caldari Achievement",
+      "display_description": null,
+      "name_message_id": 1044152,
+      "description_message_id": 1044153,
+      "flavor_text_message_id": 1044158,
+      "icon_id": "ongoing_conflicts",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": 1781002800000,
+      "release_date_iso_utc": "2026-06-09T11:00:00+00:00",
+      "expiration_date_unix_ms": 1790766000000,
+      "expiration_date_iso_utc": "2026-09-30T11:00:00+00:00",
+      "tags": [],
+      "ui_annotations": {
+        "icon_inner_frame": "caldari"
+      },
+      "archived": false,
+      "root": "TIME_LIMITED",
+      "parent_category_id": "c3006731-ce9e-5e7b-8a7d-d1d1199875a8",
+      "parent_category_internal_name": "2026_q2_caldari_campaign",
+      "category_path_ids": [
+        "af639814-a4b2-5d15-bf89-0961c7244151",
+        "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+        "c3006731-ce9e-5e7b-8a7d-d1d1199875a8"
+      ],
+      "category_path_internal_names": [
+        "time_limited",
+        "campaigns",
+        "2026_q2_caldari_campaign"
+      ],
+      "category_path_display_names": [
+        "Time Limited",
+        "Campaigns",
+        "2026 Q2 Caldari Campaign"
+      ],
+      "contribution": {
+        "method_id": "c513762c-d8f2-58bb-82c8-b833caf3aeb6",
+        "parameters": [
+          {
+            "key": "campaign_name",
+            "matchers": [
+              {
+                "value_type": "campaign_name",
+                "values": [
+                  "2026_q2_caldari_campaign",
+                  "2026_q2_caldari_campaign_qa_testing",
+                  "2026_q2_caldari_campaign_shortking"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "a366f018-e5b4-5d43-a8fc-885a0def4f6f",
+          "internal_name": "2026_q2_caldari_achievement_m1",
+          "cumulated_target": 3,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "384b65ea-43c5-595f-a056-a5007e4a955f",
+              "internal_name": "2026_q2_caldari_achievement_m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "0ead53fb-9ab1-541a-abb9-499c7a75b6a8"
+            },
+            {
+              "id": "2122c1dc-f2da-556c-8726-1e44521af0fb",
+              "internal_name": "2026_q2_caldari_achievement_m1_r2",
+              "payload_type": "ITEM",
+              "type_id": 93714,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "c19abc2e-1c33-5b1c-a986-b644569691b1",
+          "internal_name": "2026_q2_caldari_achievement_m2",
+          "cumulated_target": 5,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "d198cd1f-9735-5e80-b08e-a2bdb901f4c2",
+              "internal_name": "2026_q2_caldari_achievement_m2_r1",
+              "payload_type": "ITEM",
+              "type_id": 93665,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "d98783b1-1bd7-5ee2-a596-8b39a3197567",
+          "internal_name": "2026_q2_caldari_achievement_m3",
+          "cumulated_target": 10,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "d71f1c81-e048-5c75-966d-684dc68f733b",
+              "internal_name": "2026_q2_caldari_achievement_m3_r1",
+              "payload_type": "ITEM",
+              "type_id": 93669,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "cfc214c7-a2f4-5e0d-902e-6dc470e21df6",
+          "internal_name": "2026_q2_caldari_achievement_m4",
+          "cumulated_target": 15,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "78c54287-f49b-5598-915f-d9624cf20d7d",
+              "internal_name": "2026_q2_caldari_achievement_m4_r1",
+              "payload_type": "ITEM",
+              "type_id": 93711,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "c024097d-9836-5863-97d3-aaf6e50d9203",
+          "internal_name": "2026_q2_caldari_achievement_m5",
+          "cumulated_target": 20,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "22ed8313-ebe6-59e1-9f7b-107c3637db03",
+              "internal_name": "2026_q2_caldari_achievement_m5_r1",
+              "payload_type": "TITLE",
+              "title_id": "4ab1da84-b87f-54ae-a035-04dcf1ab3b1f"
+            },
+            {
+              "id": "8de6af27-4e15-52d1-8224-47f9a790243b",
+              "internal_name": "2026_q2_caldari_achievement_m5_r2",
+              "payload_type": "ITEM",
+              "type_id": 93710,
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "6f72150b-77cb-5f2c-9b80-f1f641812e82",
+      "internal_name": "2026_q2_gallente_achievement",
+      "display_name": "2026 Q2 Gallente Achievement",
+      "display_description": null,
+      "name_message_id": 1044148,
+      "description_message_id": 1044149,
+      "flavor_text_message_id": 1044155,
+      "icon_id": "ongoing_conflicts",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": 1781002800000,
+      "release_date_iso_utc": "2026-06-09T11:00:00+00:00",
+      "expiration_date_unix_ms": 1790766000000,
+      "expiration_date_iso_utc": "2026-09-30T11:00:00+00:00",
+      "tags": [],
+      "ui_annotations": {
+        "icon_inner_frame": "gallente"
+      },
+      "archived": false,
+      "root": "TIME_LIMITED",
+      "parent_category_id": "ded4fa10-a147-5854-92e8-390c1843872a",
+      "parent_category_internal_name": "2026_q2_gallente_campaign",
+      "category_path_ids": [
+        "af639814-a4b2-5d15-bf89-0961c7244151",
+        "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+        "ded4fa10-a147-5854-92e8-390c1843872a"
+      ],
+      "category_path_internal_names": [
+        "time_limited",
+        "campaigns",
+        "2026_q2_gallente_campaign"
+      ],
+      "category_path_display_names": [
+        "Time Limited",
+        "Campaigns",
+        "2026 Q2 Gallente Campaign"
+      ],
+      "contribution": {
+        "method_id": "c513762c-d8f2-58bb-82c8-b833caf3aeb6",
+        "parameters": [
+          {
+            "key": "campaign_name",
+            "matchers": [
+              {
+                "value_type": "campaign_name",
+                "values": [
+                  "2026_q2_gallente_campaign",
+                  "2026_q2_gallente_campaign_qa_testing",
+                  "2026_q2_gallente_campaign_shortking"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "29a225c1-69e6-5042-bf7e-f492d12a49e1",
+          "internal_name": "2026_q2_gallente_achievement_m1",
+          "cumulated_target": 3,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "84b62573-115e-5021-816f-ccec7142f699",
+              "internal_name": "2026_q2_gallente_achievement_m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "cc1a827e-bb0a-5ccc-b38a-39bf462e6ee1"
+            },
+            {
+              "id": "caf3e4e1-0edd-5a03-8647-b3cba622123c",
+              "internal_name": "2026_q2_gallente_achievement_m1_r2",
+              "payload_type": "ITEM",
+              "type_id": 93719,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "44ea1671-09b8-5c53-8d45-7ed0df05eba2",
+          "internal_name": "2026_q2_gallente_achievement_m2",
+          "cumulated_target": 5,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "4f00dd7f-5e22-5f13-927a-d76d9a956d66",
+              "internal_name": "2026_q2_gallente_achievement_m2_r1",
+              "payload_type": "ITEM",
+              "type_id": 93694,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "4a745874-19f5-5256-9a28-6543931bfde4",
+          "internal_name": "2026_q2_gallente_achievement_m3",
+          "cumulated_target": 10,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "1edb58b1-6681-574a-966a-d8140b789db5",
+              "internal_name": "2026_q2_gallente_achievement_m3_r1",
+              "payload_type": "ITEM",
+              "type_id": 93693,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "0eb9ca18-eaf4-549a-8ba5-5ded5b405146",
+          "internal_name": "2026_q2_gallente_achievement_m4",
+          "cumulated_target": 15,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "c8731e04-f6b0-561c-9b3f-91f00abe8556",
+              "internal_name": "2026_q2_gallente_achievement_m4_r1",
+              "payload_type": "ITEM",
+              "type_id": 93716,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "6e5b48ba-eeaa-5f36-8a2f-173b01f16312",
+          "internal_name": "2026_q2_gallente_achievement_m5",
+          "cumulated_target": 20,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "bc58709a-5be5-58a4-901c-4eb4362acf71",
+              "internal_name": "2026_q2_gallente_achievement_m5_r1",
+              "payload_type": "TITLE",
+              "title_id": "b6d79605-6677-50e5-931b-2462b357d2f3"
+            },
+            {
+              "id": "0996e7ba-2807-59f0-b4d4-97364cf352c5",
+              "internal_name": "2026_q2_gallente_achievement_m5_r2",
+              "payload_type": "ITEM",
+              "type_id": 93715,
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    },
+    {
+      "id": "bff2c999-4d90-5d58-9128-0203e20bad49",
+      "internal_name": "2026_q2_minmatar_achievement",
+      "display_name": "2026 Q2 Minmatar Achievement",
+      "display_description": null,
+      "name_message_id": 1044150,
+      "description_message_id": 1044151,
+      "flavor_text_message_id": 1044157,
+      "icon_id": "ongoing_conflicts",
+      "issuer_npc_corp": null,
+      "release_date_unix_ms": 1781002800000,
+      "release_date_iso_utc": "2026-06-09T11:00:00+00:00",
+      "expiration_date_unix_ms": 1790766000000,
+      "expiration_date_iso_utc": "2026-09-30T11:00:00+00:00",
+      "tags": [],
+      "ui_annotations": {
+        "icon_inner_frame": "minmatar"
+      },
+      "archived": false,
+      "root": "TIME_LIMITED",
+      "parent_category_id": "78206993-8874-5e40-97ee-35503c609cc0",
+      "parent_category_internal_name": "2026_q2_minmatar_campaign",
+      "category_path_ids": [
+        "af639814-a4b2-5d15-bf89-0961c7244151",
+        "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+        "78206993-8874-5e40-97ee-35503c609cc0"
+      ],
+      "category_path_internal_names": [
+        "time_limited",
+        "campaigns",
+        "2026_q2_minmatar_campaign"
+      ],
+      "category_path_display_names": [
+        "Time Limited",
+        "Campaigns",
+        "2026 Q2 Minmatar Campaign"
+      ],
+      "contribution": {
+        "method_id": "c513762c-d8f2-58bb-82c8-b833caf3aeb6",
+        "parameters": [
+          {
+            "key": "campaign_name",
+            "matchers": [
+              {
+                "value_type": "campaign_name",
+                "values": [
+                  "2026_q2_minmatar_campaign",
+                  "2026_q2_minmatar_campaign_qa_testing",
+                  "2026_q2_minmatar_campaign_shortking"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "802d919a-d626-5cfd-b24e-c9e60b60eddb",
+          "internal_name": "2026_q2_minmatar_achievement_m1",
+          "cumulated_target": 3,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "1ff1ba23-41db-5cb2-b2ce-8d6863cc238b",
+              "internal_name": "2026_q2_minmatar_achievement_m1_r1",
+              "payload_type": "TITLE",
+              "title_id": "04ae6e1f-d39a-5f5b-b9f4-7a2b3e426a38"
+            },
+            {
+              "id": "22c909ee-bde4-5311-9fa2-f5b7779de008",
+              "internal_name": "2026_q2_minmatar_achievement_m1_r2",
+              "payload_type": "ITEM",
+              "type_id": 93724,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "a4b1dc3a-87ea-565b-a800-604bfa205439",
+          "internal_name": "2026_q2_minmatar_achievement_m2",
+          "cumulated_target": 5,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "04d61cb4-0f77-5788-a87b-004ba67e0644",
+              "internal_name": "2026_q2_minmatar_achievement_m2_r1",
+              "payload_type": "ITEM",
+              "type_id": 93701,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "c06e87ac-7741-5af7-9cd1-9814a72c412c",
+          "internal_name": "2026_q2_minmatar_achievement_m3",
+          "cumulated_target": 10,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "c869a831-1255-5f53-89e7-213f12293a6f",
+              "internal_name": "2026_q2_minmatar_achievement_m3_r1",
+              "payload_type": "ITEM",
+              "type_id": 93700,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "d47687e7-0803-529b-89ae-dc28e04576af",
+          "internal_name": "2026_q2_minmatar_achievement_m4",
+          "cumulated_target": 15,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "7a9caeb3-ff9d-5c36-9052-36b29f6106e2",
+              "internal_name": "2026_q2_minmatar_achievement_m4_r1",
+              "payload_type": "ITEM",
+              "type_id": 93721,
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "id": "2d114d4c-3f1d-5ceb-824a-c30c8b34040b",
+          "internal_name": "2026_q2_minmatar_achievement_m5",
+          "cumulated_target": 20,
+          "category_points": 0,
+          "rewards": [
+            {
+              "id": "a1f83be5-f9d2-5ddf-914e-2226109c3f78",
+              "internal_name": "2026_q2_minmatar_achievement_m5_r1",
+              "payload_type": "TITLE",
+              "title_id": "cafc93b5-4027-563d-adc0-5f6d76155b4e"
+            },
+            {
+              "id": "25a5d29e-3027-59c1-a0f0-fb4eaaa4111f",
+              "internal_name": "2026_q2_minmatar_achievement_m5_r2",
+              "payload_type": "ITEM",
+              "type_id": 93720,
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "observed_log_text": {}
+    }
+  ],
+  "contributionMethods": [
+    {
+      "id": "b84f272c-e789-5355-8da8-e6586cf04fd5",
+      "name_message_id": 1044327,
+      "description_message_id": 1044328,
+      "progress_message_id": 1044329,
+      "icon_id": "mining_diamond",
+      "content_tags": [
+        "activity_industry",
+        "career_path_industrialist"
+      ],
+      "parameters": [
+        {
+          "key": "location",
+          "param_type": "location",
+          "accepted_value_types": [
+            "solarsystem",
+            "constellation",
+            "region"
+          ],
+          "optional": true,
+          "name_message_id": 1037689,
+          "description_message_id": 1037690,
+          "icon_id": "location"
+        },
+        {
+          "key": "mineable_ore_type",
+          "param_type": "mineable_ore_type",
+          "accepted_value_types": [
+            "ore_group",
+            "ore_type"
+          ],
+          "optional": true,
+          "name_message_id": 1039809,
+          "description_message_id": 1039809,
+          "icon_id": "mining_diamond"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "0fd986fb-c415-563a-9f07-3cd5984fb49e",
+      "name_message_id": 1042090,
+      "description_message_id": 1042091,
+      "progress_message_id": 1042092,
+      "icon_id": "solar_system",
+      "content_tags": [
+        "activity_travel",
+        "activity_exploration",
+        "career_path_explorer"
+      ],
+      "parameters": [
+        {
+          "key": "location",
+          "param_type": "location",
+          "accepted_value_types": [
+            "solarsystem",
+            "constellation",
+            "region"
+          ],
+          "optional": true,
+          "name_message_id": 1037689,
+          "description_message_id": 1037690,
+          "icon_id": "solar_system"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 3,
+        "progress_type": "SET",
+        "target_parameter": "solarsystem",
+        "target_value_type": "solarsystem"
+      }
+    },
+    {
+      "id": "7be7520a-fdd1-51e0-b68a-778bd8f81451",
+      "name_message_id": 1041583,
+      "description_message_id": 1041584,
+      "progress_message_id": 1041585,
+      "icon_id": "jump_to",
+      "content_tags": [
+        "activity_exploration",
+        "activity_travel",
+        "career_path_explorer"
+      ],
+      "parameters": [
+        {
+          "key": "location",
+          "param_type": "location",
+          "accepted_value_types": [
+            "solarsystem",
+            "constellation",
+            "region"
+          ],
+          "optional": true,
+          "name_message_id": 1037689,
+          "description_message_id": 1037690,
+          "icon_id": "solar_system"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "6c192d1e-cb2c-5a06-a664-80e8e15aa90b",
+      "name_message_id": 1041583,
+      "description_message_id": 1041584,
+      "progress_message_id": 1041585,
+      "icon_id": "jump_to",
+      "content_tags": [
+        "activity_exploration",
+        "activity_travel",
+        "career_path_explorer"
+      ],
+      "parameters": [
+        {
+          "key": "location",
+          "param_type": "location",
+          "accepted_value_types": [
+            "solarsystem",
+            "constellation",
+            "region"
+          ],
+          "optional": true,
+          "name_message_id": 1037689,
+          "description_message_id": 1037690,
+          "icon_id": "solar_system"
+        },
+        {
+          "key": "stargate",
+          "param_type": "stargate",
+          "accepted_value_types": [
+            "stargate"
+          ],
+          "optional": true,
+          "name_message_id": 1043428,
+          "description_message_id": 1043429,
+          "icon_id": "jump_to"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 3,
+        "progress_type": "SET",
+        "target_parameter": "stargate",
+        "target_value_type": "stargate"
+      }
+    },
+    {
+      "id": "bc91bad3-4a8b-5296-a5d3-087a89f5ef9d",
+      "name_message_id": 1046231,
+      "description_message_id": 1046232,
+      "progress_message_id": 1046233,
+      "icon_id": "skull",
+      "content_tags": [
+        "career_path_enforcer",
+        "activity_combat"
+      ],
+      "parameters": [
+        {
+          "key": "location",
+          "param_type": "location",
+          "accepted_value_types": [
+            "solarsystem",
+            "constellation",
+            "region"
+          ],
+          "optional": true,
+          "name_message_id": 1037689,
+          "description_message_id": 1037690,
+          "icon_id": "solar_system"
+        },
+        {
+          "key": "security_class",
+          "param_type": "security_class",
+          "accepted_value_types": [
+            "security_class"
+          ],
+          "optional": true,
+          "name_message_id": 1044073,
+          "description_message_id": 1044074,
+          "icon_id": "security_class"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "4365644b-ae5b-54d0-9b2c-8418f23ced25",
+      "name_message_id": 665425,
+      "description_message_id": 665426,
+      "progress_message_id": 696248,
+      "icon_id": "attack_fw_complex",
+      "content_tags": [
+        "career_path_soldier_of_fortune",
+        "activity_combat",
+        "feature_factional_warfare"
+      ],
+      "parameters": [
+        {
+          "key": "location",
+          "param_type": "location",
+          "accepted_value_types": [
+            "solarsystem",
+            "constellation",
+            "region"
+          ],
+          "optional": true,
+          "name_message_id": 1037689,
+          "description_message_id": 1037690,
+          "icon_id": "solar_system"
+        },
+        {
+          "key": "fw_complex_type",
+          "param_type": "factional_warfare_complex_type",
+          "accepted_value_types": [
+            "archetype"
+          ],
+          "optional": true,
+          "name_message_id": 676941,
+          "description_message_id": 676942,
+          "icon_id": "faction_warfare"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "6dab04b7-45a1-51bc-ae08-a2156a76efa4",
+      "name_message_id": 659201,
+      "description_message_id": 659202,
+      "progress_message_id": 696243,
+      "icon_id": "damage",
+      "content_tags": [
+        "career_path_soldier_of_fortune",
+        "activity_combat"
+      ],
+      "parameters": [
+        {
+          "key": "location",
+          "param_type": "location",
+          "accepted_value_types": [
+            "solarsystem",
+            "constellation",
+            "region"
+          ],
+          "optional": true,
+          "name_message_id": 1037689,
+          "description_message_id": 1037690,
+          "icon_id": "solar_system"
+        },
+        {
+          "key": "damaged_ship",
+          "param_type": "ship_type",
+          "accepted_value_types": [
+            "ship_type",
+            "ship_class"
+          ],
+          "optional": true,
+          "name_message_id": 659206,
+          "description_message_id": 659209,
+          "icon_id": "spaceship_command"
+        },
+        {
+          "key": "damaged_identity",
+          "param_type": "identity",
+          "accepted_value_types": [
+            "character",
+            "corporation",
+            "alliance",
+            "faction"
+          ],
+          "optional": true,
+          "name_message_id": 676930,
+          "description_message_id": 659214,
+          "icon_id": "pilot_or_organization"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "c5cf8c21-4e10-5aaa-829f-1b9420ae93e1",
+      "name_message_id": 1037691,
+      "description_message_id": 1037692,
+      "progress_message_id": 1037693,
+      "icon_id": "skull",
+      "content_tags": [
+        "career_path_soldier_of_fortune",
+        "activity_combat"
+      ],
+      "parameters": [
+        {
+          "key": "location",
+          "param_type": "location",
+          "accepted_value_types": [
+            "solarsystem",
+            "constellation",
+            "region"
+          ],
+          "optional": true,
+          "name_message_id": 1037689,
+          "description_message_id": 1037690,
+          "icon_id": "solar_system"
+        },
+        {
+          "key": "destroyed_ship",
+          "param_type": "ship_type",
+          "accepted_value_types": [
+            "ship_type",
+            "ship_class"
+          ],
+          "optional": true,
+          "name_message_id": 659206,
+          "description_message_id": 676929,
+          "icon_id": "spaceship_command"
+        },
+        {
+          "key": "destroyed_identity",
+          "param_type": "identity",
+          "accepted_value_types": [
+            "character",
+            "corporation",
+            "alliance",
+            "faction"
+          ],
+          "optional": true,
+          "name_message_id": 676930,
+          "description_message_id": 676931,
+          "icon_id": "pilot_or_organization"
+        },
+        {
+          "key": "security_class",
+          "param_type": "security_class",
+          "accepted_value_types": [
+            "security_class"
+          ],
+          "optional": true,
+          "name_message_id": 1044073,
+          "description_message_id": 1044074,
+          "icon_id": "security_class"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "5691bcdd-b9fb-5e41-8719-294abb3ffe38",
+      "name_message_id": 1042093,
+      "description_message_id": 1042094,
+      "progress_message_id": 1042095,
+      "icon_id": "skull",
+      "content_tags": [
+        "career_path_soldier_of_fortune",
+        "activity_combat",
+        "feature_factional_warfare",
+        "career_path_enforcer"
+      ],
+      "parameters": [],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "9f139ef3-d073-5c8d-9395-4fa9f207692d",
+      "name_message_id": 1042097,
+      "description_message_id": 1042098,
+      "progress_message_id": 1042099,
+      "icon_id": "lose_ship",
+      "content_tags": [
+        "career_path_soldier_of_fortune",
+        "activity_combat",
+        "feature_factional_warfare",
+        "career_path_enforcer"
+      ],
+      "parameters": [
+        {
+          "key": "location",
+          "param_type": "location",
+          "accepted_value_types": [
+            "solarsystem",
+            "constellation",
+            "region"
+          ],
+          "optional": true,
+          "name_message_id": 1037689,
+          "description_message_id": 1037690,
+          "icon_id": "solar_system"
+        },
+        {
+          "key": "lost_ship",
+          "param_type": "ship_type",
+          "accepted_value_types": [
+            "ship_type",
+            "ship_class"
+          ],
+          "optional": true,
+          "name_message_id": 659206,
+          "description_message_id": 676929,
+          "icon_id": "spaceship_command"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "f280d00d-5c68-54ed-a1d0-e7b532f4e235",
+      "name_message_id": 1042120,
+      "description_message_id": 1042121,
+      "progress_message_id": 1042122,
+      "icon_id": "production",
+      "content_tags": [
+        "activity_industry",
+        "career_path_industrialist",
+        "activity_manufacturing"
+      ],
+      "parameters": [
+        {
+          "key": "output_item_type",
+          "param_type": "inventory_type",
+          "accepted_value_types": [
+            "item_type",
+            "item_group"
+          ],
+          "optional": true,
+          "name_message_id": 1043114,
+          "description_message_id": 1043115,
+          "icon_id": "production"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "a3740e29-4014-5a44-9bf0-30038093fdf9",
+      "name_message_id": 1042170,
+      "description_message_id": 1042171,
+      "progress_message_id": 1042172,
+      "icon_id": "agent_mission",
+      "content_tags": [
+        "career_path_enforcer",
+        "career_path_soldier_of_fortune",
+        "activity_combat",
+        "feature_agent_missions"
+      ],
+      "parameters": [
+        {
+          "key": "agent_division",
+          "param_type": "agent_division",
+          "accepted_value_types": [
+            "division"
+          ],
+          "optional": true,
+          "name_message_id": 1043174,
+          "description_message_id": 1043175,
+          "icon_id": "agent_mission"
+        },
+        {
+          "key": "agent_level",
+          "param_type": "agent_level",
+          "accepted_value_types": [
+            "level"
+          ],
+          "optional": true,
+          "name_message_id": 1043178,
+          "description_message_id": 1043179,
+          "icon_id": "agent_mission"
+        },
+        {
+          "key": "agent_faction",
+          "param_type": "empire_faction",
+          "accepted_value_types": [
+            "faction"
+          ],
+          "optional": true,
+          "name_message_id": 1043180,
+          "description_message_id": 1043181,
+          "icon_id": "unclassified"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "fd56a3db-057f-5693-ab1a-efcc8ad7505f",
+      "name_message_id": 1042173,
+      "description_message_id": 1042174,
+      "progress_message_id": 1042175,
+      "icon_id": "agent_mission",
+      "content_tags": [
+        "career_path_enforcer",
+        "career_path_soldier_of_fortune",
+        "activity_combat",
+        "feature_agent_missions"
+      ],
+      "parameters": [
+        {
+          "key": "agent_division",
+          "param_type": "agent_division",
+          "accepted_value_types": [
+            "division"
+          ],
+          "optional": true,
+          "name_message_id": 1043174,
+          "description_message_id": 1043175,
+          "icon_id": "agent_mission"
+        },
+        {
+          "key": "agent_level",
+          "param_type": "agent_level",
+          "accepted_value_types": [
+            "level"
+          ],
+          "optional": true,
+          "name_message_id": 1043178,
+          "description_message_id": 1043179,
+          "icon_id": "agent_mission"
+        },
+        {
+          "key": "agent_faction",
+          "param_type": "empire_faction",
+          "accepted_value_types": [
+            "faction"
+          ],
+          "optional": true,
+          "name_message_id": 1043180,
+          "description_message_id": 1043181,
+          "icon_id": "unclassified"
+        },
+        {
+          "key": "mission",
+          "param_type": "mission",
+          "accepted_value_types": [
+            "mission"
+          ],
+          "optional": true,
+          "name_message_id": 1043183,
+          "description_message_id": 1043184,
+          "icon_id": "agent_mission"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 3,
+        "progress_type": "SET",
+        "target_parameter": "mission",
+        "target_value_type": "mission"
+      }
+    },
+    {
+      "id": "b1d1f64b-15f0-55c6-825e-785f249f7d8f",
+      "name_message_id": 1042178,
+      "description_message_id": 1042179,
+      "progress_message_id": 1042180,
+      "icon_id": "epic_arc",
+      "content_tags": [
+        "career_path_enforcer",
+        "career_path_soldier_of_fortune",
+        "activity_combat",
+        "feature_agent_missions",
+        "career_path_explorer",
+        "career_path_industrialist",
+        "feature_epic_arcs"
+      ],
+      "parameters": [
+        {
+          "key": "faction",
+          "param_type": "empire_faction",
+          "accepted_value_types": [
+            "faction"
+          ],
+          "optional": true,
+          "name_message_id": 1043118,
+          "description_message_id": 1043119,
+          "icon_id": "epic_arc"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "d3dba5a0-dedf-58f0-ad7b-2d9286ff4c1d",
+      "name_message_id": 1042181,
+      "description_message_id": 1042182,
+      "progress_message_id": 1042183,
+      "icon_id": "epic_arc",
+      "content_tags": [
+        "career_path_enforcer",
+        "career_path_soldier_of_fortune",
+        "activity_combat",
+        "feature_agent_missions",
+        "career_path_explorer",
+        "career_path_industrialist",
+        "feature_epic_arcs"
+      ],
+      "parameters": [
+        {
+          "key": "faction",
+          "param_type": "empire_faction",
+          "accepted_value_types": [
+            "faction"
+          ],
+          "optional": true,
+          "name_message_id": 1043118,
+          "description_message_id": 1043119,
+          "icon_id": "epic_arc"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 3,
+        "progress_type": "SET",
+        "target_parameter": "faction",
+        "target_value_type": "faction"
+      }
+    },
+    {
+      "id": "f07b3d8b-2299-5eef-abab-683ab8869fb2",
+      "name_message_id": 1042184,
+      "description_message_id": 1042185,
+      "progress_message_id": 1042186,
+      "icon_id": "soldier_of_fortune",
+      "content_tags": [
+        "career_path_enforcer",
+        "career_path_soldier_of_fortune",
+        "activity_combat"
+      ],
+      "parameters": [],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "af8e3050-d2af-543c-82ea-24366e128fb1",
+      "name_message_id": 1042187,
+      "description_message_id": 1042188,
+      "progress_message_id": 1042189,
+      "icon_id": "hack_container_in_location",
+      "content_tags": [
+        "career_path_explorer",
+        "activity_hacking"
+      ],
+      "parameters": [],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "279ab912-889a-587e-b7ff-87a05a2521d0",
+      "name_message_id": 1043126,
+      "description_message_id": 1043127,
+      "progress_message_id": 1043128,
+      "icon_id": "hack_container_in_location",
+      "content_tags": [
+        "career_path_explorer",
+        "activity_hacking"
+      ],
+      "parameters": [],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "e3802899-6a71-5ecd-97c4-e891af63281f",
+      "name_message_id": 1043129,
+      "description_message_id": 1043130,
+      "progress_message_id": 1043131,
+      "icon_id": "hack_container_in_location",
+      "content_tags": [
+        "career_path_explorer",
+        "activity_hacking"
+      ],
+      "parameters": [],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "edefd4c8-b655-5da4-a74b-22283f66d88b",
+      "name_message_id": 1042190,
+      "description_message_id": 1042191,
+      "progress_message_id": 1042192,
+      "icon_id": "signature_scanning",
+      "content_tags": [
+        "career_path_explorer",
+        "activity_travel",
+        "activity_hauling",
+        "feature_cosmic_signatures"
+      ],
+      "parameters": [],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "2c695d07-b170-5b1a-a27b-b49c11e75fdd",
+      "name_message_id": 1042193,
+      "description_message_id": 1042194,
+      "progress_message_id": 1042195,
+      "icon_id": "complete_abyssal_dungeons",
+      "content_tags": [
+        "activity_combat",
+        "career_path_enforcer",
+        "career_path_soldier_of_fortune"
+      ],
+      "parameters": [],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "0e210216-e983-582d-abb5-d3fd2fe11876",
+      "name_message_id": 1042196,
+      "description_message_id": 1042197,
+      "progress_message_id": 1042198,
+      "icon_id": "isk",
+      "content_tags": [
+        "career_path_industrialist",
+        "activity_industry",
+        "activity_trading"
+      ],
+      "parameters": [],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "c70994ff-ed5a-5a0e-9b4b-96150bdd1edc",
+      "name_message_id": 1042199,
+      "description_message_id": 1042200,
+      "progress_message_id": 1042201,
+      "icon_id": "isk",
+      "content_tags": [
+        "career_path_industrialist",
+        "activity_industry",
+        "activity_trading"
+      ],
+      "parameters": [],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "9f224345-20a0-51c5-93e2-0c2e3fc261f6",
+      "name_message_id": 1042203,
+      "description_message_id": 1042204,
+      "progress_message_id": 1042205,
+      "icon_id": "project_discovery",
+      "content_tags": [
+        "activity_hacking"
+      ],
+      "parameters": [],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "c133a532-97d5-55bf-9ba6-0f853e614c8a",
+      "name_message_id": 1042212,
+      "description_message_id": 1042213,
+      "progress_message_id": 1042214,
+      "icon_id": "salvaging",
+      "content_tags": [
+        "activity_industry",
+        "activity_salvaging"
+      ],
+      "parameters": [],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "9f622ab2-6fd6-55cf-946c-13fde15f638f",
+      "name_message_id": 1042215,
+      "description_message_id": 1042216,
+      "progress_message_id": 1042217,
+      "icon_id": "resource_processing",
+      "content_tags": [
+        "activity_industry",
+        "activity_manufacturing",
+        "career_path_industrialist",
+        "activity_mining"
+      ],
+      "parameters": [
+        {
+          "key": "reprocessed_ore_type",
+          "param_type": "mineable_ore_type",
+          "accepted_value_types": [
+            "ore_group",
+            "ore_type"
+          ],
+          "optional": true,
+          "name_message_id": 1039809,
+          "description_message_id": 1039809,
+          "icon_id": "mining_diamond"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "756e3c48-59ff-5e27-b975-ad332d6c6277",
+      "name_message_id": 1042218,
+      "description_message_id": 1042219,
+      "progress_message_id": 1042220,
+      "icon_id": "ongoing_conflicts",
+      "content_tags": [
+        "activity_combat",
+        "career_path_enforcer",
+        "career_path_soldier_of_fortune"
+      ],
+      "parameters": [],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "5f290484-2864-5562-ab89-3e4f89e81464",
+      "name_message_id": 1037736,
+      "description_message_id": 1037737,
+      "progress_message_id": 1037738,
+      "icon_id": "trophy",
+      "content_tags": [
+        "feature_daily_goals"
+      ],
+      "parameters": [
+        {
+          "key": "achievement",
+          "param_type": "achievement",
+          "accepted_value_types": [
+            "achievement"
+          ],
+          "optional": true,
+          "name_message_id": 1037739,
+          "description_message_id": 1037740,
+          "icon_id": "trophy"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 2,
+        "progress_type": "CHECKLIST",
+        "target_parameter": "achievement"
+      }
+    },
+    {
+      "id": "36bf2e3e-c5b3-5021-8245-fd9b5a54f449",
+      "name_message_id": 1042221,
+      "description_message_id": 1042222,
+      "progress_message_id": 1042223,
+      "icon_id": "entering_dungeons",
+      "content_tags": [
+        "feature_dungeons"
+      ],
+      "parameters": [
+        {
+          "key": "dungeon_archetype",
+          "param_type": "dungeon_archetype",
+          "accepted_value_types": [
+            "archetype"
+          ],
+          "optional": true,
+          "name_message_id": 1043141,
+          "description_message_id": 1043142,
+          "icon_id": "complete_dungeons"
+        },
+        {
+          "key": "dungeon_type",
+          "param_type": "dungeon_type",
+          "accepted_value_types": [
+            "dungeon"
+          ],
+          "optional": true,
+          "name_message_id": 1043141,
+          "description_message_id": 1043142,
+          "icon_id": "complete_dungeons"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "3dee9808-0242-5d3f-8c1b-a6f8b6143cb4",
+      "name_message_id": 1042224,
+      "description_message_id": 1042225,
+      "progress_message_id": 1042226,
+      "icon_id": "entering_dungeons",
+      "content_tags": [
+        "feature_dungeons"
+      ],
+      "parameters": [
+        {
+          "key": "dungeon_archetype",
+          "param_type": "dungeon_archetype",
+          "accepted_value_types": [
+            "archetype"
+          ],
+          "optional": true,
+          "name_message_id": 1043141,
+          "description_message_id": 1043142,
+          "icon_id": "complete_dungeons"
+        },
+        {
+          "key": "dungeon_type",
+          "param_type": "dungeon_type",
+          "accepted_value_types": [
+            "dungeon"
+          ],
+          "optional": true,
+          "name_message_id": 1043141,
+          "description_message_id": 1043142,
+          "icon_id": "complete_dungeons"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 3,
+        "progress_type": "SET",
+        "target_parameter": "dungeon",
+        "target_value_type": "dungeon"
+      }
+    },
+    {
+      "id": "c513762c-d8f2-58bb-82c8-b833caf3aeb6",
+      "name_message_id": 1043569,
+      "description_message_id": 1043570,
+      "progress_message_id": 1043571,
+      "icon_id": "eaw_campaign",
+      "content_tags": [
+        "feature_campaigns"
+      ],
+      "parameters": [
+        {
+          "key": "campaign_name",
+          "param_type": "campaign_name",
+          "accepted_value_types": [
+            "campaign_name"
+          ],
+          "optional": true,
+          "name_message_id": 1043572,
+          "description_message_id": 1043573,
+          "icon_id": "eaw_campaign"
+        }
+      ],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    },
+    {
+      "id": "0efaba2b-ce71-5ea3-b978-0b468f343e25",
+      "name_message_id": 1046821,
+      "description_message_id": 1046822,
+      "progress_message_id": 1046823,
+      "icon_id": "interstellar_shipcaster",
+      "content_tags": [],
+      "parameters": [],
+      "progress": {
+        "progress_type_code": 1,
+        "progress_type": "CUMULATIVE"
+      }
+    }
+  ],
+  "assets": {
+    "latestAchvBytes": 39528,
+    "latestAchvSha256": "062fb05fb8da0bda11cd2b3243eb5bf9fb892b2bbe46d4695619b7438dae333b",
+    "latestAchvCrc32": 3471846722,
+    "latestAchvRepoRelativePath": "tools\\ClientSDE\\exports\\new-client-build-updater-20260721-014704\\runtime\\cache\\clientDerivedGatewayAssets\\achievementAuthority\\latest.achv"
+  },
+  "indexes": {
+    "categoryPathById": {
+      "a0c0f329-1218-5cef-a4d1-931b95cd56a5": {
+        "ids": [
+          "a0c0f329-1218-5cef-a4d1-931b95cd56a5"
+        ],
+        "internal_names": [
+          "goals"
+        ],
+        "display_names": [
+          "Goals"
+        ]
+      },
+      "d436cdf1-e77c-527e-9081-3f4d39dce702": {
+        "ids": [
+          "d436cdf1-e77c-527e-9081-3f4d39dce702"
+        ],
+        "internal_names": [
+          "challenges"
+        ],
+        "display_names": [
+          "Challenges"
+        ]
+      },
+      "90302796-1c92-569b-be8a-7aabb7c5248d": {
+        "ids": [
+          "d436cdf1-e77c-527e-9081-3f4d39dce702",
+          "90302796-1c92-569b-be8a-7aabb7c5248d"
+        ],
+        "internal_names": [
+          "challenges",
+          "combat_challenges"
+        ],
+        "display_names": [
+          "Challenges",
+          "Combat Challenges"
+        ]
+      },
+      "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed": {
+        "ids": [
+          "d436cdf1-e77c-527e-9081-3f4d39dce702",
+          "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed"
+        ],
+        "internal_names": [
+          "challenges",
+          "exploration"
+        ],
+        "display_names": [
+          "Challenges",
+          "Exploration"
+        ]
+      },
+      "3bea6213-77ba-5d19-9a55-2dafb109c9b4": {
+        "ids": [
+          "d436cdf1-e77c-527e-9081-3f4d39dce702",
+          "3bea6213-77ba-5d19-9a55-2dafb109c9b4"
+        ],
+        "internal_names": [
+          "challenges",
+          "industry"
+        ],
+        "display_names": [
+          "Challenges",
+          "Industry"
+        ]
+      },
+      "dea82d45-4f28-50e1-94a6-e0a817fa9902": {
+        "ids": [
+          "d436cdf1-e77c-527e-9081-3f4d39dce702",
+          "dea82d45-4f28-50e1-94a6-e0a817fa9902"
+        ],
+        "internal_names": [
+          "challenges",
+          "other"
+        ],
+        "display_names": [
+          "Challenges",
+          "Other"
+        ]
+      },
+      "af639814-a4b2-5d15-bf89-0961c7244151": {
+        "ids": [
+          "af639814-a4b2-5d15-bf89-0961c7244151"
+        ],
+        "internal_names": [
+          "time_limited"
+        ],
+        "display_names": [
+          "Time Limited"
+        ]
+      },
+      "19dd6b14-7ddf-5b11-a732-c703e3a36688": {
+        "ids": [
+          "af639814-a4b2-5d15-bf89-0961c7244151",
+          "19dd6b14-7ddf-5b11-a732-c703e3a36688"
+        ],
+        "internal_names": [
+          "time_limited",
+          "campaigns"
+        ],
+        "display_names": [
+          "Time Limited",
+          "Campaigns"
+        ]
+      },
+      "934b7f7a-8348-582a-92ed-ea40f5144dd1": {
+        "ids": [
+          "af639814-a4b2-5d15-bf89-0961c7244151",
+          "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+          "934b7f7a-8348-582a-92ed-ea40f5144dd1"
+        ],
+        "internal_names": [
+          "time_limited",
+          "campaigns",
+          "2026_q2_amarr_campaign"
+        ],
+        "display_names": [
+          "Time Limited",
+          "Campaigns",
+          "2026 Q2 Amarr Campaign"
+        ]
+      },
+      "c3006731-ce9e-5e7b-8a7d-d1d1199875a8": {
+        "ids": [
+          "af639814-a4b2-5d15-bf89-0961c7244151",
+          "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+          "c3006731-ce9e-5e7b-8a7d-d1d1199875a8"
+        ],
+        "internal_names": [
+          "time_limited",
+          "campaigns",
+          "2026_q2_caldari_campaign"
+        ],
+        "display_names": [
+          "Time Limited",
+          "Campaigns",
+          "2026 Q2 Caldari Campaign"
+        ]
+      },
+      "ded4fa10-a147-5854-92e8-390c1843872a": {
+        "ids": [
+          "af639814-a4b2-5d15-bf89-0961c7244151",
+          "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+          "ded4fa10-a147-5854-92e8-390c1843872a"
+        ],
+        "internal_names": [
+          "time_limited",
+          "campaigns",
+          "2026_q2_gallente_campaign"
+        ],
+        "display_names": [
+          "Time Limited",
+          "Campaigns",
+          "2026 Q2 Gallente Campaign"
+        ]
+      },
+      "78206993-8874-5e40-97ee-35503c609cc0": {
+        "ids": [
+          "af639814-a4b2-5d15-bf89-0961c7244151",
+          "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+          "78206993-8874-5e40-97ee-35503c609cc0"
+        ],
+        "internal_names": [
+          "time_limited",
+          "campaigns",
+          "2026_q2_minmatar_campaign"
+        ],
+        "display_names": [
+          "Time Limited",
+          "Campaigns",
+          "2026 Q2 Minmatar Campaign"
+        ]
+      }
+    },
+    "achievementIdsByMethodId": {
+      "bc91bad3-4a8b-5296-a5d3-087a89f5ef9d": [
+        "84f1f320-7972-5a9d-b987-57893edeafc5",
+        "ab6c7da0-6907-5d09-83d2-53b0c9a1a348"
+      ],
+      "4365644b-ae5b-54d0-9b2c-8418f23ced25": [
+        "8ec7f0f6-c251-5e6d-b303-241e80aabee1"
+      ],
+      "c5cf8c21-4e10-5aaa-829f-1b9420ae93e1": [
+        "b6d118b8-d749-5467-8245-e9f951e6bc27",
+        "e6e736a1-f85d-5a5e-87c3-271110ad3c70"
+      ],
+      "2c695d07-b170-5b1a-a27b-b49c11e75fdd": [
+        "b1338175-fae8-50d5-97b1-2ab5be17f69d"
+      ],
+      "5691bcdd-b9fb-5e41-8719-294abb3ffe38": [
+        "d8356c59-a0ec-553b-8301-9d6b7236139f"
+      ],
+      "756e3c48-59ff-5e27-b975-ad332d6c6277": [
+        "ffd4ffad-3dcc-58ca-95f0-fc07c9b5ef81"
+      ],
+      "9f139ef3-d073-5c8d-9395-4fa9f207692d": [
+        "fafd0ae9-ce09-58ee-ae3a-533a7958bc62"
+      ],
+      "f07b3d8b-2299-5eef-abab-683ab8869fb2": [
+        "b9e578c2-b357-5d09-bb6a-844065f90906"
+      ],
+      "0fd986fb-c415-563a-9f07-3cd5984fb49e": [
+        "f89547de-49f1-52dc-becd-2e15d2638d11",
+        "99e01b75-ba87-55ef-a833-23dc0d29db9e",
+        "c1928dd0-0ee2-50be-ac84-e1de1157e349",
+        "e1788923-db4c-55c4-a64e-bbc7bb3083ac",
+        "a368306d-5248-55f5-a3a0-93d3b1597847"
+      ],
+      "5f290484-2864-5562-ab89-3e4f89e81464": [
+        "ac4057a7-b330-535f-82c5-92e6121c2547"
+      ],
+      "e3802899-6a71-5ecd-97c4-e891af63281f": [
+        "8b482fab-42fa-581a-bb8b-3405c59258c7"
+      ],
+      "3dee9808-0242-5d3f-8c1b-a6f8b6143cb4": [
+        "512079b9-cfa4-5666-b8c7-e86b6b8b16e1"
+      ],
+      "edefd4c8-b655-5da4-a74b-22283f66d88b": [
+        "90b1a88f-c283-5dde-a264-c384d9d45168"
+      ],
+      "6c192d1e-cb2c-5a06-a664-80e8e15aa90b": [
+        "f60f6df9-d0b4-5663-9870-9e87e79acd8e"
+      ],
+      "b84f272c-e789-5355-8da8-e6586cf04fd5": [
+        "67c4d338-f89a-5239-b0cf-6670fe3014db",
+        "08eba9d2-c3da-58aa-beda-69a91c003648",
+        "eca1419c-20a1-5e87-9164-a0fbd6f2ea71"
+      ],
+      "f280d00d-5c68-54ed-a1d0-e7b532f4e235": [
+        "4807c0f3-36e7-5449-b586-47e089ca992b",
+        "8f16fa5e-5621-579a-8e55-441f2c5b0eb0",
+        "eb621aa7-0fde-5b84-bfc5-aecfbeb4a0bd",
+        "82be3551-2b0e-5bc7-bbbc-21b7f812274b"
+      ],
+      "0e210216-e983-582d-abb5-d3fd2fe11876": [
+        "3bb1549d-46bd-59ff-be7f-0a9652d5efcb"
+      ],
+      "c70994ff-ed5a-5a0e-9b4b-96150bdd1edc": [
+        "534841dd-aa20-53e8-9a3c-8fb539f7bf40"
+      ],
+      "9f622ab2-6fd6-55cf-946c-13fde15f638f": [
+        "5d010d2f-72c8-563f-a55a-2446e5c9da22"
+      ],
+      "c133a532-97d5-55bf-9ba6-0f853e614c8a": [
+        "62875a0b-59f7-5d19-a3fb-c4bc80a4d887"
+      ],
+      "b1d1f64b-15f0-55c6-825e-785f249f7d8f": [
+        "8739d8d8-4e1e-5bca-b870-8f1357fa1dc7"
+      ],
+      "0efaba2b-ce71-5ea3-b978-0b468f343e25": [
+        "37e5d7f6-8bcc-5e64-b703-0423e8fa5894"
+      ],
+      "9f224345-20a0-51c5-93e2-0c2e3fc261f6": [
+        "7ff3bdfc-9e4f-5177-a132-3f0beed3b699"
+      ],
+      "c513762c-d8f2-58bb-82c8-b833caf3aeb6": [
+        "e68a8d17-8556-5c9a-b961-312b9c3682d6",
+        "0638d0a9-85be-5d14-a6ea-9ab1977acbe3",
+        "6f72150b-77cb-5f2c-9b80-f1f641812e82",
+        "bff2c999-4d90-5d58-9128-0203e20bad49"
+      ]
+    },
+    "achievementIdsByCategoryId": {
+      "a0c0f329-1218-5cef-a4d1-931b95cd56a5": [],
+      "d436cdf1-e77c-527e-9081-3f4d39dce702": [],
+      "90302796-1c92-569b-be8a-7aabb7c5248d": [
+        "84f1f320-7972-5a9d-b987-57893edeafc5",
+        "8ec7f0f6-c251-5e6d-b303-241e80aabee1",
+        "b6d118b8-d749-5467-8245-e9f951e6bc27",
+        "b1338175-fae8-50d5-97b1-2ab5be17f69d",
+        "d8356c59-a0ec-553b-8301-9d6b7236139f",
+        "ffd4ffad-3dcc-58ca-95f0-fc07c9b5ef81",
+        "e6e736a1-f85d-5a5e-87c3-271110ad3c70",
+        "fafd0ae9-ce09-58ee-ae3a-533a7958bc62",
+        "b9e578c2-b357-5d09-bb6a-844065f90906",
+        "ab6c7da0-6907-5d09-83d2-53b0c9a1a348"
+      ],
+      "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed": [
+        "f89547de-49f1-52dc-becd-2e15d2638d11",
+        "99e01b75-ba87-55ef-a833-23dc0d29db9e",
+        "ac4057a7-b330-535f-82c5-92e6121c2547",
+        "8b482fab-42fa-581a-bb8b-3405c59258c7",
+        "c1928dd0-0ee2-50be-ac84-e1de1157e349",
+        "512079b9-cfa4-5666-b8c7-e86b6b8b16e1",
+        "e1788923-db4c-55c4-a64e-bbc7bb3083ac",
+        "90b1a88f-c283-5dde-a264-c384d9d45168",
+        "a368306d-5248-55f5-a3a0-93d3b1597847",
+        "f60f6df9-d0b4-5663-9870-9e87e79acd8e"
+      ],
+      "3bea6213-77ba-5d19-9a55-2dafb109c9b4": [
+        "67c4d338-f89a-5239-b0cf-6670fe3014db",
+        "08eba9d2-c3da-58aa-beda-69a91c003648",
+        "eca1419c-20a1-5e87-9164-a0fbd6f2ea71",
+        "4807c0f3-36e7-5449-b586-47e089ca992b",
+        "8f16fa5e-5621-579a-8e55-441f2c5b0eb0",
+        "3bb1549d-46bd-59ff-be7f-0a9652d5efcb",
+        "534841dd-aa20-53e8-9a3c-8fb539f7bf40",
+        "eb621aa7-0fde-5b84-bfc5-aecfbeb4a0bd",
+        "5d010d2f-72c8-563f-a55a-2446e5c9da22",
+        "62875a0b-59f7-5d19-a3fb-c4bc80a4d887",
+        "82be3551-2b0e-5bc7-bbbc-21b7f812274b"
+      ],
+      "dea82d45-4f28-50e1-94a6-e0a817fa9902": [
+        "8739d8d8-4e1e-5bca-b870-8f1357fa1dc7",
+        "37e5d7f6-8bcc-5e64-b703-0423e8fa5894",
+        "7ff3bdfc-9e4f-5177-a132-3f0beed3b699"
+      ],
+      "af639814-a4b2-5d15-bf89-0961c7244151": [],
+      "19dd6b14-7ddf-5b11-a732-c703e3a36688": [],
+      "934b7f7a-8348-582a-92ed-ea40f5144dd1": [
+        "e68a8d17-8556-5c9a-b961-312b9c3682d6"
+      ],
+      "c3006731-ce9e-5e7b-8a7d-d1d1199875a8": [
+        "0638d0a9-85be-5d14-a6ea-9ab1977acbe3"
+      ],
+      "ded4fa10-a147-5854-92e8-390c1843872a": [
+        "6f72150b-77cb-5f2c-9b80-f1f641812e82"
+      ],
+      "78206993-8874-5e40-97ee-35503c609cc0": [
+        "bff2c999-4d90-5d58-9128-0203e20bad49"
+      ]
+    },
+    "descendantCategoryIdsByCategoryId": {
+      "a0c0f329-1218-5cef-a4d1-931b95cd56a5": [],
+      "90302796-1c92-569b-be8a-7aabb7c5248d": [],
+      "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed": [],
+      "3bea6213-77ba-5d19-9a55-2dafb109c9b4": [],
+      "dea82d45-4f28-50e1-94a6-e0a817fa9902": [],
+      "d436cdf1-e77c-527e-9081-3f4d39dce702": [
+        "90302796-1c92-569b-be8a-7aabb7c5248d",
+        "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed",
+        "3bea6213-77ba-5d19-9a55-2dafb109c9b4",
+        "dea82d45-4f28-50e1-94a6-e0a817fa9902"
+      ],
+      "934b7f7a-8348-582a-92ed-ea40f5144dd1": [],
+      "c3006731-ce9e-5e7b-8a7d-d1d1199875a8": [],
+      "ded4fa10-a147-5854-92e8-390c1843872a": [],
+      "78206993-8874-5e40-97ee-35503c609cc0": [],
+      "19dd6b14-7ddf-5b11-a732-c703e3a36688": [
+        "934b7f7a-8348-582a-92ed-ea40f5144dd1",
+        "c3006731-ce9e-5e7b-8a7d-d1d1199875a8",
+        "ded4fa10-a147-5854-92e8-390c1843872a",
+        "78206993-8874-5e40-97ee-35503c609cc0"
+      ],
+      "af639814-a4b2-5d15-bf89-0961c7244151": [
+        "19dd6b14-7ddf-5b11-a732-c703e3a36688",
+        "934b7f7a-8348-582a-92ed-ea40f5144dd1",
+        "c3006731-ce9e-5e7b-8a7d-d1d1199875a8",
+        "ded4fa10-a147-5854-92e8-390c1843872a",
+        "78206993-8874-5e40-97ee-35503c609cc0"
+      ]
+    },
+    "descendantAchievementIdsByCategoryId": {
+      "a0c0f329-1218-5cef-a4d1-931b95cd56a5": [],
+      "90302796-1c92-569b-be8a-7aabb7c5248d": [
+        "84f1f320-7972-5a9d-b987-57893edeafc5",
+        "8ec7f0f6-c251-5e6d-b303-241e80aabee1",
+        "b6d118b8-d749-5467-8245-e9f951e6bc27",
+        "b1338175-fae8-50d5-97b1-2ab5be17f69d",
+        "d8356c59-a0ec-553b-8301-9d6b7236139f",
+        "ffd4ffad-3dcc-58ca-95f0-fc07c9b5ef81",
+        "e6e736a1-f85d-5a5e-87c3-271110ad3c70",
+        "fafd0ae9-ce09-58ee-ae3a-533a7958bc62",
+        "b9e578c2-b357-5d09-bb6a-844065f90906",
+        "ab6c7da0-6907-5d09-83d2-53b0c9a1a348"
+      ],
+      "fc62f153-19b9-5d1d-b2cf-96c194bdb6ed": [
+        "f89547de-49f1-52dc-becd-2e15d2638d11",
+        "99e01b75-ba87-55ef-a833-23dc0d29db9e",
+        "ac4057a7-b330-535f-82c5-92e6121c2547",
+        "8b482fab-42fa-581a-bb8b-3405c59258c7",
+        "c1928dd0-0ee2-50be-ac84-e1de1157e349",
+        "512079b9-cfa4-5666-b8c7-e86b6b8b16e1",
+        "e1788923-db4c-55c4-a64e-bbc7bb3083ac",
+        "90b1a88f-c283-5dde-a264-c384d9d45168",
+        "a368306d-5248-55f5-a3a0-93d3b1597847",
+        "f60f6df9-d0b4-5663-9870-9e87e79acd8e"
+      ],
+      "3bea6213-77ba-5d19-9a55-2dafb109c9b4": [
+        "67c4d338-f89a-5239-b0cf-6670fe3014db",
+        "08eba9d2-c3da-58aa-beda-69a91c003648",
+        "eca1419c-20a1-5e87-9164-a0fbd6f2ea71",
+        "4807c0f3-36e7-5449-b586-47e089ca992b",
+        "8f16fa5e-5621-579a-8e55-441f2c5b0eb0",
+        "3bb1549d-46bd-59ff-be7f-0a9652d5efcb",
+        "534841dd-aa20-53e8-9a3c-8fb539f7bf40",
+        "eb621aa7-0fde-5b84-bfc5-aecfbeb4a0bd",
+        "5d010d2f-72c8-563f-a55a-2446e5c9da22",
+        "62875a0b-59f7-5d19-a3fb-c4bc80a4d887",
+        "82be3551-2b0e-5bc7-bbbc-21b7f812274b"
+      ],
+      "dea82d45-4f28-50e1-94a6-e0a817fa9902": [
+        "8739d8d8-4e1e-5bca-b870-8f1357fa1dc7",
+        "37e5d7f6-8bcc-5e64-b703-0423e8fa5894",
+        "7ff3bdfc-9e4f-5177-a132-3f0beed3b699"
+      ],
+      "d436cdf1-e77c-527e-9081-3f4d39dce702": [
+        "84f1f320-7972-5a9d-b987-57893edeafc5",
+        "8ec7f0f6-c251-5e6d-b303-241e80aabee1",
+        "b6d118b8-d749-5467-8245-e9f951e6bc27",
+        "b1338175-fae8-50d5-97b1-2ab5be17f69d",
+        "d8356c59-a0ec-553b-8301-9d6b7236139f",
+        "ffd4ffad-3dcc-58ca-95f0-fc07c9b5ef81",
+        "e6e736a1-f85d-5a5e-87c3-271110ad3c70",
+        "fafd0ae9-ce09-58ee-ae3a-533a7958bc62",
+        "b9e578c2-b357-5d09-bb6a-844065f90906",
+        "ab6c7da0-6907-5d09-83d2-53b0c9a1a348",
+        "f89547de-49f1-52dc-becd-2e15d2638d11",
+        "99e01b75-ba87-55ef-a833-23dc0d29db9e",
+        "ac4057a7-b330-535f-82c5-92e6121c2547",
+        "8b482fab-42fa-581a-bb8b-3405c59258c7",
+        "c1928dd0-0ee2-50be-ac84-e1de1157e349",
+        "512079b9-cfa4-5666-b8c7-e86b6b8b16e1",
+        "e1788923-db4c-55c4-a64e-bbc7bb3083ac",
+        "90b1a88f-c283-5dde-a264-c384d9d45168",
+        "a368306d-5248-55f5-a3a0-93d3b1597847",
+        "f60f6df9-d0b4-5663-9870-9e87e79acd8e",
+        "67c4d338-f89a-5239-b0cf-6670fe3014db",
+        "08eba9d2-c3da-58aa-beda-69a91c003648",
+        "eca1419c-20a1-5e87-9164-a0fbd6f2ea71",
+        "4807c0f3-36e7-5449-b586-47e089ca992b",
+        "8f16fa5e-5621-579a-8e55-441f2c5b0eb0",
+        "3bb1549d-46bd-59ff-be7f-0a9652d5efcb",
+        "534841dd-aa20-53e8-9a3c-8fb539f7bf40",
+        "eb621aa7-0fde-5b84-bfc5-aecfbeb4a0bd",
+        "5d010d2f-72c8-563f-a55a-2446e5c9da22",
+        "62875a0b-59f7-5d19-a3fb-c4bc80a4d887",
+        "82be3551-2b0e-5bc7-bbbc-21b7f812274b",
+        "8739d8d8-4e1e-5bca-b870-8f1357fa1dc7",
+        "37e5d7f6-8bcc-5e64-b703-0423e8fa5894",
+        "7ff3bdfc-9e4f-5177-a132-3f0beed3b699"
+      ],
+      "934b7f7a-8348-582a-92ed-ea40f5144dd1": [
+        "e68a8d17-8556-5c9a-b961-312b9c3682d6"
+      ],
+      "c3006731-ce9e-5e7b-8a7d-d1d1199875a8": [
+        "0638d0a9-85be-5d14-a6ea-9ab1977acbe3"
+      ],
+      "ded4fa10-a147-5854-92e8-390c1843872a": [
+        "6f72150b-77cb-5f2c-9b80-f1f641812e82"
+      ],
+      "78206993-8874-5e40-97ee-35503c609cc0": [
+        "bff2c999-4d90-5d58-9128-0203e20bad49"
+      ],
+      "19dd6b14-7ddf-5b11-a732-c703e3a36688": [
+        "e68a8d17-8556-5c9a-b961-312b9c3682d6",
+        "0638d0a9-85be-5d14-a6ea-9ab1977acbe3",
+        "6f72150b-77cb-5f2c-9b80-f1f641812e82",
+        "bff2c999-4d90-5d58-9128-0203e20bad49"
+      ],
+      "af639814-a4b2-5d15-bf89-0961c7244151": [
+        "e68a8d17-8556-5c9a-b961-312b9c3682d6",
+        "0638d0a9-85be-5d14-a6ea-9ab1977acbe3",
+        "6f72150b-77cb-5f2c-9b80-f1f641812e82",
+        "bff2c999-4d90-5d58-9128-0203e20bad49"
+      ]
+    },
+    "dependentAchievementIdsByCompletedAchievementId": {
+      "f89547de-49f1-52dc-becd-2e15d2638d11": [
+        "ac4057a7-b330-535f-82c5-92e6121c2547"
+      ],
+      "99e01b75-ba87-55ef-a833-23dc0d29db9e": [
+        "ac4057a7-b330-535f-82c5-92e6121c2547"
+      ],
+      "c1928dd0-0ee2-50be-ac84-e1de1157e349": [
+        "ac4057a7-b330-535f-82c5-92e6121c2547"
+      ],
+      "e1788923-db4c-55c4-a64e-bbc7bb3083ac": [
+        "ac4057a7-b330-535f-82c5-92e6121c2547"
+      ]
+    },
+    "milestoneIdsByAchievementId": {
+      "84f1f320-7972-5a9d-b987-57893edeafc5": [
+        "0083fed8-fd3c-59a1-a051-b67c65265c65",
+        "18c0ea14-e1be-5cde-a260-4d8b7bbf0f60",
+        "11235d5d-d1f3-5225-bbeb-8bc375a87800"
+      ],
+      "8ec7f0f6-c251-5e6d-b303-241e80aabee1": [
+        "1fc86021-aee1-5b86-8f7b-6bd17b7ee30e",
+        "f9a3518f-3dae-5fbe-b5e6-27573b55ee6b",
+        "4c1e1544-d6f8-518b-85c6-bb8bd385ffa7"
+      ],
+      "b6d118b8-d749-5467-8245-e9f951e6bc27": [
+        "e6e42f4e-db22-5b31-a4e5-2e5313e200ca",
+        "0d05cbf8-3eca-5505-bb2b-1aae081d046c",
+        "dacec882-94b2-5f94-abd0-b4f6ac5dfe79"
+      ],
+      "b1338175-fae8-50d5-97b1-2ab5be17f69d": [
+        "ca74e029-8894-5313-b007-5ffd85081671"
+      ],
+      "d8356c59-a0ec-553b-8301-9d6b7236139f": [
+        "0153cb0e-1778-5377-a30e-81d33b03a6b6",
+        "a666de31-7571-5bb3-8b87-dfdd65bbaecf",
+        "9546a63f-1996-52e6-bbc0-c2e04196dffc"
+      ],
+      "ffd4ffad-3dcc-58ca-95f0-fc07c9b5ef81": [
+        "0910238c-f20b-5700-a56e-bd1fbe96c722",
+        "b86031f3-e4ed-5d10-867c-3089f5dabbe6",
+        "ff845d98-b4bb-5cdf-ad37-077786e4ab3c"
+      ],
+      "e6e736a1-f85d-5a5e-87c3-271110ad3c70": [
+        "37296093-de4c-5387-85ff-1c803d0b7df8",
+        "bfa14ce0-6231-572d-9477-7f145daa3062",
+        "55784043-f2ea-5fd9-91c3-bdd2b25591c1"
+      ],
+      "fafd0ae9-ce09-58ee-ae3a-533a7958bc62": [
+        "da0b54fc-c7db-5a2a-ade2-6742bbd38069",
+        "9b6f25fb-51c5-5571-8269-500a4aa8e62c",
+        "b9ede682-40dd-527e-b89b-d701a935b177"
+      ],
+      "b9e578c2-b357-5d09-bb6a-844065f90906": [
+        "b4c0c418-b268-57e0-9d94-3dbecfcb82c4",
+        "9496541d-2e61-5455-b483-2335c7d40051",
+        "1fd8ef1a-0a69-51d8-8d8c-8282ec701bd3"
+      ],
+      "ab6c7da0-6907-5d09-83d2-53b0c9a1a348": [
+        "07f618f6-ad9b-5962-badb-faa40ddd7848",
+        "e53c5690-b80d-5867-81ec-b4fe5bd92345",
+        "1daca314-b19d-5d59-8094-54aa2803fb3c"
+      ],
+      "f89547de-49f1-52dc-becd-2e15d2638d11": [
+        "376dfb9f-ffb4-5a33-8ea4-4681fdafee0f"
+      ],
+      "99e01b75-ba87-55ef-a833-23dc0d29db9e": [
+        "33aff3f0-737d-5dd3-a0a3-42d289ebe82a"
+      ],
+      "ac4057a7-b330-535f-82c5-92e6121c2547": [
+        "b3fdfdc2-9d84-516b-81e6-749ef303bc4b"
+      ],
+      "8b482fab-42fa-581a-bb8b-3405c59258c7": [
+        "0871d14d-a94e-5af7-a4d1-43fb75d7b72a",
+        "c0906539-0b38-524c-842e-ef1f628a9953",
+        "17d5d492-ee93-55b9-881d-de3ee31ca6da"
+      ],
+      "c1928dd0-0ee2-50be-ac84-e1de1157e349": [
+        "fb037ba6-1b16-5645-9d7c-5141c4a51eea"
+      ],
+      "512079b9-cfa4-5666-b8c7-e86b6b8b16e1": [
+        "2fcbe777-81d6-5312-bb07-4e8b0e410217",
+        "faae46c0-f835-59db-a368-c190b431ba67"
+      ],
+      "e1788923-db4c-55c4-a64e-bbc7bb3083ac": [
+        "6d4b4c4d-2b50-5759-850c-abd51ba0b3ca"
+      ],
+      "90b1a88f-c283-5dde-a264-c384d9d45168": [
+        "7015f7fd-2599-55a2-a06c-7d6ecc1baf60",
+        "33f310f8-90a4-5e84-80a2-2707f4a85fa8",
+        "fe8660e2-f152-5017-9391-9720f2ff0f39"
+      ],
+      "a368306d-5248-55f5-a3a0-93d3b1597847": [
+        "504713ce-6b8e-5164-b815-ea1165f6e045"
+      ],
+      "f60f6df9-d0b4-5663-9870-9e87e79acd8e": [
+        "b640ba1a-7de3-5b62-b8fa-6b18c730d239",
+        "25f31761-04bc-5064-be8d-e17297d7fcb8",
+        "60a5f564-b02c-5db5-83e9-fcc368c2af6f"
+      ],
+      "67c4d338-f89a-5239-b0cf-6670fe3014db": [
+        "a2aa9601-20eb-5ca3-b5e8-c91be8af659d"
+      ],
+      "08eba9d2-c3da-58aa-beda-69a91c003648": [
+        "5f12d165-c436-54d7-b1d3-3bd75a3e6e10"
+      ],
+      "eca1419c-20a1-5e87-9164-a0fbd6f2ea71": [
+        "5234d835-0ae5-525d-8774-0a9c02a47cf7"
+      ],
+      "4807c0f3-36e7-5449-b586-47e089ca992b": [
+        "d4f03b7f-c41f-5ffc-953a-a322a9104fff"
+      ],
+      "8f16fa5e-5621-579a-8e55-441f2c5b0eb0": [
+        "81139c48-d4fc-5fd6-9a89-f2d9c7b369ef"
+      ],
+      "3bb1549d-46bd-59ff-be7f-0a9652d5efcb": [
+        "7fcdeff5-c5d3-5752-b5e9-a24a1a66c158",
+        "861594a3-87fc-5108-9bbf-d13cec1f4ec3",
+        "6de56d4c-9054-5d4b-852a-fdae52e4e296"
+      ],
+      "534841dd-aa20-53e8-9a3c-8fb539f7bf40": [
+        "2c1db2b1-9091-56d4-b36d-49919deab9d0",
+        "576d7e3a-e1c3-59bc-a02f-48828adebdbe",
+        "d30332cc-1b51-5e32-b1f0-08d179b4c858"
+      ],
+      "eb621aa7-0fde-5b84-bfc5-aecfbeb4a0bd": [
+        "acab59d4-cb18-567c-874f-7c4909834572"
+      ],
+      "5d010d2f-72c8-563f-a55a-2446e5c9da22": [
+        "ad5ae222-613b-5ad3-aac7-4a8c568f2c1d",
+        "50608bff-1a90-5b6a-876b-586b24541888",
+        "668d43db-02c4-5eb2-a6ff-5e8dd158e77b"
+      ],
+      "62875a0b-59f7-5d19-a3fb-c4bc80a4d887": [
+        "184b70e7-105b-5d8f-9790-cbee5241e791"
+      ],
+      "82be3551-2b0e-5bc7-bbbc-21b7f812274b": [
+        "2195bc08-c836-51e2-ba7e-a8ac8ce1d468"
+      ],
+      "8739d8d8-4e1e-5bca-b870-8f1357fa1dc7": [
+        "a87c7fb3-a1ed-532f-a3d3-d7563f7792f7",
+        "02b156d9-275e-515f-9f1f-b53d7f362d6b"
+      ],
+      "37e5d7f6-8bcc-5e64-b703-0423e8fa5894": [
+        "9c18f762-3791-50e6-8b0d-e6e38908171d"
+      ],
+      "7ff3bdfc-9e4f-5177-a132-3f0beed3b699": [
+        "01da5f52-d52c-54e5-be99-4e0b257e0f19",
+        "5544fd69-5c64-55bc-806e-e7b0d93ccc53"
+      ],
+      "e68a8d17-8556-5c9a-b961-312b9c3682d6": [
+        "06f792bd-a76e-5b10-81f5-09a8b22c8587",
+        "a30efe9e-77a8-54b7-b487-c2fa75b7d00e",
+        "0559de52-1ef4-50e9-96c8-e3693a39d54b",
+        "016fcc35-31d5-5fc2-ac8b-bcab58984c96",
+        "0d4f3ff3-07a8-5a8c-ba52-8962caef2dff"
+      ],
+      "0638d0a9-85be-5d14-a6ea-9ab1977acbe3": [
+        "a366f018-e5b4-5d43-a8fc-885a0def4f6f",
+        "c19abc2e-1c33-5b1c-a986-b644569691b1",
+        "d98783b1-1bd7-5ee2-a596-8b39a3197567",
+        "cfc214c7-a2f4-5e0d-902e-6dc470e21df6",
+        "c024097d-9836-5863-97d3-aaf6e50d9203"
+      ],
+      "6f72150b-77cb-5f2c-9b80-f1f641812e82": [
+        "29a225c1-69e6-5042-bf7e-f492d12a49e1",
+        "44ea1671-09b8-5c53-8d45-7ed0df05eba2",
+        "4a745874-19f5-5256-9a28-6543931bfde4",
+        "0eb9ca18-eaf4-549a-8ba5-5ded5b405146",
+        "6e5b48ba-eeaa-5f36-8a2f-173b01f16312"
+      ],
+      "bff2c999-4d90-5d58-9128-0203e20bad49": [
+        "802d919a-d626-5cfd-b24e-c9e60b60eddb",
+        "a4b1dc3a-87ea-565b-a800-604bfa205439",
+        "c06e87ac-7741-5af7-9cd1-9814a72c412c",
+        "d47687e7-0803-529b-89ae-dc28e04576af",
+        "2d114d4c-3f1d-5ceb-824a-c30c8b34040b"
+      ]
+    },
+    "rewardIdsByMilestoneId": {
+      "0083fed8-fd3c-59a1-a051-b67c65265c65": [],
+      "18c0ea14-e1be-5cde-a260-4d8b7bbf0f60": [],
+      "11235d5d-d1f3-5225-bbeb-8bc375a87800": [
+        "07754add-921f-53cc-9349-aad45ab4a442",
+        "219b1f88-e2ce-532e-ab8a-aff9d55d833a"
+      ],
+      "1fc86021-aee1-5b86-8f7b-6bd17b7ee30e": [],
+      "f9a3518f-3dae-5fbe-b5e6-27573b55ee6b": [],
+      "4c1e1544-d6f8-518b-85c6-bb8bd385ffa7": [
+        "2e65b91c-dae7-52f8-852a-0559b7fad846"
+      ],
+      "e6e42f4e-db22-5b31-a4e5-2e5313e200ca": [
+        "a5770e7c-5369-5ac0-a80a-9176127e2a13"
+      ],
+      "0d05cbf8-3eca-5505-bb2b-1aae081d046c": [
+        "d5c4f509-fdb0-53d1-a948-c96a560b2f94"
+      ],
+      "dacec882-94b2-5f94-abd0-b4f6ac5dfe79": [
+        "0dcc17c4-8ab2-5bde-a5e6-549a9db99500",
+        "b6965da2-ab29-556b-b300-e17be36f2abe"
+      ],
+      "ca74e029-8894-5313-b007-5ffd85081671": [
+        "2ff0641e-fb11-5bc6-86c2-f5164e59239a"
+      ],
+      "0153cb0e-1778-5377-a30e-81d33b03a6b6": [],
+      "a666de31-7571-5bb3-8b87-dfdd65bbaecf": [],
+      "9546a63f-1996-52e6-bbc0-c2e04196dffc": [
+        "1d08cd65-eda4-5499-bcc2-f3fbbf5aaa56"
+      ],
+      "0910238c-f20b-5700-a56e-bd1fbe96c722": [],
+      "b86031f3-e4ed-5d10-867c-3089f5dabbe6": [],
+      "ff845d98-b4bb-5cdf-ad37-077786e4ab3c": [
+        "e6630ede-686e-5d89-9c10-8bea59f0a658"
+      ],
+      "37296093-de4c-5387-85ff-1c803d0b7df8": [],
+      "bfa14ce0-6231-572d-9477-7f145daa3062": [],
+      "55784043-f2ea-5fd9-91c3-bdd2b25591c1": [
+        "652f1052-0f64-5723-a418-6cc5cfca4b44"
+      ],
+      "da0b54fc-c7db-5a2a-ade2-6742bbd38069": [],
+      "9b6f25fb-51c5-5571-8269-500a4aa8e62c": [],
+      "b9ede682-40dd-527e-b89b-d701a935b177": [
+        "ead8cff4-e243-53d5-a4e8-a9bb3cb319bb",
+        "fc488e99-6c8c-570e-8f74-52afdf037d07"
+      ],
+      "b4c0c418-b268-57e0-9d94-3dbecfcb82c4": [],
+      "9496541d-2e61-5455-b483-2335c7d40051": [],
+      "1fd8ef1a-0a69-51d8-8d8c-8282ec701bd3": [
+        "82a7132c-0dbe-58d4-8eff-a07d4c9c28ab"
+      ],
+      "07f618f6-ad9b-5962-badb-faa40ddd7848": [],
+      "e53c5690-b80d-5867-81ec-b4fe5bd92345": [],
+      "1daca314-b19d-5d59-8094-54aa2803fb3c": [
+        "1af7d586-74a9-543b-a8e4-9adca5fb8119",
+        "babe06a1-d8df-58fb-986f-8f1cd0b4b1ff"
+      ],
+      "376dfb9f-ffb4-5a33-8ea4-4681fdafee0f": [
+        "357c18ad-8f93-5ed3-ac7a-6a4188a3f428"
+      ],
+      "33aff3f0-737d-5dd3-a0a3-42d289ebe82a": [
+        "90b7c088-f7f6-5bdc-a214-3661bcb15660"
+      ],
+      "b3fdfdc2-9d84-516b-81e6-749ef303bc4b": [
+        "e5c63908-e4bb-5ff2-bcaf-f4d2225aa0bb"
+      ],
+      "0871d14d-a94e-5af7-a4d1-43fb75d7b72a": [],
+      "c0906539-0b38-524c-842e-ef1f628a9953": [],
+      "17d5d492-ee93-55b9-881d-de3ee31ca6da": [
+        "eb3c405f-5a05-54c7-a22e-bc0b66dbd985"
+      ],
+      "fb037ba6-1b16-5645-9d7c-5141c4a51eea": [
+        "f8ae04ed-4349-5225-bf6b-8fbad8cbef7e"
+      ],
+      "2fcbe777-81d6-5312-bb07-4e8b0e410217": [],
+      "faae46c0-f835-59db-a368-c190b431ba67": [
+        "0e7bada6-f908-5b4d-8ee6-ecb9193e4d60"
+      ],
+      "6d4b4c4d-2b50-5759-850c-abd51ba0b3ca": [
+        "85d29034-222d-55da-a010-b17ab9ff5020"
+      ],
+      "7015f7fd-2599-55a2-a06c-7d6ecc1baf60": [],
+      "33f310f8-90a4-5e84-80a2-2707f4a85fa8": [],
+      "fe8660e2-f152-5017-9391-9720f2ff0f39": [
+        "05895d5b-6c47-5200-a1e2-a8733b46447c"
+      ],
+      "504713ce-6b8e-5164-b815-ea1165f6e045": [
+        "b2548f58-bdd6-5ce6-8f90-0f7e3090c336"
+      ],
+      "b640ba1a-7de3-5b62-b8fa-6b18c730d239": [],
+      "25f31761-04bc-5064-be8d-e17297d7fcb8": [],
+      "60a5f564-b02c-5db5-83e9-fcc368c2af6f": [
+        "b2053dbd-fae1-5d64-aec3-4d208267a26d",
+        "00645cb6-abb8-50c7-babf-7f08959232c7"
+      ],
+      "a2aa9601-20eb-5ca3-b5e8-c91be8af659d": [
+        "8337a14a-0d56-5fb7-ae07-34bbbdfa5ae9",
+        "5fc522c1-56e0-52fc-8538-35b99bc313fc"
+      ],
+      "5f12d165-c436-54d7-b1d3-3bd75a3e6e10": [
+        "833ea84b-c039-5b00-9372-d3a0302fdd99",
+        "35fe43fb-ac03-53b4-98e1-2e61cdc31a33"
+      ],
+      "5234d835-0ae5-525d-8774-0a9c02a47cf7": [
+        "2e4d308f-949c-58fd-9654-5bb5b1c74992",
+        "73465cdc-e30e-5501-8a56-c23ad4b82c73"
+      ],
+      "d4f03b7f-c41f-5ffc-953a-a322a9104fff": [
+        "a342e996-5279-5c82-a862-7c1e51b82cc5"
+      ],
+      "81139c48-d4fc-5fd6-9a89-f2d9c7b369ef": [
+        "010711f4-c6b9-5893-ae87-0568c55c937f"
+      ],
+      "7fcdeff5-c5d3-5752-b5e9-a24a1a66c158": [],
+      "861594a3-87fc-5108-9bbf-d13cec1f4ec3": [],
+      "6de56d4c-9054-5d4b-852a-fdae52e4e296": [
+        "814531ec-fd5a-5688-8bde-17e04d541a83"
+      ],
+      "2c1db2b1-9091-56d4-b36d-49919deab9d0": [],
+      "576d7e3a-e1c3-59bc-a02f-48828adebdbe": [],
+      "d30332cc-1b51-5e32-b1f0-08d179b4c858": [
+        "ec4c31c4-3a6a-5118-8412-6b61286bb17b"
+      ],
+      "acab59d4-cb18-567c-874f-7c4909834572": [
+        "9b118d98-7b86-52a8-8eb1-9c6be7978ee1"
+      ],
+      "ad5ae222-613b-5ad3-aac7-4a8c568f2c1d": [],
+      "50608bff-1a90-5b6a-876b-586b24541888": [],
+      "668d43db-02c4-5eb2-a6ff-5e8dd158e77b": [
+        "a5685cc1-7957-5fdd-be08-a2c42466916e"
+      ],
+      "184b70e7-105b-5d8f-9790-cbee5241e791": [
+        "e026289c-6560-559d-b71a-1f9eaa6300e8"
+      ],
+      "2195bc08-c836-51e2-ba7e-a8ac8ce1d468": [
+        "6d004f9f-d673-5476-b5eb-971f3ed3bdd8"
+      ],
+      "a87c7fb3-a1ed-532f-a3d3-d7563f7792f7": [],
+      "02b156d9-275e-515f-9f1f-b53d7f362d6b": [
+        "6788afb6-7828-549a-beff-3afdaed537ad"
+      ],
+      "9c18f762-3791-50e6-8b0d-e6e38908171d": [
+        "1ce0b14b-234f-522b-a97e-f897afd91b71"
+      ],
+      "01da5f52-d52c-54e5-be99-4e0b257e0f19": [
+        "8192ef20-1149-54d7-931f-b2d0e0ea3d55"
+      ],
+      "5544fd69-5c64-55bc-806e-e7b0d93ccc53": [
+        "e44acd50-d357-5270-8dc0-1bf645eac87b"
+      ],
+      "06f792bd-a76e-5b10-81f5-09a8b22c8587": [
+        "224fdabf-a76e-545a-9b7f-366325ac41e1",
+        "b8a540ad-150f-5183-9fb4-f99e1513d760"
+      ],
+      "a30efe9e-77a8-54b7-b487-c2fa75b7d00e": [
+        "cad5a22f-551b-5f64-b877-40e460d72580"
+      ],
+      "0559de52-1ef4-50e9-96c8-e3693a39d54b": [
+        "10e86258-f9b1-5e40-9536-7a740075d9a3"
+      ],
+      "016fcc35-31d5-5fc2-ac8b-bcab58984c96": [
+        "1a985476-0172-5b1a-b38b-5be28a1ebcde"
+      ],
+      "0d4f3ff3-07a8-5a8c-ba52-8962caef2dff": [
+        "1f4f4983-6dae-51b8-8516-2848102f6930",
+        "050b0817-a6c7-5991-8e1d-b774b9064d46"
+      ],
+      "a366f018-e5b4-5d43-a8fc-885a0def4f6f": [
+        "384b65ea-43c5-595f-a056-a5007e4a955f",
+        "2122c1dc-f2da-556c-8726-1e44521af0fb"
+      ],
+      "c19abc2e-1c33-5b1c-a986-b644569691b1": [
+        "d198cd1f-9735-5e80-b08e-a2bdb901f4c2"
+      ],
+      "d98783b1-1bd7-5ee2-a596-8b39a3197567": [
+        "d71f1c81-e048-5c75-966d-684dc68f733b"
+      ],
+      "cfc214c7-a2f4-5e0d-902e-6dc470e21df6": [
+        "78c54287-f49b-5598-915f-d9624cf20d7d"
+      ],
+      "c024097d-9836-5863-97d3-aaf6e50d9203": [
+        "22ed8313-ebe6-59e1-9f7b-107c3637db03",
+        "8de6af27-4e15-52d1-8224-47f9a790243b"
+      ],
+      "29a225c1-69e6-5042-bf7e-f492d12a49e1": [
+        "84b62573-115e-5021-816f-ccec7142f699",
+        "caf3e4e1-0edd-5a03-8647-b3cba622123c"
+      ],
+      "44ea1671-09b8-5c53-8d45-7ed0df05eba2": [
+        "4f00dd7f-5e22-5f13-927a-d76d9a956d66"
+      ],
+      "4a745874-19f5-5256-9a28-6543931bfde4": [
+        "1edb58b1-6681-574a-966a-d8140b789db5"
+      ],
+      "0eb9ca18-eaf4-549a-8ba5-5ded5b405146": [
+        "c8731e04-f6b0-561c-9b3f-91f00abe8556"
+      ],
+      "6e5b48ba-eeaa-5f36-8a2f-173b01f16312": [
+        "bc58709a-5be5-58a4-901c-4eb4362acf71",
+        "0996e7ba-2807-59f0-b4d4-97364cf352c5"
+      ],
+      "802d919a-d626-5cfd-b24e-c9e60b60eddb": [
+        "1ff1ba23-41db-5cb2-b2ce-8d6863cc238b",
+        "22c909ee-bde4-5311-9fa2-f5b7779de008"
+      ],
+      "a4b1dc3a-87ea-565b-a800-604bfa205439": [
+        "04d61cb4-0f77-5788-a87b-004ba67e0644"
+      ],
+      "c06e87ac-7741-5af7-9cd1-9814a72c412c": [
+        "c869a831-1255-5f53-89e7-213f12293a6f"
+      ],
+      "d47687e7-0803-529b-89ae-dc28e04576af": [
+        "7a9caeb3-ff9d-5c36-9052-36b29f6106e2"
+      ],
+      "2d114d4c-3f1d-5ceb-824a-c30c8b34040b": [
+        "a1f83be5-f9d2-5ddf-914e-2226109c3f78",
+        "25a5d29e-3027-59c1-a0f0-fb4eaaa4111f"
+      ]
+    },
+    "rewardPayloadsByRewardId": {
+      "07754add-921f-53cc-9349-aad45ab4a442": {
+        "id": "07754add-921f-53cc-9349-aad45ab4a442",
+        "internal_name": "combat_catching_rats_m3_r1",
+        "payload_type": "TITLE",
+        "title_id": "280052ef-6ccc-5b51-aa0f-85e54c6e16b0"
+      },
+      "219b1f88-e2ce-532e-ab8a-aff9d55d833a": {
+        "id": "219b1f88-e2ce-532e-ab8a-aff9d55d833a",
+        "internal_name": "combat_catching_rats_m3_r2",
+        "payload_type": "SP",
+        "amount": 100000
+      },
+      "2e65b91c-dae7-52f8-852a-0559b7fad846": {
+        "id": "2e65b91c-dae7-52f8-852a-0559b7fad846",
+        "internal_name": "combat_complex_warfare_m3_r1",
+        "payload_type": "TITLE",
+        "title_id": "5c968724-f3b8-564b-8452-6bd790f80baf"
+      },
+      "a5770e7c-5369-5ac0-a80a-9176127e2a13": {
+        "id": "a5770e7c-5369-5ac0-a80a-9176127e2a13",
+        "internal_name": "combat_cdeadliest_game_m1_r1",
+        "payload_type": "SP",
+        "amount": 10000
+      },
+      "d5c4f509-fdb0-53d1-a948-c96a560b2f94": {
+        "id": "d5c4f509-fdb0-53d1-a948-c96a560b2f94",
+        "internal_name": "combat_deadliest_game_m2_r1",
+        "payload_type": "SP",
+        "amount": 15000
+      },
+      "0dcc17c4-8ab2-5bde-a5e6-549a9db99500": {
+        "id": "0dcc17c4-8ab2-5bde-a5e6-549a9db99500",
+        "internal_name": "combat_deadliest_game_m3_r1",
+        "payload_type": "TITLE",
+        "title_id": "787d46e9-c2b1-5937-bf19-894a7dd075b0"
+      },
+      "b6965da2-ab29-556b-b300-e17be36f2abe": {
+        "id": "b6965da2-ab29-556b-b300-e17be36f2abe",
+        "internal_name": "combat_deadliest_game_m3_r2",
+        "payload_type": "SP",
+        "amount": 75000
+      },
+      "2ff0641e-fb11-5bc6-86c2-f5164e59239a": {
+        "id": "2ff0641e-fb11-5bc6-86c2-f5164e59239a",
+        "internal_name": "combat_enter_the_abyss_m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "4da8aae2-6116-59b4-96c1-9549b550d906"
+      },
+      "1d08cd65-eda4-5499-bcc2-f3fbbf5aaa56": {
+        "id": "1d08cd65-eda4-5499-bcc2-f3fbbf5aaa56",
+        "internal_name": "combat_faction_supremacy_m3_r1",
+        "payload_type": "TITLE",
+        "title_id": "d496d572-cc4a-5926-ad2a-9c0a7f912f09"
+      },
+      "e6630ede-686e-5d89-9c10-8bea59f0a658": {
+        "id": "e6630ede-686e-5d89-9c10-8bea59f0a658",
+        "internal_name": "combat_high_noon_m3_r1",
+        "payload_type": "TITLE",
+        "title_id": "ea02e0bf-46d9-503c-b667-62e5cc8f9a7e"
+      },
+      "652f1052-0f64-5723-a418-6cc5cfca4b44": {
+        "id": "652f1052-0f64-5723-a418-6cc5cfca4b44",
+        "internal_name": "combat_safety_red_m3_r1",
+        "payload_type": "TITLE",
+        "title_id": "c543fc07-d6bf-5c23-bf3a-0a8086240cff"
+      },
+      "ead8cff4-e243-53d5-a4e8-a9bb3cb319bb": {
+        "id": "ead8cff4-e243-53d5-a4e8-a9bb3cb319bb",
+        "internal_name": "combat_ship_happens_m3_r1",
+        "payload_type": "TITLE",
+        "title_id": "d95904d0-e8cb-547c-85f5-fb2d4583d91d"
+      },
+      "fc488e99-6c8c-570e-8f74-52afdf037d07": {
+        "id": "fc488e99-6c8c-570e-8f74-52afdf037d07",
+        "internal_name": "combat_ship_happens_m3_r2",
+        "payload_type": "SP",
+        "amount": 100000
+      },
+      "82a7132c-0dbe-58d4-8eff-a07d4c9c28ab": {
+        "id": "82a7132c-0dbe-58d4-8eff-a07d4c9c28ab",
+        "internal_name": "combat_signature_sweeper_m3_r1",
+        "payload_type": "TITLE",
+        "title_id": "e9ee7f69-2793-566f-bedf-1f17ec31340d"
+      },
+      "1af7d586-74a9-543b-a8e4-9adca5fb8119": {
+        "id": "1af7d586-74a9-543b-a8e4-9adca5fb8119",
+        "internal_name": "combat_threat_elimination_m3_r1",
+        "payload_type": "TITLE",
+        "title_id": "d9be46c6-d9f1-5d0c-a136-ace0490f3b73"
+      },
+      "babe06a1-d8df-58fb-986f-8f1cd0b4b1ff": {
+        "id": "babe06a1-d8df-58fb-986f-8f1cd0b4b1ff",
+        "internal_name": "combat_threat_elimination_m3_r2",
+        "payload_type": "SP",
+        "amount": 50000
+      },
+      "357c18ad-8f93-5ed3-ac7a-6a4188a3f428": {
+        "id": "357c18ad-8f93-5ed3-ac7a-6a4188a3f428",
+        "internal_name": "exploration_amarr_exploration_m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "8b8ea592-d9b9-5303-bcd1-61fbfab2f260"
+      },
+      "90b7c088-f7f6-5bdc-a214-3661bcb15660": {
+        "id": "90b7c088-f7f6-5bdc-a214-3661bcb15660",
+        "internal_name": "exploration_caldari_exploration_m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "56868334-ce73-5f44-9b0b-269a6d751bba"
+      },
+      "e5c63908-e4bb-5ff2-bcaf-f4d2225aa0bb": {
+        "id": "e5c63908-e4bb-5ff2-bcaf-f4d2225aa0bb",
+        "internal_name": "exploration_empire_exploration_m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "92e86620-3458-5425-b4f3-059dffdacb31"
+      },
+      "eb3c405f-5a05-54c7-a22e-bc0b66dbd985": {
+        "id": "eb3c405f-5a05-54c7-a22e-bc0b66dbd985",
+        "internal_name": "exploration_firewall_down_m3_r1",
+        "payload_type": "TITLE",
+        "title_id": "7975535d-3b41-5b01-bca2-6b9fd19418d0"
+      },
+      "f8ae04ed-4349-5225-bf6b-8fbad8cbef7e": {
+        "id": "f8ae04ed-4349-5225-bf6b-8fbad8cbef7e",
+        "internal_name": "exploration_gallente_exploration_m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "15ebcdeb-329a-54d5-8e31-eba467ed874b"
+      },
+      "0e7bada6-f908-5b4d-8ee6-ecb9193e4d60": {
+        "id": "0e7bada6-f908-5b4d-8ee6-ecb9193e4d60",
+        "internal_name": "exploration_historic_wanderer_m2_r1",
+        "payload_type": "TITLE",
+        "title_id": "31db9ea2-a3fc-5223-b598-080198cfc65d"
+      },
+      "85d29034-222d-55da-a010-b17ab9ff5020": {
+        "id": "85d29034-222d-55da-a010-b17ab9ff5020",
+        "internal_name": "exploration_minmatar_exploration_m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "f92e6f2d-a7a4-51be-9ecb-cb3f1b31ef2c"
+      },
+      "05895d5b-6c47-5200-a1e2-a8733b46447c": {
+        "id": "05895d5b-6c47-5200-a1e2-a8733b46447c",
+        "internal_name": "exploration_signature_resolved_m3_r1",
+        "payload_type": "TITLE",
+        "title_id": "3dfdc192-e990-5a1d-8a7c-d5d4649e3df6"
+      },
+      "b2548f58-bdd6-5ce6-8f90-0f7e3090c336": {
+        "id": "b2548f58-bdd6-5ce6-8f90-0f7e3090c336",
+        "internal_name": "exploration_stellar_exploration_m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "e305d38a-e7f7-546f-b403-4a388986e6b7"
+      },
+      "b2053dbd-fae1-5d64-aec3-4d208267a26d": {
+        "id": "b2053dbd-fae1-5d64-aec3-4d208267a26d",
+        "internal_name": "Exploration_Starbound_m3_r1",
+        "payload_type": "TITLE",
+        "title_id": "c894a0d1-262b-552c-a46c-27496c74374e"
+      },
+      "00645cb6-abb8-50c7-babf-7f08959232c7": {
+        "id": "00645cb6-abb8-50c7-babf-7f08959232c7",
+        "internal_name": "Exploration_Starbound_m3_m3_r2",
+        "payload_type": "SP",
+        "amount": 75000
+      },
+      "8337a14a-0d56-5fb7-ae07-34bbbdfa5ae9": {
+        "id": "8337a14a-0d56-5fb7-ae07-34bbbdfa5ae9",
+        "internal_name": "Industry_Calm_Down_Miner__m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "f3e5b56f-b163-5e25-b4da-7f3709c801d0"
+      },
+      "5fc522c1-56e0-52fc-8538-35b99bc313fc": {
+        "id": "5fc522c1-56e0-52fc-8538-35b99bc313fc",
+        "internal_name": "Industry_Calm_Down_Miner_m1_r2",
+        "payload_type": "SP",
+        "amount": 10000
+      },
+      "833ea84b-c039-5b00-9372-d3a0302fdd99": {
+        "id": "833ea84b-c039-5b00-9372-d3a0302fdd99",
+        "internal_name": "Industry_Moonfall__m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "0c231769-621e-53d5-bd49-ce07a7b4a544"
+      },
+      "35fe43fb-ac03-53b4-98e1-2e61cdc31a33": {
+        "id": "35fe43fb-ac03-53b4-98e1-2e61cdc31a33",
+        "internal_name": "Industry_Moonfall__m1_r2",
+        "payload_type": "SP",
+        "amount": 10000
+      },
+      "2e4d308f-949c-58fd-9654-5bb5b1c74992": {
+        "id": "2e4d308f-949c-58fd-9654-5bb5b1c74992",
+        "internal_name": "Industry_huff_and_puff__m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "3a13f167-1408-598e-8e64-8e3c3a60d80a"
+      },
+      "73465cdc-e30e-5501-8a56-c23ad4b82c73": {
+        "id": "73465cdc-e30e-5501-8a56-c23ad4b82c73",
+        "internal_name": "Industry_huff_and_puff_m1_r2",
+        "payload_type": "SP",
+        "amount": 10000
+      },
+      "a342e996-5279-5c82-a862-7c1e51b82cc5": {
+        "id": "a342e996-5279-5c82-a862-7c1e51b82cc5",
+        "internal_name": "Industry_architect_of_war__m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "9d492967-3d07-59b0-8f75-44c4714b5e00"
+      },
+      "010711f4-c6b9-5893-ae87-0568c55c937f": {
+        "id": "010711f4-c6b9-5893-ae87-0568c55c937f",
+        "internal_name": "Industry_assembly_line__m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "5522946b-2b17-556f-817c-0b98af3ca6bc"
+      },
+      "814531ec-fd5a-5688-8bde-17e04d541a83": {
+        "id": "814531ec-fd5a-5688-8bde-17e04d541a83",
+        "internal_name": "industry_deep_pockets_m3_r1",
+        "payload_type": "TITLE",
+        "title_id": "c67dfd0c-f482-567c-b5a1-91487ec902ff"
+      },
+      "ec4c31c4-3a6a-5118-8412-6b61286bb17b": {
+        "id": "ec4c31c4-3a6a-5118-8412-6b61286bb17b",
+        "internal_name": "industry_marginal_victory_m3_r1",
+        "payload_type": "TITLE",
+        "title_id": "ca489be9-8261-572b-856f-5268b5764f90"
+      },
+      "9b118d98-7b86-52a8-8eb1-9c6be7978ee1": {
+        "id": "9b118d98-7b86-52a8-8eb1-9c6be7978ee1",
+        "internal_name": "Industry_master_manufacturer__m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "00851de7-b7ca-5136-871e-d07429563c06"
+      },
+      "a5685cc1-7957-5fdd-be08-a2c42466916e": {
+        "id": "a5685cc1-7957-5fdd-be08-a2c42466916e",
+        "internal_name": "industry_material_recovery_m3_r1",
+        "payload_type": "TITLE",
+        "title_id": "866ce4bb-e75c-5e41-a109-34a676b63d18"
+      },
+      "e026289c-6560-559d-b71a-1f9eaa6300e8": {
+        "id": "e026289c-6560-559d-b71a-1f9eaa6300e8",
+        "internal_name": "industry_reduce_reuse_recycle_m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "4c6968af-3084-5277-9f3f-f0ac1bcc3b99"
+      },
+      "6d004f9f-d673-5476-b5eb-971f3ed3bdd8": {
+        "id": "6d004f9f-d673-5476-b5eb-971f3ed3bdd8",
+        "internal_name": "Industry_titan_of_industry_m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "45473135-b454-5ebc-bd60-c2dec0bc0b7a"
+      },
+      "6788afb6-7828-549a-beff-3afdaed537ad": {
+        "id": "6788afb6-7828-549a-beff-3afdaed537ad",
+        "internal_name": "other_epic_initiate_m2_r1",
+        "payload_type": "TITLE",
+        "title_id": "aec9b88f-813b-5d27-86d1-d6059590bf99"
+      },
+      "1ce0b14b-234f-522b-a97e-f897afd91b71": {
+        "id": "1ce0b14b-234f-522b-a97e-f897afd91b71",
+        "internal_name": "other_one_way_ticket_m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "c236b11b-ea9a-5deb-88b8-b9cbe2a67e20"
+      },
+      "8192ef20-1149-54d7-931f-b2d0e0ea3d55": {
+        "id": "8192ef20-1149-54d7-931f-b2d0e0ea3d55",
+        "internal_name": "other_peer_reviewed_m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "2053b64b-499c-56f0-b5bd-9a328dfe9a5d"
+      },
+      "e44acd50-d357-5270-8dc0-1bf645eac87b": {
+        "id": "e44acd50-d357-5270-8dc0-1bf645eac87b",
+        "internal_name": "other_peer_reviewed_m2_r1",
+        "payload_type": "TITLE",
+        "title_id": "519fb4c8-2634-5d61-92b8-9ed437cd4f59"
+      },
+      "224fdabf-a76e-545a-9b7f-366325ac41e1": {
+        "id": "224fdabf-a76e-545a-9b7f-366325ac41e1",
+        "internal_name": "2026_q2_amarr_achievement_m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "c8f86c5e-869f-54c7-b117-7feffed9255c"
+      },
+      "b8a540ad-150f-5183-9fb4-f99e1513d760": {
+        "id": "b8a540ad-150f-5183-9fb4-f99e1513d760",
+        "internal_name": "2026_q2_amarr_achievement_m1_r2",
+        "payload_type": "ITEM",
+        "type_id": 93705,
+        "amount": 1
+      },
+      "cad5a22f-551b-5f64-b877-40e460d72580": {
+        "id": "cad5a22f-551b-5f64-b877-40e460d72580",
+        "internal_name": "2026_q2_amarr_achievement_m2_r1",
+        "payload_type": "ITEM",
+        "type_id": 93658,
+        "amount": 1
+      },
+      "10e86258-f9b1-5e40-9536-7a740075d9a3": {
+        "id": "10e86258-f9b1-5e40-9536-7a740075d9a3",
+        "internal_name": "2026_q2_amarr_achievement_m3_r1",
+        "payload_type": "ITEM",
+        "type_id": 93657,
+        "amount": 1
+      },
+      "1a985476-0172-5b1a-b38b-5be28a1ebcde": {
+        "id": "1a985476-0172-5b1a-b38b-5be28a1ebcde",
+        "internal_name": "2026_q2_amarr_achievement_m4_r1",
+        "payload_type": "ITEM",
+        "type_id": 93707,
+        "amount": 1
+      },
+      "1f4f4983-6dae-51b8-8516-2848102f6930": {
+        "id": "1f4f4983-6dae-51b8-8516-2848102f6930",
+        "internal_name": "2026_q2_amarr_achievement_m5_r1",
+        "payload_type": "TITLE",
+        "title_id": "c711a83b-058b-5317-89b1-88ea897f46df"
+      },
+      "050b0817-a6c7-5991-8e1d-b774b9064d46": {
+        "id": "050b0817-a6c7-5991-8e1d-b774b9064d46",
+        "internal_name": "2026_q2_amarr_achievement_m5_r2",
+        "payload_type": "ITEM",
+        "type_id": 93708,
+        "amount": 1
+      },
+      "384b65ea-43c5-595f-a056-a5007e4a955f": {
+        "id": "384b65ea-43c5-595f-a056-a5007e4a955f",
+        "internal_name": "2026_q2_caldari_achievement_m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "0ead53fb-9ab1-541a-abb9-499c7a75b6a8"
+      },
+      "2122c1dc-f2da-556c-8726-1e44521af0fb": {
+        "id": "2122c1dc-f2da-556c-8726-1e44521af0fb",
+        "internal_name": "2026_q2_caldari_achievement_m1_r2",
+        "payload_type": "ITEM",
+        "type_id": 93714,
+        "amount": 1
+      },
+      "d198cd1f-9735-5e80-b08e-a2bdb901f4c2": {
+        "id": "d198cd1f-9735-5e80-b08e-a2bdb901f4c2",
+        "internal_name": "2026_q2_caldari_achievement_m2_r1",
+        "payload_type": "ITEM",
+        "type_id": 93665,
+        "amount": 1
+      },
+      "d71f1c81-e048-5c75-966d-684dc68f733b": {
+        "id": "d71f1c81-e048-5c75-966d-684dc68f733b",
+        "internal_name": "2026_q2_caldari_achievement_m3_r1",
+        "payload_type": "ITEM",
+        "type_id": 93669,
+        "amount": 1
+      },
+      "78c54287-f49b-5598-915f-d9624cf20d7d": {
+        "id": "78c54287-f49b-5598-915f-d9624cf20d7d",
+        "internal_name": "2026_q2_caldari_achievement_m4_r1",
+        "payload_type": "ITEM",
+        "type_id": 93711,
+        "amount": 1
+      },
+      "22ed8313-ebe6-59e1-9f7b-107c3637db03": {
+        "id": "22ed8313-ebe6-59e1-9f7b-107c3637db03",
+        "internal_name": "2026_q2_caldari_achievement_m5_r1",
+        "payload_type": "TITLE",
+        "title_id": "4ab1da84-b87f-54ae-a035-04dcf1ab3b1f"
+      },
+      "8de6af27-4e15-52d1-8224-47f9a790243b": {
+        "id": "8de6af27-4e15-52d1-8224-47f9a790243b",
+        "internal_name": "2026_q2_caldari_achievement_m5_r2",
+        "payload_type": "ITEM",
+        "type_id": 93710,
+        "amount": 1
+      },
+      "84b62573-115e-5021-816f-ccec7142f699": {
+        "id": "84b62573-115e-5021-816f-ccec7142f699",
+        "internal_name": "2026_q2_gallente_achievement_m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "cc1a827e-bb0a-5ccc-b38a-39bf462e6ee1"
+      },
+      "caf3e4e1-0edd-5a03-8647-b3cba622123c": {
+        "id": "caf3e4e1-0edd-5a03-8647-b3cba622123c",
+        "internal_name": "2026_q2_gallente_achievement_m1_r2",
+        "payload_type": "ITEM",
+        "type_id": 93719,
+        "amount": 1
+      },
+      "4f00dd7f-5e22-5f13-927a-d76d9a956d66": {
+        "id": "4f00dd7f-5e22-5f13-927a-d76d9a956d66",
+        "internal_name": "2026_q2_gallente_achievement_m2_r1",
+        "payload_type": "ITEM",
+        "type_id": 93694,
+        "amount": 1
+      },
+      "1edb58b1-6681-574a-966a-d8140b789db5": {
+        "id": "1edb58b1-6681-574a-966a-d8140b789db5",
+        "internal_name": "2026_q2_gallente_achievement_m3_r1",
+        "payload_type": "ITEM",
+        "type_id": 93693,
+        "amount": 1
+      },
+      "c8731e04-f6b0-561c-9b3f-91f00abe8556": {
+        "id": "c8731e04-f6b0-561c-9b3f-91f00abe8556",
+        "internal_name": "2026_q2_gallente_achievement_m4_r1",
+        "payload_type": "ITEM",
+        "type_id": 93716,
+        "amount": 1
+      },
+      "bc58709a-5be5-58a4-901c-4eb4362acf71": {
+        "id": "bc58709a-5be5-58a4-901c-4eb4362acf71",
+        "internal_name": "2026_q2_gallente_achievement_m5_r1",
+        "payload_type": "TITLE",
+        "title_id": "b6d79605-6677-50e5-931b-2462b357d2f3"
+      },
+      "0996e7ba-2807-59f0-b4d4-97364cf352c5": {
+        "id": "0996e7ba-2807-59f0-b4d4-97364cf352c5",
+        "internal_name": "2026_q2_gallente_achievement_m5_r2",
+        "payload_type": "ITEM",
+        "type_id": 93715,
+        "amount": 1
+      },
+      "1ff1ba23-41db-5cb2-b2ce-8d6863cc238b": {
+        "id": "1ff1ba23-41db-5cb2-b2ce-8d6863cc238b",
+        "internal_name": "2026_q2_minmatar_achievement_m1_r1",
+        "payload_type": "TITLE",
+        "title_id": "04ae6e1f-d39a-5f5b-b9f4-7a2b3e426a38"
+      },
+      "22c909ee-bde4-5311-9fa2-f5b7779de008": {
+        "id": "22c909ee-bde4-5311-9fa2-f5b7779de008",
+        "internal_name": "2026_q2_minmatar_achievement_m1_r2",
+        "payload_type": "ITEM",
+        "type_id": 93724,
+        "amount": 1
+      },
+      "04d61cb4-0f77-5788-a87b-004ba67e0644": {
+        "id": "04d61cb4-0f77-5788-a87b-004ba67e0644",
+        "internal_name": "2026_q2_minmatar_achievement_m2_r1",
+        "payload_type": "ITEM",
+        "type_id": 93701,
+        "amount": 1
+      },
+      "c869a831-1255-5f53-89e7-213f12293a6f": {
+        "id": "c869a831-1255-5f53-89e7-213f12293a6f",
+        "internal_name": "2026_q2_minmatar_achievement_m3_r1",
+        "payload_type": "ITEM",
+        "type_id": 93700,
+        "amount": 1
+      },
+      "7a9caeb3-ff9d-5c36-9052-36b29f6106e2": {
+        "id": "7a9caeb3-ff9d-5c36-9052-36b29f6106e2",
+        "internal_name": "2026_q2_minmatar_achievement_m4_r1",
+        "payload_type": "ITEM",
+        "type_id": 93721,
+        "amount": 1
+      },
+      "a1f83be5-f9d2-5ddf-914e-2226109c3f78": {
+        "id": "a1f83be5-f9d2-5ddf-914e-2226109c3f78",
+        "internal_name": "2026_q2_minmatar_achievement_m5_r1",
+        "payload_type": "TITLE",
+        "title_id": "cafc93b5-4027-563d-adc0-5f6d76155b4e"
+      },
+      "25a5d29e-3027-59c1-a0f0-fb4eaaa4111f": {
+        "id": "25a5d29e-3027-59c1-a0f0-fb4eaaa4111f",
+        "internal_name": "2026_q2_minmatar_achievement_m5_r2",
+        "payload_type": "ITEM",
+        "type_id": 93720,
+        "amount": 1
+      }
+    },
+    "allRewardTitleIds": [
+      "280052ef-6ccc-5b51-aa0f-85e54c6e16b0",
+      "5c968724-f3b8-564b-8452-6bd790f80baf",
+      "787d46e9-c2b1-5937-bf19-894a7dd075b0",
+      "4da8aae2-6116-59b4-96c1-9549b550d906",
+      "d496d572-cc4a-5926-ad2a-9c0a7f912f09",
+      "ea02e0bf-46d9-503c-b667-62e5cc8f9a7e",
+      "c543fc07-d6bf-5c23-bf3a-0a8086240cff",
+      "d95904d0-e8cb-547c-85f5-fb2d4583d91d",
+      "e9ee7f69-2793-566f-bedf-1f17ec31340d",
+      "d9be46c6-d9f1-5d0c-a136-ace0490f3b73",
+      "8b8ea592-d9b9-5303-bcd1-61fbfab2f260",
+      "56868334-ce73-5f44-9b0b-269a6d751bba",
+      "92e86620-3458-5425-b4f3-059dffdacb31",
+      "7975535d-3b41-5b01-bca2-6b9fd19418d0",
+      "15ebcdeb-329a-54d5-8e31-eba467ed874b",
+      "31db9ea2-a3fc-5223-b598-080198cfc65d",
+      "f92e6f2d-a7a4-51be-9ecb-cb3f1b31ef2c",
+      "3dfdc192-e990-5a1d-8a7c-d5d4649e3df6",
+      "e305d38a-e7f7-546f-b403-4a388986e6b7",
+      "c894a0d1-262b-552c-a46c-27496c74374e",
+      "f3e5b56f-b163-5e25-b4da-7f3709c801d0",
+      "0c231769-621e-53d5-bd49-ce07a7b4a544",
+      "3a13f167-1408-598e-8e64-8e3c3a60d80a",
+      "9d492967-3d07-59b0-8f75-44c4714b5e00",
+      "5522946b-2b17-556f-817c-0b98af3ca6bc",
+      "c67dfd0c-f482-567c-b5a1-91487ec902ff",
+      "ca489be9-8261-572b-856f-5268b5764f90",
+      "00851de7-b7ca-5136-871e-d07429563c06",
+      "866ce4bb-e75c-5e41-a109-34a676b63d18",
+      "4c6968af-3084-5277-9f3f-f0ac1bcc3b99",
+      "45473135-b454-5ebc-bd60-c2dec0bc0b7a",
+      "aec9b88f-813b-5d27-86d1-d6059590bf99",
+      "c236b11b-ea9a-5deb-88b8-b9cbe2a67e20",
+      "2053b64b-499c-56f0-b5bd-9a328dfe9a5d",
+      "519fb4c8-2634-5d61-92b8-9ed437cd4f59",
+      "c8f86c5e-869f-54c7-b117-7feffed9255c",
+      "c711a83b-058b-5317-89b1-88ea897f46df",
+      "0ead53fb-9ab1-541a-abb9-499c7a75b6a8",
+      "4ab1da84-b87f-54ae-a035-04dcf1ab3b1f",
+      "cc1a827e-bb0a-5ccc-b38a-39bf462e6ee1",
+      "b6d79605-6677-50e5-931b-2462b357d2f3",
+      "04ae6e1f-d39a-5f5b-b9f4-7a2b3e426a38",
+      "cafc93b5-4027-563d-adc0-5f6d76155b4e"
+    ],
+    "implementedAchievementIds": [
+      "84f1f320-7972-5a9d-b987-57893edeafc5",
+      "b6d118b8-d749-5467-8245-e9f951e6bc27",
+      "e6e736a1-f85d-5a5e-87c3-271110ad3c70",
+      "fafd0ae9-ce09-58ee-ae3a-533a7958bc62",
+      "ab6c7da0-6907-5d09-83d2-53b0c9a1a348",
+      "f89547de-49f1-52dc-becd-2e15d2638d11",
+      "99e01b75-ba87-55ef-a833-23dc0d29db9e",
+      "ac4057a7-b330-535f-82c5-92e6121c2547",
+      "c1928dd0-0ee2-50be-ac84-e1de1157e349",
+      "e1788923-db4c-55c4-a64e-bbc7bb3083ac",
+      "a368306d-5248-55f5-a3a0-93d3b1597847",
+      "f60f6df9-d0b4-5663-9870-9e87e79acd8e",
+      "67c4d338-f89a-5239-b0cf-6670fe3014db",
+      "08eba9d2-c3da-58aa-beda-69a91c003648",
+      "eca1419c-20a1-5e87-9164-a0fbd6f2ea71",
+      "4807c0f3-36e7-5449-b586-47e089ca992b",
+      "8f16fa5e-5621-579a-8e55-441f2c5b0eb0",
+      "eb621aa7-0fde-5b84-bfc5-aecfbeb4a0bd",
+      "5d010d2f-72c8-563f-a55a-2446e5c9da22",
+      "82be3551-2b0e-5bc7-bbbc-21b7f812274b",
+      "8739d8d8-4e1e-5bca-b870-8f1357fa1dc7"
+    ],
+    "unsupportedAchievementIds": [
+      "8ec7f0f6-c251-5e6d-b303-241e80aabee1",
+      "b1338175-fae8-50d5-97b1-2ab5be17f69d",
+      "d8356c59-a0ec-553b-8301-9d6b7236139f",
+      "ffd4ffad-3dcc-58ca-95f0-fc07c9b5ef81",
+      "b9e578c2-b357-5d09-bb6a-844065f90906",
+      "8b482fab-42fa-581a-bb8b-3405c59258c7",
+      "512079b9-cfa4-5666-b8c7-e86b6b8b16e1",
+      "90b1a88f-c283-5dde-a264-c384d9d45168",
+      "3bb1549d-46bd-59ff-be7f-0a9652d5efcb",
+      "534841dd-aa20-53e8-9a3c-8fb539f7bf40",
+      "62875a0b-59f7-5d19-a3fb-c4bc80a4d887",
+      "37e5d7f6-8bcc-5e64-b703-0423e8fa5894",
+      "7ff3bdfc-9e4f-5177-a132-3f0beed3b699",
+      "e68a8d17-8556-5c9a-b961-312b9c3682d6",
+      "0638d0a9-85be-5d14-a6ea-9ab1977acbe3",
+      "6f72150b-77cb-5f2c-9b80-f1f641812e82",
+      "bff2c999-4d90-5d58-9128-0203e20bad49"
+    ]
+  }
+}

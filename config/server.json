@@ -1,0 +1,59 @@
+{
+  "development": {
+    "devAutoCreateAccounts": true,
+    "devSkipPasswordValidation": true,
+    "devBootstrapPublishedSkills": false,
+    "playerConnectToken": ""
+  },
+  "presence": {
+    "presenceReconcileIntervalMs": 30000,
+    "presenceReconcileChatEnabled": true,
+    "presenceReconcileXmppEnabled": true
+  },
+  "cluster": {
+    "clusterDowntimeStarts": "11:00:00",
+    "defaultCountryCode": "GB"
+  },
+  "logging": {
+    "logLevel": 2,
+    "logRetentionHours": 168,
+    "logArchiveMaxMegabytes": 128,
+    "logPacketPayloadDetails": false,
+    "spaceBubbleDebugEnabled": false,
+    "spaceMissileDebugEnabled": false
+  },
+  "network": {
+    "gameServerBindHost": "127.0.0.1",
+    "serverPort": 26000,
+    "socketKeepAliveEnabled": true,
+    "socketKeepAliveInitialDelayMs": 30000,
+    "socketNoDelayEnabled": true,
+    "socketIdleTimeoutMs": 0,
+    "loginTakeoverEnabled": true,
+    "customsInspectionEnabled": true,
+    "customsInspectionScanDelayMs": 3000,
+    "customsInspectionPromptTimeoutSeconds": 60
+  },
+  "images": {
+    "imageServerUrl": "http://127.0.0.1:26001/",
+    "imageServerBindHost": "127.0.0.1"
+  },
+  "gateway": {
+    "microservicesBindHost": "127.0.0.1",
+    "microservicesPublicUrl": "http://127.0.0.1:26002/",
+    "microservicesPort": 26002
+  },
+  "redshift": {
+    "redshiftMonitorHost": "127.0.0.1",
+    "redshiftMonitorPort": 26400
+  },
+  "proxy": {
+    "proxyBlockedHosts": "api.ipify.org,sentry.io,.sentry.io"
+  },
+  "xmpp": {
+    "xmppServerBindHost": "127.0.0.1",
+    "xmppConnectHost": "localhost",
+    "xmppDomain": "localhost",
+    "xmppConferenceDomain": ""
+  }
+}

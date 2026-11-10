@@ -1,0 +1,74 @@
+# The runtime image only needs these application trees. Keeping the context
+# explicit prevents large local caches, logs, generated data, and test stores
+# from being sent to the Linux Docker builder.
+**
+!Dockerfile
+!package.json
+!config/
+!config/**
+!server/
+!server/**
+!tools/
+!tools/DatabaseCreator/
+!tools/DatabaseCreator/**
+!tools/ContentPacks/
+!tools/ContentPacks/**
+!tools/ErrorReport/
+!tools/ErrorReport/**
+!tools/market-seed/
+!tools/market-seed/**
+!tools/market-seederv2/
+!tools/market-seederv2/**
+# v3 also ships data/price-manifest.json into the image: the committed prices are what
+# make a container seed exactly what a developer machine seeds, and `build` only reads it.
+!tools/market-seederv3/
+!tools/market-seederv3/**
+!externalservices/
+!externalservices/market-server/
+!externalservices/market-server/**
+!docker/
+!docker/**
+# The shipped content packs. The server installs whatever is in this folder when
+# it starts, so a container with an empty one gets no optional content at all.
+# Only the built packs: build/ underneath is intermediates, and large.
+!content-packs/
+!content-packs/*.json
+
+**/node_modules
+**/node_modules/**
+**/target
+**/target/**
+server/logs
+server/logs/**
+server/tests
+server/tests/**
+server/src/logs
+server/src/logs/**
+server/src/_secondary/data/chat
+server/src/_secondary/data/chat/**
+server/src/_secondary/image/generated/Character
+server/src/_secondary/image/generated/Character/**
+server/src/gameStore/data/*/data.json
+server/src/abyssal/catalog/content/tier[0-6]AbyssalSpaceTelemetry.generated.json
+server/src/abyssal/catalog/content/observedAbyssalNpcSpawns.generated.json
+content-packs/build
+content-packs/build/**
+server/src/gameStore/content-packs
+server/src/gameStore/content-packs/**
+**/*.sqlite*
+**/.env
+**/.env.*
+# Certificates from before 21 September 2026. They are in _local/certs now,
+# which is never sent, but installs keep these old copies.
+server/certs/**
+!server/certs/.gitkeep
+server/src/_secondary/express/certs/*.pem
+server/src/_secondary/express/certs/*.pfx
+server/src/_secondary/express/certs/*.key
+server/src/_secondary/express/certs/*passphrase*.txt
+externalservices/market-server/data/generated
+externalservices/market-server/data/generated/**
+tools/market-seederv2/cache
+tools/market-seederv2/cache/**
+tools/market-seederv3/cache
+tools/market-seederv3/cache/**

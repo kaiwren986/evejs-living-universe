@@ -1,0 +1,26 @@
+{
+  "hypernet": {
+    "hyperNetKillSwitch": false,
+    "hyperNetPlexPriceOverride": 3500000,
+    "hyperNetSeedEnabled": true,
+    "hyperNetSeedOwnerId": 140000004,
+    "hyperNetSeedRestockEnabled": true,
+    "hyperNetSeedShips": 5,
+    "hyperNetSeedItems": 5
+  },
+  "market": {
+    "marketDaemonHost": "127.0.0.1",
+    "marketDaemonPort": 40111,
+    "marketDaemonConnectTimeoutMs": 1500,
+    "marketDaemonRequestTimeoutMs": 15000,
+    "marketDaemonRetryDelayMs": 2000
+  },
+  "store": {
+    "newEdenStoreEnabled": true,
+    "newEdenStoreFastCheckoutEnabled": true,
+    "newEdenStoreFakeCashPurchasesEnabled": true,
+    "newEdenStoreCentsPerPlex": 100,
+    "newEdenStoreDefaultCashTaxRatePoints": 0,
+    "newEdenStorePurchaseLogLimit": 500
+  }
+}

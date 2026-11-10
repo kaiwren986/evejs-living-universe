@@ -1,0 +1,67 @@
+{
+  "events": {
+    "campaignTrailEnabled": false,
+    "eventSchedules": {
+      "gallente-election-yc128": {
+        "enabled": false,
+        "startsAt": "2026-09-15T00:00:00Z",
+        "endsAt": "2036-09-15T00:00:00Z",
+        "traderGraceDays": 7,
+        "bonuses": {
+          "warpSpeedPercent": 10,
+          "hybridTrackingPercent": 7.5,
+          "localArmorRepairPercent": 7.5
+        }
+      },
+      "gallente-election-login-yc128": {
+        "enabled": false,
+        "startsAt": "2026-09-15T00:00:00Z",
+        "endsAt": "2036-09-15T00:00:00Z"
+      }
+    }
+  },
+  "characters": {
+    "characterDeletionDelayMinutes": 1,
+    "newCharacterExperienceMode": "disabled"
+  },
+  "skills": {
+    "skillTrainingSpeed": 1,
+    "skillPurchaseEnabled": true,
+    "expertSystemsEnabled": true
+  },
+  "skinr": {
+    "skinrDesignIterationMultiplier": 1
+  },
+  "structures": {
+    "upwellTimerScale": 1,
+    "posConsumeFuelWhileServerOffline": false
+  },
+  "sovereignty": {
+    "sovereigntyOneTimeParityReset": true
+  },
+  "combat": {
+    "turretHitChanceAdditive": 0
+  },
+  "missions": {
+    "missionRewardMultiplier": 1,
+    "factionStandingLossOnKillEnabled": true,
+    "missionDeclinePenaltyEnabled": true
+  },
+  "subscription": {
+    "omegaLicenseEnabled": true
+  },
+  "rewards": {
+    "dailyLoginRewardsEnabled": true,
+    "loginCampaigns": [],
+    "dailyLoginRewards": [
+      {
+        "typeID": 49810,
+        "quantity": 1
+      }
+    ]
+  },
+  "planets": {
+    "planetResourceAbundanceMultiplier": 1,
+    "planetSchematicOutputMultiplier": 1
+  }
+}

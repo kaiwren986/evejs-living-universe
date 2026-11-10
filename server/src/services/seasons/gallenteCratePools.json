@@ -1,0 +1,974 @@
+{
+  "version": 1,
+  "reviewedOn": "2026-09-21",
+  "sources": [
+    "https://everef.net/types/92092",
+    "https://everef.net/types/92161",
+    "https://everef.net/types/92181",
+    "https://everef.net/types/92375",
+    "https://wiki.eveuniversity.org/Gallente_Election_YC128"
+  ],
+  "policy": "One item per crate, equal probability per listed type. Published descriptions establish reward families, not exact server pools or weights. SKINr uses the ten election limited components; Demos includes Basic, Potent and Extended; boosters include the 24 election types. These are explicit replay pool choices.",
+  "pools": {
+    "92092": [
+      {
+        "typeID": 34633,
+        "name": "Dominix Inner Zone Shipping SKIN"
+      },
+      {
+        "typeID": 34637,
+        "name": "Hyperion Inner Zone Shipping SKIN"
+      },
+      {
+        "typeID": 34638,
+        "name": "Megathron Inner Zone Shipping SKIN"
+      },
+      {
+        "typeID": 34669,
+        "name": "Obelisk Inner Zone Shipping SKIN"
+      },
+      {
+        "typeID": 34693,
+        "name": "Thorax Inner Zone Shipping SKIN"
+      },
+      {
+        "typeID": 34709,
+        "name": "Catalyst Inner Zone Shipping SKIN"
+      },
+      {
+        "typeID": 34738,
+        "name": "Imicus Inner Zone Shipping SKIN"
+      },
+      {
+        "typeID": 34741,
+        "name": "Incursus Inner Zone Shipping SKIN"
+      },
+      {
+        "typeID": 34742,
+        "name": "Maulus Inner Zone Shipping SKIN"
+      },
+      {
+        "typeID": 34745,
+        "name": "Tristan Inner Zone Shipping SKIN"
+      },
+      {
+        "typeID": 34755,
+        "name": "Iteron Mark V Inner Zone Shipping SKIN"
+      },
+      {
+        "typeID": 34816,
+        "name": "Kronos Inner Zone Shipping SKIN"
+      },
+      {
+        "typeID": 43749,
+        "name": "Venture Amarr Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43750,
+        "name": "Endurance Amarr Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43751,
+        "name": "Prospect Amarr Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43752,
+        "name": "Procurer Amarr Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43753,
+        "name": "Retriever Amarr Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43754,
+        "name": "Covetor Amarr Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43755,
+        "name": "Skiff Amarr Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43756,
+        "name": "Mackinaw Amarr Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43757,
+        "name": "Hulk Amarr Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43758,
+        "name": "Bowhead Amarr Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43759,
+        "name": "Orca Amarr Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43760,
+        "name": "Rorqual Amarr Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43761,
+        "name": "Porpoise Amarr Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43762,
+        "name": "Venture Caldari Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43763,
+        "name": "Endurance Caldari Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43764,
+        "name": "Prospect Caldari Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43765,
+        "name": "Procurer Caldari Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43766,
+        "name": "Retriever Caldari Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43767,
+        "name": "Covetor Caldari Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43768,
+        "name": "Skiff Caldari Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43769,
+        "name": "Mackinaw Caldari Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43770,
+        "name": "Hulk Caldari Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43771,
+        "name": "Bowhead Caldari Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43772,
+        "name": "Orca Caldari Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43773,
+        "name": "Rorqual Caldari Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43774,
+        "name": "Porpoise Caldari Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43776,
+        "name": "Venture Gallente Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43777,
+        "name": "Endurance Gallente Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43778,
+        "name": "Prospect Gallente Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43779,
+        "name": "Procurer Gallente Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43780,
+        "name": "Retriever Gallente Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43781,
+        "name": "Covetor Gallente Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43782,
+        "name": "Skiff Gallente Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43783,
+        "name": "Mackinaw Gallente Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43784,
+        "name": "Hulk Gallente Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43785,
+        "name": "Bowhead Gallente Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43786,
+        "name": "Orca Gallente Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43787,
+        "name": "Rorqual Gallente Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43788,
+        "name": "Porpoise Gallente Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43789,
+        "name": "Venture Minmatar Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43790,
+        "name": "Endurance Minmatar Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43791,
+        "name": "Prospect Minmatar Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43792,
+        "name": "Procurer Minmatar Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43793,
+        "name": "Retriever Minmatar Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43794,
+        "name": "Covetor Minmatar Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43795,
+        "name": "Skiff Minmatar Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43796,
+        "name": "Mackinaw Minmatar Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43797,
+        "name": "Hulk Minmatar Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43798,
+        "name": "Bowhead Minmatar Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43799,
+        "name": "Orca Minmatar Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43800,
+        "name": "Rorqual Minmatar Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43801,
+        "name": "Porpoise Minmatar Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43802,
+        "name": "Venture Angel Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43803,
+        "name": "Endurance Angel Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43804,
+        "name": "Prospect Angel Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43805,
+        "name": "Procurer Angel Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43806,
+        "name": "Retriever Angel Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43807,
+        "name": "Covetor Angel Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43808,
+        "name": "Skiff Angel Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43809,
+        "name": "Mackinaw Angel Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43810,
+        "name": "Hulk Angel Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43811,
+        "name": "Bowhead Angel Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43812,
+        "name": "Orca Angel Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43813,
+        "name": "Rorqual Angel Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43814,
+        "name": "Porpoise Angel Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43828,
+        "name": "Venture Guristas Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43829,
+        "name": "Endurance Guristas Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43830,
+        "name": "Prospect Guristas Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43831,
+        "name": "Procurer Guristas Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43832,
+        "name": "Retriever Guristas Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43833,
+        "name": "Covetor Guristas Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43834,
+        "name": "Skiff Guristas Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43835,
+        "name": "Mackinaw Guristas Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43836,
+        "name": "Hulk Guristas Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43837,
+        "name": "Bowhead Guristas Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43838,
+        "name": "Orca Guristas Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43839,
+        "name": "Rorqual Guristas Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43840,
+        "name": "Porpoise Guristas Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43841,
+        "name": "Venture Sansha Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43842,
+        "name": "Endurance Sansha Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43843,
+        "name": "Prospect Sansha Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43844,
+        "name": "Procurer Sansha Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43845,
+        "name": "Retriever Sansha Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43846,
+        "name": "Covetor Sansha Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43847,
+        "name": "Skiff Sansha Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43848,
+        "name": "Mackinaw Sansha Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43849,
+        "name": "Hulk Sansha Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43850,
+        "name": "Bowhead Sansha Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43851,
+        "name": "Orca Sansha Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43852,
+        "name": "Rorqual Sansha Industrial Livery SKIN"
+      },
+      {
+        "typeID": 43853,
+        "name": "Porpoise Sansha Industrial Livery SKIN"
+      },
+      {
+        "typeID": 45869,
+        "name": "Gallente Shuttle Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45870,
+        "name": "Velator Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45871,
+        "name": "Atron Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45872,
+        "name": "Imicus Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45873,
+        "name": "Incursus Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45874,
+        "name": "Maulus Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45875,
+        "name": "Navitas Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45876,
+        "name": "Tristan Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45877,
+        "name": "Enyo Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45878,
+        "name": "Ishkur Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45879,
+        "name": "Helios Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45880,
+        "name": "Nemesis Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45881,
+        "name": "Keres Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45882,
+        "name": "Ares Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45883,
+        "name": "Taranis Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45884,
+        "name": "Thalia Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45885,
+        "name": "Federation Navy Comet Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45886,
+        "name": "Maulus Navy Issue Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45887,
+        "name": "Algos Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45888,
+        "name": "Catalyst Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45889,
+        "name": "Magus Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45890,
+        "name": "Eris Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45891,
+        "name": "Hecate Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45892,
+        "name": "Celestis Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45893,
+        "name": "Exequror Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45894,
+        "name": "Thorax Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45895,
+        "name": "Vexor Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45896,
+        "name": "Deimos Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45897,
+        "name": "Ishtar Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45898,
+        "name": "Phobos Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45899,
+        "name": "Oneiros Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45900,
+        "name": "Arazu Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45901,
+        "name": "Lachesis Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45902,
+        "name": "Proteus Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45903,
+        "name": "Exequror Navy Issue Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45904,
+        "name": "Vexor Navy Issue Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45905,
+        "name": "Brutix Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45906,
+        "name": "Myrmidon Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45907,
+        "name": "Talos Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45908,
+        "name": "Astarte Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45909,
+        "name": "Eos Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45910,
+        "name": "Brutix Navy Issue Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45911,
+        "name": "Dominix Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45912,
+        "name": "Hyperion Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45913,
+        "name": "Megathron Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45914,
+        "name": "Sin Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45915,
+        "name": "Kronos Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45916,
+        "name": "Dominix Navy Issue Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45917,
+        "name": "Megathron Navy Issue Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45918,
+        "name": "Moros Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45919,
+        "name": "Thanatos Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45920,
+        "name": "Nyx Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45921,
+        "name": "Erebus Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45922,
+        "name": "Epithal Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45923,
+        "name": "Iteron Mark V Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45924,
+        "name": "Kryos Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45925,
+        "name": "Miasmos Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45926,
+        "name": "Nereus Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45927,
+        "name": "Viator Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45928,
+        "name": "Occator Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45929,
+        "name": "Obelisk Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 45930,
+        "name": "Anshar Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 46148,
+        "name": "Ninazu Exoplanets Hunter SKIN"
+      },
+      {
+        "typeID": 47501,
+        "name": "Hyperion Hunter's Quiver SKIN"
+      },
+      {
+        "typeID": 47502,
+        "name": "Exequror Hunter's Quiver SKIN"
+      },
+      {
+        "typeID": 47503,
+        "name": "Atron Hunter's Quiver SKIN"
+      },
+      {
+        "typeID": 47504,
+        "name": "Thanatos Hunter's Quiver SKIN"
+      },
+      {
+        "typeID": 48226,
+        "name": "Atron Luminaire Zenith SKIN"
+      },
+      {
+        "typeID": 48227,
+        "name": "Algos Luminaire Zenith SKIN"
+      },
+      {
+        "typeID": 48228,
+        "name": "Thorax Luminaire Zenith SKIN"
+      },
+      {
+        "typeID": 48229,
+        "name": "Talos Luminaire Zenith SKIN"
+      },
+      {
+        "typeID": 49799,
+        "name": "Tristan Chromodynamic Candy SKIN"
+      },
+      {
+        "typeID": 55743,
+        "name": "Gallente Shuttle Inner Zone Shipping SKIN"
+      },
+      {
+        "typeID": 55744,
+        "name": "Nereus Inner Zone Shipping SKIN"
+      },
+      {
+        "typeID": 57414,
+        "name": "Brutix Luminaire Zenith SKIN"
+      },
+      {
+        "typeID": 57416,
+        "name": "Vexor Luminaire Zenith SKIN"
+      },
+      {
+        "typeID": 57532,
+        "name": "Myrmidon Hunter's Quiver SKIN"
+      },
+      {
+        "typeID": 57536,
+        "name": "Ares Hunter's Quiver SKIN"
+      },
+      {
+        "typeID": 57592,
+        "name": "Brutix Navy Issue Luminaire Zenith SKIN"
+      },
+      {
+        "typeID": 57593,
+        "name": "Vexor Navy Issue Luminaire Zenith SKIN"
+      },
+      {
+        "typeID": 57778,
+        "name": "Exequror Navy Issue Hunter's Quiver SKIN"
+      },
+      {
+        "typeID": 59335,
+        "name": "Dominix Green Demons SKIN"
+      },
+      {
+        "typeID": 59336,
+        "name": "Megathron Green Demons SKIN"
+      },
+      {
+        "typeID": 59337,
+        "name": "Thanatos Green Demons SKIN"
+      },
+      {
+        "typeID": 59338,
+        "name": "Nyx Green Demons SKIN"
+      },
+      {
+        "typeID": 59339,
+        "name": "Deimos Green Demons SKIN"
+      },
+      {
+        "typeID": 59340,
+        "name": "Ishtar Green Demons SKIN"
+      },
+      {
+        "typeID": 60577,
+        "name": "Tristan Quafe Green Apple SKIN"
+      },
+      {
+        "typeID": 60578,
+        "name": "Vexor Quafe Green Apple SKIN"
+      },
+      {
+        "typeID": 60579,
+        "name": "Dominix Quafe Green Apple SKIN"
+      },
+      {
+        "typeID": 63174,
+        "name": "Magus Hunter's Quiver SKIN"
+      },
+      {
+        "typeID": 63175,
+        "name": "Vexor Hunter's Quiver SKIN"
+      },
+      {
+        "typeID": 63638,
+        "name": "Vexor Navy Issue Hunter's Quiver SKIN"
+      },
+      {
+        "typeID": 64397,
+        "name": "Ares Luminaire Zenith SKIN"
+      },
+      {
+        "typeID": 64398,
+        "name": "Tristan Luminaire Zenith SKIN"
+      },
+      {
+        "typeID": 64399,
+        "name": "Federation Navy Comet Luminaire Zenith SKIN"
+      },
+      {
+        "typeID": 64400,
+        "name": "Exequror Luminaire Zenith SKIN"
+      },
+      {
+        "typeID": 64401,
+        "name": "Megathron Luminaire Zenith SKIN"
+      }
+    ],
+    "92161": [
+      {
+        "typeID": 92158,
+        "name": "Expired Basic 'Demos' Cerebral Accelerator"
+      },
+      {
+        "typeID": 92159,
+        "name": "Expired Potent 'Demos' Cerebral Accelerator"
+      },
+      {
+        "typeID": 92160,
+        "name": "Expired Extended 'Demos' Cerebral Accelerator"
+      }
+    ],
+    "92181": [
+      {
+        "typeID": 91998,
+        "name": "Expired Federation Mobility Booster I"
+      },
+      {
+        "typeID": 91999,
+        "name": "Expired Federation Mobility Booster II"
+      },
+      {
+        "typeID": 92000,
+        "name": "Expired Federation Mobility Booster III"
+      },
+      {
+        "typeID": 92001,
+        "name": "Expired Federation Mobility Booster IV"
+      },
+      {
+        "typeID": 92002,
+        "name": "Expired Federation Electronics Booster I"
+      },
+      {
+        "typeID": 92003,
+        "name": "Expired Federation Electronics Booster II"
+      },
+      {
+        "typeID": 92004,
+        "name": "Expired Federation Electronics Booster III"
+      },
+      {
+        "typeID": 92005,
+        "name": "Expired Federation Electronics Booster IV"
+      },
+      {
+        "typeID": 92006,
+        "name": "Expired Federation Defense Booster I"
+      },
+      {
+        "typeID": 92017,
+        "name": "Expired Federation Defense Booster II"
+      },
+      {
+        "typeID": 92018,
+        "name": "Expired Federation Defense Booster III"
+      },
+      {
+        "typeID": 92019,
+        "name": "Expired Federation Defense Booster IV"
+      },
+      {
+        "typeID": 92021,
+        "name": "Expired Federation Application Booster I"
+      },
+      {
+        "typeID": 92022,
+        "name": "Expired Federation Application Booster II"
+      },
+      {
+        "typeID": 92023,
+        "name": "Expired Federation Application Booster III"
+      },
+      {
+        "typeID": 92024,
+        "name": "Expired Federation Application Booster IV"
+      },
+      {
+        "typeID": 92025,
+        "name": "Expired Federation Projection Booster I"
+      },
+      {
+        "typeID": 92026,
+        "name": "Expired Federation Projection Booster II"
+      },
+      {
+        "typeID": 92027,
+        "name": "Expired Federation Projection Booster III"
+      },
+      {
+        "typeID": 92028,
+        "name": "Expired Federation Projection Booster IV"
+      },
+      {
+        "typeID": 92029,
+        "name": "Expired Federation Damage Booster I"
+      },
+      {
+        "typeID": 92030,
+        "name": "Expired Federation Damage Booster II"
+      },
+      {
+        "typeID": 92031,
+        "name": "Expired Federation Damage Booster III"
+      },
+      {
+        "typeID": 92032,
+        "name": "Expired Federation Damage Booster IV"
+      }
+    ],
+    "92375": [
+      {
+        "typeID": 92573,
+        "name": "Federation Ascent - Limited"
+      },
+      {
+        "typeID": 92575,
+        "name": "Federation Field - Limited"
+      },
+      {
+        "typeID": 92577,
+        "name": "Verdigris Referendum Gloss - Limited"
+      },
+      {
+        "typeID": 92579,
+        "name": "Civic Ember Matte - Limited"
+      },
+      {
+        "typeID": 92581,
+        "name": "Diverse Unakite Matte - Limited"
+      },
+      {
+        "typeID": 92583,
+        "name": "Senatorial Swamp Metallic - Limited"
+      },
+      {
+        "typeID": 92585,
+        "name": "Turquoise Accord Metallic - Limited"
+      },
+      {
+        "typeID": 92587,
+        "name": "Tei-Su Meadow Metallic - Limited"
+      },
+      {
+        "typeID": 92589,
+        "name": "Caille Steel Metallic - Limited"
+      },
+      {
+        "typeID": 92591,
+        "name": "Intaki Obsidian Metallic - Limited"
+      }
+    ]
+  }
+}

@@ -1,0 +1,615 @@
+{
+  "source": {
+    "build": 3396210,
+    "extracted": "2026-09-20",
+    "components": "spacecomponentsbytype.fsdbinary",
+    "componentsMD5": "95f5ac99b789752c63b696f4170beedb",
+    "recipes": "itemtraderrecipes.fsdbinary",
+    "recipesMD5": "b78e5250213958781660552afc4207e3",
+    "reference": "https://wiki.eveuniversity.org/Gallente_Election_YC128#Political_Favors"
+  },
+  "centers": {
+    "92433": {
+      "itemTrader": {
+        "recipes": [
+          227,
+          228,
+          229,
+          230,
+          231,
+          232,
+          233,
+          234,
+          235,
+          236,
+          237,
+          238,
+          239,
+          240,
+          241,
+          242,
+          325,
+          328,
+          329,
+          330,
+          331,
+          332,
+          333,
+          334,
+          335,
+          336,
+          337,
+          338,
+          339
+        ],
+        "interactionRange": 2500
+      }
+    },
+    "92434": {
+      "itemTrader": {
+        "recipes": [
+          227,
+          228,
+          229,
+          230,
+          231,
+          232,
+          233,
+          234,
+          235,
+          236,
+          237,
+          243,
+          244,
+          245,
+          246,
+          247,
+          326,
+          328,
+          329,
+          330,
+          331,
+          332,
+          333,
+          334,
+          335,
+          336,
+          337,
+          338,
+          339
+        ],
+        "interactionRange": 2500
+      }
+    },
+    "92435": {
+      "itemTrader": {
+        "recipes": [
+          227,
+          228,
+          229,
+          230,
+          231,
+          232,
+          233,
+          234,
+          235,
+          236,
+          237,
+          248,
+          249,
+          250,
+          251,
+          252,
+          327,
+          328,
+          329,
+          330,
+          331,
+          332,
+          333,
+          334,
+          335,
+          336,
+          337,
+          338,
+          339
+        ],
+        "interactionRange": 2500
+      }
+    }
+  },
+  "recipes": {
+    "227": {
+      "inputItems": {
+        "92391": 25
+      },
+      "displayNameID": 1038698,
+      "internalName": "Federation Electronics Booster IV",
+      "inputIsk": 0,
+      "outputItems": {
+        "92005": 1
+      },
+      "groupID": "BOOSTERS"
+    },
+    "228": {
+      "inputItems": {
+        "92391": 25
+      },
+      "displayNameID": 1038699,
+      "internalName": "Federation Mobility Booster IV",
+      "inputIsk": 0,
+      "outputItems": {
+        "92001": 1
+      },
+      "groupID": "BOOSTERS"
+    },
+    "229": {
+      "inputItems": {
+        "92391": 25
+      },
+      "displayNameID": 1038700,
+      "internalName": "Federation Damage Booster IV",
+      "inputIsk": 0,
+      "outputItems": {
+        "92032": 1
+      },
+      "groupID": "BOOSTERS"
+    },
+    "230": {
+      "inputItems": {
+        "92391": 25
+      },
+      "displayNameID": 1038701,
+      "internalName": "Federation Projection Booster IV",
+      "inputIsk": 0,
+      "outputItems": {
+        "92028": 1
+      },
+      "groupID": "BOOSTERS"
+    },
+    "231": {
+      "inputItems": {
+        "92391": 25
+      },
+      "displayNameID": 1038702,
+      "internalName": "Federation Application Booster IV",
+      "inputIsk": 0,
+      "outputItems": {
+        "92024": 1
+      },
+      "groupID": "BOOSTERS"
+    },
+    "232": {
+      "inputItems": {
+        "92391": 25
+      },
+      "displayNameID": 1038703,
+      "internalName": "Federation Defense Booster IV",
+      "inputIsk": 0,
+      "outputItems": {
+        "92019": 1
+      },
+      "groupID": "BOOSTERS"
+    },
+    "233": {
+      "inputItems": {
+        "92391": 10
+      },
+      "displayNameID": 1038704,
+      "internalName": "Gallente Election Booster Crate",
+      "inputIsk": 0,
+      "outputItems": {
+        "92181": 1
+      },
+      "groupID": "BOOSTERS"
+    },
+    "234": {
+      "inputItems": {
+        "92391": 50
+      },
+      "displayNameID": 1038705,
+      "internalName": "Extended 'Demos' Cerebral Accelerator",
+      "inputIsk": 0,
+      "outputItems": {
+        "92160": 1
+      },
+      "groupID": "BOOSTERS"
+    },
+    "235": {
+      "inputItems": {
+        "92391": 25
+      },
+      "displayNameID": 1038706,
+      "internalName": "Gallente ElectionCerebral Accelerator Crate",
+      "inputIsk": 0,
+      "outputItems": {
+        "92161": 1
+      },
+      "groupID": "BOOSTERS"
+    },
+    "236": {
+      "inputItems": {
+        "92391": 15
+      },
+      "displayNameID": 1038707,
+      "internalName": "Gallente Election SKINr Crate",
+      "inputIsk": 0,
+      "outputItems": {
+        "92375": 1
+      },
+      "groupID": "SKINR"
+    },
+    "237": {
+      "inputItems": {
+        "92391": 50
+      },
+      "displayNameID": 1038708,
+      "internalName": "Gallente Election SKIN Crate",
+      "inputIsk": 0,
+      "outputItems": {
+        "92092": 1
+      },
+      "groupID": "SKINS"
+    },
+    "238": {
+      "inputItems": {
+        "92391": 5
+      },
+      "displayNameID": 1038709,
+      "internalName": "Gallente election Light TargetPaint/DPS Drone",
+      "inputIsk": 0,
+      "outputItems": {
+        "92461": 1
+      },
+      "groupID": "DRONES"
+    },
+    "239": {
+      "inputItems": {
+        "92391": 10
+      },
+      "displayNameID": 1038710,
+      "internalName": "Gallente Election Medium TargetPaint/DPS Drone",
+      "inputIsk": 0,
+      "outputItems": {
+        "92462": 1
+      },
+      "groupID": "DRONES"
+    },
+    "240": {
+      "inputItems": {
+        "92391": 25
+      },
+      "displayNameID": 1038711,
+      "internalName": "Gallente Election Heavy TargetPaint/DPS Drone",
+      "inputIsk": 0,
+      "outputItems": {
+        "92463": 1
+      },
+      "groupID": "DRONES"
+    },
+    "241": {
+      "inputItems": {
+        "92391": 250
+      },
+      "displayNameID": 1038712,
+      "internalName": "Gallente Election Faction skirmish command burst",
+      "inputIsk": 0,
+      "outputItems": {
+        "92458": 1
+      },
+      "groupID": "MODULES_AMMO"
+    },
+    "242": {
+      "inputItems": {
+        "92392": 4
+      },
+      "displayNameID": 1038713,
+      "internalName": "Gallente Election Officer Guidance Disruptor",
+      "inputIsk": 0,
+      "outputItems": {
+        "92451": 1
+      },
+      "groupID": "MODULES_AMMO"
+    },
+    "243": {
+      "inputItems": {
+        "92391": 5
+      },
+      "displayNameID": 1038714,
+      "internalName": "Gallente Election Light SensorDamp/DPS Drone",
+      "inputIsk": 0,
+      "outputItems": {
+        "92464": 1
+      },
+      "groupID": "DRONES"
+    },
+    "244": {
+      "inputItems": {
+        "92391": 10
+      },
+      "displayNameID": 1038715,
+      "internalName": "Gallente Election Medium SensorDamp/DPS Drone",
+      "inputIsk": 0,
+      "outputItems": {
+        "92465": 1
+      },
+      "groupID": "DRONES"
+    },
+    "245": {
+      "inputItems": {
+        "92391": 25
+      },
+      "displayNameID": 1038716,
+      "internalName": "Gallente Election Heavy SensorDamp/DPS Drone",
+      "inputIsk": 0,
+      "outputItems": {
+        "92466": 1
+      },
+      "groupID": "DRONES"
+    },
+    "246": {
+      "inputItems": {
+        "92391": 250
+      },
+      "displayNameID": 1038717,
+      "internalName": "Gallente Election Faction info command burst",
+      "inputIsk": 0,
+      "outputItems": {
+        "92455": 1
+      },
+      "groupID": "MODULES_AMMO"
+    },
+    "247": {
+      "inputItems": {
+        "92392": 4
+      },
+      "displayNameID": 1038718,
+      "internalName": "Gallente Election Officer Scan Probe Launcher",
+      "inputIsk": 0,
+      "outputItems": {
+        "92453": 1
+      },
+      "groupID": "MODULES_AMMO"
+    },
+    "248": {
+      "inputItems": {
+        "92391": 5
+      },
+      "displayNameID": 1038719,
+      "internalName": "Gallente Election Light TargetDrisrupt/DPS Drone",
+      "inputIsk": 0,
+      "outputItems": {
+        "92467": 1
+      },
+      "groupID": "DRONES"
+    },
+    "249": {
+      "inputItems": {
+        "92391": 10
+      },
+      "displayNameID": 1038720,
+      "internalName": "Gallente Election Medium TargetDrisrupt/DPS Drone",
+      "inputIsk": 0,
+      "outputItems": {
+        "92468": 1
+      },
+      "groupID": "DRONES"
+    },
+    "250": {
+      "inputItems": {
+        "92391": 25
+      },
+      "displayNameID": 1038721,
+      "internalName": "Gallente Election Heavy TargetDrisrupt/DPS Drone",
+      "inputIsk": 0,
+      "outputItems": {
+        "92469": 1
+      },
+      "groupID": "DRONES"
+    },
+    "251": {
+      "inputItems": {
+        "92391": 250
+      },
+      "displayNameID": 1038722,
+      "internalName": "Gallente Election Faction mining command burst",
+      "inputIsk": 0,
+      "outputItems": {
+        "92456": 1
+      },
+      "groupID": "MODULES_AMMO"
+    },
+    "252": {
+      "inputItems": {
+        "92392": 4
+      },
+      "displayNameID": 1038723,
+      "internalName": "Gallente Election Officer Nanofiber Internal Structure",
+      "inputIsk": 0,
+      "outputItems": {
+        "92454": 1
+      },
+      "groupID": "MODULES_AMMO"
+    },
+    "325": {
+      "inputItems": {
+        "92391": 150
+      },
+      "displayNameID": 1038724,
+      "internalName": "Tenzin's Gallente Background",
+      "inputIsk": 0,
+      "outputItems": {
+        "92550": 1
+      },
+      "groupID": "BACKGROUNDS"
+    },
+    "326": {
+      "inputItems": {
+        "92391": 150
+      },
+      "displayNameID": 1038725,
+      "internalName": "Moreau's Gallente Background",
+      "inputIsk": 0,
+      "outputItems": {
+        "92554": 1
+      },
+      "groupID": "BACKGROUNDS"
+    },
+    "327": {
+      "inputItems": {
+        "92391": 150
+      },
+      "displayNameID": 1038726,
+      "internalName": "Roden's Gallente Background",
+      "inputIsk": 0,
+      "outputItems": {
+        "92555": 1
+      },
+      "groupID": "BACKGROUNDS"
+    },
+    "328": {
+      "inputItems": {
+        "92391": 20
+      },
+      "displayNameID": 1038727,
+      "internalName": "Federation Ascent - Limited",
+      "inputIsk": 0,
+      "outputItems": {
+        "92573": 1
+      },
+      "groupID": "SKINR"
+    },
+    "329": {
+      "inputItems": {
+        "92391": 20
+      },
+      "displayNameID": 1038728,
+      "internalName": "Federation Field - Limited",
+      "inputIsk": 0,
+      "outputItems": {
+        "92575": 1
+      },
+      "groupID": "SKINR"
+    },
+    "330": {
+      "inputItems": {
+        "92391": 75
+      },
+      "displayNameID": 1038729,
+      "internalName": "Federation Ascent - Unlimited",
+      "inputIsk": 0,
+      "outputItems": {
+        "92574": 1
+      },
+      "groupID": "SKINR"
+    },
+    "331": {
+      "inputItems": {
+        "92391": 75
+      },
+      "displayNameID": 1038730,
+      "internalName": "Federation Field - Unlimited",
+      "inputIsk": 0,
+      "outputItems": {
+        "92576": 1
+      },
+      "groupID": "SKINR"
+    },
+    "332": {
+      "inputItems": {
+        "92391": 50
+      },
+      "displayNameID": 1038731,
+      "internalName": "Verdigris Referendum Gloss - Unlimited",
+      "inputIsk": 0,
+      "outputItems": {
+        "92578": 1
+      },
+      "groupID": "SKINR"
+    },
+    "333": {
+      "inputItems": {
+        "92391": 50
+      },
+      "displayNameID": 1038732,
+      "internalName": "Civic Ember Matte - Unlimited",
+      "inputIsk": 0,
+      "outputItems": {
+        "92580": 1
+      },
+      "groupID": "SKINR"
+    },
+    "334": {
+      "inputItems": {
+        "92391": 50
+      },
+      "displayNameID": 1038733,
+      "internalName": "Diverse Unakite Matte - Unlimited",
+      "inputIsk": 0,
+      "outputItems": {
+        "92582": 1
+      },
+      "groupID": "SKINR"
+    },
+    "335": {
+      "inputItems": {
+        "92391": 50
+      },
+      "displayNameID": 1038734,
+      "internalName": "Senatorial Swamp Metallic - Unlimited",
+      "inputIsk": 0,
+      "outputItems": {
+        "92584": 1
+      },
+      "groupID": "SKINR"
+    },
+    "336": {
+      "inputItems": {
+        "92391": 50
+      },
+      "displayNameID": 1038735,
+      "internalName": "Turquoise Accord Metallic - Unlimited",
+      "inputIsk": 0,
+      "outputItems": {
+        "92586": 1
+      },
+      "groupID": "SKINR"
+    },
+    "337": {
+      "inputItems": {
+        "92391": 50
+      },
+      "displayNameID": 1038738,
+      "internalName": "Tei-Su Meadow Metallic - Unlimited",
+      "inputIsk": 0,
+      "outputItems": {
+        "92588": 1
+      },
+      "groupID": "SKINR"
+    },
+    "338": {
+      "inputItems": {
+        "92391": 50
+      },
+      "displayNameID": 1038740,
+      "internalName": "Caille Steel Metallic - Unlimited",
+      "inputIsk": 0,
+      "outputItems": {
+        "92590": 1
+      },
+      "groupID": "SKINR"
+    },
+    "339": {
+      "inputItems": {
+        "92391": 50
+      },
+      "displayNameID": 1038741,
+      "internalName": "Intaki Obsidian Metallic - Unlimited",
+      "inputIsk": 0,
+      "outputItems": {
+        "92592": 1
+      },
+      "groupID": "SKINR"
+    }
+  }
+}

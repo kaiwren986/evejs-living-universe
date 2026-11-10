@@ -1,0 +1,32 @@
+{
+  "name": "exefile.exe",
+  "description": "Stop outbound traffic for client build 3396210. Only endpoint strings and PE signature/checksum metadata change.",
+  "supportedBuild": 3396210,
+  "requireExactHash": true,
+  "source": {
+    "filename": "exefile.exe",
+    "size": 1003152,
+    "sha256": "2aaf7a9a8dfcde85e4adb50c1eccd3756a4d29aeb854dfe69629846ba56ee979"
+  },
+  "patches": [
+    {
+      "offset": 408688,
+      "offsetHex": "0x00063c70",
+      "description": "Replace the minidump upload URL with http://127.0.0.1:26002/api/1/minidump/?offline=000000000000000000000000000000000000. Preserve its original byte length with a local-only query parameter.",
+      "beforeHex": "68747470733a2f2f73656e7472792e696f2f6170692f313433343634382f6d696e6964756d702f3f73656e7472795f6b65793d3062303738353237306366663430616238383037336633343239613831656234",
+      "afterHex": "687474703a2f2f3132372e302e302e313a32363030322f6170692f312f6d696e6964756d702f3f6f66666c696e653d303030303030303030303030303030303030303030303030303030303030303030303030"
+    }
+  ],
+  "peRules": {
+    "requirePE32OrPE32Plus": true,
+    "stripAuthenticodeSecurityDirectory": true,
+    "recalculateChecksum": true
+  },
+  "knownPatchedVariants": [
+    {
+      "name": "EveJS loopback endpoints, signature removed, checksum updated",
+      "size": 992768,
+      "sha256": "5a26f6b9838963d6b687d433f4b11cb28bd1cf3a1670ad691d2df394c88cd575"
+    }
+  ]
+}

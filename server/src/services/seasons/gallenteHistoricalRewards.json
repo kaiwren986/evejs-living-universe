@@ -1,0 +1,28 @@
+{
+  "source": "https://wiki.eveuniversity.org/Gallente_Election_YC128#Rewards",
+  "reviewedOn": "2026-09-20",
+  "rulesDate": "2026-04-09",
+  "rewards": [
+    {"points":50,"typeID":92181,"quantity":1,"name":"Gallente Election Booster Crate"},
+    {"points":90,"typeID":92391,"quantity":15,"name":"Political Favor"},
+    {"points":130,"typeID":92375,"quantity":1,"name":"Gallente Election SKINr Crate"},
+    {"points":170,"typeID":92391,"quantity":25,"name":"Political Favor"},
+    {"points":220,"typeID":49756,"quantity":1,"name":"25,000 Skill Points"},
+    {"points":270,"typeID":92391,"quantity":35,"name":"Political Favor"},
+    {"points":330,"typeID":44992,"quantity":25,"name":"PLEX"},
+    {"points":370,"typeID":92583,"quantity":2,"name":"Senatorial Swamp Metallic - Limited"},
+    {"points":430,"typeID":92391,"quantity":50,"name":"Political Favor"},
+    {"points":480,"typeID":49809,"quantity":1,"name":"50,000 Skill Points"},
+    {"points":530,"typeID":92181,"quantity":1,"name":"Gallente Election Booster Crate"},
+    {"points":590,"typeID":92391,"quantity":75,"name":"Political Favor"},
+    {"points":650,"typeID":92161,"quantity":1,"name":"Gallente Election Cerebral Accelerator Crate"},
+    {"points":730,"typeID":44992,"quantity":50,"name":"PLEX"},
+    {"points":800,"typeID":92391,"quantity":100,"name":"Political Favor"},
+    {"points":1000,"typeID":null,"quantity":1,"name":"Candidate Campaign Bus"},
+    {"points":1075,"typeID":63824,"quantity":1,"name":"75,000 Skill Points"},
+    {"points":1150,"typeID":92391,"quantity":75,"name":"Political Favor"},
+    {"points":1225,"typeID":92581,"quantity":2,"name":"Diverse Unakite Matte - Limited"},
+    {"points":1300,"typeID":92391,"quantity":150,"name":"Political Favor"},
+    {"points":1500,"typeID":92392,"quantity":4,"name":"Presidential Candidate Favor"}
+  ]
+}

@@ -1,0 +1,502 @@
+{
+  "campaignID": 2356,
+  "sourceBuild": 3396210,
+  "campaignNameID": 1038592,
+  "background": "res:/UI/Texture/classes/LoginCampaign/backgrounds/GallenteElection_Daily_Login_Window_1068x614.png",
+  "retroClaim": true,
+  "days": [
+    {
+      "day": 1,
+      "alpha": {
+        "tier": 2,
+        "typeID": 55745,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "Four Freedoms Fireworks Crate"
+      },
+      "omega": {
+        "tier": 3,
+        "typeID": 49809,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "50,000 Skill Points"
+      }
+    },
+    {
+      "day": 2,
+      "alpha": {
+        "tier": 2,
+        "typeID": 54650,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "5,000 Skill Points"
+      },
+      "omega": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 2,
+        "redeemedExpiryDays": 30,
+        "typeID": 92030,
+        "quantity": 1,
+        "name": "Expired Federation Damage Booster II"
+      }
+    },
+    {
+      "day": 3,
+      "alpha": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 2,
+        "redeemedExpiryDays": 30,
+        "typeID": 91998,
+        "quantity": 1,
+        "name": "Expired Federation Mobility Booster I"
+      },
+      "omega": {
+        "tier": 3,
+        "typeID": 92589,
+        "redeemedExpiryDays": 30,
+        "quantity": 2,
+        "name": "Caille Steel Metallic - Limited"
+      }
+    },
+    {
+      "day": 4,
+      "alpha": {
+        "tier": 3,
+        "typeID": 92375,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "Gallente Election SKINr Crate"
+      },
+      "omega": {
+        "tier": 2,
+        "typeID": 52520,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "10,000 Skill Points"
+      }
+    },
+    {
+      "day": 5,
+      "alpha": {
+        "tier": 2,
+        "typeID": 54650,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "5,000 Skill Points"
+      },
+      "omega": {
+        "tier": 2,
+        "typeID": 73277,
+        "redeemedExpiryDays": 30,
+        "quantity": 4000,
+        "name": "EverMarks"
+      }
+    },
+    {
+      "day": 6,
+      "alpha": {
+        "tier": 2,
+        "typeID": 92958,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "Gallente Election Expert System"
+      },
+      "omega": {
+        "tier": 3,
+        "typeID": 92375,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "Gallente Election SKINr Crate"
+      }
+    },
+    {
+      "day": 7,
+      "alpha": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 1,
+        "redeemedExpiryDays": 30,
+        "typeID": 92002,
+        "quantity": 1,
+        "name": "Expired Federation Electronics Booster I"
+      },
+      "omega": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 2,
+        "redeemedExpiryDays": 30,
+        "typeID": 92026,
+        "quantity": 1,
+        "name": "Expired Federation Projection Booster II"
+      }
+    },
+    {
+      "day": 8,
+      "alpha": {
+        "tier": 2,
+        "typeID": 52520,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "10,000 Skill Points"
+      },
+      "omega": {
+        "tier": 4,
+        "typeID": 49810,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "100,000 Skill Points"
+      }
+    },
+    {
+      "day": 9,
+      "alpha": {
+        "tier": 2,
+        "typeID": 92181,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "Expired Gallente Election Booster Crate"
+      },
+      "omega": {
+        "tier": 3,
+        "typeID": 92587,
+        "redeemedExpiryDays": 30,
+        "quantity": 2,
+        "name": "Tei-Su Meadow Metallic - Limited"
+      }
+    },
+    {
+      "day": 10,
+      "alpha": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 1,
+        "redeemedExpiryDays": 30,
+        "typeID": 92006,
+        "quantity": 1,
+        "name": "Expired Federation Defense Booster I"
+      },
+      "omega": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 2,
+        "redeemedExpiryDays": 30,
+        "typeID": 92000,
+        "quantity": 1,
+        "name": "Expired Federation Mobility Booster III"
+      }
+    },
+    {
+      "day": 11,
+      "alpha": {
+        "tier": 3,
+        "typeID": 92585,
+        "redeemedExpiryDays": 30,
+        "quantity": 2,
+        "name": "Turquoise Accord Metallic - Limited"
+      },
+      "omega": {
+        "tier": 3,
+        "typeID": 92375,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "Gallente Election SKINr Crate"
+      }
+    },
+    {
+      "day": 12,
+      "alpha": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 2,
+        "redeemedExpiryDays": 30,
+        "typeID": 92022,
+        "quantity": 1,
+        "name": "Expired Federation Application Booster II"
+      },
+      "omega": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 2,
+        "redeemedExpiryDays": 30,
+        "typeID": 92018,
+        "quantity": 1,
+        "name": "Expired Federation Defense Booster III"
+      }
+    },
+    {
+      "day": 13,
+      "alpha": {
+        "tier": 2,
+        "typeID": 63315,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "15,000 Skill Points"
+      },
+      "omega": {
+        "tier": 3,
+        "typeID": 73277,
+        "redeemedExpiryDays": 30,
+        "quantity": 7500,
+        "name": "EverMarks"
+      }
+    },
+    {
+      "day": 14,
+      "alpha": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 2,
+        "redeemedExpiryDays": 30,
+        "typeID": 92026,
+        "quantity": 1,
+        "name": "Expired Federation Projection Booster II"
+      },
+      "omega": {
+        "tier": 3,
+        "typeID": 92591,
+        "redeemedExpiryDays": 30,
+        "quantity": 2,
+        "name": "Intaki Obsidian Metallic - Limited"
+      }
+    },
+    {
+      "day": 15,
+      "alpha": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 2,
+        "redeemedExpiryDays": 30,
+        "typeID": 92030,
+        "quantity": 1,
+        "name": "Expired Federation Damage Booster II"
+      },
+      "omega": {
+        "tier": 4,
+        "typeID": 63825,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "125,000 Skill Points"
+      }
+    },
+    {
+      "day": 16,
+      "alpha": {
+        "tier": 3,
+        "typeID": 92375,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "Gallente Election SKINr Crate"
+      },
+      "omega": {
+        "tier": 3,
+        "typeID": 92180,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "Federal Defender Apparel Crate"
+      }
+    },
+    {
+      "day": 17,
+      "alpha": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 2,
+        "redeemedExpiryDays": 30,
+        "typeID": 91999,
+        "quantity": 1,
+        "name": "Expired Federation Mobility Booster II"
+      },
+      "omega": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 2,
+        "redeemedExpiryDays": 30,
+        "typeID": 92031,
+        "quantity": 1,
+        "name": "Expired Federation Damage Booster III"
+      }
+    },
+    {
+      "day": 18,
+      "alpha": {
+        "tier": 3,
+        "typeID": 49756,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "25,000 Skill Points"
+      },
+      "omega": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 3,
+        "redeemedExpiryDays": 30,
+        "typeID": 92158,
+        "quantity": 1,
+        "name": "Expired Basic 'Demos' Cerebral Accelerator"
+      }
+    },
+    {
+      "day": 19,
+      "alpha": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 2,
+        "redeemedExpiryDays": 30,
+        "typeID": 92003,
+        "quantity": 1,
+        "name": "Expired Federation Electronics Booster II"
+      },
+      "omega": {
+        "tier": 3,
+        "typeID": 73277,
+        "redeemedExpiryDays": 30,
+        "quantity": 15000,
+        "name": "EverMarks"
+      }
+    },
+    {
+      "day": 20,
+      "alpha": {
+        "tier": 3,
+        "typeID": 92579,
+        "redeemedExpiryDays": 30,
+        "quantity": 2,
+        "name": "Civic Ember Matte - Limited"
+      },
+      "omega": {
+        "tier": 2,
+        "typeID": 92181,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "Expired Gallente Election Booster Crate"
+      }
+    },
+    {
+      "day": 21,
+      "alpha": {
+        "tier": 2,
+        "typeID": 92181,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "Expired Gallente Election Booster Crate"
+      },
+      "omega": {
+        "tier": 3,
+        "typeID": 92577,
+        "redeemedExpiryDays": 30,
+        "quantity": 2,
+        "name": "Verdigris Referendum Gloss - Limited"
+      }
+    },
+    {
+      "day": 22,
+      "alpha": {
+        "tier": 4,
+        "typeID": 63824,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "75,000 Skill Points"
+      },
+      "omega": {
+        "tier": 4,
+        "typeID": 43680,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "250,000 Skill Points"
+      }
+    },
+    {
+      "day": 23,
+      "alpha": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 2,
+        "redeemedExpiryDays": 30,
+        "typeID": 92017,
+        "quantity": 1,
+        "name": "Expired Federation Defense Booster II"
+      },
+      "omega": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 2,
+        "redeemedExpiryDays": 30,
+        "typeID": 92022,
+        "quantity": 1,
+        "name": "Expired Federation Application Booster II"
+      }
+    },
+    {
+      "day": 24,
+      "alpha": {
+        "isAutoInjectedBoosterOrSkin": 1,
+        "tier": 2,
+        "redeemedExpiryDays": 30,
+        "typeID": 92026,
+        "quantity": 1,
+        "name": "Expired Federation Projection Booster II"
+      },
+      "omega": {
+        "tier": 2,
+        "typeID": 92181,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "Expired Gallente Election Booster Crate"
+      }
+    },
+    {
+      "day": 25,
+      "alpha": {
+        "tier": 3,
+        "typeID": 92375,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "Gallente Election SKINr Crate"
+      },
+      "omega": {
+        "tier": 3,
+        "typeID": 92591,
+        "redeemedExpiryDays": 30,
+        "quantity": 2,
+        "name": "Intaki Obsidian Metallic - Limited"
+      }
+    },
+    {
+      "day": 26,
+      "alpha": {
+        "tier": 3,
+        "typeID": 92589,
+        "redeemedExpiryDays": 30,
+        "quantity": 2,
+        "name": "Caille Steel Metallic - Limited"
+      },
+      "omega": {
+        "tier": 3,
+        "typeID": 73277,
+        "redeemedExpiryDays": 30,
+        "quantity": 5000,
+        "name": "EverMarks"
+      }
+    },
+    {
+      "day": 27,
+      "alpha": {
+        "tier": 2,
+        "typeID": 52520,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "10,000 Skill Points"
+      },
+      "omega": {
+        "tier": 3,
+        "typeID": 92577,
+        "redeemedExpiryDays": 30,
+        "quantity": 2,
+        "name": "Verdigris Referendum Gloss - Limited"
+      }
+    },
+    {
+      "day": 28,
+      "alpha": {
+        "tier": 3,
+        "typeID": 92587,
+        "redeemedExpiryDays": 30,
+        "quantity": 2,
+        "name": "Tei-Su Meadow Metallic - Limited"
+      },
+      "omega": {
+        "tier": 2,
+        "typeID": 92161,
+        "redeemedExpiryDays": 30,
+        "quantity": 1,
+        "name": "Expired Gallente Election Cerebral Accelerator Crate"
+      }
+    }
+  ]
+}

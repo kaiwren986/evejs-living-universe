@@ -1,0 +1,67 @@
+{
+  "name": "launchdarkly_stackless_client_sdk.pyd",
+  "description": "Stop outbound traffic for client build 3396210. Only endpoint strings and PE signature/checksum metadata change.",
+  "supportedBuild": 3396210,
+  "requireExactHash": true,
+  "source": {
+    "filename": "launchdarkly_stackless_client_sdk.pyd",
+    "size": 11090056,
+    "sha256": "ca69c80fa41f2844b49aa6e25543c715c565ee435f9c869b5188f850530b5c18"
+  },
+  "patches": [
+    {
+      "offset": 8300064,
+      "offsetHex": "0x007ea620",
+      "description": "Replace https://mobile.launchdarkly.com with https://localhost//////////////. Use the DNS localhost SAN because this native SDK rejected the IP SAN live. Preserve explicit native string lengths with trailing slashes.",
+      "beforeHex": "68747470733a2f2f6d6f62696c652e6c61756e63686461726b6c792e636f6d",
+      "afterHex": "68747470733a2f2f6c6f63616c686f73742f2f2f2f2f2f2f2f2f2f2f2f2f2f"
+    },
+    {
+      "offset": 8300096,
+      "offsetHex": "0x007ea640",
+      "description": "Replace https://clientstream.launchdarkly.com with https://localhost////////////////////. Use the DNS localhost SAN because this native SDK rejected the IP SAN live. Preserve explicit native string lengths with trailing slashes.",
+      "beforeHex": "68747470733a2f2f636c69656e7473747265616d2e6c61756e63686461726b6c792e636f6d",
+      "afterHex": "68747470733a2f2f6c6f63616c686f73742f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f"
+    },
+    {
+      "offset": 8300136,
+      "offsetHex": "0x007ea668",
+      "description": "Replace https://clientsdk.launchdarkly.com with https://localhost/////////////////. Use the DNS localhost SAN because this native SDK rejected the IP SAN live. Preserve explicit native string lengths with trailing slashes.",
+      "beforeHex": "68747470733a2f2f636c69656e7473646b2e6c61756e63686461726b6c792e636f6d",
+      "afterHex": "68747470733a2f2f6c6f63616c686f73742f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f"
+    },
+    {
+      "offset": 8300176,
+      "offsetHex": "0x007ea690",
+      "description": "Replace https://events.launchdarkly.com with https://localhost//////////////. Use the DNS localhost SAN because this native SDK rejected the IP SAN live. Preserve explicit native string lengths with trailing slashes.",
+      "beforeHex": "68747470733a2f2f6576656e74732e6c61756e63686461726b6c792e636f6d",
+      "afterHex": "68747470733a2f2f6c6f63616c686f73742f2f2f2f2f2f2f2f2f2f2f2f2f2f"
+    },
+    {
+      "offset": 8300208,
+      "offsetHex": "0x007ea6b0",
+      "description": "Replace https://stream.launchdarkly.com with https://localhost//////////////. Use the DNS localhost SAN because this native SDK rejected the IP SAN live. Preserve explicit native string lengths with trailing slashes.",
+      "beforeHex": "68747470733a2f2f73747265616d2e6c61756e63686461726b6c792e636f6d",
+      "afterHex": "68747470733a2f2f6c6f63616c686f73742f2f2f2f2f2f2f2f2f2f2f2f2f2f"
+    },
+    {
+      "offset": 8300240,
+      "offsetHex": "0x007ea6d0",
+      "description": "Replace https://sdk.launchdarkly.com with https://localhost///////////. Use the DNS localhost SAN because this native SDK rejected the IP SAN live. Preserve explicit native string lengths with trailing slashes.",
+      "beforeHex": "68747470733a2f2f73646b2e6c61756e63686461726b6c792e636f6d",
+      "afterHex": "68747470733a2f2f6c6f63616c686f73742f2f2f2f2f2f2f2f2f2f2f"
+    }
+  ],
+  "peRules": {
+    "requirePE32OrPE32Plus": true,
+    "stripAuthenticodeSecurityDirectory": true,
+    "recalculateChecksum": true
+  },
+  "knownPatchedVariants": [
+    {
+      "name": "EveJS localhost TLS endpoints, signature removed, checksum updated",
+      "size": 11079680,
+      "sha256": "6dd06556e3a5e5776f3f37dafefea421e21cc81ca9c831353b104a13ad02e9ff"
+    }
+  ]
+}

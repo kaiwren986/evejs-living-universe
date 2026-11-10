@@ -1,0 +1,55 @@
+{
+  "wormholes": {
+    "wormholesEnabled": true,
+    "wormholeLifetimeScale": 1,
+    "wormholeStaticRespawnDelaySeconds": 60,
+    "wormholeWanderingCountScale": 1,
+    "wormholeWanderingRespawnDelaySeconds": 60,
+    "wormholeMaintenanceIntervalMs": 1000,
+    "wormholeMaintenanceMaxItemsPerSlice": 24,
+    "wormholeMaintenanceMaxSliceMs": 8
+  },
+  "simulation": {
+    "spaceDebrisLifetimeMs": 7200000,
+    "randomSeed": "",
+    "tidiAutoscaler": false,
+    "systemLoadingMode": "onDemandGates",
+    "alwaysOnSolarSystemIDs": [
+      30000142,
+      30000145,
+      30100032
+    ]
+  },
+  "cosmicSites": {
+    "homefrontPopulationPreset": "evejs",
+    "homefrontCustomSitesPerType": 8,
+    "universeSiteCountDefault": 1,
+    "universeSiteCountsByFamily": {
+      "combat": 1,
+      "combat_anomaly": 5,
+      "drone_anomaly": 1,
+      "ore": 3,
+      "gas": 1,
+      "data": 1,
+      "relic": 1,
+      "ghost": 1,
+      "combat_hacking": 1,
+      "wormhole_anomaly": 3,
+      "wormhole_data": 1,
+      "wormhole_relic": 1,
+      "wormhole_ore": 1,
+      "pirate_relic": 1,
+      "pirate_data": 1,
+      "gas_nebula": 1,
+      "wormhole_gas": 1,
+      "booster_lab": 1,
+        "booster_facility": 1,
+        "ded_rated": 1
+      }
+  },
+  "scenery": {
+    "defaultStargateBillboardsEnabled": true,
+    "defaultEmpireSentryGunsEnabled": true,
+    "deadspaceWarpRestrictionEnabled": true
+  }
+}

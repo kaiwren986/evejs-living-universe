@@ -1,0 +1,39 @@
+{
+  "beltRats": {
+    "asteroidBeltNpcRatsEnabled": true,
+    "asteroidBeltNpcRatHighSecChance": 0.25,
+    "asteroidBeltNpcRatLowSecChance": 0.35,
+    "asteroidBeltNpcRatNullSecChance": 0.45,
+    "asteroidBeltNpcRatRollCooldownMs": 120000,
+    "asteroidBeltNpcRatRespawnCooldownMs": 1200000,
+    "asteroidBeltNpcRatMaxActiveGroupsPerBelt": 1,
+    "asteroidBeltNpcRatLandingRadiusMeters": 250000,
+    "asteroidBeltNpcRatSpawnDistanceMeters": 30000,
+    "asteroidBeltNpcRatSpecialsEnabled": true,
+    "asteroidBeltNpcRatHaulerChance": 0.02,
+    "asteroidBeltNpcRatCommanderChance": 0.015,
+    "asteroidBeltNpcRatOfficerChance": 0.0005,
+    "asteroidBeltNpcRatOfficerMaxSecurity": -0.7,
+    "asteroidBeltNpcRatOfficerRequireHomeRegion": true,
+    "asteroidBeltNpcRatCapitalEnabled": true,
+    "asteroidBeltNpcRatCapitalChance": 0.00025,
+    "asteroidBeltNpcRatCapitalMaxSecurity": 0,
+    "asteroidBeltNpcRatCapitalClasses": "dreadnought",
+    "asteroidBeltNpcRatCapitalMaxActiveGroupsPerSystem": 1
+  },
+  "startup": {
+    "npcAuthoredStartupEnabled": false
+  },
+  "targeting": {
+    "npcPlayerDronesTargetable": true
+  },
+  "concord": {
+    "npcDefaultConcordStartupEnabled": true,
+    "npcDefaultConcordGateAutoAggroNpcsEnabled": false,
+    "npcDefaultConcordStationScreensEnabled": false
+  },
+  "crimewatch": {
+    "crimewatchConcordResponseEnabled": true,
+    "crimewatchConcordPodKillEnabled": false
+  }
+}

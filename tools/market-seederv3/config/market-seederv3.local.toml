@@ -1,0 +1,133 @@
+# Public EveJS market-seederv3 local config.
+# Builds the SQLite database consumed by externalservices/market-server: a TQ NPC order
+# overlay at authentic stations, plus a Jita 4-4 index seed priced off manufacturing cost.
+# Design and rationale: doc/JITA_INDEX_SEED_PLAN.md.
+
+[input]
+# Generated local Public EveJS authority data used for stations, systems, item types,
+# blueprints, and type dogma. Run tools\DatabaseCreator\CreateDatabase.bat to generate it.
+static_data_dir = "../../_local/gameStore/data"
+
+[output]
+# The market daemon reads this same database path by default.
+database_path = "../../externalservices/market-server/data/generated/market.sqlite"
+
+[source]
+# EVE Ref publishes the latest full public market order snapshot here.
+index_url = "https://data.everef.net/market-orders/index.json"
+download_dir = "cache"
+user_agent = "PublicEveJS market-seederv3/0.1"
+
+[import]
+# npc_only imports exactly the TQ NPC sell+buy orders (T1 BPOs, skillbooks, trade goods,
+# PI command centers, structure modules) at their authentic stations, and no TQ player
+# orders. Orders with a duration above the threshold are treated as NPC orders.
+order_filter = "npc_only"
+npc_order_duration_threshold_days = 90
+
+# Whether audit check 4 FAILS the build on a haul loop with no seeder-priced leg at all —
+# TQ selling a trade good in one station for less than TQ buys it back in another. Those come
+# in verbatim with the snapshot; decision 2 keeps the NPC catalog TQ-authentic, and real EVE
+# genuinely has NPC spreads at fixed prices. Closing them would mean discarding or repricing
+# NPC rows CCP ships, so by default they are reported in their own section and do not gate.
+# Both counts are printed in the verdict either way — the residue is never hidden.
+gate_on_npc_arbitrage = false
+
+[price_manifest]
+# Committed price + provenance for every seeded type. CCP captures are permanent: once a
+# price is captured it is never refetched, so rebuilds are deterministic and offline.
+path = "data/price-manifest.json"
+capture_missing_from_snapshot = true   # Jita top-of-book harvested from the snapshot stream
+capture_missing_from_esi = true        # gap-filler for types with no live Jita order
+esi_prices_url = "https://esi.evetech.net/latest/markets/prices/"
+reference_solar_system_id = 30000142   # Jita. Read as a SYSTEM book, before order_filter.
+
+[index_seed]
+# Manufacturable T1 plus ores/minerals/materials, both sides, at one station.
+station_id = 60003760                  # Jita IV - Moon 4 - Caldari Navy Assembly Plant
+sell_multiplier = 3.0                  # ask  = max(price_floor, round(3.0 x cost))
+buy_multiplier = 1.0                   # bid  = round(1.0 x cost)  -- NO floor, see price_floor
+quantity = 2147483647                  # int32 ceiling; the client marshals volRemaining as
+                                       # int32 and throws above it, so higher values are
+                                       # REJECTED by the config parser, never clamped.
+pricing = "recursive"                  # bottom-up cost map; "shallow_eiv" keeps job-tax parity
+price_floor = 100.0
+max_unpriced_drops = 25                # unpriceable types are dropped and named, never
+                                       # guessed at; above this many the run FAILS, because
+                                       # that means the manifest itself is missing or stale.
+leaf_price_source = "capture-first"    # a leaf costs its captured market price, then
+                                       # basePrice (plan §11). "base-price-first" is the old
+                                       # ladder, kept only for A/B measurement.
+# Two mechanisms must not price one side of one type into a loop. Our computed 3x-cost ask
+# (or 1x-cost bid) facing TQ's fixed NPC price for the same type at another station can be a
+# cross-station haul loop, and no multiplier of ours can close it — the other leg is a price
+# we do not set. Measured before this existed: 7 loops of ours-sell -> TQ-buys (worst x165.7,
+# Element Containment Vessel) and 5 of TQ-sells -> ours-buys (worst x8.41, Plutonium).
+#
+#   "conflicting-prices" (default) drops only the side whose price actually crosses TQ's:
+#     our ASK goes when our_ask < best NPC bid, our BID goes when our_bid > best NPC ask.
+#     The sides are independent, so a type can keep one and lose the other, and a type the
+#     overlay merely touches keeps both. This is audit check 4's own condition, so it leaves
+#     zero seeder-involved check-4 violations by construction.
+#   "whole-type" drops BOTH sides whenever the overlay holds the type at all, whatever the
+#     prices are. Blunt: 340 types, 289 of them previously seeded, including every Mutanite.
+#   "off" lets both mechanisms own one type, which is how the haul loops got in.
+#
+# The old booleans still parse: true means "whole-type", false means "off". Deferrals are
+# counted and named separately; they are NOT unpriced and never count against
+# max_unpriced_drops. With --skip-overlay there is no catalog to defer to and nothing is
+# deferred.
+defer_to_npc_catalog = "conflicting-prices"
+
+# --- piece 8: the three arbitrage-closing rules, applied in this order ---
+# Each defaults to true and each is separately switchable so its contribution to the pump
+# audit can be measured. The rules that were on are recorded in the manifest header under
+# pricingRules, so a manifest built with one off is visible in the diff.
+#
+# A. average_price is the only ESI field accepted as a market price. adjusted_price is CCP's
+#    internal industry index, not a trade; a row carrying only that is still recorded (as
+#    ccp-esi-adjusted, so it is visible and never refetched) but prices nothing.
+reject_adjusted_price_captures = true
+# B. Both sides of every compressed/uncompressed pair get the same per-unit price. This game
+#    compresses 1:1 (miningIndustry.js compressInventoryItem) and both sides refine
+#    identically per unit, so any difference between them is arbitrage by construction. It
+#    also rescues untraded raw ores from their traded compressed twin.
+derive_compressed_from_source = true
+# C. A type's ASK must cover what the seed's own BIDS pay for its reprocessing outputs:
+#    refine_revenue(T) = sum(qty * buy_multiplier(material) * cost(material)) / portionSize
+#    cost(T) = max(cost(T), refine_revenue(T) / sell_multiplier(T)), iterated to a fixpoint.
+#    Check 1 compares two seed PRICES, so both sides go into price units and the answer comes
+#    back into cost units; flooring cost at the raw un-multiplied material value overshoots by
+#    3x. Each row uses its own bucket's pair ([index_seed] for A∪B, [junk_seed] for D), and the
+#    buy side is keyed on the MATERIAL — a junk module recycles into index-priced minerals.
+#    At buy_multiplier = 1.0 the buy side is a no-op.
+floor_cost_at_reprocessing_value = true
+# Headroom above the exact ask == refine-revenue equality, so float rounding cannot flip the
+# audit's strict `revenue > ask` comparison. 0.001 = 0.1%.
+reprocessing_floor_margin = 0.001
+
+[junk_seed]
+# Leftover T1 loot-economy types, seeded only where the manifest holds a captured price.
+# decryptors is category 35, which reaches the universe as exactly the 8 Generic Decryptors —
+# every other category-35 type has no market group.
+enabled = true
+categories = ["modules", "commodities", "charges", "drones", "decryptors"]
+sell_multiplier = 3.0
+buy_multiplier = 1.0
+quantity = 2147483647
+
+[history]
+# Synthetic price_history, so the client's market charts are not empty (plan piece 12).
+# One row per seeded type per day, drifted ±5% deterministically around that type's best
+# seeded ask anywhere — index, junk and NPC overlay alike, so BPOs and skillbooks get charts
+# too. A type nothing sells is charted around its best bid; a type with no seed row at all
+# gets no history. 0 days writes nothing; 1 day is refused (it leaves the client's "old"
+# history half empty); the ceiling is 3650.
+enabled = true
+days = 30
+
+[build]
+sqlite_cache_size_kib = 262144
+sqlite_page_size_bytes = 32768
+sqlite_worker_threads = 24
+insert_batch_rows = 100000

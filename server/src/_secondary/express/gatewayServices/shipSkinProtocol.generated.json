@@ -1,0 +1,3316 @@
+{
+  "source": {
+    "authority": "Supported unmodified V24.01 client serialized protobuf descriptors",
+    "compiledAt": "2026-06-15",
+    "files": [
+      {
+        "path": "eve_public/alliance/alliance_pb2.py",
+        "sha256": "737b73d70faee0574ab6635ed4890b3a8a2949a378664c74b0cb895bba0a8c51"
+      },
+      {
+        "path": "eve_public/character/character_pb2.py",
+        "sha256": "912ec6c41ccb6ff6ababcae18e79b757d855d87b280450d553b91d0cda3b74cf"
+      },
+      {
+        "path": "eve_public/corporation/corporation_pb2.py",
+        "sha256": "aa5c257b0bd8157e3173a7b63681c24736ae7197a78cd4a0ee74888db8808c8a"
+      },
+      {
+        "path": "eve_public/corporation/role_pb2.py",
+        "sha256": "16f63eec37424db8e70d5fa88ddd16f6becb6632480a784b42335366c2668a9b"
+      },
+      {
+        "path": "eve_public/cosmetic/market/api/api_pb2.py",
+        "sha256": "14e57dd5dce45c3a71c463a7a3095bd38e53446bf4bef58aa899c74deafc76e1"
+      },
+      {
+        "path": "eve_public/cosmetic/market/component/listing/api/api_pb2.py",
+        "sha256": "5c4d71206e158abf04eae877638846e1dfe996caec33900bccad726816b0bafe"
+      },
+      {
+        "path": "eve_public/cosmetic/market/component/listing/listing_pb2.py",
+        "sha256": "7f2ba03c084679fd3ae75ba522d40c241700446f2da34244a3b6191760b29299"
+      },
+      {
+        "path": "eve_public/cosmetic/market/market_pb2.py",
+        "sha256": "057aa99749ceeaa7b2c79f58df70e45c1f5ff2267bb7d0745b5f896217eb5801"
+      },
+      {
+        "path": "eve_public/cosmetic/market/skin/listing/api/admin/requests_pb2.py",
+        "sha256": "feadc799989a4972d1311832e970d6ffc718948476bb1597555adcaa0ffb156c"
+      },
+      {
+        "path": "eve_public/cosmetic/market/skin/listing/api/api_pb2.py",
+        "sha256": "e996089fee9cc3a9f0558c2a02f7e8b87577a04f3ed11ffc33229900cac91171"
+      },
+      {
+        "path": "eve_public/cosmetic/market/skin/listing/listing_pb2.py",
+        "sha256": "202b30b7c7d156f6be4887555b3ee20bd744f8fc60e09abec0c4d6e689f2871a"
+      },
+      {
+        "path": "eve_public/cosmetic/market/skin/search/search_pb2.py",
+        "sha256": "e08502f962b7dbedce996bb75d7ae933e285b445b794f96375681cdf9eb73380"
+      },
+      {
+        "path": "eve_public/cosmetic/market/transaction/api/api_pb2.py",
+        "sha256": "45ecc70099faa4a227bf56763f96e88192ff66bc73799150fc06c3a7d9c5c55e"
+      },
+      {
+        "path": "eve_public/cosmetic/market/transaction/api/notices_pb2.py",
+        "sha256": "e57dc5106b8524cf9624bd4e3e3aeefa5ad14777cad2d8b6f57fc13cb91935b5"
+      },
+      {
+        "path": "eve_public/cosmetic/market/transaction/transaction_pb2.py",
+        "sha256": "fdb838bcc92423f4ffcb82f28ed10de5437e96e08820a4266ee61221549f5b26"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/api/notice_pb2.py",
+        "sha256": "b5b6d110294b9b54c0a6d8d9c38dac14fb733d93e576c5f8c4568dc9fd2c24a8"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/api/request_pb2.py",
+        "sha256": "d627c69669d26c4d2b7a2320f432a92817e697be9a1232256dfdc03cf11bd2a3"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/ship_pb2.py",
+        "sha256": "cb8750c8beeaec3ce5f586def382eaabac15dca5a03f9eec848bb523d6887b77"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/firstparty/firstparty_pb2.py",
+        "sha256": "c1a2c4d0285281665d9f723ad13a877baa31a66264d54dd5ba216ff804d025de"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/api/events_pb2.py",
+        "sha256": "2eb57f88442537bb596af67996c8a862662f1c8577cf842cfc5231acf14f105e"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/api/requests_pb2.py",
+        "sha256": "335f1bb45b678664688a0d4cdb8f89a7e878af203da629cc99b105cf60cd39b0"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/component/coating/coating_pb2.py",
+        "sha256": "34cd61baf36215da84a96a1e6ab6c50684c1505e77d2bc2150a99937f611953f"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/component/component_pb2.py",
+        "sha256": "9b95f33fb626f0a3c032f1bf9b0893cb27967485b119c34c781855a5cc72bd42"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/component/license/api/notices_pb2.py",
+        "sha256": "c4441864d2fc3c75bf27c2e4c20d0d999aecd5bf751b83ef53ed0501ab35d079"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/component/license/api/requests_pb2.py",
+        "sha256": "77ebc2d09d5deaa0b8e4409d2c640a4fbc2be82fbacbbd11951b7171eb1ed82b"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/component/license/finite/api/admin/admin_pb2.py",
+        "sha256": "79c257ea4fc368d2fe9c5977e1caaa9bd5c24340af0fa8c8fa037893afa3fbb0"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/component/license/finite/api/requests_pb2.py",
+        "sha256": "c96f41544f0d45829f306dd60ff734b1ebfacb6aa7136a562aa87b35b857eb5e"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/component/license/finite/finite_pb2.py",
+        "sha256": "2cca7f0c752b61fe88ecc2ef08c38d858239d1a23c6b5038ce3feda61f7a4a92"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/component/license/infinite/api/admin/admin_pb2.py",
+        "sha256": "0ca626ee4d97789d70f589d06e393f9718ad90c1cbeff4f49d5971d3876d8f77"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/component/license/infinite/api/requests_pb2.py",
+        "sha256": "af34d2ab529169b56a98d58ef90a3553966a2bd2fa721047386115f2ff554b47"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/component/license/infinite/infinite_pb2.py",
+        "sha256": "c371726cc5aba3009144d84f109fda2c0dcabd70a15ffec9bf9966a12d439f60"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/component/license/item/api/requests_pb2.py",
+        "sha256": "0e1f6996cc4cf04b5267c05b74598094332986dea1408cbb6915bdb9bbe63ebf"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/component/license/item/item_pb2.py",
+        "sha256": "c7250f2d4c8659a02efc729cf79f1673c3452d6bf0e1a9fb4ec857fe6535bd4e"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/component/license/license_pb2.py",
+        "sha256": "b372daca04950b9d7d05ec4189d20318694c26bd29bd52fef311c2fb35ca01ed"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/component/pattern/pattern_pb2.py",
+        "sha256": "14d6524a57ab3aec7ba143067224774054802a7463b7ebf4f7aeabe55fed89b3"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/draft/api/requests_pb2.py",
+        "sha256": "199292b8282c49fe6daf03db84608998de16c608cc73454e82fddc9ef3483a40"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/draft/draft_pb2.py",
+        "sha256": "630108e989d713053c72fb12870e953ccaa606b47d395e60c1cbb5ffc20be1d5"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/license/api/admin/admin_pb2.py",
+        "sha256": "88e4a8c0278fe9f169e97dd61800f716a857747644d3025fed45e0adfbf4c732"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/license/api/notices_pb2.py",
+        "sha256": "4358d6b8ef7fde6c54c1abc0a6d59abae10f2eed3540a9691adadc4a78a1df30"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/license/api/requests_pb2.py",
+        "sha256": "cafc80fed444f6a79cca077c700c9f551ef721514755347ca60dd295eff0d900"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/license/license_pb2.py",
+        "sha256": "6e98881c3f1f8078f4cef59fdb9bee671e313c637f4cc4ae18c7890a84eafd80"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/sequencing/api/requests_pb2.py",
+        "sha256": "2ea6874f78b9146fe2677bbbb2bcfe733736405885fcaed53939b8a4e827b87b"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/sequencing/job/api/notices_pb2.py",
+        "sha256": "200247431b2c120b0713a27691a374b45a92f9d76a9f7306c3e280e97a76a4a6"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/sequencing/job/api/requests_pb2.py",
+        "sha256": "db951e7f7c54b385f16b30a3d43206c621278404524309e3146f939837ed5cab"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/sequencing/job/job_pb2.py",
+        "sha256": "33a685d8e517a4bd0dc8d04e997f4b46f00ee6e6bd42e3829f5b59ebc59cc659"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/slot/slot_pb2.py",
+        "sha256": "b8aaa7b4dd541fd0ecb3212bb2fc387db3f35841cf2003d1e7b5b5320e5837a2"
+      },
+      {
+        "path": "eve_public/cosmetic/ship/skin/thirdparty/thirdparty_pb2.py",
+        "sha256": "8773d8872907ddb304dd0f9562321ddc4217357af0b7d41157cbf6058595a42f"
+      },
+      {
+        "path": "eve_public/inventory/generic_item_pb2.py",
+        "sha256": "70c61e7199da67cf3f4f84f18197f0f6128b96eeb9658d1ad9adf8eea94ab867"
+      },
+      {
+        "path": "eve_public/inventory/generic_item_type_pb2.py",
+        "sha256": "502dee0fe2a47e3b4541717e69b927a308172ce0fb2daf1a3c3dbddc0e1b456f"
+      },
+      {
+        "path": "eve_public/inventory/inventory_pb2.py",
+        "sha256": "65aed51662dfe8f261c9f0fc462dba34ffa8cc35b80be6a2aa92d168cbf6c6f6"
+      },
+      {
+        "path": "eve_public/isk/isk_pb2.py",
+        "sha256": "22403e53e13651e1001080fe34c6948ebe43d708342982c24a15801e34666b39"
+      },
+      {
+        "path": "eve_public/loyaltypoints/loyaltypoints_pb2.py",
+        "sha256": "fe5a03aa39b339b429ee0c6b24374bf85f5eb6f599149e407e3df7fca7198beb"
+      },
+      {
+        "path": "eve_public/math/vector_pb2.py",
+        "sha256": "82ae36ab6f605fe8e0da6051298ad7888f1cd8bf284b8b9e9f90742f4408fb9f"
+      },
+      {
+        "path": "eve_public/plex/plex_pb2.py",
+        "sha256": "674b78b7119ac4ca8329af3ba08293fca9c331398534eaf599c400019d7ab9ad"
+      },
+      {
+        "path": "eve_public/public_pb2.py",
+        "sha256": "bf0486bf38d3bde710bafab346304b5cf45e67cd65295dbb855f556b38805874"
+      },
+      {
+        "path": "eve_public/ship/ship_pb2.py",
+        "sha256": "a5a7ff2a2316518930ea1dec6ab152d77dcd97ab9a4d75661fe3dd83eda71710"
+      },
+      {
+        "path": "eve_public/ship/ship_type_pb2.py",
+        "sha256": "b7abaa161aca4d5e0e7e37ae12703baf4e9db04dcca43c346ef60b15fa7e45cb"
+      },
+      {
+        "path": "eve_public/tracecontext_pb2.py",
+        "sha256": "52290821168b5088be5ab64017fcc0ed86923f01b917ac37a644017983bae2ea"
+      },
+      {
+        "path": "eve_public/user/user_pb2.py",
+        "sha256": "dfa6b8e44617635963c822534e4f3a79eab7196751cf1c97c4846a1b6d6e588c"
+      },
+      {
+        "path": "google/protobuf/any_pb2.py",
+        "sha256": "e76d9462204f461502447210d1eb0cf97dd3636e273916ede19d8e12733df33b"
+      },
+      {
+        "path": "google/protobuf/duration_pb2.py",
+        "sha256": "31e97da059b8d0bb4644601ebd0f617fce728faa0d9beba78a21e815d117705d"
+      },
+      {
+        "path": "google/protobuf/timestamp_pb2.py",
+        "sha256": "ccf002fcb7aeea1997ab1be96a02c8c8aa27459a33788f95f399d710dc68fb7e"
+      }
+    ]
+  },
+  "schema": {
+    "nested": {
+      "eve_public": {
+        "options": {
+          "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public"
+        },
+        "nested": {
+          "cosmetic": {
+            "nested": {
+              "ship": {
+                "options": {
+                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship"
+                },
+                "nested": {
+                  "skin": {
+                    "nested": {
+                      "thirdparty": {
+                        "options": {
+                          "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty"
+                        },
+                        "nested": {
+                          "api": {
+                            "options": {
+                              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/api"
+                            },
+                            "nested": {
+                              "Shared": {
+                                "fields": {
+                                  "id": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.Identifier",
+                                    "id": 1
+                                  }
+                                }
+                              },
+                              "Previewed": {
+                                "fields": {
+                                  "id": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.Identifier",
+                                    "id": 1
+                                  },
+                                  "previewer": {
+                                    "type": ".eve_public.character.Identifier",
+                                    "id": 2
+                                  }
+                                }
+                              },
+                              "GetRequest": {
+                                "fields": {
+                                  "skin": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.Identifier",
+                                    "id": 1
+                                  }
+                                }
+                              },
+                              "GetResponse": {
+                                "fields": {
+                                  "skin": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.Attributes",
+                                    "id": 1
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "Identifier": {
+                            "fields": {
+                              "hex": {
+                                "type": "string",
+                                "id": 1
+                              }
+                            }
+                          },
+                          "Attributes": {
+                            "oneofs": {
+                              "sequenced": {
+                                "oneof": [
+                                  "not_sequenced",
+                                  "first_sequenced"
+                                ]
+                              }
+                            },
+                            "fields": {
+                              "name": {
+                                "type": "string",
+                                "id": 1
+                              },
+                              "line_name": {
+                                "type": "string",
+                                "id": 2
+                              },
+                              "creator": {
+                                "type": ".eve_public.character.Identifier",
+                                "id": 3
+                              },
+                              "layout": {
+                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.Layout",
+                                "id": 4
+                              },
+                              "tier": {
+                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.Tier",
+                                "id": 5
+                              },
+                              "not_sequenced": {
+                                "type": "bool",
+                                "id": 6
+                              },
+                              "first_sequenced": {
+                                "type": ".google.protobuf.Timestamp",
+                                "id": 7
+                              }
+                            }
+                          },
+                          "Layout": {
+                            "fields": {
+                              "slots": {
+                                "rule": "repeated",
+                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.Layout.Slot",
+                                "id": 1
+                              },
+                              "ship_type": {
+                                "type": ".eve_public.shiptype.Identifier",
+                                "id": 2
+                              },
+                              "pattern_blend_mode": {
+                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.pattern.BlendMode",
+                                "id": 3
+                              }
+                            },
+                            "nested": {
+                              "Slot": {
+                                "fields": {
+                                  "id": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.slot.Identifier",
+                                    "id": 1
+                                  },
+                                  "configuration": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.slot.Configuration",
+                                    "id": 2
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "Tier": {
+                            "fields": {
+                              "level": {
+                                "type": "uint32",
+                                "id": 1
+                              }
+                            }
+                          },
+                          "component": {
+                            "options": {
+                              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/component"
+                            },
+                            "nested": {
+                              "pattern": {
+                                "options": {
+                                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/component/pattern"
+                                },
+                                "nested": {
+                                  "Identifier": {
+                                    "fields": {
+                                      "sequential": {
+                                        "type": "uint64",
+                                        "id": 1
+                                      }
+                                    }
+                                  },
+                                  "Configuration": {
+                                    "fields": {
+                                      "projection": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.pattern.Configuration.Projection",
+                                        "id": 1
+                                      },
+                                      "transform": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.pattern.Configuration.Transform",
+                                        "id": 2
+                                      },
+                                      "mirrored": {
+                                        "type": "bool",
+                                        "id": 3
+                                      }
+                                    },
+                                    "nested": {
+                                      "Projection": {
+                                        "fields": {
+                                          "area1": {
+                                            "type": "bool",
+                                            "id": 1
+                                          },
+                                          "area2": {
+                                            "type": "bool",
+                                            "id": 2
+                                          },
+                                          "area3": {
+                                            "type": "bool",
+                                            "id": 3
+                                          },
+                                          "area4": {
+                                            "type": "bool",
+                                            "id": 4
+                                          },
+                                          "projection_type_u": {
+                                            "type": "uint32",
+                                            "id": 5
+                                          },
+                                          "projection_type_v": {
+                                            "type": "uint32",
+                                            "id": 6
+                                          }
+                                        }
+                                      },
+                                      "Transform": {
+                                        "fields": {
+                                          "position": {
+                                            "type": ".eve_public.math.Vector3",
+                                            "id": 1
+                                          },
+                                          "rotation": {
+                                            "type": ".eve_public.math.Vector4",
+                                            "id": 2
+                                          },
+                                          "scaling": {
+                                            "type": ".eve_public.math.Vector3",
+                                            "id": 3
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "BlendMode": {
+                                    "values": {
+                                      "BLEND_MODE_UNSPECIFIED": 0,
+                                      "BLEND_MODE_NORMAL": 1,
+                                      "BLEND_MODE_SUBTRACT": 2,
+                                      "BLEND_MODE_EXCLUSION": 3,
+                                      "BLEND_MODE_NESTED": 4,
+                                      "BLEND_MODE_NESTED_INVERTED": 5
+                                    }
+                                  }
+                                }
+                              },
+                              "coating": {
+                                "options": {
+                                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/component/coating"
+                                },
+                                "nested": {
+                                  "Identifier": {
+                                    "fields": {
+                                      "sequential": {
+                                        "type": "uint64",
+                                        "id": 1
+                                      }
+                                    }
+                                  },
+                                  "Configuration": {
+                                    "fields": {
+                                      "diffuse_color": {
+                                        "type": ".eve_public.math.Vector4",
+                                        "id": 1
+                                      },
+                                      "dust_diffuse_color": {
+                                        "type": ".eve_public.math.Vector4",
+                                        "id": 2
+                                      },
+                                      "fresnel_color": {
+                                        "type": ".eve_public.math.Vector4",
+                                        "id": 3
+                                      },
+                                      "gloss": {
+                                        "type": ".eve_public.math.Vector4",
+                                        "id": 4
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "Identifier": {
+                                "oneofs": {
+                                  "kind": {
+                                    "oneof": [
+                                      "coating",
+                                      "pattern"
+                                    ]
+                                  }
+                                },
+                                "fields": {
+                                  "coating": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.coating.Identifier",
+                                    "id": 1
+                                  },
+                                  "pattern": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.pattern.Identifier",
+                                    "id": 2
+                                  }
+                                }
+                              },
+                              "license": {
+                                "options": {
+                                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/component/license"
+                                },
+                                "nested": {
+                                  "api": {
+                                    "options": {
+                                      "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/component/license/api"
+                                    },
+                                    "nested": {
+                                      "GrantedNotice": {
+                                        "fields": {
+                                          "kind": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.license.Kind",
+                                            "id": 1
+                                          }
+                                        }
+                                      },
+                                      "GetOwnedRequest": {
+                                        "fields": {}
+                                      },
+                                      "GetOwnedResponse": {
+                                        "fields": {
+                                          "finite": {
+                                            "rule": "repeated",
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.license.finite.Identifier",
+                                            "id": 1
+                                          },
+                                          "infinite": {
+                                            "rule": "repeated",
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.license.infinite.Identifier",
+                                            "id": 2
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "Kind": {
+                                    "oneofs": {
+                                      "quantity": {
+                                        "oneof": [
+                                          "infinite",
+                                          "finite"
+                                        ]
+                                      }
+                                    },
+                                    "fields": {
+                                      "component": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.Identifier",
+                                        "id": 1
+                                      },
+                                      "infinite": {
+                                        "type": "bool",
+                                        "id": 2
+                                      },
+                                      "finite": {
+                                        "type": "uint64",
+                                        "id": 3
+                                      }
+                                    }
+                                  },
+                                  "finite": {
+                                    "options": {
+                                      "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/component/license/finite"
+                                    },
+                                    "nested": {
+                                      "Identifier": {
+                                        "fields": {
+                                          "character": {
+                                            "type": ".eve_public.character.Identifier",
+                                            "id": 1
+                                          },
+                                          "component": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.Identifier",
+                                            "id": 2
+                                          }
+                                        }
+                                      },
+                                      "Attributes": {
+                                        "fields": {
+                                          "first_acquired": {
+                                            "type": ".google.protobuf.Timestamp",
+                                            "id": 1
+                                          },
+                                          "capacity": {
+                                            "type": "uint64",
+                                            "id": 2
+                                          }
+                                        }
+                                      },
+                                      "api": {
+                                        "options": {
+                                          "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/component/license/finite/api"
+                                        },
+                                        "nested": {
+                                          "admin": {
+                                            "options": {
+                                              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/component/license/finite/api/admin"
+                                            },
+                                            "nested": {
+                                              "GrantRequest": {
+                                                "fields": {
+                                                  "component": {
+                                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.Identifier",
+                                                    "id": 1
+                                                  },
+                                                  "capacity": {
+                                                    "type": "uint64",
+                                                    "id": 2
+                                                  }
+                                                }
+                                              },
+                                              "GrantResponse": {
+                                                "fields": {
+                                                  "license": {
+                                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.license.finite.Identifier",
+                                                    "id": 1
+                                                  }
+                                                }
+                                              },
+                                              "RevokeRequest": {
+                                                "fields": {
+                                                  "license": {
+                                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.license.finite.Identifier",
+                                                    "id": 1
+                                                  }
+                                                }
+                                              },
+                                              "RevokeResponse": {
+                                                "fields": {}
+                                              }
+                                            }
+                                          },
+                                          "GetRequest": {
+                                            "fields": {
+                                              "license": {
+                                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.license.finite.Identifier",
+                                                "id": 1
+                                              }
+                                            }
+                                          },
+                                          "GetResponse": {
+                                            "fields": {
+                                              "license": {
+                                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.license.finite.Attributes",
+                                                "id": 1
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "infinite": {
+                                    "options": {
+                                      "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/component/license/infinite"
+                                    },
+                                    "nested": {
+                                      "Identifier": {
+                                        "fields": {
+                                          "character": {
+                                            "type": ".eve_public.character.Identifier",
+                                            "id": 1
+                                          },
+                                          "component": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.Identifier",
+                                            "id": 2
+                                          }
+                                        }
+                                      },
+                                      "Attributes": {
+                                        "oneofs": {
+                                          "acquisition": {
+                                            "oneof": [
+                                              "first_acquired",
+                                              "free"
+                                            ]
+                                          }
+                                        },
+                                        "fields": {
+                                          "first_acquired": {
+                                            "type": ".google.protobuf.Timestamp",
+                                            "id": 1
+                                          },
+                                          "free": {
+                                            "type": "bool",
+                                            "id": 2
+                                          }
+                                        }
+                                      },
+                                      "api": {
+                                        "options": {
+                                          "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/component/license/infinite/api"
+                                        },
+                                        "nested": {
+                                          "admin": {
+                                            "options": {
+                                              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/component/license/infinite/api/admin"
+                                            },
+                                            "nested": {
+                                              "GrantRequest": {
+                                                "fields": {
+                                                  "component": {
+                                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.Identifier",
+                                                    "id": 1
+                                                  }
+                                                }
+                                              },
+                                              "GrantResponse": {
+                                                "fields": {
+                                                  "license": {
+                                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.license.infinite.Identifier",
+                                                    "id": 1
+                                                  }
+                                                }
+                                              },
+                                              "RevokeRequest": {
+                                                "fields": {
+                                                  "license": {
+                                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.license.infinite.Identifier",
+                                                    "id": 1
+                                                  }
+                                                }
+                                              },
+                                              "RevokeResponse": {
+                                                "fields": {}
+                                              }
+                                            }
+                                          },
+                                          "GetRequest": {
+                                            "fields": {
+                                              "license": {
+                                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.license.infinite.Identifier",
+                                                "id": 1
+                                              }
+                                            }
+                                          },
+                                          "GetResponse": {
+                                            "fields": {
+                                              "license": {
+                                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.license.infinite.Attributes",
+                                                "id": 1
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "item": {
+                                    "options": {
+                                      "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/component/license/item"
+                                    },
+                                    "nested": {
+                                      "api": {
+                                        "options": {
+                                          "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/component/license/item/api"
+                                        },
+                                        "nested": {
+                                          "ConsumeRequest": {
+                                            "fields": {
+                                              "item": {
+                                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.license.item.Identifier",
+                                                "id": 1
+                                              },
+                                              "quantity": {
+                                                "type": "int32",
+                                                "id": 2
+                                              }
+                                            }
+                                          },
+                                          "ConsumeResponse": {
+                                            "fields": {}
+                                          }
+                                        }
+                                      },
+                                      "Identifier": {
+                                        "fields": {
+                                          "item": {
+                                            "type": ".eve_public.inventory.genericitem.Identifier",
+                                            "id": 1
+                                          }
+                                        }
+                                      },
+                                      "Attributes": {
+                                        "fields": {
+                                          "license": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.license.Kind",
+                                            "id": 1
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "slot": {
+                            "options": {
+                              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/slot"
+                            },
+                            "nested": {
+                              "Identifier": {
+                                "fields": {
+                                  "sequential": {
+                                    "type": "uint64",
+                                    "id": 1
+                                  }
+                                }
+                              },
+                              "Configuration": {
+                                "oneofs": {
+                                  "component": {
+                                    "oneof": [
+                                      "coating",
+                                      "pattern"
+                                    ]
+                                  }
+                                },
+                                "fields": {
+                                  "coating": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.slot.Configuration.Coating",
+                                    "id": 1
+                                  },
+                                  "pattern": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.slot.Configuration.Pattern",
+                                    "id": 2
+                                  }
+                                },
+                                "nested": {
+                                  "Coating": {
+                                    "fields": {
+                                      "coating": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.coating.Identifier",
+                                        "id": 1
+                                      },
+                                      "configuration": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.coating.Configuration",
+                                        "id": 2
+                                      }
+                                    }
+                                  },
+                                  "Pattern": {
+                                    "fields": {
+                                      "pattern": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.pattern.Identifier",
+                                        "id": 1
+                                      },
+                                      "configuration": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.pattern.Configuration",
+                                        "id": 2
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "draft": {
+                            "options": {
+                              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/draft"
+                            },
+                            "nested": {
+                              "api": {
+                                "options": {
+                                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/draft/api"
+                                },
+                                "nested": {
+                                  "SaveRequest": {
+                                    "fields": {
+                                      "name": {
+                                        "type": "string",
+                                        "id": 1
+                                      },
+                                      "line_name": {
+                                        "type": "string",
+                                        "id": 2
+                                      },
+                                      "layout": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.Layout",
+                                        "id": 3
+                                      },
+                                      "editor_configurations": {
+                                        "rule": "repeated",
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.SlotEditorConfiguration",
+                                        "id": 4
+                                      }
+                                    }
+                                  },
+                                  "SaveResponse": {
+                                    "fields": {
+                                      "id": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.Identifier",
+                                        "id": 1
+                                      },
+                                      "attributes": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.Attributes",
+                                        "id": 2
+                                      }
+                                    }
+                                  },
+                                  "UpdateRequest": {
+                                    "fields": {
+                                      "id": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.Identifier",
+                                        "id": 1
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "id": 2
+                                      },
+                                      "line_name": {
+                                        "type": "string",
+                                        "id": 3
+                                      },
+                                      "layout": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.Layout",
+                                        "id": 4
+                                      },
+                                      "editor_configurations": {
+                                        "rule": "repeated",
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.SlotEditorConfiguration",
+                                        "id": 5
+                                      }
+                                    }
+                                  },
+                                  "UpdateResponse": {
+                                    "fields": {
+                                      "id": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.Identifier",
+                                        "id": 1
+                                      },
+                                      "attributes": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.Attributes",
+                                        "id": 2
+                                      }
+                                    }
+                                  },
+                                  "DeleteRequest": {
+                                    "fields": {
+                                      "id": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.Identifier",
+                                        "id": 1
+                                      }
+                                    }
+                                  },
+                                  "DeleteResponse": {
+                                    "fields": {}
+                                  },
+                                  "GetAllSavedRequest": {
+                                    "fields": {}
+                                  },
+                                  "GetAllSavedResponse": {
+                                    "fields": {
+                                      "drafts": {
+                                        "rule": "repeated",
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.api.GetAllSavedResponse.Draft",
+                                        "id": 1
+                                      }
+                                    },
+                                    "nested": {
+                                      "Draft": {
+                                        "fields": {
+                                          "id": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.Identifier",
+                                            "id": 1
+                                          },
+                                          "attributes": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.Attributes",
+                                            "id": 2
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "GetRequest": {
+                                    "fields": {
+                                      "draft": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.Identifier",
+                                        "id": 1
+                                      }
+                                    }
+                                  },
+                                  "GetResponse": {
+                                    "fields": {
+                                      "draft": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.Attributes",
+                                        "id": 2
+                                      }
+                                    }
+                                  },
+                                  "GetSharedRequest": {
+                                    "fields": {
+                                      "character": {
+                                        "type": ".eve_public.character.Identifier",
+                                        "id": 1
+                                      },
+                                      "draft": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.Identifier",
+                                        "id": 2
+                                      }
+                                    }
+                                  },
+                                  "GetSharedResponse": {
+                                    "fields": {
+                                      "draft": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.Attributes",
+                                        "id": 1
+                                      }
+                                    }
+                                  },
+                                  "GetSaveCapacityRequest": {
+                                    "fields": {}
+                                  },
+                                  "GetSaveCapacityResponse": {
+                                    "fields": {
+                                      "capacity": {
+                                        "type": "uint64",
+                                        "id": 1
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "Identifier": {
+                                "fields": {
+                                  "uuid": {
+                                    "type": "bytes",
+                                    "id": 1
+                                  }
+                                }
+                              },
+                              "Attributes": {
+                                "fields": {
+                                  "skin": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.Identifier",
+                                    "id": 1
+                                  },
+                                  "editor_configuration": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.EditorConfiguration",
+                                    "id": 2,
+                                    "options": {
+                                      "deprecated": true
+                                    }
+                                  },
+                                  "editor_configurations": {
+                                    "rule": "repeated",
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.SlotEditorConfiguration",
+                                    "id": 3
+                                  }
+                                }
+                              },
+                              "SlotEditorConfiguration": {
+                                "fields": {
+                                  "id": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.slot.Identifier",
+                                    "id": 1
+                                  },
+                                  "config": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.draft.EditorConfiguration",
+                                    "id": 2
+                                  }
+                                }
+                              },
+                              "EditorConfiguration": {
+                                "fields": {
+                                  "offset_u_ratio": {
+                                    "type": "float",
+                                    "id": 1
+                                  },
+                                  "offset_v_ratio": {
+                                    "type": "float",
+                                    "id": 2
+                                  },
+                                  "yaw": {
+                                    "type": "float",
+                                    "id": 3
+                                  },
+                                  "pitch": {
+                                    "type": "float",
+                                    "id": 4
+                                  },
+                                  "roll": {
+                                    "type": "float",
+                                    "id": 5
+                                  },
+                                  "scaling": {
+                                    "type": "float",
+                                    "id": 6
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "license": {
+                            "options": {
+                              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/license"
+                            },
+                            "nested": {
+                              "api": {
+                                "options": {
+                                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/license/api"
+                                },
+                                "nested": {
+                                  "admin": {
+                                    "options": {
+                                      "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/license/api/admin"
+                                    },
+                                    "nested": {
+                                      "GrantRequest": {
+                                        "fields": {
+                                          "skin": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.Identifier",
+                                            "id": 1
+                                          },
+                                          "unactivated": {
+                                            "type": "uint64",
+                                            "id": 2
+                                          }
+                                        }
+                                      },
+                                      "GrantResponse": {
+                                        "fields": {
+                                          "license": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Identifier",
+                                            "id": 1
+                                          }
+                                        }
+                                      },
+                                      "RevokeRequest": {
+                                        "fields": {
+                                          "license": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Identifier",
+                                            "id": 1
+                                          }
+                                        }
+                                      },
+                                      "RevokeResponse": {
+                                        "fields": {}
+                                      }
+                                    }
+                                  },
+                                  "AddedNotice": {
+                                    "fields": {
+                                      "id": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Identifier",
+                                        "id": 1
+                                      },
+                                      "attributes": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Attributes",
+                                        "id": 2
+                                      }
+                                    }
+                                  },
+                                  "UpdatedNotice": {
+                                    "fields": {
+                                      "id": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Identifier",
+                                        "id": 1
+                                      },
+                                      "attributes": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Attributes",
+                                        "id": 2
+                                      },
+                                      "previous_attributes": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Attributes",
+                                        "id": 3
+                                      }
+                                    }
+                                  },
+                                  "DeletedNotice": {
+                                    "fields": {
+                                      "id": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Identifier",
+                                        "id": 1
+                                      }
+                                    }
+                                  },
+                                  "GetOwnedRequest": {
+                                    "fields": {}
+                                  },
+                                  "GetOwnedResponse": {
+                                    "fields": {
+                                      "licenses": {
+                                        "rule": "repeated",
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Identifier",
+                                        "id": 1
+                                      }
+                                    }
+                                  },
+                                  "GetRequest": {
+                                    "fields": {
+                                      "license": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Identifier",
+                                        "id": 1
+                                      }
+                                    }
+                                  },
+                                  "GetResponse": {
+                                    "fields": {
+                                      "license": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Attributes",
+                                        "id": 1
+                                      }
+                                    }
+                                  },
+                                  "ActivateRequest": {
+                                    "fields": {
+                                      "license": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Identifier",
+                                        "id": 1
+                                      }
+                                    }
+                                  },
+                                  "ActivateResponse": {
+                                    "fields": {}
+                                  },
+                                  "ApplyRequest": {
+                                    "fields": {
+                                      "license": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Identifier",
+                                        "id": 1
+                                      },
+                                      "ship": {
+                                        "type": ".eve_public.ship.Identifier",
+                                        "id": 2
+                                      }
+                                    }
+                                  },
+                                  "ApplyResponse": {
+                                    "fields": {}
+                                  },
+                                  "UnapplyRequest": {
+                                    "fields": {
+                                      "license": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Identifier",
+                                        "id": 1
+                                      },
+                                      "ship": {
+                                        "type": ".eve_public.ship.Identifier",
+                                        "id": 2
+                                      }
+                                    }
+                                  },
+                                  "UnapplyResponse": {
+                                    "fields": {}
+                                  }
+                                }
+                              },
+                              "Identifier": {
+                                "fields": {
+                                  "character": {
+                                    "type": ".eve_public.character.Identifier",
+                                    "id": 1
+                                  },
+                                  "skin": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.Identifier",
+                                    "id": 2
+                                  }
+                                }
+                              },
+                              "Attributes": {
+                                "fields": {
+                                  "activated": {
+                                    "type": "bool",
+                                    "id": 1
+                                  },
+                                  "unactivated": {
+                                    "type": "uint64",
+                                    "id": 2
+                                  },
+                                  "escrowed": {
+                                    "type": "uint64",
+                                    "id": 3
+                                  },
+                                  "first_acquired": {
+                                    "type": ".google.protobuf.Timestamp",
+                                    "id": 4
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "sequencing": {
+                            "nested": {
+                              "api": {
+                                "options": {
+                                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/sequencing/api"
+                                },
+                                "nested": {
+                                  "GetTierPricingRequest": {
+                                    "fields": {}
+                                  },
+                                  "GetTierPricingResponse": {
+                                    "fields": {
+                                      "prices": {
+                                        "rule": "repeated",
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.api.GetTierPricingResponse.Price",
+                                        "id": 1
+                                      },
+                                      "discount_percentage_applied": {
+                                        "type": "uint32",
+                                        "id": 2
+                                      }
+                                    },
+                                    "nested": {
+                                      "Price": {
+                                        "fields": {
+                                          "tier": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.Tier",
+                                            "id": 1
+                                          },
+                                          "plex": {
+                                            "type": ".eve_public.plex.Currency",
+                                            "id": 2
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "GetEarlyCompletionPricingRequest": {
+                                    "fields": {}
+                                  },
+                                  "GetEarlyCompletionPricingResponse": {
+                                    "fields": {
+                                      "prices": {
+                                        "rule": "repeated",
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.api.GetEarlyCompletionPricingResponse.Price",
+                                        "id": 1
+                                      }
+                                    },
+                                    "nested": {
+                                      "Price": {
+                                        "fields": {
+                                          "remaining_greater": {
+                                            "type": ".google.protobuf.Duration",
+                                            "id": 1
+                                          },
+                                          "remaining_lesser_or_equal": {
+                                            "type": ".google.protobuf.Duration",
+                                            "id": 2
+                                          },
+                                          "plex": {
+                                            "type": ".eve_public.plex.Currency",
+                                            "id": 3
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "GetTierDurationsRequest": {
+                                    "fields": {}
+                                  },
+                                  "GetTierDurationsResponse": {
+                                    "fields": {
+                                      "durations": {
+                                        "rule": "repeated",
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.api.GetTierDurationsResponse.Duration",
+                                        "id": 1
+                                      },
+                                      "discount_percentage_applied": {
+                                        "type": "uint32",
+                                        "id": 2
+                                      }
+                                    },
+                                    "nested": {
+                                      "Duration": {
+                                        "fields": {
+                                          "tier": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.Tier",
+                                            "id": 1
+                                          },
+                                          "duration": {
+                                            "type": ".google.protobuf.Duration",
+                                            "id": 2
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "job": {
+                                "options": {
+                                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/sequencing/job"
+                                },
+                                "nested": {
+                                  "api": {
+                                    "options": {
+                                      "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/thirdparty/sequencing/job/api"
+                                    },
+                                    "nested": {
+                                      "StartedNotice": {
+                                        "fields": {
+                                          "id": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.job.Identifier",
+                                            "id": 1
+                                          }
+                                        }
+                                      },
+                                      "FailedNotice": {
+                                        "fields": {
+                                          "id": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.job.Identifier",
+                                            "id": 1
+                                          },
+                                          "reason": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.job.Failure",
+                                            "id": 2
+                                          }
+                                        }
+                                      },
+                                      "CompletedNotice": {
+                                        "fields": {
+                                          "id": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.job.Identifier",
+                                            "id": 1
+                                          }
+                                        }
+                                      },
+                                      "GetAllActiveRequest": {
+                                        "fields": {}
+                                      },
+                                      "GetAllActiveResponse": {
+                                        "fields": {
+                                          "jobs": {
+                                            "rule": "repeated",
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.job.api.GetAllActiveResponse.Job",
+                                            "id": 1
+                                          }
+                                        },
+                                        "nested": {
+                                          "Job": {
+                                            "fields": {
+                                              "id": {
+                                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.job.Identifier",
+                                                "id": 1
+                                              },
+                                              "attributes": {
+                                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.job.Attributes",
+                                                "id": 2
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "GetRequest": {
+                                        "fields": {
+                                          "job": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.job.Identifier",
+                                            "id": 1
+                                          }
+                                        }
+                                      },
+                                      "GetResponse": {
+                                        "fields": {
+                                          "job": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.job.Attributes",
+                                            "id": 1
+                                          }
+                                        }
+                                      },
+                                      "InitiateRequest": {
+                                        "fields": {
+                                          "name": {
+                                            "type": "string",
+                                            "id": 1
+                                          },
+                                          "line_name": {
+                                            "type": "string",
+                                            "id": 2
+                                          },
+                                          "layout": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.Layout",
+                                            "id": 3
+                                          },
+                                          "component_licenses": {
+                                            "rule": "repeated",
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.component.license.Kind",
+                                            "id": 4
+                                          },
+                                          "licenses": {
+                                            "type": "uint32",
+                                            "id": 5
+                                          }
+                                        }
+                                      },
+                                      "InitiateResponse": {
+                                        "fields": {
+                                          "id": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.job.Identifier",
+                                            "id": 1
+                                          },
+                                          "attributes": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.job.Attributes",
+                                            "id": 2
+                                          }
+                                        }
+                                      },
+                                      "CompleteEarlyRequest": {
+                                        "fields": {
+                                          "job": {
+                                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.job.Identifier",
+                                            "id": 1
+                                          }
+                                        }
+                                      },
+                                      "CompleteEarlyResponse": {
+                                        "fields": {}
+                                      }
+                                    }
+                                  },
+                                  "Identifier": {
+                                    "fields": {
+                                      "uuid": {
+                                        "type": "bytes",
+                                        "id": 1
+                                      }
+                                    }
+                                  },
+                                  "Attributes": {
+                                    "oneofs": {
+                                      "status": {
+                                        "oneof": [
+                                          "pending",
+                                          "started",
+                                          "failed",
+                                          "completed"
+                                        ]
+                                      }
+                                    },
+                                    "fields": {
+                                      "skin": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.Identifier",
+                                        "id": 1
+                                      },
+                                      "sequencer": {
+                                        "type": ".eve_public.character.Identifier",
+                                        "id": 2
+                                      },
+                                      "quantity": {
+                                        "type": "uint64",
+                                        "id": 3
+                                      },
+                                      "pending": {
+                                        "type": "bool",
+                                        "id": 4
+                                      },
+                                      "started": {
+                                        "type": ".google.protobuf.Timestamp",
+                                        "id": 5
+                                      },
+                                      "failed": {
+                                        "type": ".eve_public.cosmetic.ship.skin.thirdparty.sequencing.job.Failure",
+                                        "id": 6
+                                      },
+                                      "completed": {
+                                        "type": ".google.protobuf.Timestamp",
+                                        "id": 7
+                                      },
+                                      "planned_completion": {
+                                        "type": ".google.protobuf.Timestamp",
+                                        "id": 8
+                                      }
+                                    }
+                                  },
+                                  "Failure": {
+                                    "values": {
+                                      "FAILURE_UNSPECIFIED": 0,
+                                      "FAILURE_MISSING_FUNDS": 1,
+                                      "FAILURE_MISSING_RESOURCES": 3,
+                                      "FAILURE_INTERNAL_SERVER_ERROR": 4
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "firstparty": {
+                        "options": {
+                          "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/skin/firstparty"
+                        },
+                        "nested": {
+                          "Identifier": {
+                            "fields": {
+                              "sequential": {
+                                "type": "uint64",
+                                "id": 1
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "api": {
+                    "options": {
+                      "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/ship/api"
+                    },
+                    "nested": {
+                      "SetNotice": {
+                        "fields": {
+                          "state": {
+                            "type": ".eve_public.cosmetic.ship.State",
+                            "id": 1
+                          }
+                        }
+                      },
+                      "SetAllInBubbleNotice": {
+                        "fields": {
+                          "state": {
+                            "rule": "repeated",
+                            "type": ".eve_public.cosmetic.ship.State",
+                            "id": 1
+                          }
+                        }
+                      },
+                      "GetAllInBubbleRequest": {
+                        "fields": {}
+                      },
+                      "GetAllInBubbleResponse": {
+                        "fields": {
+                          "states": {
+                            "rule": "repeated",
+                            "type": ".eve_public.cosmetic.ship.State",
+                            "id": 1
+                          }
+                        }
+                      },
+                      "GetRequest": {
+                        "fields": {
+                          "ship": {
+                            "type": ".eve_public.ship.Identifier",
+                            "id": 1
+                          }
+                        }
+                      },
+                      "GetResponse": {
+                        "fields": {
+                          "state": {
+                            "type": ".eve_public.cosmetic.ship.State",
+                            "id": 1
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "State": {
+                    "fields": {
+                      "character": {
+                        "type": ".eve_public.character.Identifier",
+                        "id": 1
+                      },
+                      "ship": {
+                        "type": ".eve_public.ship.Identifier",
+                        "id": 2
+                      },
+                      "skin": {
+                        "type": ".eve_public.cosmetic.ship.State.Skin",
+                        "id": 3
+                      }
+                    },
+                    "nested": {
+                      "Skin": {
+                        "oneofs": {
+                          "skin": {
+                            "oneof": [
+                              "firstparty",
+                              "thirdparty",
+                              "no_skin"
+                            ]
+                          }
+                        },
+                        "fields": {
+                          "firstparty": {
+                            "type": ".eve_public.cosmetic.ship.State.Skin.FirstParty",
+                            "id": 1
+                          },
+                          "thirdparty": {
+                            "type": ".eve_public.cosmetic.ship.State.Skin.ThirdParty",
+                            "id": 2
+                          },
+                          "no_skin": {
+                            "type": "bool",
+                            "id": 3
+                          }
+                        },
+                        "nested": {
+                          "FirstParty": {
+                            "fields": {
+                              "identifier": {
+                                "type": ".eve_public.cosmetic.ship.skin.firstparty.Identifier",
+                                "id": 1
+                              }
+                            }
+                          },
+                          "ThirdParty": {
+                            "fields": {
+                              "identifier": {
+                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.Identifier",
+                                "id": 1
+                              },
+                              "layout": {
+                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.Layout",
+                                "id": 2
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "market": {
+                "options": {
+                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/market"
+                },
+                "nested": {
+                  "api": {
+                    "options": {
+                      "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/market/api"
+                    },
+                    "nested": {
+                      "GetBrokerFeesRequest": {
+                        "fields": {
+                          "target": {
+                            "type": ".eve_public.cosmetic.market.skin.listing.ListingTarget",
+                            "id": 1
+                          }
+                        }
+                      },
+                      "GetBrokerFeesResponse": {
+                        "fields": {
+                          "broker_fees": {
+                            "rule": "repeated",
+                            "type": ".eve_public.cosmetic.market.BrokerFee",
+                            "id": 1,
+                            "options": {
+                              "deprecated": true
+                            }
+                          },
+                          "broker_fees_per_duration": {
+                            "rule": "repeated",
+                            "type": ".eve_public.cosmetic.market.api.GetBrokerFeesResponse.FeePerDuration",
+                            "id": 2
+                          }
+                        },
+                        "nested": {
+                          "FeePerDuration": {
+                            "fields": {
+                              "duration": {
+                                "type": ".google.protobuf.Duration",
+                                "id": 1
+                              },
+                              "broker_fee": {
+                                "type": ".eve_public.cosmetic.market.BrokerFee",
+                                "id": 2
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "GetTaxRateRequest": {
+                        "fields": {
+                          "target": {
+                            "type": ".eve_public.cosmetic.market.skin.listing.ListingTarget",
+                            "id": 1
+                          }
+                        }
+                      },
+                      "GetTaxRateResponse": {
+                        "fields": {
+                          "tax_rate": {
+                            "type": ".eve_public.cosmetic.market.TaxRate",
+                            "id": 1
+                          }
+                        }
+                      },
+                      "GetBuyerFeeRequest": {
+                        "fields": {
+                          "target": {
+                            "type": ".eve_public.cosmetic.market.skin.listing.ListingTarget",
+                            "id": 1
+                          },
+                          "skin": {
+                            "type": ".eve_public.cosmetic.ship.skin.thirdparty.Identifier",
+                            "id": 2
+                          }
+                        }
+                      },
+                      "GetBuyerFeeResponse": {
+                        "fields": {
+                          "buyer_fee": {
+                            "type": ".eve_public.cosmetic.market.BuyerFee",
+                            "id": 1
+                          }
+                        }
+                      },
+                      "GetBuyerFeesDefinitionRequest": {
+                        "fields": {}
+                      },
+                      "GetBuyerFeesDefinitionResponse": {
+                        "fields": {
+                          "buyer_fees": {
+                            "rule": "repeated",
+                            "type": ".eve_public.cosmetic.market.api.GetBuyerFeesDefinitionResponse.FeePerTier",
+                            "id": 1
+                          },
+                          "buyer_fees_version": {
+                            "type": "string",
+                            "id": 2
+                          }
+                        },
+                        "nested": {
+                          "FeePerTier": {
+                            "fields": {
+                              "skin_tier": {
+                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.Tier",
+                                "id": 1
+                              },
+                              "default_fee": {
+                                "type": ".eve_public.cosmetic.market.BuyerFee",
+                                "id": 2
+                              },
+                              "branded_fee": {
+                                "type": ".eve_public.cosmetic.market.BuyerFee",
+                                "id": 3
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "BrokerFee": {
+                    "fields": {
+                      "duration": {
+                        "type": ".google.protobuf.Duration",
+                        "id": 1,
+                        "options": {
+                          "deprecated": true
+                        }
+                      },
+                      "fee": {
+                        "type": ".eve_public.isk.Currency",
+                        "id": 2
+                      }
+                    }
+                  },
+                  "TaxRate": {
+                    "fields": {
+                      "units": {
+                        "type": "sint64",
+                        "id": 1
+                      },
+                      "nanos": {
+                        "type": "sint32",
+                        "id": 2
+                      }
+                    }
+                  },
+                  "BuyerFee": {
+                    "fields": {
+                      "loyalty_points": {
+                        "type": ".eve_public.loyaltypoints.Currency",
+                        "id": 1
+                      }
+                    }
+                  },
+                  "skin": {
+                    "nested": {
+                      "listing": {
+                        "options": {
+                          "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/market/skin/listing"
+                        },
+                        "nested": {
+                          "Identifier": {
+                            "fields": {
+                              "uuid": {
+                                "type": "bytes",
+                                "id": 1
+                              }
+                            }
+                          },
+                          "Attributes": {
+                            "oneofs": {
+                              "price": {
+                                "oneof": [
+                                  "isk",
+                                  "plex"
+                                ]
+                              }
+                            },
+                            "fields": {
+                              "seller": {
+                                "type": ".eve_public.character.Identifier",
+                                "id": 2
+                              },
+                              "created": {
+                                "type": ".google.protobuf.Timestamp",
+                                "id": 3
+                              },
+                              "expires": {
+                                "type": ".google.protobuf.Timestamp",
+                                "id": 4
+                              },
+                              "isk": {
+                                "type": ".eve_public.isk.Currency",
+                                "id": 5
+                              },
+                              "plex": {
+                                "type": ".eve_public.plex.Currency",
+                                "id": 6
+                              },
+                              "skin": {
+                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Identifier",
+                                "id": 7
+                              },
+                              "quantity": {
+                                "type": "uint32",
+                                "id": 8
+                              },
+                              "target": {
+                                "type": ".eve_public.cosmetic.market.skin.listing.ListingTarget",
+                                "id": 9
+                              },
+                              "branded": {
+                                "type": "bool",
+                                "id": 10
+                              }
+                            }
+                          },
+                          "Entry": {
+                            "fields": {
+                              "id": {
+                                "type": ".eve_public.cosmetic.market.skin.listing.Identifier",
+                                "id": 1
+                              },
+                              "attributes": {
+                                "type": ".eve_public.cosmetic.market.skin.listing.Attributes",
+                                "id": 2
+                              }
+                            }
+                          },
+                          "ListingTarget": {
+                            "oneofs": {
+                              "target": {
+                                "oneof": [
+                                  "public",
+                                  "corporation",
+                                  "alliance",
+                                  "character"
+                                ]
+                              }
+                            },
+                            "fields": {
+                              "public": {
+                                "type": "bool",
+                                "id": 1
+                              },
+                              "corporation": {
+                                "type": ".eve_public.corporation.Identifier",
+                                "id": 2
+                              },
+                              "alliance": {
+                                "type": ".eve_public.alliance.Identifier",
+                                "id": 3
+                              },
+                              "character": {
+                                "type": ".eve_public.character.Identifier",
+                                "id": 4
+                              }
+                            }
+                          },
+                          "api": {
+                            "options": {
+                              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/market/skin/listing/api"
+                            },
+                            "nested": {
+                              "admin": {
+                                "options": {
+                                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/market/skin/listing/api/admin"
+                                },
+                                "nested": {
+                                  "SetExpirationRequest": {
+                                    "fields": {
+                                      "listing": {
+                                        "type": ".eve_public.cosmetic.market.skin.listing.Identifier",
+                                        "id": 1
+                                      },
+                                      "expires": {
+                                        "type": ".google.protobuf.Timestamp",
+                                        "id": 2
+                                      }
+                                    }
+                                  },
+                                  "SetExpirationResponse": {
+                                    "fields": {}
+                                  }
+                                }
+                              },
+                              "GetAllRequest": {
+                                "fields": {
+                                  "page": {
+                                    "type": ".eve_public.Page",
+                                    "id": 1
+                                  },
+                                  "filter": {
+                                    "type": ".eve_public.cosmetic.market.search.Filter",
+                                    "id": 2
+                                  },
+                                  "order": {
+                                    "type": ".eve_public.cosmetic.market.search.Order",
+                                    "id": 3
+                                  },
+                                  "listing_target": {
+                                    "type": ".eve_public.cosmetic.market.search.ListingTarget",
+                                    "id": 4
+                                  }
+                                }
+                              },
+                              "GetAllResponse": {
+                                "fields": {
+                                  "listings": {
+                                    "rule": "repeated",
+                                    "type": ".eve_public.cosmetic.market.skin.listing.Entry",
+                                    "id": 1
+                                  },
+                                  "next_page": {
+                                    "type": ".eve_public.NextPage",
+                                    "id": 2
+                                  }
+                                }
+                              },
+                              "GetAllOwnedRequest": {
+                                "fields": {}
+                              },
+                              "GetAllOwnedResponse": {
+                                "fields": {
+                                  "listings": {
+                                    "rule": "repeated",
+                                    "type": ".eve_public.cosmetic.market.skin.listing.Entry",
+                                    "id": 1
+                                  }
+                                }
+                              },
+                              "GetRequest": {
+                                "fields": {
+                                  "listing": {
+                                    "type": ".eve_public.cosmetic.market.skin.listing.Identifier",
+                                    "id": 1
+                                  }
+                                }
+                              },
+                              "GetResponse": {
+                                "fields": {
+                                  "listing": {
+                                    "type": ".eve_public.cosmetic.market.skin.listing.Entry",
+                                    "id": 1
+                                  }
+                                }
+                              },
+                              "InitiatePurchaseListingRequest": {
+                                "fields": {
+                                  "listing": {
+                                    "type": ".eve_public.cosmetic.market.skin.listing.Identifier",
+                                    "id": 1
+                                  },
+                                  "quantity": {
+                                    "type": "uint32",
+                                    "id": 2
+                                  },
+                                  "buyer_fees_version": {
+                                    "type": "string",
+                                    "id": 3
+                                  }
+                                }
+                              },
+                              "InitiatePurchaseListingResponse": {
+                                "fields": {
+                                  "transaction": {
+                                    "type": ".eve_public.cosmetic.market.transaction.Identifier",
+                                    "id": 1
+                                  }
+                                }
+                              },
+                              "CancelListingRequest": {
+                                "fields": {
+                                  "listing": {
+                                    "type": ".eve_public.cosmetic.market.skin.listing.Identifier",
+                                    "id": 1
+                                  }
+                                }
+                              },
+                              "CancelListingResponse": {
+                                "fields": {}
+                              },
+                              "InitiateCreateListingRequest": {
+                                "oneofs": {
+                                  "price_details": {
+                                    "oneof": [
+                                      "price_isk",
+                                      "price_plex"
+                                    ]
+                                  }
+                                },
+                                "fields": {
+                                  "price_isk": {
+                                    "type": ".eve_public.isk.Currency",
+                                    "id": 1
+                                  },
+                                  "price_plex": {
+                                    "type": ".eve_public.plex.Currency",
+                                    "id": 2
+                                  },
+                                  "skin": {
+                                    "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Identifier",
+                                    "id": 3
+                                  },
+                                  "duration": {
+                                    "type": ".google.protobuf.Duration",
+                                    "id": 4
+                                  },
+                                  "quantity": {
+                                    "type": "uint32",
+                                    "id": 5
+                                  },
+                                  "target": {
+                                    "type": ".eve_public.cosmetic.market.skin.listing.ListingTarget",
+                                    "id": 6
+                                  }
+                                }
+                              },
+                              "InitiateCreateListingResponse": {
+                                "fields": {
+                                  "transaction": {
+                                    "type": ".eve_public.cosmetic.market.transaction.Identifier",
+                                    "id": 1
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "component": {
+                    "nested": {
+                      "listing": {
+                        "options": {
+                          "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/market/component/listing"
+                        },
+                        "nested": {
+                          "api": {
+                            "options": {
+                              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/market/component/listing/api"
+                            },
+                            "nested": {
+                              "GetAllRequest": {
+                                "fields": {}
+                              },
+                              "GetAllResponse": {
+                                "fields": {
+                                  "listings": {
+                                    "rule": "repeated",
+                                    "type": ".eve_public.cosmetic.market.component.listing.Entry",
+                                    "id": 1
+                                  }
+                                }
+                              },
+                              "InitiatePurchaseListingRequest": {
+                                "fields": {
+                                  "listing": {
+                                    "type": ".eve_public.cosmetic.market.component.listing.Identifier",
+                                    "id": 1
+                                  },
+                                  "quantity": {
+                                    "type": "uint32",
+                                    "id": 2
+                                  },
+                                  "immediately_activate": {
+                                    "type": "bool",
+                                    "id": 3
+                                  }
+                                }
+                              },
+                              "InitiatePurchaseListingResponse": {
+                                "fields": {
+                                  "transaction": {
+                                    "type": ".eve_public.cosmetic.market.transaction.Identifier",
+                                    "id": 1
+                                  },
+                                  "immediately_activate": {
+                                    "type": "bool",
+                                    "id": 2
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "Identifier": {
+                            "fields": {
+                              "uuid": {
+                                "type": "bytes",
+                                "id": 1
+                              }
+                            }
+                          },
+                          "Attributes": {
+                            "oneofs": {
+                              "price": {
+                                "oneof": [
+                                  "isk",
+                                  "plex"
+                                ]
+                              }
+                            },
+                            "fields": {
+                              "sale_end": {
+                                "type": ".google.protobuf.Timestamp",
+                                "id": 2
+                              },
+                              "isk": {
+                                "type": ".eve_public.isk.Currency",
+                                "id": 3
+                              },
+                              "plex": {
+                                "type": ".eve_public.plex.Currency",
+                                "id": 4
+                              },
+                              "component_item": {
+                                "type": ".eve_public.inventory.genericitemtype.Identifier",
+                                "id": 5
+                              },
+                              "bundle_size": {
+                                "type": "uint64",
+                                "id": 6
+                              },
+                              "discount_percent": {
+                                "type": "uint32",
+                                "id": 7
+                              }
+                            }
+                          },
+                          "Entry": {
+                            "fields": {
+                              "id": {
+                                "type": ".eve_public.cosmetic.market.component.listing.Identifier",
+                                "id": 1
+                              },
+                              "attributes": {
+                                "type": ".eve_public.cosmetic.market.component.listing.Attributes",
+                                "id": 2
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "transaction": {
+                    "options": {
+                      "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/market/transaction"
+                    },
+                    "nested": {
+                      "Identifier": {
+                        "fields": {
+                          "uuid": {
+                            "type": "bytes",
+                            "id": 1
+                          }
+                        }
+                      },
+                      "Attributes": {
+                        "fields": {
+                          "last_updated": {
+                            "type": ".google.protobuf.Timestamp",
+                            "id": 1
+                          },
+                          "status": {
+                            "type": ".eve_public.cosmetic.market.transaction.Attributes.Status",
+                            "id": 2
+                          },
+                          "details": {
+                            "type": ".eve_public.cosmetic.market.transaction.Attributes.Details",
+                            "id": 3
+                          }
+                        },
+                        "nested": {
+                          "Details": {
+                            "oneofs": {
+                              "context": {
+                                "oneof": [
+                                  "purchasing_component",
+                                  "purchasing_skin",
+                                  "creating_skin_listing"
+                                ]
+                              }
+                            },
+                            "fields": {
+                              "purchasing_component": {
+                                "type": ".eve_public.cosmetic.market.component.listing.Entry",
+                                "id": 1
+                              },
+                              "purchasing_skin": {
+                                "type": ".eve_public.cosmetic.market.skin.listing.Entry",
+                                "id": 2
+                              },
+                              "creating_skin_listing": {
+                                "type": ".eve_public.cosmetic.ship.skin.thirdparty.license.Identifier",
+                                "id": 3
+                              }
+                            }
+                          },
+                          "Status": {
+                            "values": {
+                              "STATUS_CODE_UNSPECIFIED": 0,
+                              "INITIATED": 1,
+                              "FAILED": 2,
+                              "SUCCESSFUL": 3
+                            }
+                          }
+                        }
+                      },
+                      "api": {
+                        "options": {
+                          "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/market/transaction/api"
+                        },
+                        "nested": {
+                          "GetAllRequest": {
+                            "fields": {}
+                          },
+                          "GetAllResponse": {
+                            "fields": {
+                              "transactions": {
+                                "rule": "repeated",
+                                "type": ".eve_public.cosmetic.market.transaction.Identifier",
+                                "id": 1
+                              }
+                            }
+                          },
+                          "GetRequest": {
+                            "fields": {
+                              "transaction": {
+                                "type": ".eve_public.cosmetic.market.transaction.Identifier",
+                                "id": 1
+                              }
+                            }
+                          },
+                          "GetResponse": {
+                            "fields": {
+                              "status": {
+                                "type": ".eve_public.cosmetic.market.transaction.Attributes",
+                                "id": 1
+                              }
+                            }
+                          },
+                          "TransactionFailedNotice": {
+                            "fields": {
+                              "transaction": {
+                                "type": ".eve_public.cosmetic.market.transaction.Identifier",
+                                "id": 1
+                              }
+                            }
+                          },
+                          "TransactionSucceededNotice": {
+                            "fields": {
+                              "transaction": {
+                                "type": ".eve_public.cosmetic.market.transaction.Identifier",
+                                "id": 1
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "search": {
+                    "options": {
+                      "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/cosmetic/market/skin/search"
+                    },
+                    "nested": {
+                      "ShipTypeFilter": {
+                        "fields": {
+                          "ship_types": {
+                            "rule": "repeated",
+                            "type": ".eve_public.shiptype.Identifier",
+                            "id": 1
+                          }
+                        }
+                      },
+                      "Filter": {
+                        "oneofs": {
+                          "filter": {
+                            "oneof": [
+                              "ship_type_filter"
+                            ]
+                          }
+                        },
+                        "fields": {
+                          "ship_type_filter": {
+                            "type": ".eve_public.cosmetic.market.search.ShipTypeFilter",
+                            "id": 1
+                          }
+                        }
+                      },
+                      "Order": {
+                        "fields": {
+                          "field": {
+                            "type": ".eve_public.cosmetic.market.search.Order.OrderField",
+                            "id": 1
+                          },
+                          "ascending": {
+                            "type": "bool",
+                            "id": 2
+                          }
+                        },
+                        "nested": {
+                          "OrderField": {
+                            "values": {
+                              "ORDER_FIELD_UNSPECIFIED": 0,
+                              "EXPIRES_AT": 1
+                            }
+                          }
+                        }
+                      },
+                      "TargetPublic": {
+                        "fields": {}
+                      },
+                      "TargetMyCorporation": {
+                        "fields": {
+                          "required_membership": {
+                            "type": ".eve_public.cosmetic.market.search.TargetMyCorporation.SellerMembership",
+                            "id": 1
+                          }
+                        },
+                        "nested": {
+                          "SellerMembership": {
+                            "values": {
+                              "SELLER_MEMBERSHIP_UNSPECIFIED": 0,
+                              "SELLER_MEMBERSHIP_BRAND_MANAGER": 1,
+                              "SELLER_MEMBERSHIP_CORPORATION_MEMBER": 2,
+                              "SELLER_MEMBERSHIP_NONE": 3
+                            }
+                          }
+                        }
+                      },
+                      "TargetMyAlliance": {
+                        "fields": {
+                          "required_membership": {
+                            "type": ".eve_public.cosmetic.market.search.TargetMyAlliance.SellerMembership",
+                            "id": 1
+                          }
+                        },
+                        "nested": {
+                          "SellerMembership": {
+                            "values": {
+                              "SELLER_MEMBERSHIP_UNSPECIFIED": 0,
+                              "SELLER_MEMBERSHIP_BRAND_MANAGER": 1,
+                              "SELLER_MEMBERSHIP_ALLIANCE_MEMBER": 2,
+                              "SELLER_MEMBERSHIP_NONE": 3
+                            }
+                          }
+                        }
+                      },
+                      "TargetMyCharacter": {
+                        "fields": {}
+                      },
+                      "TargetAll": {
+                        "fields": {}
+                      },
+                      "ListingTarget": {
+                        "oneofs": {
+                          "target": {
+                            "oneof": [
+                              "public",
+                              "my_corporation",
+                              "my_alliance",
+                              "my_character",
+                              "all"
+                            ]
+                          }
+                        },
+                        "fields": {
+                          "public": {
+                            "type": ".eve_public.cosmetic.market.search.TargetPublic",
+                            "id": 1
+                          },
+                          "my_corporation": {
+                            "type": ".eve_public.cosmetic.market.search.TargetMyCorporation",
+                            "id": 2
+                          },
+                          "my_alliance": {
+                            "type": ".eve_public.cosmetic.market.search.TargetMyAlliance",
+                            "id": 3
+                          },
+                          "my_character": {
+                            "type": ".eve_public.cosmetic.market.search.TargetMyCharacter",
+                            "id": 4
+                          },
+                          "all": {
+                            "type": ".eve_public.cosmetic.market.search.TargetAll",
+                            "id": 5
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "character": {
+            "options": {
+              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/character"
+            },
+            "nested": {
+              "Identifier": {
+                "fields": {
+                  "sequential": {
+                    "type": "uint32",
+                    "id": 1
+                  }
+                }
+              },
+              "ActivationNotice": {
+                "fields": {
+                  "character": {
+                    "type": ".eve_public.character.Identifier",
+                    "id": 1
+                  },
+                  "corporation": {
+                    "type": ".eve_public.corporation.Identifier",
+                    "id": 2
+                  },
+                  "corporation_roles": {
+                    "type": ".eve_public.corporation.role.Collection",
+                    "id": 3
+                  }
+                }
+              },
+              "DeactivationNotice": {
+                "fields": {
+                  "character": {
+                    "type": ".eve_public.character.Identifier",
+                    "id": 1
+                  }
+                }
+              },
+              "GetNamesByUserRequest": {
+                "fields": {}
+              },
+              "GetNamesByUserResponse": {
+                "fields": {
+                  "characters": {
+                    "rule": "repeated",
+                    "type": ".eve_public.character.GetNamesByUserResponse.CharacterName",
+                    "id": 1
+                  }
+                },
+                "nested": {
+                  "CharacterName": {
+                    "fields": {
+                      "identifier": {
+                        "type": ".eve_public.character.Identifier",
+                        "id": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "id": 2
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "corporation": {
+            "options": {
+              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/corporation"
+            },
+            "nested": {
+              "Identifier": {
+                "fields": {
+                  "sequential": {
+                    "type": "uint32",
+                    "id": 1
+                  }
+                }
+              },
+              "role": {
+                "options": {
+                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/corporation/role"
+                },
+                "nested": {
+                  "Collection": {
+                    "fields": {
+                      "bitmask": {
+                        "type": "uint64",
+                        "id": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "math": {
+            "options": {
+              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/math"
+            },
+            "nested": {
+              "Vector3": {
+                "fields": {
+                  "x": {
+                    "type": "double",
+                    "id": 1
+                  },
+                  "y": {
+                    "type": "double",
+                    "id": 2
+                  },
+                  "z": {
+                    "type": "double",
+                    "id": 3
+                  }
+                }
+              },
+              "Vector4": {
+                "fields": {
+                  "x": {
+                    "type": "double",
+                    "id": 1
+                  },
+                  "y": {
+                    "type": "double",
+                    "id": 2
+                  },
+                  "z": {
+                    "type": "double",
+                    "id": 3
+                  },
+                  "w": {
+                    "type": "double",
+                    "id": 4
+                  }
+                }
+              }
+            }
+          },
+          "shiptype": {
+            "options": {
+              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/shiptype"
+            },
+            "nested": {
+              "Identifier": {
+                "fields": {
+                  "sequential": {
+                    "type": "uint64",
+                    "id": 1
+                  }
+                }
+              }
+            }
+          },
+          "inventory": {
+            "options": {
+              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/inventory"
+            },
+            "nested": {
+              "genericitem": {
+                "options": {
+                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/inventory/genericitem"
+                },
+                "nested": {
+                  "Identifier": {
+                    "fields": {
+                      "sequential": {
+                        "type": "uint64",
+                        "id": 1
+                      }
+                    }
+                  },
+                  "Location": {
+                    "fields": {
+                      "item": {
+                        "type": ".eve_public.inventory.genericitem.Identifier",
+                        "id": 1
+                      },
+                      "flag": {
+                        "type": ".eve_public.inventory.LocationFlag",
+                        "id": 2
+                      }
+                    }
+                  }
+                }
+              },
+              "LocationFlag": {
+                "fields": {
+                  "value": {
+                    "type": "uint64",
+                    "id": 1
+                  }
+                }
+              },
+              "genericitemtype": {
+                "options": {
+                  "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/inventory/genericitemtype"
+                },
+                "nested": {
+                  "Identifier": {
+                    "fields": {
+                      "sequential": {
+                        "type": "uint64",
+                        "id": 1
+                      }
+                    }
+                  },
+                  "Attributes": {
+                    "fields": {
+                      "name": {
+                        "type": "string",
+                        "id": 2
+                      },
+                      "description": {
+                        "type": "string",
+                        "id": 3
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "ship": {
+            "options": {
+              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/ship"
+            },
+            "nested": {
+              "Identifier": {
+                "fields": {
+                  "sequential": {
+                    "type": "uint64",
+                    "id": 1
+                  }
+                }
+              }
+            }
+          },
+          "plex": {
+            "options": {
+              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/plex"
+            },
+            "nested": {
+              "Currency": {
+                "fields": {
+                  "total_in_cents": {
+                    "type": "sint64",
+                    "id": 1
+                  }
+                }
+              }
+            }
+          },
+          "isk": {
+            "options": {
+              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/isk"
+            },
+            "nested": {
+              "Currency": {
+                "fields": {
+                  "units": {
+                    "type": "sint64",
+                    "id": 1
+                  },
+                  "nanos": {
+                    "type": "sint32",
+                    "id": 2
+                  }
+                }
+              }
+            }
+          },
+          "loyaltypoints": {
+            "options": {
+              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/loyaltypoints"
+            },
+            "nested": {
+              "Currency": {
+                "fields": {
+                  "amount": {
+                    "type": "uint64",
+                    "id": 1
+                  },
+                  "associated_corporation": {
+                    "type": ".eve_public.corporation.Identifier",
+                    "id": 2
+                  }
+                }
+              }
+            }
+          },
+          "alliance": {
+            "options": {
+              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/alliance"
+            },
+            "nested": {
+              "Identifier": {
+                "fields": {
+                  "sequential": {
+                    "type": "int32",
+                    "id": 1
+                  }
+                }
+              }
+            }
+          },
+          "Event": {
+            "fields": {
+              "occurred": {
+                "type": ".google.protobuf.Timestamp",
+                "id": 1
+              },
+              "uuid": {
+                "type": "bytes",
+                "id": 2
+              },
+              "payload": {
+                "type": ".google.protobuf.Any",
+                "id": 3
+              },
+              "journey": {
+                "type": "bytes",
+                "id": 4
+              },
+              "external_origin": {
+                "type": "string",
+                "id": 5
+              },
+              "authoritative_context": {
+                "type": ".eve_public.AuthoritativeContext",
+                "id": 6
+              },
+              "application_instance_uuid": {
+                "type": "bytes",
+                "id": 7
+              },
+              "trace_context": {
+                "type": ".eve_public.tracecontext.TraceContext",
+                "id": 8
+              }
+            }
+          },
+          "Notice": {
+            "fields": {
+              "dispatched": {
+                "type": ".google.protobuf.Timestamp",
+                "id": 1
+              },
+              "uuid": {
+                "type": "bytes",
+                "id": 2
+              },
+              "internal_origin": {
+                "type": "string",
+                "id": 3
+              },
+              "tenant": {
+                "type": "string",
+                "id": 4
+              },
+              "payload": {
+                "type": ".google.protobuf.Any",
+                "id": 5
+              },
+              "target_group": {
+                "type": ".eve_public.Notice.TargetGroup",
+                "id": 6
+              },
+              "trace_context": {
+                "type": ".eve_public.tracecontext.TraceContext",
+                "id": 7
+              }
+            },
+            "nested": {
+              "TargetGroup": {
+                "oneofs": {
+                  "group": {
+                    "oneof": [
+                      "application_instance_uuid",
+                      "solar_system",
+                      "user",
+                      "character",
+                      "corporation",
+                      "alliance",
+                      "bubble_instance_uuid"
+                    ]
+                  }
+                },
+                "fields": {
+                  "application_instance_uuid": {
+                    "type": "bytes",
+                    "id": 1
+                  },
+                  "solar_system": {
+                    "type": "uint32",
+                    "id": 2
+                  },
+                  "user": {
+                    "type": "sint32",
+                    "id": 3
+                  },
+                  "character": {
+                    "type": "uint32",
+                    "id": 4
+                  },
+                  "corporation": {
+                    "type": "uint32",
+                    "id": 5
+                  },
+                  "alliance": {
+                    "type": "int32",
+                    "id": 6
+                  },
+                  "bubble_instance_uuid": {
+                    "type": "bytes",
+                    "id": 7
+                  }
+                }
+              }
+            }
+          },
+          "Request": {
+            "fields": {
+              "issued": {
+                "type": ".google.protobuf.Timestamp",
+                "id": 1
+              },
+              "correlation_uuid": {
+                "type": "bytes",
+                "id": 2
+              },
+              "payload": {
+                "type": ".google.protobuf.Any",
+                "id": 3
+              },
+              "external_origin": {
+                "type": "string",
+                "id": 4
+              },
+              "application_instance_uuid": {
+                "type": "bytes",
+                "id": 5
+              },
+              "authoritative_context": {
+                "type": ".eve_public.AuthoritativeContext",
+                "id": 6
+              },
+              "trace_context": {
+                "type": ".eve_public.tracecontext.TraceContext",
+                "id": 7
+              }
+            }
+          },
+          "Response": {
+            "fields": {
+              "dispatched": {
+                "type": ".google.protobuf.Timestamp",
+                "id": 1
+              },
+              "correlation_uuid": {
+                "type": "bytes",
+                "id": 2
+              },
+              "status_code": {
+                "type": "uint32",
+                "id": 3
+              },
+              "status_message": {
+                "type": "string",
+                "id": 4
+              },
+              "payload": {
+                "type": ".google.protobuf.Any",
+                "id": 5
+              },
+              "internal_origin": {
+                "type": "string",
+                "id": 6
+              },
+              "application_instance_uuid": {
+                "type": "bytes",
+                "id": 7
+              },
+              "gateway_instance_uuid": {
+                "type": "bytes",
+                "id": 8
+              },
+              "trace_context": {
+                "type": ".eve_public.tracecontext.TraceContext",
+                "id": 9
+              }
+            }
+          },
+          "IPAddress": {
+            "oneofs": {
+              "version": {
+                "oneof": [
+                  "v4",
+                  "v6"
+                ]
+              }
+            },
+            "fields": {
+              "v4": {
+                "type": "fixed32",
+                "id": 1
+              },
+              "v6": {
+                "type": "bytes",
+                "id": 2
+              }
+            }
+          },
+          "AuthoritativeContext": {
+            "oneofs": {
+              "user": {
+                "oneof": [
+                  "no_authenticated_user",
+                  "authenticated_user"
+                ]
+              },
+              "character": {
+                "oneof": [
+                  "no_active_character",
+                  "active_character"
+                ]
+              },
+              "active_identity": {
+                "oneof": [
+                  "no_active_identity",
+                  "identity"
+                ]
+              }
+            },
+            "fields": {
+              "received": {
+                "type": ".google.protobuf.Timestamp",
+                "id": 1
+              },
+              "ip_address": {
+                "type": ".eve_public.IPAddress",
+                "id": 2
+              },
+              "tenant": {
+                "type": "string",
+                "id": 3
+              },
+              "no_authenticated_user": {
+                "type": "bool",
+                "id": 4
+              },
+              "authenticated_user": {
+                "type": ".eve_public.user.Identifier",
+                "id": 5
+              },
+              "no_active_character": {
+                "type": "bool",
+                "id": 6,
+                "options": {
+                  "deprecated": true
+                }
+              },
+              "active_character": {
+                "type": ".eve_public.character.Identifier",
+                "id": 7,
+                "options": {
+                  "deprecated": true
+                }
+              },
+              "gateway_instance_uuid": {
+                "type": "bytes",
+                "id": 8
+              },
+              "no_active_identity": {
+                "type": "bool",
+                "id": 9
+              },
+              "identity": {
+                "type": ".eve_public.ActiveIdentity",
+                "id": 10
+              }
+            }
+          },
+          "ActiveIdentity": {
+            "fields": {
+              "character": {
+                "type": ".eve_public.character.Identifier",
+                "id": 1
+              },
+              "corporation": {
+                "type": ".eve_public.corporation.Identifier",
+                "id": 2
+              },
+              "roles": {
+                "type": ".eve_public.corporation.role.Collection",
+                "id": 3
+              }
+            }
+          },
+          "JourneyLinked": {
+            "fields": {
+              "journey": {
+                "type": "bytes",
+                "id": 1
+              },
+              "reason": {
+                "type": "string",
+                "id": 2
+              }
+            }
+          },
+          "Page": {
+            "fields": {
+              "size": {
+                "type": "uint32",
+                "id": 1
+              },
+              "token": {
+                "type": "string",
+                "id": 2
+              }
+            }
+          },
+          "NextPage": {
+            "fields": {
+              "token": {
+                "type": "string",
+                "id": 1
+              }
+            }
+          },
+          "tracecontext": {
+            "options": {
+              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/tracecontext"
+            },
+            "nested": {
+              "TraceContext": {
+                "fields": {
+                  "trace_id": {
+                    "type": "bytes",
+                    "id": 1
+                  },
+                  "parent_id": {
+                    "type": "bytes",
+                    "id": 2
+                  },
+                  "flags": {
+                    "type": ".eve_public.tracecontext.TraceFlags",
+                    "id": 3
+                  },
+                  "state": {
+                    "type": ".eve_public.tracecontext.TraceState",
+                    "id": 4
+                  }
+                }
+              },
+              "TraceFlags": {
+                "fields": {
+                  "sampled": {
+                    "type": "bool",
+                    "id": 1
+                  }
+                }
+              },
+              "TraceState": {
+                "fields": {
+                  "sample_rate": {
+                    "type": "uint32",
+                    "id": 1
+                  }
+                }
+              }
+            }
+          },
+          "user": {
+            "options": {
+              "go_package": "github.com/ccpgames/eve-proto-go/generated/eve_public/user"
+            },
+            "nested": {
+              "Identifier": {
+                "fields": {
+                  "sequential": {
+                    "type": "sint32",
+                    "id": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "google": {
+        "nested": {
+          "protobuf": {
+            "options": {
+              "java_package": "com.google.protobuf",
+              "java_outer_classname": "AnyProto",
+              "java_multiple_files": true,
+              "go_package": "google.golang.org/protobuf/types/known/anypb",
+              "cc_enable_arenas": true,
+              "objc_class_prefix": "GPB",
+              "csharp_namespace": "Google.Protobuf.WellKnownTypes"
+            },
+            "nested": {
+              "Timestamp": {
+                "fields": {
+                  "seconds": {
+                    "type": "int64",
+                    "id": 1
+                  },
+                  "nanos": {
+                    "type": "int32",
+                    "id": 2
+                  }
+                }
+              },
+              "Duration": {
+                "fields": {
+                  "seconds": {
+                    "type": "int64",
+                    "id": 1
+                  },
+                  "nanos": {
+                    "type": "int32",
+                    "id": 2
+                  }
+                }
+              },
+              "Any": {
+                "fields": {
+                  "type_url": {
+                    "type": "string",
+                    "id": 1
+                  },
+                  "value": {
+                    "type": "bytes",
+                    "id": 2
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

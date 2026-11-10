@@ -1,0 +1,421 @@
+{
+  "version": {
+    "raw": "1.0.0",
+    "major": 1,
+    "minor": 0,
+    "patch": 0,
+    "prerelease_tags": [],
+    "build_tags": []
+  },
+  "generatedAt": "2026-07-21T00:49:49.615Z",
+  "source": {
+    "generatorScript": "scripts\\DataSync\\sync-achievement-parity-data.js",
+    "titleCacheRoot": "<generated>",
+    "titleVersionPath": "<generated>",
+    "titleDataPath": "<generated>"
+  },
+  "counts": {
+    "titleCount": 43
+  },
+  "titles": [
+    {
+      "id": "00851de7-b7ca-5136-871e-d07429563c06",
+      "localizedName": "Battlecruiser Smith"
+    },
+    {
+      "id": "04ae6e1f-d39a-5f5b-b9f4-7a2b3e426a38",
+      "localizedName": "Starkman Champion"
+    },
+    {
+      "id": "0c231769-621e-53d5-bd49-ce07a7b4a544",
+      "localizedName": "Selenologist"
+    },
+    {
+      "id": "0ead53fb-9ab1-541a-abb9-499c7a75b6a8",
+      "localizedName": "Corridor Builder"
+    },
+    {
+      "id": "15ebcdeb-329a-54d5-8e31-eba467ed874b",
+      "localizedName": "Federal Cartographer"
+    },
+    {
+      "id": "2053b64b-499c-56f0-b5bd-9a328dfe9a5d",
+      "localizedName": "Research Assistant"
+    },
+    {
+      "id": "280052ef-6ccc-5b51-aa0f-85e54c6e16b0",
+      "localizedName": "Rat Catcher"
+    },
+    {
+      "id": "31db9ea2-a3fc-5223-b598-080198cfc65d",
+      "localizedName": "Sightseer"
+    },
+    {
+      "id": "3a13f167-1408-598e-8e64-8e3c3a60d80a",
+      "localizedName": "Cloudwright"
+    },
+    {
+      "id": "3dfdc192-e990-5a1d-8a7c-d5d4649e3df6",
+      "localizedName": "Big Prober"
+    },
+    {
+      "id": "45473135-b454-5ebc-bd60-c2dec0bc0b7a",
+      "localizedName": "Titan of Industry"
+    },
+    {
+      "id": "4ab1da84-b87f-54ae-a035-04dcf1ab3b1f",
+      "localizedName": "Corridor Architect"
+    },
+    {
+      "id": "4c6968af-3084-5277-9f3f-f0ac1bcc3b99",
+      "localizedName": "Recycling Enthusiast"
+    },
+    {
+      "id": "4da8aae2-6116-59b4-96c1-9549b550d906",
+      "localizedName": "Abyss Piercer"
+    },
+    {
+      "id": "519fb4c8-2634-5d61-92b8-9ed437cd4f59",
+      "localizedName": "Altruistic"
+    },
+    {
+      "id": "5522946b-2b17-556f-817c-0b98af3ca6bc",
+      "localizedName": "Cruiser Crafter"
+    },
+    {
+      "id": "56868334-ce73-5f44-9b0b-269a6d751bba",
+      "localizedName": "State Surveyor"
+    },
+    {
+      "id": "5c968724-f3b8-564b-8452-6bd790f80baf",
+      "localizedName": "Opportunist"
+    },
+    {
+      "id": "787d46e9-c2b1-5937-bf19-894a7dd075b0",
+      "localizedName": "Pod Breaker"
+    },
+    {
+      "id": "7975535d-3b41-5b01-bca2-6b9fd19418d0",
+      "localizedName": "Hacktivist"
+    },
+    {
+      "id": "866ce4bb-e75c-5e41-a109-34a676b63d18",
+      "localizedName": "Metallurgist"
+    },
+    {
+      "id": "8b8ea592-d9b9-5303-bcd1-61fbfab2f260",
+      "localizedName": "Blessed Pilgrim"
+    },
+    {
+      "id": "92e86620-3458-5425-b4f3-059dffdacb31",
+      "localizedName": "Border Breaker"
+    },
+    {
+      "id": "9d492967-3d07-59b0-8f75-44c4714b5e00",
+      "localizedName": "Battleship Builder"
+    },
+    {
+      "id": "aec9b88f-813b-5d27-86d1-d6059590bf99",
+      "localizedName": "Epic Hero"
+    },
+    {
+      "id": "b6d79605-6677-50e5-931b-2462b357d2f3",
+      "localizedName": "Operational Mastermind"
+    },
+    {
+      "id": "c236b11b-ea9a-5deb-88b8-b9cbe2a67e20",
+      "localizedName": "Empire Graduate"
+    },
+    {
+      "id": "c543fc07-d6bf-5c23-bf3a-0a8086240cff",
+      "localizedName": "High-Sec Assassin"
+    },
+    {
+      "id": "c67dfd0c-f482-567c-b5a1-91487ec902ff",
+      "localizedName": "Big Spender"
+    },
+    {
+      "id": "c711a83b-058b-5317-89b1-88ea897f46df",
+      "localizedName": "Deacon of the Exchange"
+    },
+    {
+      "id": "c894a0d1-262b-552c-a46c-27496c74374e",
+      "localizedName": "Trailblazer"
+    },
+    {
+      "id": "c8f86c5e-869f-54c7-b117-7feffed9255c",
+      "localizedName": "Pious Exchanger"
+    },
+    {
+      "id": "ca489be9-8261-572b-856f-5268b5764f90",
+      "localizedName": "Market Tycoon"
+    },
+    {
+      "id": "cafc93b5-4027-563d-adc0-5f6d76155b4e",
+      "localizedName": "Starkman Legend"
+    },
+    {
+      "id": "cc1a827e-bb0a-5ccc-b38a-39bf462e6ee1",
+      "localizedName": "Insightful Operator"
+    },
+    {
+      "id": "d496d572-cc4a-5926-ad2a-9c0a7f912f09",
+      "localizedName": "Wardog"
+    },
+    {
+      "id": "d95904d0-e8cb-547c-85f5-fb2d4583d91d",
+      "localizedName": "Meat Popsicle"
+    },
+    {
+      "id": "d9be46c6-d9f1-5d0c-a136-ace0490f3b73",
+      "localizedName": "Rat Eradicator"
+    },
+    {
+      "id": "e305d38a-e7f7-546f-b403-4a388986e6b7",
+      "localizedName": "Wayfinder"
+    },
+    {
+      "id": "e9ee7f69-2793-566f-bedf-1f17ec31340d",
+      "localizedName": "System Sweeper"
+    },
+    {
+      "id": "ea02e0bf-46d9-503c-b667-62e5cc8f9a7e",
+      "localizedName": "Duelist"
+    },
+    {
+      "id": "f3e5b56f-b163-5e25-b4da-7f3709c801d0",
+      "localizedName": "Rockhound"
+    },
+    {
+      "id": "f92e6f2d-a7a4-51be-9ecb-cb3f1b31ef2c",
+      "localizedName": "Tribal Trailblazer"
+    }
+  ],
+  "indexes": {
+    "titleIds": [
+      "00851de7-b7ca-5136-871e-d07429563c06",
+      "04ae6e1f-d39a-5f5b-b9f4-7a2b3e426a38",
+      "0c231769-621e-53d5-bd49-ce07a7b4a544",
+      "0ead53fb-9ab1-541a-abb9-499c7a75b6a8",
+      "15ebcdeb-329a-54d5-8e31-eba467ed874b",
+      "2053b64b-499c-56f0-b5bd-9a328dfe9a5d",
+      "280052ef-6ccc-5b51-aa0f-85e54c6e16b0",
+      "31db9ea2-a3fc-5223-b598-080198cfc65d",
+      "3a13f167-1408-598e-8e64-8e3c3a60d80a",
+      "3dfdc192-e990-5a1d-8a7c-d5d4649e3df6",
+      "45473135-b454-5ebc-bd60-c2dec0bc0b7a",
+      "4ab1da84-b87f-54ae-a035-04dcf1ab3b1f",
+      "4c6968af-3084-5277-9f3f-f0ac1bcc3b99",
+      "4da8aae2-6116-59b4-96c1-9549b550d906",
+      "519fb4c8-2634-5d61-92b8-9ed437cd4f59",
+      "5522946b-2b17-556f-817c-0b98af3ca6bc",
+      "56868334-ce73-5f44-9b0b-269a6d751bba",
+      "5c968724-f3b8-564b-8452-6bd790f80baf",
+      "787d46e9-c2b1-5937-bf19-894a7dd075b0",
+      "7975535d-3b41-5b01-bca2-6b9fd19418d0",
+      "866ce4bb-e75c-5e41-a109-34a676b63d18",
+      "8b8ea592-d9b9-5303-bcd1-61fbfab2f260",
+      "92e86620-3458-5425-b4f3-059dffdacb31",
+      "9d492967-3d07-59b0-8f75-44c4714b5e00",
+      "aec9b88f-813b-5d27-86d1-d6059590bf99",
+      "b6d79605-6677-50e5-931b-2462b357d2f3",
+      "c236b11b-ea9a-5deb-88b8-b9cbe2a67e20",
+      "c543fc07-d6bf-5c23-bf3a-0a8086240cff",
+      "c67dfd0c-f482-567c-b5a1-91487ec902ff",
+      "c711a83b-058b-5317-89b1-88ea897f46df",
+      "c894a0d1-262b-552c-a46c-27496c74374e",
+      "c8f86c5e-869f-54c7-b117-7feffed9255c",
+      "ca489be9-8261-572b-856f-5268b5764f90",
+      "cafc93b5-4027-563d-adc0-5f6d76155b4e",
+      "cc1a827e-bb0a-5ccc-b38a-39bf462e6ee1",
+      "d496d572-cc4a-5926-ad2a-9c0a7f912f09",
+      "d95904d0-e8cb-547c-85f5-fb2d4583d91d",
+      "d9be46c6-d9f1-5d0c-a136-ace0490f3b73",
+      "e305d38a-e7f7-546f-b403-4a388986e6b7",
+      "e9ee7f69-2793-566f-bedf-1f17ec31340d",
+      "ea02e0bf-46d9-503c-b667-62e5cc8f9a7e",
+      "f3e5b56f-b163-5e25-b4da-7f3709c801d0",
+      "f92e6f2d-a7a4-51be-9ecb-cb3f1b31ef2c"
+    ],
+    "titlesById": {
+      "00851de7-b7ca-5136-871e-d07429563c06": {
+        "id": "00851de7-b7ca-5136-871e-d07429563c06",
+        "localizedName": "Battlecruiser Smith"
+      },
+      "04ae6e1f-d39a-5f5b-b9f4-7a2b3e426a38": {
+        "id": "04ae6e1f-d39a-5f5b-b9f4-7a2b3e426a38",
+        "localizedName": "Starkman Champion"
+      },
+      "0c231769-621e-53d5-bd49-ce07a7b4a544": {
+        "id": "0c231769-621e-53d5-bd49-ce07a7b4a544",
+        "localizedName": "Selenologist"
+      },
+      "0ead53fb-9ab1-541a-abb9-499c7a75b6a8": {
+        "id": "0ead53fb-9ab1-541a-abb9-499c7a75b6a8",
+        "localizedName": "Corridor Builder"
+      },
+      "15ebcdeb-329a-54d5-8e31-eba467ed874b": {
+        "id": "15ebcdeb-329a-54d5-8e31-eba467ed874b",
+        "localizedName": "Federal Cartographer"
+      },
+      "2053b64b-499c-56f0-b5bd-9a328dfe9a5d": {
+        "id": "2053b64b-499c-56f0-b5bd-9a328dfe9a5d",
+        "localizedName": "Research Assistant"
+      },
+      "280052ef-6ccc-5b51-aa0f-85e54c6e16b0": {
+        "id": "280052ef-6ccc-5b51-aa0f-85e54c6e16b0",
+        "localizedName": "Rat Catcher"
+      },
+      "31db9ea2-a3fc-5223-b598-080198cfc65d": {
+        "id": "31db9ea2-a3fc-5223-b598-080198cfc65d",
+        "localizedName": "Sightseer"
+      },
+      "3a13f167-1408-598e-8e64-8e3c3a60d80a": {
+        "id": "3a13f167-1408-598e-8e64-8e3c3a60d80a",
+        "localizedName": "Cloudwright"
+      },
+      "3dfdc192-e990-5a1d-8a7c-d5d4649e3df6": {
+        "id": "3dfdc192-e990-5a1d-8a7c-d5d4649e3df6",
+        "localizedName": "Big Prober"
+      },
+      "45473135-b454-5ebc-bd60-c2dec0bc0b7a": {
+        "id": "45473135-b454-5ebc-bd60-c2dec0bc0b7a",
+        "localizedName": "Titan of Industry"
+      },
+      "4ab1da84-b87f-54ae-a035-04dcf1ab3b1f": {
+        "id": "4ab1da84-b87f-54ae-a035-04dcf1ab3b1f",
+        "localizedName": "Corridor Architect"
+      },
+      "4c6968af-3084-5277-9f3f-f0ac1bcc3b99": {
+        "id": "4c6968af-3084-5277-9f3f-f0ac1bcc3b99",
+        "localizedName": "Recycling Enthusiast"
+      },
+      "4da8aae2-6116-59b4-96c1-9549b550d906": {
+        "id": "4da8aae2-6116-59b4-96c1-9549b550d906",
+        "localizedName": "Abyss Piercer"
+      },
+      "519fb4c8-2634-5d61-92b8-9ed437cd4f59": {
+        "id": "519fb4c8-2634-5d61-92b8-9ed437cd4f59",
+        "localizedName": "Altruistic"
+      },
+      "5522946b-2b17-556f-817c-0b98af3ca6bc": {
+        "id": "5522946b-2b17-556f-817c-0b98af3ca6bc",
+        "localizedName": "Cruiser Crafter"
+      },
+      "56868334-ce73-5f44-9b0b-269a6d751bba": {
+        "id": "56868334-ce73-5f44-9b0b-269a6d751bba",
+        "localizedName": "State Surveyor"
+      },
+      "5c968724-f3b8-564b-8452-6bd790f80baf": {
+        "id": "5c968724-f3b8-564b-8452-6bd790f80baf",
+        "localizedName": "Opportunist"
+      },
+      "787d46e9-c2b1-5937-bf19-894a7dd075b0": {
+        "id": "787d46e9-c2b1-5937-bf19-894a7dd075b0",
+        "localizedName": "Pod Breaker"
+      },
+      "7975535d-3b41-5b01-bca2-6b9fd19418d0": {
+        "id": "7975535d-3b41-5b01-bca2-6b9fd19418d0",
+        "localizedName": "Hacktivist"
+      },
+      "866ce4bb-e75c-5e41-a109-34a676b63d18": {
+        "id": "866ce4bb-e75c-5e41-a109-34a676b63d18",
+        "localizedName": "Metallurgist"
+      },
+      "8b8ea592-d9b9-5303-bcd1-61fbfab2f260": {
+        "id": "8b8ea592-d9b9-5303-bcd1-61fbfab2f260",
+        "localizedName": "Blessed Pilgrim"
+      },
+      "92e86620-3458-5425-b4f3-059dffdacb31": {
+        "id": "92e86620-3458-5425-b4f3-059dffdacb31",
+        "localizedName": "Border Breaker"
+      },
+      "9d492967-3d07-59b0-8f75-44c4714b5e00": {
+        "id": "9d492967-3d07-59b0-8f75-44c4714b5e00",
+        "localizedName": "Battleship Builder"
+      },
+      "aec9b88f-813b-5d27-86d1-d6059590bf99": {
+        "id": "aec9b88f-813b-5d27-86d1-d6059590bf99",
+        "localizedName": "Epic Hero"
+      },
+      "b6d79605-6677-50e5-931b-2462b357d2f3": {
+        "id": "b6d79605-6677-50e5-931b-2462b357d2f3",
+        "localizedName": "Operational Mastermind"
+      },
+      "c236b11b-ea9a-5deb-88b8-b9cbe2a67e20": {
+        "id": "c236b11b-ea9a-5deb-88b8-b9cbe2a67e20",
+        "localizedName": "Empire Graduate"
+      },
+      "c543fc07-d6bf-5c23-bf3a-0a8086240cff": {
+        "id": "c543fc07-d6bf-5c23-bf3a-0a8086240cff",
+        "localizedName": "High-Sec Assassin"
+      },
+      "c67dfd0c-f482-567c-b5a1-91487ec902ff": {
+        "id": "c67dfd0c-f482-567c-b5a1-91487ec902ff",
+        "localizedName": "Big Spender"
+      },
+      "c711a83b-058b-5317-89b1-88ea897f46df": {
+        "id": "c711a83b-058b-5317-89b1-88ea897f46df",
+        "localizedName": "Deacon of the Exchange"
+      },
+      "c894a0d1-262b-552c-a46c-27496c74374e": {
+        "id": "c894a0d1-262b-552c-a46c-27496c74374e",
+        "localizedName": "Trailblazer"
+      },
+      "c8f86c5e-869f-54c7-b117-7feffed9255c": {
+        "id": "c8f86c5e-869f-54c7-b117-7feffed9255c",
+        "localizedName": "Pious Exchanger"
+      },
+      "ca489be9-8261-572b-856f-5268b5764f90": {
+        "id": "ca489be9-8261-572b-856f-5268b5764f90",
+        "localizedName": "Market Tycoon"
+      },
+      "cafc93b5-4027-563d-adc0-5f6d76155b4e": {
+        "id": "cafc93b5-4027-563d-adc0-5f6d76155b4e",
+        "localizedName": "Starkman Legend"
+      },
+      "cc1a827e-bb0a-5ccc-b38a-39bf462e6ee1": {
+        "id": "cc1a827e-bb0a-5ccc-b38a-39bf462e6ee1",
+        "localizedName": "Insightful Operator"
+      },
+      "d496d572-cc4a-5926-ad2a-9c0a7f912f09": {
+        "id": "d496d572-cc4a-5926-ad2a-9c0a7f912f09",
+        "localizedName": "Wardog"
+      },
+      "d95904d0-e8cb-547c-85f5-fb2d4583d91d": {
+        "id": "d95904d0-e8cb-547c-85f5-fb2d4583d91d",
+        "localizedName": "Meat Popsicle"
+      },
+      "d9be46c6-d9f1-5d0c-a136-ace0490f3b73": {
+        "id": "d9be46c6-d9f1-5d0c-a136-ace0490f3b73",
+        "localizedName": "Rat Eradicator"
+      },
+      "e305d38a-e7f7-546f-b403-4a388986e6b7": {
+        "id": "e305d38a-e7f7-546f-b403-4a388986e6b7",
+        "localizedName": "Wayfinder"
+      },
+      "e9ee7f69-2793-566f-bedf-1f17ec31340d": {
+        "id": "e9ee7f69-2793-566f-bedf-1f17ec31340d",
+        "localizedName": "System Sweeper"
+      },
+      "ea02e0bf-46d9-503c-b667-62e5cc8f9a7e": {
+        "id": "ea02e0bf-46d9-503c-b667-62e5cc8f9a7e",
+        "localizedName": "Duelist"
+      },
+      "f3e5b56f-b163-5e25-b4da-7f3709c801d0": {
+        "id": "f3e5b56f-b163-5e25-b4da-7f3709c801d0",
+        "localizedName": "Rockhound"
+      },
+      "f92e6f2d-a7a4-51be-9ecb-cb3f1b31ef2c": {
+        "id": "f92e6f2d-a7a4-51be-9ecb-cb3f1b31ef2c",
+        "localizedName": "Tribal Trailblazer"
+      }
+    }
+  },
+  "assets": {
+    "latestChtiBytes": 4864,
+    "latestChtiSha256": "3eec12ff10a52731f9b20c09339db9b58db15af97fdc5c3418c644bf4c503325",
+    "latestChtiCrc32": 3680942826,
+    "latestChtiRepoRelativePath": "tools\\ClientSDE\\exports\\new-client-build-updater-20260721-014704\\runtime\\cache\\clientDerivedGatewayAssets\\characterTitleDefinitions\\latest.chti"
+  }
+}

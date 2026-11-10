@@ -1,0 +1,197 @@
+{
+  "version": "abyssal:environment-facts-v1",
+  "source": "Captured object/resource identities; tier and room assignments deliberately excluded. Runtime selection and placement are EveJS policy, not measured retail probabilities.",
+  "clouds": [
+    {
+      "layoutID": "layout:6048:99b0eff84c3a9512",
+      "dungeonID": 6048,
+      "dungeonRoomID": 24574,
+      "typeID": 47661,
+      "dunObjectID": 1057964,
+      "offset": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": null
+    },
+    {
+      "layoutID": "layout:6049:fcbd0d674305f8fd",
+      "dungeonID": 6049,
+      "dungeonRoomID": 24579,
+      "typeID": 47662,
+      "dunObjectID": 1057961,
+      "offset": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": null
+    },
+    {
+      "layoutID": "layout:6050:c7174de9ece254bc",
+      "dungeonID": 6050,
+      "dungeonRoomID": 24580,
+      "typeID": 47663,
+      "dunObjectID": 1057966,
+      "offset": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": null
+    },
+    {
+      "layoutID": "layout:6051:90eb75d4af6fc2fb",
+      "dungeonID": 6051,
+      "dungeonRoomID": 24584,
+      "typeID": 47664,
+      "dunObjectID": 1057967,
+      "offset": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": null
+    },
+    {
+      "layoutID": "layout:6052:b6bd809838c7ae22",
+      "dungeonID": 6052,
+      "dungeonRoomID": 24585,
+      "typeID": 47665,
+      "dunObjectID": 1057970,
+      "offset": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": null
+    },
+    {
+      "layoutID": "layout:6203:9a2d3ec7ea3041f3",
+      "dungeonID": 6203,
+      "dungeonRoomID": 24749,
+      "typeID": 47666,
+      "dunObjectID": 1059496,
+      "offset": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": null
+    },
+    {
+      "layoutID": "layout:6204:038675d6b5036e48",
+      "dungeonID": 6204,
+      "dungeonRoomID": 24754,
+      "typeID": 47667,
+      "dunObjectID": 1059503,
+      "offset": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": null
+    },
+    {
+      "layoutID": "layout:6205:1a9f5f1c8e3e5db2",
+      "dungeonID": 6205,
+      "dungeonRoomID": 24751,
+      "typeID": 47668,
+      "dunObjectID": 1059504,
+      "offset": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": null
+    },
+    {
+      "layoutID": "layout:6207:1fd9fef11e3c0a3a",
+      "dungeonID": 6207,
+      "dungeonRoomID": 24753,
+      "typeID": 47670,
+      "dunObjectID": 1059505,
+      "offset": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": null
+    }
+  ],
+  "weather": {
+    "dark": {
+      "nearFieldResource": "NF_Abyssal_Darkness_S1_01a.red",
+      "weatherObjectTypeID": 47378,
+      "nebulaGraphicIDs": [
+        22209,
+        22210,
+        22211
+      ],
+      "lensFlareTypeIDs": [
+        47435
+      ]
+    },
+    "electrical": {
+      "nearFieldResource": "NF_Abyssal_ElectricStorm_S1_01a.red",
+      "weatherObjectTypeID": 47381,
+      "nebulaGraphicIDs": [
+        22045,
+        22046,
+        22047,
+        22048,
+        22207,
+        22208
+      ],
+      "lensFlareTypeIDs": [
+        47431,
+        47433,
+        47435
+      ]
+    },
+    "exotic": {
+      "nearFieldResource": "NF_Abyssal_CausticToxin_S1_01a.red",
+      "weatherObjectTypeID": 47384,
+      "nebulaGraphicIDs": [
+        22209,
+        22210,
+        22211,
+        22212,
+        22213,
+        22214
+      ],
+      "lensFlareTypeIDs": [
+        47433,
+        47435,
+        47760
+      ]
+    },
+    "firestorm": {
+      "nearFieldResource": "NF_Abyssal_Infernal_S1_01a.red",
+      "weatherObjectTypeID": 47390,
+      "nebulaGraphicIDs": [
+        22209,
+        22210,
+        22211
+      ],
+      "lensFlareTypeIDs": [
+        47760
+      ]
+    },
+    "gamma": {
+      "nearFieldResource": "NF_Abyssal_XenonGas_S1_01a.red",
+      "weatherObjectTypeID": 47387,
+      "nebulaGraphicIDs": [
+        22041,
+        22042,
+        22043,
+        22044
+      ],
+      "lensFlareTypeIDs": [
+        47434,
+        47435
+      ]
+    }
+  }
+}

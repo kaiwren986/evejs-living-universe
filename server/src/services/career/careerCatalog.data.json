@@ -1,0 +1,4861 @@
+{
+  "schema": "evejs.career-catalog.v1",
+  "contentVersion": "evejs.air-career-program.2",
+  "authority": "EveJS-authored goal identities, career points and rewards. Localized message IDs verified in clients 3396210 and 3475087; remote retail definitions were not recovered.",
+  "rewardPolicy": "Each activity grants 50,000 ISK per label. Each graduation and overall milestone grants 25,000 SP per label; Industrialist graduation also grants 1,000 Tritanium on Alpha. Omega is an additional separately eligible claim.",
+  "goals": [
+    {
+      "symbol": "ExplorerScanSignature1",
+      "id": "ac7d30db-9c51-8039-a55d-c1d797693a4c",
+      "nameMessageID": 601361,
+      "descriptionMessageID": 601549,
+      "target": 1,
+      "career": 1,
+      "points": 50,
+      "group": "Scanning",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 0,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601737,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "90b1a88f-c283-5dde-a264-c384d9d45168",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "ExplorerScanSignature10",
+      "id": "6f094f09-a867-8048-a3d9-ac2466b10ef5",
+      "nameMessageID": 601362,
+      "descriptionMessageID": 601550,
+      "target": 10,
+      "career": 1,
+      "points": 75,
+      "group": "Scanning",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 1,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601738,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "90b1a88f-c283-5dde-a264-c384d9d45168",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "ExplorerScanSignature25",
+      "id": "b3b9ee20-d27c-8c68-8852-e574b1d231fe",
+      "nameMessageID": 601363,
+      "descriptionMessageID": 601551,
+      "target": 25,
+      "career": 1,
+      "points": 100,
+      "group": "Scanning",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 2,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601739,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "90b1a88f-c283-5dde-a264-c384d9d45168",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "ExplorerScanSignature50",
+      "id": "2e3a3340-82d3-83f0-8bc6-026bec694eac",
+      "nameMessageID": 601364,
+      "descriptionMessageID": 601552,
+      "target": 50,
+      "career": 1,
+      "points": 150,
+      "group": "Scanning",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 3,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601740,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "90b1a88f-c283-5dde-a264-c384d9d45168",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "ExplorerHackContainer1",
+      "id": "18718b8f-d000-8e28-a071-3adc05a700e2",
+      "nameMessageID": 601365,
+      "descriptionMessageID": 601553,
+      "target": 1,
+      "career": 1,
+      "points": 25,
+      "group": "Hacking",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 4,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601741,
+      "source": {
+        "kind": "module-hacks"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "ExplorerHackContainer5",
+      "id": "10067076-bc8f-8951-b099-5775f1b9ce79",
+      "nameMessageID": 601366,
+      "descriptionMessageID": 601554,
+      "target": 5,
+      "career": 1,
+      "points": 50,
+      "group": "Hacking",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 5,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601742,
+      "source": {
+        "kind": "module-hacks"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "ExplorerHackContainer10",
+      "id": "00e096cb-8ab5-89e5-a5c5-0b1ad662b032",
+      "nameMessageID": 601367,
+      "descriptionMessageID": 601555,
+      "target": 10,
+      "career": 1,
+      "points": 75,
+      "group": "Hacking",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 6,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601743,
+      "source": {
+        "kind": "module-hacks"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "ExplorerHackContainer15",
+      "id": "e97cf4a8-e6ba-8ff6-a627-6557456b8002",
+      "nameMessageID": 601368,
+      "descriptionMessageID": 601556,
+      "target": 15,
+      "career": 1,
+      "points": 100,
+      "group": "Hacking",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 7,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601744,
+      "source": {
+        "kind": "module-hacks"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "ExplorerHackContainer25",
+      "id": "aeb1f8cb-3720-8659-9b70-3118b6d3eed6",
+      "nameMessageID": 601369,
+      "descriptionMessageID": 601557,
+      "target": 25,
+      "career": 1,
+      "points": 125,
+      "group": "Hacking",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 8,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601745,
+      "source": {
+        "kind": "module-hacks"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistEarnMarketIsk50k",
+      "id": "eabb5f74-7bbc-8e3e-9a84-3471a9f9bddf",
+      "nameMessageID": 601406,
+      "descriptionMessageID": 601594,
+      "target": 50000,
+      "career": 2,
+      "points": 25,
+      "group": "Market",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 0,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601782,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "534841dd-aa20-53e8-9a3c-8fb539f7bf40",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistEarnMarketIsk100k",
+      "id": "1dca8333-41d3-807c-84c1-4a7c7ad5a9e9",
+      "nameMessageID": 601407,
+      "descriptionMessageID": 601595,
+      "target": 100000,
+      "career": 2,
+      "points": 25,
+      "group": "Market",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 1,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601783,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "534841dd-aa20-53e8-9a3c-8fb539f7bf40",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistEarnMarketIsk250k",
+      "id": "06d59095-8075-86a0-99e2-9fdd912bf379",
+      "nameMessageID": 601408,
+      "descriptionMessageID": 601596,
+      "target": 250000,
+      "career": 2,
+      "points": 25,
+      "group": "Market",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 2,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601784,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "534841dd-aa20-53e8-9a3c-8fb539f7bf40",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistEarnMarketIsk500k",
+      "id": "c32eaae6-50e3-835c-8a93-b2270c839c84",
+      "nameMessageID": 601409,
+      "descriptionMessageID": 601597,
+      "target": 500000,
+      "career": 2,
+      "points": 25,
+      "group": "Market",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 3,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601785,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "534841dd-aa20-53e8-9a3c-8fb539f7bf40",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistEarnMarketIsk1m",
+      "id": "de9838a4-667f-805e-8ec8-9f23a2f0d304",
+      "nameMessageID": 601410,
+      "descriptionMessageID": 601598,
+      "target": 1000000,
+      "career": 2,
+      "points": 25,
+      "group": "Market",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 4,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601786,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "534841dd-aa20-53e8-9a3c-8fb539f7bf40",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistSalvageWrecks10",
+      "id": "c35fd218-67c0-8586-a798-6d36afd2786d",
+      "nameMessageID": 601411,
+      "descriptionMessageID": 601599,
+      "target": 10,
+      "career": 2,
+      "points": 25,
+      "group": "Salvage",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 5,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601787,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "62875a0b-59f7-5d19-a3fb-c4bc80a4d887",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistSalvageWrecks25",
+      "id": "7dee5a6b-adeb-85b3-a224-986d8231ea55",
+      "nameMessageID": 601412,
+      "descriptionMessageID": 601600,
+      "target": 25,
+      "career": 2,
+      "points": 25,
+      "group": "Salvage",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 6,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601788,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "62875a0b-59f7-5d19-a3fb-c4bc80a4d887",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistSalvageWrecks50",
+      "id": "1f0d80fe-6bd7-8658-99df-4b360a0d0490",
+      "nameMessageID": 601413,
+      "descriptionMessageID": 601601,
+      "target": 50,
+      "career": 2,
+      "points": 25,
+      "group": "Salvage",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 7,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601789,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "62875a0b-59f7-5d19-a3fb-c4bc80a4d887",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistMineVeldspar",
+      "id": "afc8e828-dce1-8125-9b68-009190502b91",
+      "nameMessageID": 601414,
+      "descriptionMessageID": 601602,
+      "target": 49000,
+      "career": 2,
+      "points": 50,
+      "group": "ResourceHarvesting",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 8,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601790,
+      "source": {
+        "kind": "mining-units",
+        "oreGroupID": 462
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistMineScordite",
+      "id": "57e7df67-b2c1-89b9-a329-340cd1914804",
+      "nameMessageID": 601415,
+      "descriptionMessageID": 601603,
+      "target": 30000,
+      "career": 2,
+      "points": 50,
+      "group": "ResourceHarvesting",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 9,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601791,
+      "source": {
+        "kind": "mining-units",
+        "oreGroupID": 460
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistMinePyroxeres",
+      "id": "334fe54b-cb83-853a-a229-b7e795927d60",
+      "nameMessageID": 601416,
+      "descriptionMessageID": 601604,
+      "target": 16000,
+      "career": 2,
+      "points": 50,
+      "group": "ResourceHarvesting",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 10,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601792,
+      "source": {
+        "kind": "mining-units",
+        "oreGroupID": 459
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistMinePlagioclase",
+      "id": "98c99ae2-12ba-86d5-9a86-b2578a61d8a6",
+      "nameMessageID": 601417,
+      "descriptionMessageID": 601605,
+      "target": 14000,
+      "career": 2,
+      "points": 50,
+      "group": "ResourceHarvesting",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 11,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601793,
+      "source": {
+        "kind": "mining-units",
+        "oreGroupID": 458
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistMineKernite",
+      "id": "e7a413ea-ae83-824d-a8a3-fb356524be47",
+      "nameMessageID": 601418,
+      "descriptionMessageID": 601606,
+      "target": 4000,
+      "career": 2,
+      "points": 50,
+      "group": "ResourceHarvesting",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 12,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601794,
+      "source": {
+        "kind": "mining-units",
+        "oreGroupID": 457
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistManufactureShuttle",
+      "id": "ea611694-4faf-8e97-9654-14209b4b0280",
+      "nameMessageID": 601424,
+      "descriptionMessageID": 601612,
+      "target": 1,
+      "career": 2,
+      "points": 50,
+      "group": "Manufacturing",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 13,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601800,
+      "source": {
+        "kind": "industry-delivery",
+        "activityID": 1,
+        "productGroupID": 31
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistManufactureFrigate",
+      "id": "db578548-ec3c-8b9a-a9d3-fdddf4785865",
+      "nameMessageID": 601425,
+      "descriptionMessageID": 601613,
+      "target": 1,
+      "career": 2,
+      "points": 50,
+      "group": "Manufacturing",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 14,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601801,
+      "source": {
+        "kind": "industry-delivery",
+        "activityID": 1,
+        "productGroupID": 25
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistManufactureDestroyer",
+      "id": "f30b4f36-f1a1-8240-a692-d493a04e83aa",
+      "nameMessageID": 601426,
+      "descriptionMessageID": 601614,
+      "target": 1,
+      "career": 2,
+      "points": 50,
+      "group": "Manufacturing",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 15,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601802,
+      "source": {
+        "kind": "industry-delivery",
+        "activityID": 1,
+        "productGroupID": 420
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistManufactureCruiser",
+      "id": "4843c0c4-bc07-82d4-9ed2-54ca7e5cf7e9",
+      "nameMessageID": 601427,
+      "descriptionMessageID": 601615,
+      "target": 1,
+      "career": 2,
+      "points": 50,
+      "group": "Manufacturing",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 16,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601803,
+      "source": {
+        "kind": "industry-delivery",
+        "activityID": 1,
+        "productGroupID": 26
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistCopyBlueprint",
+      "id": "20661289-d343-8fe8-b964-789575cd6ada",
+      "nameMessageID": 601439,
+      "descriptionMessageID": 601627,
+      "target": 1,
+      "career": 2,
+      "points": 25,
+      "group": "Research",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 17,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601815,
+      "source": {
+        "kind": "industry-delivery",
+        "activityID": 5
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistResearchBlueprintME",
+      "id": "e048f7fa-afb1-8b63-a94e-9054952a5423",
+      "nameMessageID": 601440,
+      "descriptionMessageID": 601628,
+      "target": 1,
+      "career": 2,
+      "points": 25,
+      "group": "Research",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 18,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601816,
+      "source": {
+        "kind": "industry-delivery",
+        "activityID": 4
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistResearchBlueprintTE",
+      "id": "f063017b-baa2-837a-905e-6d2b0ad5be95",
+      "nameMessageID": 601441,
+      "descriptionMessageID": 601629,
+      "target": 1,
+      "career": 2,
+      "points": 50,
+      "group": "Research",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 19,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601817,
+      "source": {
+        "kind": "industry-delivery",
+        "activityID": 3
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "EnforcerDestroyNpc100",
+      "id": "17925c0b-7002-8dac-9aaa-706b9f3b4584",
+      "nameMessageID": 601461,
+      "descriptionMessageID": 601649,
+      "target": 100,
+      "career": 3,
+      "points": 25,
+      "group": "Combat",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 0,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601837,
+      "source": {
+        "kind": "npc-kills"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "EnforcerDestroyNpc150",
+      "id": "498d3bbb-75e4-89ff-8fbf-0657d4e5d4c5",
+      "nameMessageID": 601462,
+      "descriptionMessageID": 601650,
+      "target": 150,
+      "career": 3,
+      "points": 50,
+      "group": "Combat",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 1,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601838,
+      "source": {
+        "kind": "npc-kills"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "EnforcerDestroyNpc200",
+      "id": "1d546689-2c3f-8e1b-889d-d48c0c1a84a0",
+      "nameMessageID": 601463,
+      "descriptionMessageID": 601651,
+      "target": 200,
+      "career": 3,
+      "points": 75,
+      "group": "Combat",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 2,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601839,
+      "source": {
+        "kind": "npc-kills"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "EnforcerDestroyNpc250",
+      "id": "86836f2e-1f54-8cd7-9a08-7542408e7822",
+      "nameMessageID": 601464,
+      "descriptionMessageID": 601652,
+      "target": 250,
+      "career": 3,
+      "points": 100,
+      "group": "Combat",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 3,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601840,
+      "source": {
+        "kind": "npc-kills"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "EnforcerDestroyNpc300",
+      "id": "c51a0252-0994-8c38-9b3e-703b02d0ebf3",
+      "nameMessageID": 601465,
+      "descriptionMessageID": 601653,
+      "target": 300,
+      "career": 3,
+      "points": 125,
+      "group": "Combat",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 4,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601841,
+      "source": {
+        "kind": "npc-kills"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "EnforcerSpendMarketIsk50k",
+      "id": "761ea9a5-dcf7-81b2-9734-b7fdefbb94d6",
+      "nameMessageID": 601478,
+      "descriptionMessageID": 601666,
+      "target": 50000,
+      "career": 3,
+      "points": 25,
+      "group": "Market",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 5,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601854,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "3bb1549d-46bd-59ff-be7f-0a9652d5efcb",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "EnforcerSpendMarketIsk250k",
+      "id": "21858ac2-f253-8b75-915c-7506a668b60d",
+      "nameMessageID": 601479,
+      "descriptionMessageID": 601667,
+      "target": 250000,
+      "career": 3,
+      "points": 50,
+      "group": "Market",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 6,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601855,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "3bb1549d-46bd-59ff-be7f-0a9652d5efcb",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "EnforcerSpendMarketIsk500k",
+      "id": "2af6e697-cc0e-899c-9fa0-62cc781da7cd",
+      "nameMessageID": 601480,
+      "descriptionMessageID": 601668,
+      "target": 500000,
+      "career": 3,
+      "points": 75,
+      "group": "Market",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 7,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601856,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "3bb1549d-46bd-59ff-be7f-0a9652d5efcb",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "EnforcerSpendMarketIsk1m",
+      "id": "66a816c1-3573-8e5e-b73c-37b574940af1",
+      "nameMessageID": 601481,
+      "descriptionMessageID": 601669,
+      "target": 1000000,
+      "career": 3,
+      "points": 100,
+      "group": "Market",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 8,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601857,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "3bb1549d-46bd-59ff-be7f-0a9652d5efcb",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "EnforcerCompleteCombatSites5",
+      "id": "c87727bd-c610-8495-9ebb-82a0c15d37ad",
+      "nameMessageID": 601470,
+      "descriptionMessageID": 601658,
+      "target": 5,
+      "career": 3,
+      "points": 25,
+      "group": "CombatSites",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 9,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601846,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "b9e578c2-b357-5d09-bb6a-844065f90906",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "EnforcerCompleteCombatSites15",
+      "id": "923b13eb-1aa6-88af-9a18-9ff5b3c3b479",
+      "nameMessageID": 601471,
+      "descriptionMessageID": 601659,
+      "target": 15,
+      "career": 3,
+      "points": 25,
+      "group": "CombatSites",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 10,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601847,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "b9e578c2-b357-5d09-bb6a-844065f90906",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "EnforcerCompleteCombatSites25",
+      "id": "55814881-e05d-82f2-8276-e4678a33e35f",
+      "nameMessageID": 601472,
+      "descriptionMessageID": 601660,
+      "target": 25,
+      "career": 3,
+      "points": 50,
+      "group": "CombatSites",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 11,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601848,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "b9e578c2-b357-5d09-bb6a-844065f90906",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "EnforcerEpicArcComplete",
+      "id": "2d78f849-a025-80e1-95b8-64e4b7216a52",
+      "nameMessageID": 601477,
+      "descriptionMessageID": 601665,
+      "target": 1,
+      "career": 3,
+      "points": 25,
+      "group": "EpicArc",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 12,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601853,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "8739d8d8-4e1e-5bca-b870-8f1357fa1dc7",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "SofLoseShip1",
+      "id": "4e4e0ef3-39a0-8b1e-b5a2-2a527cc613e0",
+      "nameMessageID": 601535,
+      "descriptionMessageID": 601723,
+      "target": 1,
+      "career": 4,
+      "points": 25,
+      "group": "Destruction",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 0,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601911,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "fafd0ae9-ce09-58ee-ae3a-533a7958bc62",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "SofLoseShip5",
+      "id": "0c79e09d-5e00-82ac-af2c-264f1c75adb6",
+      "nameMessageID": 601536,
+      "descriptionMessageID": 601724,
+      "target": 5,
+      "career": 4,
+      "points": 50,
+      "group": "Destruction",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 1,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601912,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "fafd0ae9-ce09-58ee-ae3a-533a7958bc62",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "SofLoseShip10",
+      "id": "f7008dfd-5798-8218-9f1b-6a6a15d7a4b3",
+      "nameMessageID": 601537,
+      "descriptionMessageID": 601725,
+      "target": 10,
+      "career": 4,
+      "points": 75,
+      "group": "Destruction",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 2,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601913,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "fafd0ae9-ce09-58ee-ae3a-533a7958bc62",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "SofLoseShip15",
+      "id": "9ef6410d-b8d5-8239-bbf5-d36772ff1148",
+      "nameMessageID": 601538,
+      "descriptionMessageID": 601726,
+      "target": 15,
+      "career": 4,
+      "points": 100,
+      "group": "Destruction",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 3,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601914,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "fafd0ae9-ce09-58ee-ae3a-533a7958bc62",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "SofLoseShip20",
+      "id": "90a49f7b-a5c0-84c3-8f5a-9c386bb48601",
+      "nameMessageID": 601539,
+      "descriptionMessageID": 601727,
+      "target": 20,
+      "career": 4,
+      "points": 125,
+      "group": "Destruction",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 4,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601915,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "fafd0ae9-ce09-58ee-ae3a-533a7958bc62",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "SofDuelWin1",
+      "id": "3c855519-a404-8b69-9f28-1f7774ce4f4b",
+      "nameMessageID": 601541,
+      "descriptionMessageID": 601729,
+      "target": 5,
+      "career": 4,
+      "points": 75,
+      "group": "Duels",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 5,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601917,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "ffd4ffad-3dcc-58ca-95f0-fc07c9b5ef81",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "SofDuelWin3",
+      "id": "f2b7d2f8-1c1d-8c76-a166-d6d859630fd7",
+      "nameMessageID": 601542,
+      "descriptionMessageID": 601730,
+      "target": 10,
+      "career": 4,
+      "points": 125,
+      "group": "Duels",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 6,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601918,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "ffd4ffad-3dcc-58ca-95f0-fc07c9b5ef81",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "SofDuelWin5",
+      "id": "11f3f4d4-84d9-8a7a-a29e-318a13fec3cc",
+      "nameMessageID": 601543,
+      "descriptionMessageID": 601731,
+      "target": 15,
+      "career": 4,
+      "points": 175,
+      "group": "Duels",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 7,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601919,
+      "source": {
+        "kind": "achievement",
+        "achievementID": "ffd4ffad-3dcc-58ca-95f0-fc07c9b5ef81",
+        "metric": "progress"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ]
+    },
+    {
+      "symbol": "ExplorerGraduation",
+      "id": "9faca814-9316-84a9-992a-8023003ea396",
+      "nameMessageID": 602236,
+      "descriptionMessageID": 602237,
+      "target": 750,
+      "career": 1,
+      "points": 0,
+      "subtype": "OVERALL_GOAL",
+      "order": 9,
+      "threat": 0,
+      "duration": 0,
+      "source": {
+        "kind": "career-points",
+        "career": 1
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "sp",
+          "amount": 25000
+        },
+        {
+          "label": 2,
+          "kind": "sp",
+          "amount": 25000
+        }
+      ]
+    },
+    {
+      "symbol": "IndustrialistGraduation",
+      "id": "623885b2-5882-8271-bbc9-017317a8aed7",
+      "nameMessageID": 602238,
+      "descriptionMessageID": 602239,
+      "target": 750,
+      "career": 2,
+      "points": 0,
+      "subtype": "OVERALL_GOAL",
+      "order": 20,
+      "threat": 0,
+      "duration": 0,
+      "source": {
+        "kind": "career-points",
+        "career": 2
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "sp",
+          "amount": 25000
+        },
+        {
+          "label": 2,
+          "kind": "sp",
+          "amount": 25000
+        },
+        {
+          "label": 1,
+          "kind": "item",
+          "typeID": 34,
+          "quantity": 1000
+        }
+      ]
+    },
+    {
+      "symbol": "EnforcerGraduation",
+      "id": "090c5c6a-1a57-85dc-b6e6-8bdf9a4327c6",
+      "nameMessageID": 602240,
+      "descriptionMessageID": 602241,
+      "target": 750,
+      "career": 3,
+      "points": 0,
+      "subtype": "OVERALL_GOAL",
+      "order": 13,
+      "threat": 0,
+      "duration": 0,
+      "source": {
+        "kind": "career-points",
+        "career": 3
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "sp",
+          "amount": 25000
+        },
+        {
+          "label": 2,
+          "kind": "sp",
+          "amount": 25000
+        }
+      ]
+    },
+    {
+      "symbol": "SofGraduation",
+      "id": "80c91db5-aca4-85ed-a7fc-9450d5ab935c",
+      "nameMessageID": 602242,
+      "descriptionMessageID": 602243,
+      "target": 750,
+      "career": 4,
+      "points": 0,
+      "subtype": "OVERALL_GOAL",
+      "order": 8,
+      "threat": 0,
+      "duration": 0,
+      "source": {
+        "kind": "career-points",
+        "career": 4
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "sp",
+          "amount": 25000
+        },
+        {
+          "label": 2,
+          "kind": "sp",
+          "amount": 25000
+        }
+      ]
+    },
+    {
+      "symbol": "OverallProgressCp750",
+      "id": "c13bdf5c-5ff6-8abf-ad64-4c48b80fd9a0",
+      "nameMessageID": 599620,
+      "descriptionMessageID": 599619,
+      "target": 750,
+      "career": 0,
+      "points": 0,
+      "subtype": "OVERALL_GOAL",
+      "order": 0,
+      "threat": 0,
+      "duration": 0,
+      "source": {
+        "kind": "career-points",
+        "career": 0
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "sp",
+          "amount": 25000
+        },
+        {
+          "label": 2,
+          "kind": "sp",
+          "amount": 25000
+        }
+      ]
+    },
+    {
+      "symbol": "OverallProgressCp1500",
+      "id": "3acb9008-b594-8d28-ad0b-459a843718e1",
+      "nameMessageID": 602248,
+      "descriptionMessageID": 602246,
+      "target": 1500,
+      "career": 0,
+      "points": 0,
+      "subtype": "OVERALL_GOAL",
+      "order": 1,
+      "threat": 0,
+      "duration": 0,
+      "source": {
+        "kind": "career-points",
+        "career": 0
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "sp",
+          "amount": 25000
+        },
+        {
+          "label": 2,
+          "kind": "sp",
+          "amount": 25000
+        }
+      ]
+    },
+    {
+      "symbol": "OverallProgressCp2250",
+      "id": "1cb9fb5f-550f-860f-914f-84bdca614d8d",
+      "nameMessageID": 602250,
+      "descriptionMessageID": 602251,
+      "target": 2250,
+      "career": 0,
+      "points": 0,
+      "subtype": "OVERALL_GOAL",
+      "order": 2,
+      "threat": 0,
+      "duration": 0,
+      "source": {
+        "kind": "career-points",
+        "career": 0
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "sp",
+          "amount": 25000
+        },
+        {
+          "label": 2,
+          "kind": "sp",
+          "amount": 25000
+        }
+      ]
+    },
+    {
+      "symbol": "OverallProgressCp3000",
+      "id": "3dfcb3c5-c77a-85ac-b76e-a00464eec2bb",
+      "nameMessageID": 602252,
+      "descriptionMessageID": 602253,
+      "target": 3000,
+      "career": 0,
+      "points": 0,
+      "subtype": "OVERALL_GOAL",
+      "order": 3,
+      "threat": 0,
+      "duration": 0,
+      "source": {
+        "kind": "career-points",
+        "career": 0
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "sp",
+          "amount": 25000
+        },
+        {
+          "label": 2,
+          "kind": "sp",
+          "amount": 25000
+        }
+      ]
+    },
+    {
+      "symbol": "ExplorerHackLowsecContainer20",
+      "id": "299fb862-4629-8f2b-9c05-3c79f14a5a5c",
+      "nameMessageID": 601370,
+      "descriptionMessageID": 601558,
+      "target": 20,
+      "career": 1,
+      "points": 25,
+      "group": "AdvancedHacking",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 10,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601746,
+      "source": {
+        "kind": "module-hacks",
+        "securityClass": "low"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerHackNullsecContainer20",
+      "id": "d47baa0b-8704-8a0c-a703-6b5ec81f3df5",
+      "nameMessageID": 601371,
+      "descriptionMessageID": 601559,
+      "target": 20,
+      "career": 1,
+      "points": 25,
+      "group": "AdvancedHacking",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 11,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601747,
+      "source": {
+        "kind": "module-hacks",
+        "securityClass": "null"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerHackWhContainer20",
+      "id": "26cc0a77-b264-8ecc-a6ca-abf862032570",
+      "nameMessageID": 601372,
+      "descriptionMessageID": 601560,
+      "target": 20,
+      "career": 1,
+      "points": 25,
+      "group": "AdvancedHacking",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 12,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601748,
+      "source": {
+        "kind": "module-hacks",
+        "securityClass": "wormhole"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerScanWormholes1",
+      "id": "00f1e95b-7645-8ca7-b2d1-afaacb557f95",
+      "nameMessageID": 601373,
+      "descriptionMessageID": 601561,
+      "target": 1,
+      "career": 1,
+      "points": 25,
+      "group": "Wormholes",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 13,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601749,
+      "source": {
+        "kind": "career-event",
+        "metric": "scanned-wormholes"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerScanWormholes5",
+      "id": "be9e60d8-c58f-8e62-80bc-4c3c87d53808",
+      "nameMessageID": 601374,
+      "descriptionMessageID": 601562,
+      "target": 5,
+      "career": 1,
+      "points": 25,
+      "group": "Wormholes",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 14,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601750,
+      "source": {
+        "kind": "career-event",
+        "metric": "scanned-wormholes"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerScanWormholes10",
+      "id": "3144dc4f-5933-8e6e-a234-d04e73bf4ecb",
+      "nameMessageID": 601375,
+      "descriptionMessageID": 601563,
+      "target": 10,
+      "career": 1,
+      "points": 25,
+      "group": "Wormholes",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 15,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601751,
+      "source": {
+        "kind": "career-event",
+        "metric": "scanned-wormholes"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerScanWormholes15",
+      "id": "574c2180-d597-804b-8ee6-956ec9855b60",
+      "nameMessageID": 601376,
+      "descriptionMessageID": 601564,
+      "target": 15,
+      "career": 1,
+      "points": 25,
+      "group": "Wormholes",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 16,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601752,
+      "source": {
+        "kind": "career-event",
+        "metric": "scanned-wormholes"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerEnterGasSites1",
+      "id": "9477ddfb-a664-8aaa-a399-89a0b04c51eb",
+      "nameMessageID": 601377,
+      "descriptionMessageID": 601565,
+      "target": 1,
+      "career": 1,
+      "points": 25,
+      "group": "GasSites",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 17,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601753,
+      "source": {
+        "kind": "career-event",
+        "metric": "entered-gas-signatures"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerEnterGasSites5",
+      "id": "046d20fc-b778-800d-9009-3b492d47bc63",
+      "nameMessageID": 601378,
+      "descriptionMessageID": 601566,
+      "target": 5,
+      "career": 1,
+      "points": 25,
+      "group": "GasSites",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 18,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601754,
+      "source": {
+        "kind": "career-event",
+        "metric": "entered-gas-signatures"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerEnterGasSites10",
+      "id": "5dfbe84b-dc3c-83b7-81e2-ef8ae8431f82",
+      "nameMessageID": 601379,
+      "descriptionMessageID": 601567,
+      "target": 10,
+      "career": 1,
+      "points": 25,
+      "group": "GasSites",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 19,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601755,
+      "source": {
+        "kind": "career-event",
+        "metric": "entered-gas-signatures"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerEnterGasSites15",
+      "id": "0d35ca6f-5edc-854a-962c-1bc5a1aaf343",
+      "nameMessageID": 601380,
+      "descriptionMessageID": 601568,
+      "target": 15,
+      "career": 1,
+      "points": 25,
+      "group": "GasSites",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 20,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601756,
+      "source": {
+        "kind": "career-event",
+        "metric": "entered-gas-signatures"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerEnterCombatSites1",
+      "id": "c39e54c1-0b53-8f8e-80b9-323451caa1b0",
+      "nameMessageID": 601381,
+      "descriptionMessageID": 601569,
+      "target": 1,
+      "career": 1,
+      "points": 25,
+      "group": "CombatSites",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 21,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601757,
+      "source": {
+        "kind": "career-event",
+        "metric": "entered-combat-signatures"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerEnterCombatSites5",
+      "id": "db4e51db-63d4-81e9-838a-47e4aef4177e",
+      "nameMessageID": 601382,
+      "descriptionMessageID": 601570,
+      "target": 5,
+      "career": 1,
+      "points": 25,
+      "group": "CombatSites",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 22,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601758,
+      "source": {
+        "kind": "career-event",
+        "metric": "entered-combat-signatures"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerEnterCombatSites10",
+      "id": "5277d223-5b21-8ec9-b3a0-031399738d10",
+      "nameMessageID": 601383,
+      "descriptionMessageID": 601571,
+      "target": 10,
+      "career": 1,
+      "points": 25,
+      "group": "CombatSites",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 23,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601759,
+      "source": {
+        "kind": "career-event",
+        "metric": "entered-combat-signatures"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerEnterCombatSites15",
+      "id": "ab642e78-f88d-879e-9e6a-5ac74b854380",
+      "nameMessageID": 601384,
+      "descriptionMessageID": 601572,
+      "target": 15,
+      "career": 1,
+      "points": 25,
+      "group": "CombatSites",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 24,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601760,
+      "source": {
+        "kind": "career-event",
+        "metric": "entered-combat-signatures"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerGateJumps25",
+      "id": "3cce7dc2-d351-85b1-b4ac-cbfcb4c77e1f",
+      "nameMessageID": 601385,
+      "descriptionMessageID": 601573,
+      "target": 25,
+      "career": 1,
+      "points": 25,
+      "group": "Navigation",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 25,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601761,
+      "source": {
+        "kind": "career-event",
+        "metric": "gate-jumps"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerGateJumps50",
+      "id": "51d294f7-8399-8715-b453-ed2686ba2701",
+      "nameMessageID": 601386,
+      "descriptionMessageID": 601574,
+      "target": 50,
+      "career": 1,
+      "points": 25,
+      "group": "Navigation",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 26,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601762,
+      "source": {
+        "kind": "career-event",
+        "metric": "gate-jumps"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerGateJumps100",
+      "id": "acd5e495-990a-8cd0-ae3d-1bdfbeb526c8",
+      "nameMessageID": 601387,
+      "descriptionMessageID": 601575,
+      "target": 100,
+      "career": 1,
+      "points": 25,
+      "group": "Navigation",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 27,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601763,
+      "source": {
+        "kind": "career-event",
+        "metric": "gate-jumps"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerVisitHisec",
+      "id": "7a7b8b74-85c0-8773-9996-c1128e143994",
+      "nameMessageID": 601388,
+      "descriptionMessageID": 601576,
+      "target": 5,
+      "career": 1,
+      "points": 25,
+      "group": "AdvancedNavigation",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 28,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601764,
+      "source": {
+        "kind": "visited-regions",
+        "securityClass": "high"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerVisitLowsec",
+      "id": "d5eb1ed9-17ec-8f61-a459-d2e8d7c6847d",
+      "nameMessageID": 601389,
+      "descriptionMessageID": 601577,
+      "target": 5,
+      "career": 1,
+      "points": 25,
+      "group": "AdvancedNavigation",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 29,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601765,
+      "source": {
+        "kind": "visited-regions",
+        "securityClass": "low"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "ExplorerVisitNullsec",
+      "id": "bff1fd58-bfa3-8cdc-8cdc-1360f7a47c9e",
+      "nameMessageID": 601390,
+      "descriptionMessageID": 601578,
+      "target": 5,
+      "career": 1,
+      "points": 25,
+      "group": "AdvancedNavigation",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 30,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601766,
+      "source": {
+        "kind": "visited-regions",
+        "securityClass": "null"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistReprocessVeldspar",
+      "id": "2eaf222e-cf84-87ed-9377-57824bdf6146",
+      "nameMessageID": 601419,
+      "descriptionMessageID": 601607,
+      "target": 49000,
+      "career": 2,
+      "points": 25,
+      "group": "Refining",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 21,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601795,
+      "source": {
+        "kind": "career-event",
+        "metric": "reprocessed-ore:462"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistReprocessScordite",
+      "id": "fa8d5066-79f6-82db-90fc-523460748ef1",
+      "nameMessageID": 601420,
+      "descriptionMessageID": 601608,
+      "target": 30000,
+      "career": 2,
+      "points": 25,
+      "group": "Refining",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 22,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601796,
+      "source": {
+        "kind": "career-event",
+        "metric": "reprocessed-ore:460"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistReprocessPyroxeres",
+      "id": "5c35e3d7-c925-8ce8-98b3-7f81ff56db91",
+      "nameMessageID": 601421,
+      "descriptionMessageID": 601609,
+      "target": 16000,
+      "career": 2,
+      "points": 25,
+      "group": "Refining",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 23,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601797,
+      "source": {
+        "kind": "career-event",
+        "metric": "reprocessed-ore:459"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistReprocessPlagioclase",
+      "id": "668035a1-67bf-82f8-962e-c8e7e177bcb4",
+      "nameMessageID": 601422,
+      "descriptionMessageID": 601610,
+      "target": 14000,
+      "career": 2,
+      "points": 25,
+      "group": "Refining",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 24,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601798,
+      "source": {
+        "kind": "career-event",
+        "metric": "reprocessed-ore:458"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistReprocessKernite",
+      "id": "1eea4b55-321a-88be-bf81-1e01a3a90aeb",
+      "nameMessageID": 601423,
+      "descriptionMessageID": 601611,
+      "target": 4000,
+      "career": 2,
+      "points": 25,
+      "group": "Refining",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 25,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601799,
+      "source": {
+        "kind": "career-event",
+        "metric": "reprocessed-ore:457"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistBuyBlueprint",
+      "id": "0a30488c-4513-8103-9e96-23c5524ae9e8",
+      "nameMessageID": 601438,
+      "descriptionMessageID": 601626,
+      "target": 1,
+      "career": 2,
+      "points": 25,
+      "group": "Research",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 26,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601814,
+      "source": {
+        "kind": "career-event",
+        "metric": "blueprint-purchased"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistCourierMissions1",
+      "id": "48752f9f-2c92-8e10-bfa1-4fdd13898411",
+      "nameMessageID": 601428,
+      "descriptionMessageID": 601616,
+      "target": 1,
+      "career": 2,
+      "points": 25,
+      "group": "DistributionAgent",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 27,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601804,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "distribution"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistCourierMissions5",
+      "id": "ec46e55e-f819-8304-b11f-4916006c70d7",
+      "nameMessageID": 601429,
+      "descriptionMessageID": 601617,
+      "target": 5,
+      "career": 2,
+      "points": 25,
+      "group": "DistributionAgent",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 28,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601805,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "distribution"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistCourierMissions10",
+      "id": "044f24fb-7851-8be0-97be-30f821970765",
+      "nameMessageID": 601430,
+      "descriptionMessageID": 601618,
+      "target": 10,
+      "career": 2,
+      "points": 25,
+      "group": "DistributionAgent",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 29,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601806,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "distribution"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistCourierMissions15",
+      "id": "22f3cff2-8568-84c0-b4e9-71734637e21d",
+      "nameMessageID": 601431,
+      "descriptionMessageID": 601619,
+      "target": 15,
+      "career": 2,
+      "points": 25,
+      "group": "DistributionAgent",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 30,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601807,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "distribution"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistCourierMissions20",
+      "id": "feb3f310-7545-86ea-a25e-29968e9cf705",
+      "nameMessageID": 601432,
+      "descriptionMessageID": 601620,
+      "target": 20,
+      "career": 2,
+      "points": 25,
+      "group": "DistributionAgent",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 31,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601808,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "distribution"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistMiningMissions1",
+      "id": "7ccb967e-daeb-8cab-a2cb-80a7ca9e198f",
+      "nameMessageID": 601433,
+      "descriptionMessageID": 601621,
+      "target": 1,
+      "career": 2,
+      "points": 25,
+      "group": "MiningAgent",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 32,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601809,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "mining"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistMiningMissions5",
+      "id": "92f9a7eb-5f15-8db2-a527-db106071f7e7",
+      "nameMessageID": 601434,
+      "descriptionMessageID": 601622,
+      "target": 5,
+      "career": 2,
+      "points": 25,
+      "group": "MiningAgent",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 33,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601810,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "mining"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistMiningMissions10",
+      "id": "6cb81187-35ef-8f10-a3e1-1303c83f548b",
+      "nameMessageID": 601435,
+      "descriptionMessageID": 601623,
+      "target": 10,
+      "career": 2,
+      "points": 25,
+      "group": "MiningAgent",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 34,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601811,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "mining"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistMiningMissions15",
+      "id": "8bee46b4-0b95-8987-982a-af8a94ccb11f",
+      "nameMessageID": 601436,
+      "descriptionMessageID": 601624,
+      "target": 15,
+      "career": 2,
+      "points": 25,
+      "group": "MiningAgent",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 35,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601812,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "mining"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "IndustrialistMiningMissions20",
+      "id": "c8366c2a-ce16-8291-9c02-2ec818ae40ca",
+      "nameMessageID": 601437,
+      "descriptionMessageID": 601625,
+      "target": 20,
+      "career": 2,
+      "points": 25,
+      "group": "MiningAgent",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 36,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601813,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "mining"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerLevel1SecurityMissions1",
+      "id": "4400c134-d3f5-8abe-b705-8201f8007bac",
+      "nameMessageID": 601452,
+      "descriptionMessageID": 601640,
+      "target": 1,
+      "career": 3,
+      "points": 25,
+      "group": "SecurityAgent",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 14,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601828,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "security-level-1"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerLevel1SecurityMissions5",
+      "id": "25f22495-402a-8498-aec0-674a30ecc456",
+      "nameMessageID": 601453,
+      "descriptionMessageID": 601641,
+      "target": 5,
+      "career": 3,
+      "points": 25,
+      "group": "SecurityAgent",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 15,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601829,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "security-level-1"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerLevel1SecurityMissions10",
+      "id": "7df24b9e-892c-8194-80ed-ccf403b80437",
+      "nameMessageID": 601454,
+      "descriptionMessageID": 601642,
+      "target": 10,
+      "career": 3,
+      "points": 25,
+      "group": "SecurityAgent",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 16,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601830,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "security-level-1"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerLevel1SecurityMissions15",
+      "id": "4599e15f-6b35-822a-bbde-8fd1ab0c351e",
+      "nameMessageID": 601455,
+      "descriptionMessageID": 601643,
+      "target": 15,
+      "career": 3,
+      "points": 25,
+      "group": "SecurityAgent",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 17,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601831,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "security-level-1"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerLevel1SecurityMissions20",
+      "id": "d7dc67af-6494-8d90-baa5-7a08a9abb307",
+      "nameMessageID": 601456,
+      "descriptionMessageID": 601644,
+      "target": 20,
+      "career": 3,
+      "points": 25,
+      "group": "SecurityAgent",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 18,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601832,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "security-level-1"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerEarnBountyIsk250k",
+      "id": "b2eee41d-8362-8c10-ab27-2f504f014637",
+      "nameMessageID": 601466,
+      "descriptionMessageID": 601654,
+      "target": 250000,
+      "career": 3,
+      "points": 25,
+      "group": "Bounties",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 19,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601842,
+      "source": {
+        "kind": "career-event",
+        "metric": "economy:bounty-earned"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerEarnBountyIsk500k",
+      "id": "8a165f06-ace4-8dc9-b151-dbedde561b9b",
+      "nameMessageID": 601467,
+      "descriptionMessageID": 601655,
+      "target": 500000,
+      "career": 3,
+      "points": 25,
+      "group": "Bounties",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 20,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601843,
+      "source": {
+        "kind": "career-event",
+        "metric": "economy:bounty-earned"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerEarnBountyIsk1m",
+      "id": "d0656620-250b-8ea9-84ec-21470f089e57",
+      "nameMessageID": 601468,
+      "descriptionMessageID": 601656,
+      "target": 1000000,
+      "career": 3,
+      "points": 25,
+      "group": "Bounties",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 21,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601844,
+      "source": {
+        "kind": "career-event",
+        "metric": "economy:bounty-earned"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerEarnBountyIsk5m",
+      "id": "c324d67f-56b7-8b56-89b4-02805e93efc2",
+      "nameMessageID": 601469,
+      "descriptionMessageID": 601657,
+      "target": 5000000,
+      "career": 3,
+      "points": 25,
+      "group": "Bounties",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 22,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601845,
+      "source": {
+        "kind": "career-event",
+        "metric": "economy:bounty-earned"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerEpicArcMissions1",
+      "id": "87ebb099-2568-8e8d-a580-b5c90f71c715",
+      "nameMessageID": 601473,
+      "descriptionMessageID": 601661,
+      "target": 1,
+      "career": 3,
+      "points": 25,
+      "group": "EpicArc",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 23,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601849,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "bloodstained-stars"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerEpicArcMissions5",
+      "id": "b89743b8-7f29-834a-aa5c-9c8a79f9affd",
+      "nameMessageID": 601474,
+      "descriptionMessageID": 601662,
+      "target": 5,
+      "career": 3,
+      "points": 25,
+      "group": "EpicArc",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 24,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601850,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "bloodstained-stars"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerEpicArcMissions10",
+      "id": "32a623ca-a14f-8e8a-8db8-b462e0cb52f8",
+      "nameMessageID": 601475,
+      "descriptionMessageID": 601663,
+      "target": 10,
+      "career": 3,
+      "points": 25,
+      "group": "EpicArc",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 25,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601851,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "bloodstained-stars"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerEpicArcMissions20",
+      "id": "bbaeaf9f-7544-8fe0-9fc8-f05ddc2533d5",
+      "nameMessageID": 601476,
+      "descriptionMessageID": 601664,
+      "target": 20,
+      "career": 3,
+      "points": 25,
+      "group": "EpicArc",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 26,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601852,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "bloodstained-stars"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerGetStandingTo01",
+      "id": "22d85556-aa9a-86c5-b6a8-c4a7e7ad1b74",
+      "nameMessageID": 601482,
+      "descriptionMessageID": 601670,
+      "target": 1,
+      "career": 3,
+      "points": 25,
+      "group": "Standings",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 27,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601858,
+      "source": {
+        "minimum": 0.1,
+        "kind": "corporation-standing"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerGetStandingTo025",
+      "id": "6eaf1ebf-d338-8926-82fb-bcc6d2da7594",
+      "nameMessageID": 601483,
+      "descriptionMessageID": 601671,
+      "target": 1,
+      "career": 3,
+      "points": 25,
+      "group": "Standings",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 28,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601859,
+      "source": {
+        "minimum": 0.25,
+        "kind": "corporation-standing"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerGetStandingTo05",
+      "id": "d902b840-df82-88aa-923a-1392d1e96051",
+      "nameMessageID": 601484,
+      "descriptionMessageID": 601672,
+      "target": 1,
+      "career": 3,
+      "points": 25,
+      "group": "Standings",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 29,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601860,
+      "source": {
+        "minimum": 0.5,
+        "kind": "corporation-standing"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerGetStandingToMissionsLevel2",
+      "id": "f2122414-c3fb-885c-abf6-d697d35ba604",
+      "nameMessageID": 601485,
+      "descriptionMessageID": 601673,
+      "target": 1,
+      "career": 3,
+      "points": 25,
+      "group": "Standings",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 30,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601861,
+      "source": {
+        "minimum": 1,
+        "kind": "corporation-standing"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerEarnLp50",
+      "id": "44e9e7f9-002b-802f-b09f-978a237b6296",
+      "nameMessageID": 601486,
+      "descriptionMessageID": 601674,
+      "target": 50,
+      "career": 3,
+      "points": 25,
+      "group": "LoyaltyPoints",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 31,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601862,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "mission-lp"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerEarnLp100",
+      "id": "a4968d87-9335-8ad2-bfa7-ba011e18548e",
+      "nameMessageID": 601487,
+      "descriptionMessageID": 601675,
+      "target": 100,
+      "career": 3,
+      "points": 25,
+      "group": "LoyaltyPoints",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 32,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601863,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "mission-lp"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerEarnLp250",
+      "id": "e56d8867-142d-832c-8b54-dbb42ae20cc3",
+      "nameMessageID": 601488,
+      "descriptionMessageID": 601676,
+      "target": 250,
+      "career": 3,
+      "points": 25,
+      "group": "LoyaltyPoints",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 33,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601864,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "mission-lp"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerEarnLp500",
+      "id": "59e32f38-331e-8c6c-be03-bd059a99bc5f",
+      "nameMessageID": 601489,
+      "descriptionMessageID": 601677,
+      "target": 500,
+      "career": 3,
+      "points": 25,
+      "group": "LoyaltyPoints",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 34,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601865,
+      "source": {
+        "kind": "mission-evidence",
+        "metric": "mission-lp"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerSpendLp300",
+      "id": "5c2c4225-7a3b-8a68-b808-c6e3114b9766",
+      "nameMessageID": 601490,
+      "descriptionMessageID": 601678,
+      "target": 300,
+      "career": 3,
+      "points": 25,
+      "group": "LoyaltyPoints",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 35,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601866,
+      "source": {
+        "kind": "career-event",
+        "metric": "economy:lp-spent"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofSendChatMessage",
+      "id": "c8a0c0da-f2fb-8514-a0a4-2f4195bdfa99",
+      "nameMessageID": 601501,
+      "descriptionMessageID": 601689,
+      "target": 1,
+      "career": 4,
+      "points": 25,
+      "group": "Social",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 9,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601877,
+      "source": {
+        "kind": "career-event",
+        "metric": "social:chat"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofJoinFleet",
+      "id": "fc6c5ef4-cd0c-81ed-b547-caf7891bd2a5",
+      "nameMessageID": 601502,
+      "descriptionMessageID": 601690,
+      "target": 1,
+      "career": 4,
+      "points": 25,
+      "group": "Social",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 10,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601878,
+      "source": {
+        "kind": "career-event",
+        "metric": "social:fleet"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofJoinCorporation",
+      "id": "6b50ba73-cdb6-89a7-8ef5-d197e94a01f9",
+      "nameMessageID": 601503,
+      "descriptionMessageID": 601691,
+      "target": 1,
+      "career": 4,
+      "points": 25,
+      "group": "Social",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 11,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601879,
+      "source": {
+        "kind": "career-event",
+        "metric": "social:corporation"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofSendMail",
+      "id": "e10c1666-521b-88a8-ae7d-4a515051e4aa",
+      "nameMessageID": 601504,
+      "descriptionMessageID": 601692,
+      "target": 1,
+      "career": 4,
+      "points": 25,
+      "group": "Social",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 12,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601880,
+      "source": {
+        "kind": "mail-sent"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofAddContact",
+      "id": "a9d0f8b6-7c62-88cb-8533-195e8e36e227",
+      "nameMessageID": 601505,
+      "descriptionMessageID": 601693,
+      "target": 1,
+      "career": 4,
+      "points": 25,
+      "group": "Social",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 13,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601881,
+      "source": {
+        "kind": "career-event",
+        "metric": "social:contact"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofDuelChallenge",
+      "id": "2471ac74-3d1c-880b-b13d-d4ee36242ec2",
+      "nameMessageID": 601540,
+      "descriptionMessageID": 601728,
+      "target": 1,
+      "career": 4,
+      "points": 25,
+      "group": "Duels",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 14,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601916,
+      "source": {
+        "kind": "career-event",
+        "metric": "social:duel-challenge"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerEnterTier0Abyss",
+      "id": "32d16332-88d7-8a4b-b015-8d47ca1d5a2d",
+      "nameMessageID": 601457,
+      "descriptionMessageID": 601645,
+      "target": 1,
+      "career": 3,
+      "points": 25,
+      "group": "AbyssalDeadspace",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 36,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601833,
+      "source": {
+        "metric": "abyssal:entry",
+        "kind": "career-event"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerCompleteTier0Abyss1",
+      "id": "5bd713d3-6511-8006-83b7-f18d8588ec01",
+      "nameMessageID": 601458,
+      "descriptionMessageID": 601646,
+      "target": 1,
+      "career": 3,
+      "points": 25,
+      "group": "AbyssalDeadspace",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 37,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601834,
+      "source": {
+        "metric": "abyssal:completion",
+        "kind": "career-event"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerCompleteTier0Abyss5",
+      "id": "32ff3c98-e2e1-85d8-a2a3-b15cb1a55d72",
+      "nameMessageID": 601459,
+      "descriptionMessageID": 601647,
+      "target": 5,
+      "career": 3,
+      "points": 25,
+      "group": "AbyssalDeadspace",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 38,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601835,
+      "source": {
+        "metric": "abyssal:completion",
+        "kind": "career-event"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "EnforcerKillTriglavians30",
+      "id": "e9bc1674-f8ff-8a01-bd11-1028df792f7c",
+      "nameMessageID": 601460,
+      "descriptionMessageID": 601648,
+      "target": 30,
+      "career": 3,
+      "points": 25,
+      "group": "AbyssalDeadspace",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 39,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601836,
+      "source": {
+        "metric": "abyssal:triglavian-kill",
+        "kind": "career-event"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofDestroyNpcInFrigate",
+      "id": "feb646ed-df01-8773-aeae-e2fc0c30f162",
+      "nameMessageID": 601511,
+      "descriptionMessageID": 601699,
+      "target": 75,
+      "career": 4,
+      "points": 25,
+      "group": "Combat",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 15,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601887,
+      "source": {
+        "attackerGroupID": 25,
+        "victim": "npc",
+        "kind": "combat-kills"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofDestroyNpcInDestroyer",
+      "id": "10758c72-b62c-8dc3-be5b-33855fd44556",
+      "nameMessageID": 601512,
+      "descriptionMessageID": 601700,
+      "target": 75,
+      "career": 4,
+      "points": 25,
+      "group": "Combat",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 16,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601888,
+      "source": {
+        "attackerGroupID": 420,
+        "victim": "npc",
+        "kind": "combat-kills"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofDestroyNpcInCruiser",
+      "id": "fcbfa461-8d2d-831d-9edf-5acf176f8199",
+      "nameMessageID": 601513,
+      "descriptionMessageID": 601701,
+      "target": 75,
+      "career": 4,
+      "points": 25,
+      "group": "Combat",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 17,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601889,
+      "source": {
+        "attackerGroupID": 26,
+        "victim": "npc",
+        "kind": "combat-kills"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofKillCapsuleers2",
+      "id": "096c4084-1cc5-8afe-8ede-b61894370a39",
+      "nameMessageID": 601514,
+      "descriptionMessageID": 601702,
+      "target": 2,
+      "career": 4,
+      "points": 25,
+      "group": "PvP",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 18,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601890,
+      "source": {
+        "victim": "player",
+        "kind": "combat-kills"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofKillCapsuleers3",
+      "id": "b513305c-c4c1-8820-a7a9-af28af3747ac",
+      "nameMessageID": 601515,
+      "descriptionMessageID": 601703,
+      "target": 3,
+      "career": 4,
+      "points": 25,
+      "group": "PvP",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 19,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601891,
+      "source": {
+        "victim": "player",
+        "kind": "combat-kills"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofKillCapsuleers4",
+      "id": "831b1462-dd69-89eb-9247-c5c5cfd82775",
+      "nameMessageID": 601516,
+      "descriptionMessageID": 601704,
+      "target": 4,
+      "career": 4,
+      "points": 25,
+      "group": "PvP",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 20,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601892,
+      "source": {
+        "victim": "player",
+        "kind": "combat-kills"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofKillCapsuleers5",
+      "id": "e649b037-d437-8057-a8e3-6ab6e666f4b4",
+      "nameMessageID": 601517,
+      "descriptionMessageID": 601705,
+      "target": 5,
+      "career": 4,
+      "points": 25,
+      "group": "PvP",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 21,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601893,
+      "source": {
+        "victim": "player",
+        "kind": "combat-kills"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofJoinFW",
+      "id": "115178d2-e8fa-8ffe-9ffd-8d0ee0d44856",
+      "nameMessageID": 601524,
+      "descriptionMessageID": 601712,
+      "target": 1,
+      "career": 4,
+      "points": 25,
+      "group": "FactionWarfare",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 22,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601900,
+      "source": {
+        "kind": "fw-membership"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofKillFwCapsuleeer1",
+      "id": "6108fe21-fcc0-8679-941d-da6a30cd6496",
+      "nameMessageID": 601525,
+      "descriptionMessageID": 601713,
+      "target": 1,
+      "career": 4,
+      "points": 25,
+      "group": "FactionWarfare",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 23,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601901,
+      "source": {
+        "factionWarfare": true,
+        "victim": "player",
+        "kind": "combat-kills"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofWebify",
+      "id": "745e5779-a115-8093-8178-a0b5d2b21cee",
+      "nameMessageID": 601506,
+      "descriptionMessageID": 601694,
+      "target": 300,
+      "career": 4,
+      "points": 25,
+      "group": "ElectronicWarfare",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 24,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601882,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:web"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofTargetPaint",
+      "id": "58a67a2e-c6e1-8c1e-b102-bffa212d0992",
+      "nameMessageID": 601507,
+      "descriptionMessageID": 601695,
+      "target": 300,
+      "career": 4,
+      "points": 25,
+      "group": "ElectronicWarfare",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 25,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601883,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:paint"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofWarpDisrupt",
+      "id": "0d57c7bd-9514-820c-837e-2f6aa064d349",
+      "nameMessageID": 601508,
+      "descriptionMessageID": 601696,
+      "target": 300,
+      "career": 4,
+      "points": 25,
+      "group": "ElectronicWarfare",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 26,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601884,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:warp-disrupt"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofWarpScramble",
+      "id": "c015c4a3-4a5e-8ff8-9f7f-9e62e2111ea7",
+      "nameMessageID": 601509,
+      "descriptionMessageID": 601697,
+      "target": 300,
+      "career": 4,
+      "points": 25,
+      "group": "ElectronicWarfare",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 27,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601885,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:warp-scramble"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofWeaponDisrupt",
+      "id": "99954694-3d3a-82d4-aedf-4a99b9b5c863",
+      "nameMessageID": 601510,
+      "descriptionMessageID": 601698,
+      "target": 300,
+      "career": 4,
+      "points": 25,
+      "group": "ElectronicWarfare",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 28,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601886,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:weapon-disrupt"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofDrainCapacitor50",
+      "id": "4188cd3d-618c-8d35-b723-0368087cfd5b",
+      "nameMessageID": 601518,
+      "descriptionMessageID": 601706,
+      "target": 50,
+      "career": 4,
+      "points": 25,
+      "group": "CapacitorWarfare",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 29,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601894,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:nosferatu"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofDrainCapacitor100",
+      "id": "be1a0b2d-01ed-86c1-8096-c7ff47932d7e",
+      "nameMessageID": 601519,
+      "descriptionMessageID": 601707,
+      "target": 100,
+      "career": 4,
+      "points": 25,
+      "group": "CapacitorWarfare",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 30,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601895,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:nosferatu"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofDrainCapacitor250",
+      "id": "8e04ea89-808f-8e50-9701-3a976873fb40",
+      "nameMessageID": 601520,
+      "descriptionMessageID": 601708,
+      "target": 250,
+      "career": 4,
+      "points": 25,
+      "group": "CapacitorWarfare",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 31,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601896,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:nosferatu"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofNeutralizeCapacitor100",
+      "id": "627f954a-dac0-8c4b-bf03-ab82a57530a4",
+      "nameMessageID": 601521,
+      "descriptionMessageID": 601709,
+      "target": 100,
+      "career": 4,
+      "points": 25,
+      "group": "CapacitorWarfare",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 32,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601897,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:neutralizer"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofNeutralizeCapacitor500",
+      "id": "94ed3fea-96d1-8e3f-b0fc-979eac27cb76",
+      "nameMessageID": 601522,
+      "descriptionMessageID": 601710,
+      "target": 500,
+      "career": 4,
+      "points": 25,
+      "group": "CapacitorWarfare",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 33,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601898,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:neutralizer"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofNeutralizeCapacitor2000",
+      "id": "509a74be-7e46-8486-a18a-80d119f43859",
+      "nameMessageID": 601523,
+      "descriptionMessageID": 601711,
+      "target": 2000,
+      "career": 4,
+      "points": 25,
+      "group": "CapacitorWarfare",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 34,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601899,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:neutralizer"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofRemoteBoostShieldHp500",
+      "id": "2232d677-f41c-82b2-995c-a567f0486f17",
+      "nameMessageID": 601529,
+      "descriptionMessageID": 601717,
+      "target": 500,
+      "career": 4,
+      "points": 25,
+      "group": "Support",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 35,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601905,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:shield-repair"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofRemoteBoostShieldHp1000",
+      "id": "56e4a8bd-e61f-8300-a7e1-2614933e277b",
+      "nameMessageID": 601530,
+      "descriptionMessageID": 601718,
+      "target": 1000,
+      "career": 4,
+      "points": 25,
+      "group": "Support",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 36,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601906,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:shield-repair"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofRemoteBoostShieldHp2500",
+      "id": "58d0847d-8a80-833c-841b-43368056dd73",
+      "nameMessageID": 601531,
+      "descriptionMessageID": 601719,
+      "target": 2500,
+      "career": 4,
+      "points": 25,
+      "group": "Support",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 37,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601907,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:shield-repair"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofRemoteRepArmorHp500",
+      "id": "3e73e8a9-fb70-8a48-a6df-e42165ecfec7",
+      "nameMessageID": 601532,
+      "descriptionMessageID": 601720,
+      "target": 500,
+      "career": 4,
+      "points": 25,
+      "group": "Support",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 38,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601908,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:armor-repair"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofRemoteRepArmorHp1000",
+      "id": "5fc8995e-172c-83b6-8dee-83b1a0f763a2",
+      "nameMessageID": 601533,
+      "descriptionMessageID": 601721,
+      "target": 1000,
+      "career": 4,
+      "points": 25,
+      "group": "Support",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 39,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601909,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:armor-repair"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    },
+    {
+      "symbol": "SofRemoteRepArmorHp2500",
+      "id": "0d1cb9e1-2e38-8d6a-937f-15d1227baeff",
+      "nameMessageID": 601534,
+      "descriptionMessageID": 601722,
+      "target": 2500,
+      "career": 4,
+      "points": 25,
+      "group": "Support",
+      "subtype": "CAREER_PATH_GOAL",
+      "order": 40,
+      "threat": 0,
+      "duration": 0,
+      "auraTextID": 601910,
+      "source": {
+        "kind": "career-event",
+        "metric": "effect:armor-repair"
+      },
+      "rewards": [
+        {
+          "label": 1,
+          "kind": "isk",
+          "amount": 50000
+        },
+        {
+          "label": 2,
+          "kind": "isk",
+          "amount": 50000
+        }
+      ],
+      "introducedIn": "evejs.air-career-program.2"
+    }
+  ],
+  "pointsPolicy": "Original activity points and reward identities are unchanged. Additional activities award 25 CP and offer alternative routes to the existing 750 CP graduations and overall milestones."
+}

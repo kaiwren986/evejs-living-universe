@@ -1,0 +1,288 @@
+[
+  {
+    "key": "duvolle_observatory",
+    "systemName": "Gererique",
+    "destinationName": "Duvolle Observatory",
+    "solarSystemID": 30003586,
+    "itemID": 8400300035860010,
+    "itemName": "Campaign Trail: Duvolle Observatory",
+    "typeID": 10645,
+    "challengeID": 90012805,
+    "nameID": 1900128201,
+    "textID": 1900128202,
+    "progressID": 1900128203,
+    "position": {
+      "x": 72377667408.85449,
+      "y": 10634895360,
+      "z": -23541721905.320312
+    },
+    "placement": {
+      "status": "temporary",
+      "source": "Event-only marker at the researched route coordinates; permanent scenery deferred."
+    }
+  },
+  {
+    "key": "fallen_capsuleers",
+    "systemName": "Molea",
+    "destinationName": "Fallen Capsuleers Memorial",
+    "solarSystemID": 30003876,
+    "itemID": 8400300038760010,
+    "itemName": "Campaign Trail: Fallen Capsuleers Memorial",
+    "typeID": 10645,
+    "challengeID": 90012806,
+    "nameID": 1900128211,
+    "textID": 1900128212,
+    "progressID": 1900128213,
+    "position": {
+      "x": -87824664636,
+      "y": -16942156988,
+      "z": -82848272998
+    },
+    "placement": {
+      "status": "temporary",
+      "source": "Event-only marker at the researched route coordinates; permanent scenery deferred."
+    }
+  },
+  {
+    "key": "doriam_memorial",
+    "systemName": "Kor-Azor Prime",
+    "destinationName": "Doriam II Memorial",
+    "solarSystemID": 30005038,
+    "itemID": 8400300050380010,
+    "itemName": "Campaign Trail: Doriam II Memorial",
+    "typeID": 10645,
+    "challengeID": 90012807,
+    "nameID": 1900128221,
+    "textID": 1900128222,
+    "progressID": 1900128223,
+    "position": {
+      "x": 685204070400,
+      "y": 24809349120,
+      "z": -851889310840
+    },
+    "placement": {
+      "status": "temporary",
+      "source": "Event-only marker at the researched route coordinates; permanent scenery deferred."
+    }
+  },
+  {
+    "key": "chribba_monument",
+    "systemName": "Amarr",
+    "destinationName": "Chribba Monument",
+    "solarSystemID": 30002187,
+    "itemID": 8400300021870010,
+    "itemName": "Campaign Trail: Chribba Monument",
+    "typeID": 10645,
+    "challengeID": 90012808,
+    "nameID": 1900128231,
+    "textID": 1900128232,
+    "progressID": 1900128233,
+    "position": {
+      "x": -518524492337,
+      "y": 30262517807,
+      "z": 1043066772460
+    },
+    "placement": {
+      "status": "temporary",
+      "source": "Event-only marker at the researched route coordinates; permanent scenery deferred."
+    }
+  },
+  {
+    "key": "mekhios_graveyard",
+    "systemName": "Sarum Prime",
+    "destinationName": "Mekhios Graveyard",
+    "solarSystemID": 30003522,
+    "itemID": 8400300035220010,
+    "itemName": "Campaign Trail: Mekhios Graveyard",
+    "typeID": 10645,
+    "challengeID": 90012809,
+    "nameID": 1900128241,
+    "textID": 1900128242,
+    "progressID": 1900128243,
+    "position": {
+      "x": 138826765009.31445,
+      "y": -5704953743.97876,
+      "z": -190182213513.58203
+    },
+    "placement": {
+      "status": "temporary",
+      "source": "Event-only marker at the researched route coordinates; permanent scenery deferred."
+    }
+  },
+  {
+    "key": "tetrimon_monastery",
+    "systemName": "Thebeka",
+    "destinationName": "Tetrimon Monastery",
+    "solarSystemID": 30002226,
+    "itemID": 8400300022260010,
+    "itemName": "Campaign Trail: Tetrimon Monastery",
+    "typeID": 10645,
+    "challengeID": 90012810,
+    "nameID": 1900128251,
+    "textID": 1900128252,
+    "progressID": 1900128253,
+    "position": {
+      "x": -33984308099410.883,
+      "y": 8688591058800,
+      "z": 9277023319342.488
+    },
+    "placement": {
+      "status": "temporary",
+      "source": "Event-only marker at the researched route coordinates; permanent scenery deferred."
+    }
+  },
+  {
+    "key": "nafomeh",
+    "systemName": "Nafomeh",
+    "destinationName": "Nafomeh Event Waypoint",
+    "solarSystemID": 30001651,
+    "itemID": 8400300016510010,
+    "itemName": "Campaign Trail: Nafomeh Event Waypoint",
+    "typeID": 10645,
+    "challengeID": 90012811,
+    "nameID": 1900128261,
+    "textID": 1900128262,
+    "progressID": 1900128263,
+    "position": {
+      "x": 630785679360,
+      "y": -10788976875.461914,
+      "z": -233736806400
+    },
+    "placement": {
+      "status": "temporary",
+      "source": "Event-only marker at the researched route coordinates; permanent scenery deferred."
+    }
+  },
+  {
+    "key": "traumark",
+    "systemName": "Saminer",
+    "destinationName": "Traumark Installation",
+    "solarSystemID": 30001721,
+    "itemID": 8400300017210010,
+    "itemName": "Campaign Trail: Traumark Installation",
+    "typeID": 10645,
+    "challengeID": 90012812,
+    "nameID": 1900128271,
+    "textID": 1900128272,
+    "progressID": 1900128273,
+    "position": {
+      "x": 156317982720,
+      "y": -31526952960,
+      "z": -215599964160
+    },
+    "placement": {
+      "status": "temporary",
+      "source": "Event-only marker at the researched route coordinates; permanent scenery deferred."
+    }
+  },
+  {
+    "key": "turba",
+    "systemName": "Turba",
+    "destinationName": "Turba Event Waypoint",
+    "solarSystemID": 30004098,
+    "itemID": 8400300040980010,
+    "itemName": "Campaign Trail: Turba Event Waypoint",
+    "typeID": 10645,
+    "challengeID": 90012813,
+    "nameID": 1900128281,
+    "textID": 1900128282,
+    "progressID": 1900128283,
+    "position": {
+      "x": 630785679360,
+      "y": -10788976875.461914,
+      "z": -233736806400
+    },
+    "placement": {
+      "status": "temporary",
+      "source": "Event-only marker at the researched route coordinates; permanent scenery deferred."
+    }
+  },
+  {
+    "key": "eve_travel_agency",
+    "systemName": "Mozzidit",
+    "destinationName": "EVE Travel Agency",
+    "solarSystemID": 30005263,
+    "itemID": 8400300052630010,
+    "itemName": "Campaign Trail: EVE Travel Agency",
+    "typeID": 10645,
+    "challengeID": 90012814,
+    "nameID": 1900128291,
+    "textID": 1900128292,
+    "progressID": 1900128293,
+    "position": {
+      "x": -615476060160,
+      "y": -37423718400,
+      "z": -1471106451600
+    },
+    "placement": {
+      "status": "temporary",
+      "source": "Event-only marker at the researched route coordinates; permanent scenery deferred."
+    }
+  },
+  {
+    "key": "eve_gate_research",
+    "systemName": "New Eden",
+    "destinationName": "EVE Gate Research Complex",
+    "solarSystemID": 30005286,
+    "itemID": 8400300052860010,
+    "itemName": "Campaign Trail: EVE Gate Research Complex",
+    "typeID": 10645,
+    "challengeID": 90012815,
+    "nameID": 1900128301,
+    "textID": 1900128302,
+    "progressID": 1900128303,
+    "position": {
+      "x": 14271178551.691406,
+      "y": -2700042240,
+      "z": 44591819080.671875
+    },
+    "placement": {
+      "status": "temporary",
+      "source": "Event-only marker at the researched route coordinates; permanent scenery deferred."
+    }
+  },
+  {
+    "key": "black_monolith",
+    "systemName": "Dead End",
+    "destinationName": "Black Monolith",
+    "solarSystemID": 30005285,
+    "itemID": 8400300052850010,
+    "itemName": "Campaign Trail: Black Monolith",
+    "typeID": 10645,
+    "challengeID": 90012816,
+    "nameID": 1900128311,
+    "textID": 1900128312,
+    "progressID": 1900128313,
+    "position": {
+      "x": 390583296000,
+      "y": 29208951963.291016,
+      "z": -126028052070.69434
+    },
+    "placement": {
+      "status": "temporary",
+      "source": "Event-only marker at the researched route coordinates; permanent scenery deferred."
+    }
+  },
+  {
+    "key": "duvolle_hq",
+    "systemName": "Carirgnottin",
+    "destinationName": "Duvolle HQ Waypoint",
+    "solarSystemID": 30003048,
+    "itemID": 8400300030480010,
+    "itemName": "Campaign Trail: Duvolle HQ Waypoint",
+    "typeID": 10645,
+    "challengeID": 90012817,
+    "nameID": 1900128321,
+    "textID": 1900128322,
+    "progressID": 1900128323,
+    "position": {
+      "x": -1316988669428.252,
+      "y": -134506996356.25586,
+      "z": -343232472339.67847
+    },
+    "placement": {
+      "status": "temporary",
+      "source": "Event-only marker at the researched route coordinates; permanent scenery deferred."
+    }
+  }
+]

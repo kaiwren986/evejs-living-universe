@@ -1,0 +1,9 @@
+# Cargo build output and downloaded TQ market snapshots. The repo root .gitignore only
+# names market-seederv2's target/ and cache/, so v3 carries its own.
+target/
+cache/
+
+# data/ is deliberately NOT ignored. doc/JITA_INDEX_SEED_PLAN.md decision 7 commits
+# data/price-manifest.json to the repo: captured CCP prices are permanent, so the manifest
+# is what makes every environment seed identically and every rebuild offline and reviewable.
+# Ignoring it would silently re-capture live TQ prices on each machine.

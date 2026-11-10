@@ -1,0 +1,70 @@
+{
+  "npcFleets": {
+    "miningNpcFleetProfileOrPool": "",
+    "miningNpcFleetHighSecProfileOrPool": "npc_mining_ops_highsec",
+    "miningNpcFleetLowSecProfileOrPool": "npc_mining_ops_lowsec",
+    "miningNpcFleetNullSecProfileOrPool": "npc_mining_ops_nullsec",
+    "miningNpcFleetDefaultCount": 1,
+    "miningNpcHaulerProfileOrPool": "",
+    "miningNpcHaulerHighSecProfileOrPool": "npc_mining_hauler_highsec",
+    "miningNpcHaulerLowSecProfileOrPool": "npc_mining_hauler_lowsec",
+    "miningNpcHaulerNullSecProfileOrPool": "npc_mining_hauler_nullsec",
+    "miningNpcHaulerDefaultCount": 1,
+    "miningNpcFleetLandingRadiusMeters": 2500,
+    "miningNpcResponseProfileOrPool": "npc_laser_hostiles",
+    "miningNpcResponseDefaultCount": 8,
+    "miningNpcStandingsEnabled": true,
+    "miningNpcHostileStandingThreshold": -5,
+    "miningNpcFriendlyStandingThreshold": 5,
+    "miningNpcFriendlyResponseProfileOrPool": "",
+    "miningNpcFriendlyResponseCount": 0,
+    "miningNpcNeutralResponseProfileOrPool": "npc_laser_hostiles",
+    "miningNpcNeutralResponseCount": 8,
+    "miningNpcHostileResponseProfileOrPool": "npc_laser_hostiles",
+    "miningNpcHostileResponseCount": 10,
+    "miningNpcResponseCooldownMs": 60000,
+    "miningNpcAggressionMemoryMs": 180000,
+    "miningNpcResponseRetreatDelayMs": 120000,
+    "miningNpcWarpIngressDurationMs": 2500,
+    "miningNpcFleetAutoMineEnabled": true,
+    "miningNpcHaulThresholdRatio": 0.85,
+    "miningNpcHaulerInitialDelayMs": 5400000,
+    "miningNpcHaulerRepeatDelayMs": 1800000,
+    "miningNpcFleetAutoResumeDelayMs": 0,
+    "miningNpcStartupSystemIDs": "",
+    "miningNpcStartupFleetCount": 0,
+    "miningNpcStartupFleetMinerCount": 3,
+    "miningNpcStartupFleetHaulerCount": 1,
+    "miningNpcStartupFleetProfileOrPool": "npc_mining_ops",
+    "miningNpcStartupHaulerProfileOrPool": "npc_mining_ops"
+  },
+  "general": {
+    "miningEnabled": true,
+    "miningSurveyScanDistanceMeters": 250000,
+    "miningBeltQuantityScale": 0.08,
+    "miningBeltMinimumAsteroidVolumeM3": 15000,
+    "miningBeltMaximumAsteroidVolumeM3": 3000000
+  },
+  "sites": {
+    "miningGeneratedIceSitesEnabled": true,
+    "miningGeneratedIceSiteLifetimeMinutes": 1440,
+    "miningGeneratedSiteRadiusMeters": 18000,
+    "miningIceChunksPerSite": 12,
+    "miningGasCloudsPerSite": 14,
+    "miningDepletedAsteroidRadiusRatio": 0.25
+  },
+  "industry": {
+    "miningStructureReprocessingEfficiency": 0.5,
+    "miningStructureGasDecompressionEfficiency": 0.79,
+    "industrySystemCostIndex": 0.04,
+    "industryJobSpeedMultiplier": 1
+  },
+  "ledgers": {
+    "miningCharacterLedgerDelayMs": 600000,
+    "miningObserverLedgerDelayMs": 3600000
+  },
+  "belts": {
+    "asteroidFieldsEnabled": true,
+    "asteroidBeltStartupReset": true
+  }
+}

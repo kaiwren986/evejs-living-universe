@@ -1,0 +1,5791 @@
+{
+  "lootTableID": "abyssal-space:empirical:tier-4:high-confidence-v1",
+  "sourceEligibleRuns": 1463,
+  "quantityPolicy": "retail_final",
+  "entries": [
+    {
+      "itemName": "'Packrat' Mobile Tractor Unit",
+      "itemTypeID": 33700,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 27,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 4
+        }
+      ]
+    },
+    {
+      "itemName": "Agency 'Hardshell' TB5 Dose II",
+      "itemTypeID": 46002,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Agitated Dark Filament",
+      "itemTypeID": 47892,
+      "classification": "progression_filament",
+      "dropChanceBps": 260,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 36
+        },
+        {
+          "quantity": 2,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Agitated Electrical Filament",
+      "itemTypeID": 47904,
+      "classification": "progression_filament",
+      "dropChanceBps": 308,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 44
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Agitated Exotic Filament",
+      "itemTypeID": 47888,
+      "classification": "progression_filament",
+      "dropChanceBps": 287,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 42
+        }
+      ]
+    },
+    {
+      "itemName": "Agitated Firestorm Filament",
+      "itemTypeID": 47896,
+      "classification": "progression_filament",
+      "dropChanceBps": 239,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 35
+        }
+      ]
+    },
+    {
+      "itemName": "Agitated Gamma Filament",
+      "itemTypeID": 47900,
+      "classification": "progression_filament",
+      "dropChanceBps": 246,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 35
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Baryon Exotic Plasma L Blueprint",
+      "itemTypeID": 48108,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 308,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 45
+        }
+      ]
+    },
+    {
+      "itemName": "Baryon Exotic Plasma M",
+      "itemTypeID": 47928,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 439,
+          "weight": 1
+        },
+        {
+          "quantity": 497,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Baryon Exotic Plasma M Blueprint",
+      "itemTypeID": 48103,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 513,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 75
+        }
+      ]
+    },
+    {
+      "itemName": "Baryon Exotic Plasma S Blueprint",
+      "itemTypeID": 48098,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 144,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 21
+        }
+      ]
+    },
+    {
+      "itemName": "Baryon Exotic Plasma XL Blueprint",
+      "itemTypeID": 53031,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 171,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 25
+        }
+      ]
+    },
+    {
+      "itemName": "Caldari Navy Nova Light Missile",
+      "itemTypeID": 27381,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 138,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Caldari Navy Scourge Light Missile",
+      "itemTypeID": 27361,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 24,
+          "weight": 1
+        },
+        {
+          "quantity": 76,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Cataclysmic Dark Filament",
+      "itemTypeID": 56140,
+      "classification": "progression_filament",
+      "dropChanceBps": 164,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 24
+        }
+      ]
+    },
+    {
+      "itemName": "Cataclysmic Electrical Filament",
+      "itemTypeID": 56139,
+      "classification": "progression_filament",
+      "dropChanceBps": 185,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 26
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Cataclysmic Exotic Filament",
+      "itemTypeID": 56141,
+      "classification": "progression_filament",
+      "dropChanceBps": 191,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 28
+        }
+      ]
+    },
+    {
+      "itemName": "Cataclysmic Firestorm Filament",
+      "itemTypeID": 56142,
+      "classification": "progression_filament",
+      "dropChanceBps": 246,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 34
+        },
+        {
+          "quantity": 2,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Cataclysmic Gamma Filament",
+      "itemTypeID": 56143,
+      "classification": "progression_filament",
+      "dropChanceBps": 246,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 36
+        }
+      ]
+    },
+    {
+      "itemName": "Chaotic Dark Filament",
+      "itemTypeID": 47895,
+      "classification": "progression_filament",
+      "dropChanceBps": 697,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 98
+        },
+        {
+          "quantity": 2,
+          "weight": 4
+        }
+      ]
+    },
+    {
+      "itemName": "Chaotic Electrical Filament",
+      "itemTypeID": 47907,
+      "classification": "progression_filament",
+      "dropChanceBps": 711,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 95
+        },
+        {
+          "quantity": 2,
+          "weight": 9
+        }
+      ]
+    },
+    {
+      "itemName": "Chaotic Exotic Filament",
+      "itemTypeID": 47891,
+      "classification": "progression_filament",
+      "dropChanceBps": 752,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 109
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Chaotic Firestorm Filament",
+      "itemTypeID": 47899,
+      "classification": "progression_filament",
+      "dropChanceBps": 766,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 105
+        },
+        {
+          "quantity": 2,
+          "weight": 7
+        }
+      ]
+    },
+    {
+      "itemName": "Chaotic Gamma Filament",
+      "itemTypeID": 47903,
+      "classification": "progression_filament",
+      "dropChanceBps": 1005,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 142
+        },
+        {
+          "quantity": 2,
+          "weight": 5
+        }
+      ]
+    },
+    {
+      "itemName": "Compact Entropic Radiation Sink",
+      "itemTypeID": 47909,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 355,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 49
+        },
+        {
+          "quantity": 2,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Conflagration M",
+      "itemTypeID": 12814,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 27,
+      "quantityBuckets": [
+        {
+          "quantity": 4,
+          "weight": 1
+        },
+        {
+          "quantity": 5,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Crystalline Isogen-10",
+      "itemTypeID": 47975,
+      "classification": "permanent_core",
+      "dropChanceBps": 8312,
+      "quantityBuckets": [
+        {
+          "quantity": 2,
+          "weight": 10
+        },
+        {
+          "quantity": 3,
+          "weight": 6
+        },
+        {
+          "quantity": 4,
+          "weight": 12
+        },
+        {
+          "quantity": 5,
+          "weight": 18
+        },
+        {
+          "quantity": 6,
+          "weight": 16
+        },
+        {
+          "quantity": 7,
+          "weight": 13
+        },
+        {
+          "quantity": 8,
+          "weight": 10
+        },
+        {
+          "quantity": 9,
+          "weight": 20
+        },
+        {
+          "quantity": 10,
+          "weight": 25
+        },
+        {
+          "quantity": 11,
+          "weight": 15
+        },
+        {
+          "quantity": 12,
+          "weight": 14
+        },
+        {
+          "quantity": 13,
+          "weight": 18
+        },
+        {
+          "quantity": 14,
+          "weight": 27
+        },
+        {
+          "quantity": 15,
+          "weight": 26
+        },
+        {
+          "quantity": 16,
+          "weight": 26
+        },
+        {
+          "quantity": 17,
+          "weight": 13
+        },
+        {
+          "quantity": 18,
+          "weight": 19
+        },
+        {
+          "quantity": 19,
+          "weight": 19
+        },
+        {
+          "quantity": 20,
+          "weight": 21
+        },
+        {
+          "quantity": 21,
+          "weight": 28
+        },
+        {
+          "quantity": 22,
+          "weight": 25
+        },
+        {
+          "quantity": 23,
+          "weight": 15
+        },
+        {
+          "quantity": 24,
+          "weight": 18
+        },
+        {
+          "quantity": 25,
+          "weight": 22
+        },
+        {
+          "quantity": 26,
+          "weight": 17
+        },
+        {
+          "quantity": 27,
+          "weight": 22
+        },
+        {
+          "quantity": 28,
+          "weight": 16
+        },
+        {
+          "quantity": 29,
+          "weight": 17
+        },
+        {
+          "quantity": 30,
+          "weight": 26
+        },
+        {
+          "quantity": 31,
+          "weight": 15
+        },
+        {
+          "quantity": 32,
+          "weight": 17
+        },
+        {
+          "quantity": 33,
+          "weight": 16
+        },
+        {
+          "quantity": 34,
+          "weight": 9
+        },
+        {
+          "quantity": 35,
+          "weight": 8
+        },
+        {
+          "quantity": 36,
+          "weight": 6
+        },
+        {
+          "quantity": 37,
+          "weight": 18
+        },
+        {
+          "quantity": 38,
+          "weight": 10
+        },
+        {
+          "quantity": 39,
+          "weight": 6
+        },
+        {
+          "quantity": 40,
+          "weight": 19
+        },
+        {
+          "quantity": 41,
+          "weight": 14
+        },
+        {
+          "quantity": 42,
+          "weight": 10
+        },
+        {
+          "quantity": 43,
+          "weight": 24
+        },
+        {
+          "quantity": 44,
+          "weight": 13
+        },
+        {
+          "quantity": 45,
+          "weight": 7
+        },
+        {
+          "quantity": 46,
+          "weight": 14
+        },
+        {
+          "quantity": 47,
+          "weight": 10
+        },
+        {
+          "quantity": 48,
+          "weight": 8
+        },
+        {
+          "quantity": 49,
+          "weight": 11
+        },
+        {
+          "quantity": 50,
+          "weight": 13
+        },
+        {
+          "quantity": 51,
+          "weight": 13
+        },
+        {
+          "quantity": 52,
+          "weight": 9
+        },
+        {
+          "quantity": 53,
+          "weight": 12
+        },
+        {
+          "quantity": 54,
+          "weight": 10
+        },
+        {
+          "quantity": 55,
+          "weight": 12
+        },
+        {
+          "quantity": 56,
+          "weight": 13
+        },
+        {
+          "quantity": 57,
+          "weight": 8
+        },
+        {
+          "quantity": 58,
+          "weight": 8
+        },
+        {
+          "quantity": 59,
+          "weight": 11
+        },
+        {
+          "quantity": 60,
+          "weight": 9
+        },
+        {
+          "quantity": 61,
+          "weight": 7
+        },
+        {
+          "quantity": 62,
+          "weight": 7
+        },
+        {
+          "quantity": 63,
+          "weight": 8
+        },
+        {
+          "quantity": 64,
+          "weight": 8
+        },
+        {
+          "quantity": 65,
+          "weight": 10
+        },
+        {
+          "quantity": 66,
+          "weight": 8
+        },
+        {
+          "quantity": 67,
+          "weight": 13
+        },
+        {
+          "quantity": 68,
+          "weight": 4
+        },
+        {
+          "quantity": 69,
+          "weight": 4
+        },
+        {
+          "quantity": 70,
+          "weight": 10
+        },
+        {
+          "quantity": 71,
+          "weight": 8
+        },
+        {
+          "quantity": 72,
+          "weight": 8
+        },
+        {
+          "quantity": 73,
+          "weight": 6
+        },
+        {
+          "quantity": 74,
+          "weight": 11
+        },
+        {
+          "quantity": 75,
+          "weight": 9
+        },
+        {
+          "quantity": 76,
+          "weight": 3
+        },
+        {
+          "quantity": 77,
+          "weight": 7
+        },
+        {
+          "quantity": 78,
+          "weight": 5
+        },
+        {
+          "quantity": 79,
+          "weight": 6
+        },
+        {
+          "quantity": 80,
+          "weight": 10
+        },
+        {
+          "quantity": 81,
+          "weight": 8
+        },
+        {
+          "quantity": 82,
+          "weight": 6
+        },
+        {
+          "quantity": 83,
+          "weight": 7
+        },
+        {
+          "quantity": 84,
+          "weight": 4
+        },
+        {
+          "quantity": 85,
+          "weight": 5
+        },
+        {
+          "quantity": 86,
+          "weight": 2
+        },
+        {
+          "quantity": 87,
+          "weight": 5
+        },
+        {
+          "quantity": 88,
+          "weight": 6
+        },
+        {
+          "quantity": 89,
+          "weight": 2
+        },
+        {
+          "quantity": 90,
+          "weight": 3
+        },
+        {
+          "quantity": 91,
+          "weight": 8
+        },
+        {
+          "quantity": 92,
+          "weight": 3
+        },
+        {
+          "quantity": 93,
+          "weight": 7
+        },
+        {
+          "quantity": 94,
+          "weight": 4
+        },
+        {
+          "quantity": 95,
+          "weight": 3
+        },
+        {
+          "quantity": 96,
+          "weight": 4
+        },
+        {
+          "quantity": 97,
+          "weight": 4
+        },
+        {
+          "quantity": 98,
+          "weight": 2
+        },
+        {
+          "quantity": 99,
+          "weight": 6
+        },
+        {
+          "quantity": 100,
+          "weight": 3
+        },
+        {
+          "quantity": 101,
+          "weight": 3
+        },
+        {
+          "quantity": 102,
+          "weight": 2
+        },
+        {
+          "quantity": 103,
+          "weight": 1
+        },
+        {
+          "quantity": 104,
+          "weight": 3
+        },
+        {
+          "quantity": 105,
+          "weight": 7
+        },
+        {
+          "quantity": 106,
+          "weight": 1
+        },
+        {
+          "quantity": 108,
+          "weight": 3
+        },
+        {
+          "quantity": 109,
+          "weight": 1
+        },
+        {
+          "quantity": 110,
+          "weight": 4
+        },
+        {
+          "quantity": 112,
+          "weight": 3
+        },
+        {
+          "quantity": 113,
+          "weight": 4
+        },
+        {
+          "quantity": 114,
+          "weight": 3
+        },
+        {
+          "quantity": 115,
+          "weight": 3
+        },
+        {
+          "quantity": 116,
+          "weight": 1
+        },
+        {
+          "quantity": 117,
+          "weight": 3
+        },
+        {
+          "quantity": 118,
+          "weight": 1
+        },
+        {
+          "quantity": 119,
+          "weight": 4
+        },
+        {
+          "quantity": 120,
+          "weight": 1
+        },
+        {
+          "quantity": 122,
+          "weight": 2
+        },
+        {
+          "quantity": 125,
+          "weight": 1
+        },
+        {
+          "quantity": 126,
+          "weight": 2
+        },
+        {
+          "quantity": 127,
+          "weight": 1
+        },
+        {
+          "quantity": 130,
+          "weight": 1
+        },
+        {
+          "quantity": 131,
+          "weight": 3
+        },
+        {
+          "quantity": 132,
+          "weight": 1
+        },
+        {
+          "quantity": 133,
+          "weight": 2
+        },
+        {
+          "quantity": 134,
+          "weight": 1
+        },
+        {
+          "quantity": 135,
+          "weight": 3
+        },
+        {
+          "quantity": 136,
+          "weight": 2
+        },
+        {
+          "quantity": 139,
+          "weight": 1
+        },
+        {
+          "quantity": 141,
+          "weight": 1
+        },
+        {
+          "quantity": 142,
+          "weight": 2
+        },
+        {
+          "quantity": 147,
+          "weight": 1
+        },
+        {
+          "quantity": 149,
+          "weight": 1
+        },
+        {
+          "quantity": 150,
+          "weight": 1
+        },
+        {
+          "quantity": 151,
+          "weight": 1
+        },
+        {
+          "quantity": 152,
+          "weight": 1
+        },
+        {
+          "quantity": 153,
+          "weight": 1
+        },
+        {
+          "quantity": 154,
+          "weight": 1
+        },
+        {
+          "quantity": 155,
+          "weight": 1
+        },
+        {
+          "quantity": 156,
+          "weight": 1
+        },
+        {
+          "quantity": 162,
+          "weight": 1
+        },
+        {
+          "quantity": 164,
+          "weight": 1
+        },
+        {
+          "quantity": 165,
+          "weight": 1
+        },
+        {
+          "quantity": 169,
+          "weight": 1
+        },
+        {
+          "quantity": 174,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Damavik Blueprint",
+      "itemTypeID": 47966,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 355,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 50
+        },
+        {
+          "quantity": 2,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed 100MN Afterburner Mutaplasmid",
+      "itemTypeID": 47754,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 82,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 12
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed 10MN Afterburner Mutaplasmid",
+      "itemTypeID": 47750,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 103,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 14
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed 1MN Afterburner Mutaplasmid",
+      "itemTypeID": 47746,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 48,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 7
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed 500MN Microwarpdrive Mutaplasmid",
+      "itemTypeID": 47299,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 89,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 12
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed 50MN Microwarpdrive Mutaplasmid",
+      "itemTypeID": 47742,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 75,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 11
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed 5MN Microwarpdrive Mutaplasmid",
+      "itemTypeID": 47737,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 96,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 13
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Ballistic Control System Mutaplasmid",
+      "itemTypeID": 49739,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 178,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 26
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Entropic Radiation Sink Mutaplasmid",
+      "itemTypeID": 49735,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 164,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 24
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Gyrostabilizer Mutaplasmid",
+      "itemTypeID": 49731,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 205,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 29
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Heat Sink Mutaplasmid",
+      "itemTypeID": 49727,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 178,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 26
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Heavy Energy Neutralizer Mutaplasmid",
+      "itemTypeID": 47829,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 89,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 13
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Heavy Energy Nosferatu Mutaplasmid",
+      "itemTypeID": 48424,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 68,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 10
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Large Armor Plate Mutaplasmid",
+      "itemTypeID": 47816,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 41,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 6
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Large Armor Repairer Mutaplasmid",
+      "itemTypeID": 47774,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 41,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 6
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Large Cap Battery Mutaplasmid",
+      "itemTypeID": 48436,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 75,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 11
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Large EMP Smartbomb Mutaplasmid",
+      "itemTypeID": 84398,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Large Proton Smartbomb Mutaplasmid",
+      "itemTypeID": 84409,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Large Shield Booster Mutaplasmid",
+      "itemTypeID": 47786,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 137,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Large Shield Extender Mutaplasmid",
+      "itemTypeID": 47805,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 116,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 17
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Magnetic Field Stabilizer Mutaplasmid",
+      "itemTypeID": 49723,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 178,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 25
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Medium Armor Plate Mutaplasmid",
+      "itemTypeID": 47813,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Medium Armor Repairer Mutaplasmid",
+      "itemTypeID": 47770,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 41,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 5
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Medium Cap Battery Mutaplasmid",
+      "itemTypeID": 48432,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 68,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 10
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Medium Energy Neutralizer Mutaplasmid",
+      "itemTypeID": 47825,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 116,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 17
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Medium Energy Nosferatu Mutaplasmid",
+      "itemTypeID": 48420,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 55,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 8
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Medium Graviton Smartbomb Mutaplasmid",
+      "itemTypeID": 84402,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Medium Proton Smartbomb Mutaplasmid",
+      "itemTypeID": 84403,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Medium Shield Booster Mutaplasmid",
+      "itemTypeID": 47782,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 171,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 25
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Medium Shield Extender Mutaplasmid",
+      "itemTypeID": 47801,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 48,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 7
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Small Armor Plate Mutaplasmid",
+      "itemTypeID": 47809,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 41,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 5
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Small Armor Repairer Mutaplasmid",
+      "itemTypeID": 47766,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Small Cap Battery Mutaplasmid",
+      "itemTypeID": 48428,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 68,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 10
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Small Energy Neutralizer Mutaplasmid",
+      "itemTypeID": 47821,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 96,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 14
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Small Energy Nosferatu Mutaplasmid",
+      "itemTypeID": 48416,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 89,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 13
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Small Proton Smartbomb Mutaplasmid",
+      "itemTypeID": 84407,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Small Shield Booster Mutaplasmid",
+      "itemTypeID": 47778,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 144,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 20
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Small Shield Extender Mutaplasmid",
+      "itemTypeID": 47797,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 123,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 17
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Stasis Webifier Mutaplasmid",
+      "itemTypeID": 47699,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 260,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 37
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Warp Disruptor Mutaplasmid",
+      "itemTypeID": 47733,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 137,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed Warp Scrambler Mutaplasmid",
+      "itemTypeID": 47729,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 273,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 39
+        },
+        {
+          "quantity": 3,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Decayed X-Large Shield Booster Mutaplasmid",
+      "itemTypeID": 47790,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 75,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 11
+        }
+      ]
+    },
+    {
+      "itemName": "Drekavac Blueprint",
+      "itemTypeID": 49715,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 349,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 51
+        }
+      ]
+    },
+    {
+      "itemName": "ElectroPunch Ultra M",
+      "itemTypeID": 54786,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 46,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Entropic Radiation Sink I Blueprint",
+      "itemTypeID": 48095,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 424,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 62
+        }
+      ]
+    },
+    {
+      "itemName": "Fierce Dark Filament",
+      "itemTypeID": 47893,
+      "classification": "progression_filament",
+      "dropChanceBps": 684,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 98
+        },
+        {
+          "quantity": 3,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Fierce Electrical Filament",
+      "itemTypeID": 47905,
+      "classification": "progression_filament",
+      "dropChanceBps": 725,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 104
+        },
+        {
+          "quantity": 2,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Fierce Exotic Filament",
+      "itemTypeID": 47889,
+      "classification": "progression_filament",
+      "dropChanceBps": 766,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 109
+        },
+        {
+          "quantity": 2,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Fierce Firestorm Filament",
+      "itemTypeID": 47897,
+      "classification": "progression_filament",
+      "dropChanceBps": 759,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 109
+        },
+        {
+          "quantity": 2,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Fierce Gamma Filament",
+      "itemTypeID": 47901,
+      "classification": "progression_filament",
+      "dropChanceBps": 759,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 108
+        },
+        {
+          "quantity": 2,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "GalvaSurge Condenser Pack M",
+      "itemTypeID": 54773,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 10,
+          "weight": 1
+        },
+        {
+          "quantity": 27,
+          "weight": 1
+        },
+        {
+          "quantity": 68,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Glorified Decayed Ballistic Control System Mutaplasmid Blueprint",
+      "itemTypeID": 86059,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Glorified Decayed Heat Sink Mutaplasmid Blueprint",
+      "itemTypeID": 86076,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Glorified Decayed Medium Cap Battery Mutaplasmid Blueprint",
+      "itemTypeID": 85998,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Glorified Decayed Small Cap Battery Mutaplasmid Blueprint",
+      "itemTypeID": 85981,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Glorified Decayed Stasis Webifier Mutaplasmid Blueprint",
+      "itemTypeID": 86044,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Glorified Decayed Warp Scrambler Mutaplasmid Blueprint",
+      "itemTypeID": 86058,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Glorified Gravid Ballistic Control System Mutaplasmid Blueprint",
+      "itemTypeID": 86060,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Glorified Gravid Gyrostabilizer Mutaplasmid Blueprint",
+      "itemTypeID": 86074,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid 100MN Afterburner Mutaplasmid",
+      "itemTypeID": 47756,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 34,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 5
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid 10MN Afterburner Mutaplasmid",
+      "itemTypeID": 47752,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid 1MN Afterburner Mutaplasmid",
+      "itemTypeID": 47748,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 27,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 4
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid 500MN Microwarpdrive Mutaplasmid",
+      "itemTypeID": 47744,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid 50MN Microwarpdrive Mutaplasmid",
+      "itemTypeID": 47741,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 62,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 9
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid 5MN Microwarpdrive Mutaplasmid",
+      "itemTypeID": 47739,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 41,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 6
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Ballistic Control System Mutaplasmid",
+      "itemTypeID": 49740,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 116,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 17
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Entropic Radiation Sink Mutaplasmid",
+      "itemTypeID": 49736,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 130,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 19
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Gyrostabilizer Mutaplasmid",
+      "itemTypeID": 49732,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 82,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 12
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Heat Sink Mutaplasmid",
+      "itemTypeID": 49728,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 55,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 8
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Heavy Energy Neutralizer Mutaplasmid",
+      "itemTypeID": 47831,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 41,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 6
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Heavy Energy Nosferatu Mutaplasmid",
+      "itemTypeID": 48425,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 34,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 4
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Large Armor Plate Mutaplasmid",
+      "itemTypeID": 47819,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Large Armor Repairer Mutaplasmid",
+      "itemTypeID": 47776,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Large Cap Battery Mutaplasmid",
+      "itemTypeID": 48437,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 34,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 5
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Large Shield Booster Mutaplasmid",
+      "itemTypeID": 47788,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 27,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 4
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Large Shield Extender Mutaplasmid",
+      "itemTypeID": 47807,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 41,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 6
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Magnetic Field Stabilizer Mutaplasmid",
+      "itemTypeID": 49724,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 89,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 13
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Medium Armor Plate Mutaplasmid",
+      "itemTypeID": 47815,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Medium Armor Repairer Mutaplasmid",
+      "itemTypeID": 47772,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Medium Cap Battery Mutaplasmid",
+      "itemTypeID": 48433,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 34,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 5
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Medium EMP Smartbomb Mutaplasmid",
+      "itemTypeID": 84418,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Medium Energy Neutralizer Mutaplasmid",
+      "itemTypeID": 47827,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Medium Energy Nosferatu Mutaplasmid",
+      "itemTypeID": 48421,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 34,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 5
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Medium Graviton Smartbomb Mutaplasmid",
+      "itemTypeID": 84420,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Medium Shield Booster Mutaplasmid",
+      "itemTypeID": 47784,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Medium Shield Extender Mutaplasmid",
+      "itemTypeID": 47803,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 55,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 8
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Small Armor Plate Mutaplasmid",
+      "itemTypeID": 47811,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Small Armor Repairer Mutaplasmid",
+      "itemTypeID": 47768,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Small Cap Battery Mutaplasmid",
+      "itemTypeID": 48429,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 27,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 4
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Small EMP Smartbomb Mutaplasmid",
+      "itemTypeID": 84410,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Small Energy Neutralizer Mutaplasmid",
+      "itemTypeID": 47823,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Small Energy Nosferatu Mutaplasmid",
+      "itemTypeID": 48417,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 27,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 4
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Small Graviton Smartbomb Mutaplasmid",
+      "itemTypeID": 84412,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Small Shield Booster Mutaplasmid",
+      "itemTypeID": 47780,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 75,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 11
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Small Shield Extender Mutaplasmid",
+      "itemTypeID": 47799,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 75,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 10
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Stasis Webifier Mutaplasmid",
+      "itemTypeID": 47701,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 103,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 15
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Warp Disruptor Mutaplasmid",
+      "itemTypeID": 47735,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 89,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 13
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid Warp Scrambler Mutaplasmid",
+      "itemTypeID": 47731,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 96,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 14
+        }
+      ]
+    },
+    {
+      "itemName": "Gravid X-Large Shield Booster Mutaplasmid",
+      "itemTypeID": 47792,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 27,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 4
+        }
+      ]
+    },
+    {
+      "itemName": "Heavy Compact Entropic Disintegrator Blueprint",
+      "itemTypeID": 48471,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 335,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 49
+        }
+      ]
+    },
+    {
+      "itemName": "Heavy Entropic Disintegrator I Blueprint",
+      "itemTypeID": 47971,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 554,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 79
+        },
+        {
+          "quantity": 2,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Heavy Mutadaptive Compact Remote Armor Repairer Blueprint",
+      "itemTypeID": 49777,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 178,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 26
+        }
+      ]
+    },
+    {
+      "itemName": "Heavy Mutadaptive Remote Armor Repairer I Blueprint",
+      "itemTypeID": 49775,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 294,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 43
+        }
+      ]
+    },
+    {
+      "itemName": "Heavy Mutadaptive Scoped Remote Armor Repairer Blueprint",
+      "itemTypeID": 49776,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 253,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 37
+        }
+      ]
+    },
+    {
+      "itemName": "Heavy Scoped Entropic Disintegrator Blueprint",
+      "itemTypeID": 48472,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 301,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 44
+        }
+      ]
+    },
+    {
+      "itemName": "Imperial Navy Multifrequency M",
+      "itemTypeID": 23089,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 5,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Inferno Fury Light Missile",
+      "itemTypeID": 24499,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Kikimora Blueprint",
+      "itemTypeID": 49714,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 273,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 39
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Large Disintegrator Specialization",
+      "itemTypeID": 47875,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 68,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 10
+        }
+      ]
+    },
+    {
+      "itemName": "Leshak Blueprint",
+      "itemTypeID": 47968,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 198,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 29
+        }
+      ]
+    },
+    {
+      "itemName": "Light Compact Entropic Disintegrator Blueprint",
+      "itemTypeID": 48469,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 362,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 53
+        }
+      ]
+    },
+    {
+      "itemName": "Light Entropic Disintegrator I Blueprint",
+      "itemTypeID": 47969,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 574,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 81
+        },
+        {
+          "quantity": 2,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Light Scoped Entropic Disintegrator Blueprint",
+      "itemTypeID": 48470,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 273,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 40
+        }
+      ]
+    },
+    {
+      "itemName": "Medium Disintegrator Specialization",
+      "itemTypeID": 47874,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 150,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 22
+        }
+      ]
+    },
+    {
+      "itemName": "Meson Exotic Plasma L Blueprint",
+      "itemTypeID": 48109,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 396,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 58
+        }
+      ]
+    },
+    {
+      "itemName": "Meson Exotic Plasma M",
+      "itemTypeID": 47929,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 447,
+          "weight": 1
+        },
+        {
+          "quantity": 490,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Meson Exotic Plasma M Blueprint",
+      "itemTypeID": 48104,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 335,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 48
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Meson Exotic Plasma S Blueprint",
+      "itemTypeID": 48099,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 239,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 34
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Meson Exotic Plasma XL Blueprint",
+      "itemTypeID": 53304,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 232,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 34
+        }
+      ]
+    },
+    {
+      "itemName": "Mjolnir Rage Heavy Assault Missile",
+      "itemTypeID": 24490,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 330,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Nova Fury Light Missile",
+      "itemTypeID": 24497,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 40,
+          "weight": 1
+        },
+        {
+          "quantity": 120,
+          "weight": 1
+        },
+        {
+          "quantity": 335,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Perun Heavy Mutadaptive Remote Armor Repairer",
+      "itemTypeID": 49774,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 41,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 6
+        }
+      ]
+    },
+    {
+      "itemName": "Perun Heavy Mutadaptive Remote Armor Repairer Blueprint",
+      "itemTypeID": 49779,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 41,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 6
+        }
+      ]
+    },
+    {
+      "itemName": "Quake S",
+      "itemTypeID": 12631,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 7868,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Raging Dark Filament",
+      "itemTypeID": 47894,
+      "classification": "progression_filament",
+      "dropChanceBps": 1353,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 185
+        },
+        {
+          "quantity": 2,
+          "weight": 10
+        },
+        {
+          "quantity": 3,
+          "weight": 2
+        },
+        {
+          "quantity": 4,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Raging Electrical Filament",
+      "itemTypeID": 47906,
+      "classification": "progression_filament",
+      "dropChanceBps": 1306,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 177
+        },
+        {
+          "quantity": 2,
+          "weight": 12
+        },
+        {
+          "quantity": 3,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Raging Exotic Filament",
+      "itemTypeID": 47890,
+      "classification": "progression_filament",
+      "dropChanceBps": 1326,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 181
+        },
+        {
+          "quantity": 2,
+          "weight": 13
+        }
+      ]
+    },
+    {
+      "itemName": "Raging Firestorm Filament",
+      "itemTypeID": 47898,
+      "classification": "progression_filament",
+      "dropChanceBps": 1429,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 199
+        },
+        {
+          "quantity": 2,
+          "weight": 10
+        }
+      ]
+    },
+    {
+      "itemName": "Raging Gamma Filament",
+      "itemTypeID": 47902,
+      "classification": "progression_filament",
+      "dropChanceBps": 1299,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 179
+        },
+        {
+          "quantity": 2,
+          "weight": 10
+        },
+        {
+          "quantity": 7,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Republic Fleet Fusion M",
+      "itemTypeID": 21904,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 105,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Republic Fleet Fusion S",
+      "itemTypeID": 21906,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 7848,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Rodiva Blueprint",
+      "itemTypeID": 49716,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 308,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 45
+        }
+      ]
+    },
+    {
+      "itemName": "Scorch M",
+      "itemTypeID": 12818,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 48,
+      "quantityBuckets": [
+        {
+          "quantity": 3,
+          "weight": 1
+        },
+        {
+          "quantity": 4,
+          "weight": 3
+        },
+        {
+          "quantity": 5,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Scourge Fury Light Missile",
+      "itemTypeID": 24495,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 80,
+          "weight": 1
+        },
+        {
+          "quantity": 2171,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "SKINR Studio Supplies",
+      "itemTypeID": 83709,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 34,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 5
+        }
+      ]
+    },
+    {
+      "itemName": "Small Disintegrator Specialization",
+      "itemTypeID": 47873,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 123,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 18
+        }
+      ]
+    },
+    {
+      "itemName": "Standard Blue Pill Booster",
+      "itemTypeID": 9950,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Supratidal Compact Entropic Disintegrator Blueprint",
+      "itemTypeID": 48473,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 294,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 41
+        },
+        {
+          "quantity": 2,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Supratidal Entropic Disintegrator I Blueprint",
+      "itemTypeID": 47973,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 314,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 46
+        }
+      ]
+    },
+    {
+      "itemName": "Supratidal Scoped Entropic Disintegrator Blueprint",
+      "itemTypeID": 48474,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 287,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 42
+        }
+      ]
+    },
+    {
+      "itemName": "Tetryon Exotic Plasma L Blueprint",
+      "itemTypeID": 48107,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 321,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 47
+        }
+      ]
+    },
+    {
+      "itemName": "Tetryon Exotic Plasma M Blueprint",
+      "itemTypeID": 48102,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 390,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 56
+        },
+        {
+          "quantity": 2,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Tetryon Exotic Plasma S Blueprint",
+      "itemTypeID": 48097,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 185,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 27
+        }
+      ]
+    },
+    {
+      "itemName": "Tetryon Exotic Plasma XL Blueprint",
+      "itemTypeID": 53303,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 212,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 31
+        }
+      ]
+    },
+    {
+      "itemName": "Tranquil Dark Filament",
+      "itemTypeID": 56132,
+      "classification": "progression_filament",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Tranquil Electrical Filament",
+      "itemTypeID": 56131,
+      "classification": "progression_filament",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Tranquil Exotic Filament",
+      "itemTypeID": 56133,
+      "classification": "progression_filament",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Tranquil Firestorm Filament",
+      "itemTypeID": 56134,
+      "classification": "progression_filament",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Tranquil Gamma Filament",
+      "itemTypeID": 56136,
+      "classification": "progression_filament",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Tremor S",
+      "itemTypeID": 12633,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 5980,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Triglavian Survey Database",
+      "itemTypeID": 48121,
+      "classification": "permanent_core",
+      "dropChanceBps": 9979,
+      "quantityBuckets": [
+        {
+          "quantity": 50,
+          "weight": 2
+        },
+        {
+          "quantity": 51,
+          "weight": 1
+        },
+        {
+          "quantity": 57,
+          "weight": 1
+        },
+        {
+          "quantity": 60,
+          "weight": 1
+        },
+        {
+          "quantity": 61,
+          "weight": 1
+        },
+        {
+          "quantity": 70,
+          "weight": 1
+        },
+        {
+          "quantity": 71,
+          "weight": 1
+        },
+        {
+          "quantity": 72,
+          "weight": 3
+        },
+        {
+          "quantity": 76,
+          "weight": 1
+        },
+        {
+          "quantity": 77,
+          "weight": 1
+        },
+        {
+          "quantity": 79,
+          "weight": 1
+        },
+        {
+          "quantity": 82,
+          "weight": 1
+        },
+        {
+          "quantity": 83,
+          "weight": 1
+        },
+        {
+          "quantity": 84,
+          "weight": 2
+        },
+        {
+          "quantity": 87,
+          "weight": 3
+        },
+        {
+          "quantity": 88,
+          "weight": 2
+        },
+        {
+          "quantity": 90,
+          "weight": 3
+        },
+        {
+          "quantity": 91,
+          "weight": 1
+        },
+        {
+          "quantity": 92,
+          "weight": 4
+        },
+        {
+          "quantity": 93,
+          "weight": 1
+        },
+        {
+          "quantity": 94,
+          "weight": 2
+        },
+        {
+          "quantity": 95,
+          "weight": 6
+        },
+        {
+          "quantity": 96,
+          "weight": 1
+        },
+        {
+          "quantity": 97,
+          "weight": 1
+        },
+        {
+          "quantity": 98,
+          "weight": 5
+        },
+        {
+          "quantity": 99,
+          "weight": 2
+        },
+        {
+          "quantity": 100,
+          "weight": 2
+        },
+        {
+          "quantity": 101,
+          "weight": 3
+        },
+        {
+          "quantity": 102,
+          "weight": 3
+        },
+        {
+          "quantity": 103,
+          "weight": 4
+        },
+        {
+          "quantity": 104,
+          "weight": 2
+        },
+        {
+          "quantity": 105,
+          "weight": 4
+        },
+        {
+          "quantity": 106,
+          "weight": 2
+        },
+        {
+          "quantity": 107,
+          "weight": 3
+        },
+        {
+          "quantity": 108,
+          "weight": 3
+        },
+        {
+          "quantity": 109,
+          "weight": 1
+        },
+        {
+          "quantity": 110,
+          "weight": 2
+        },
+        {
+          "quantity": 111,
+          "weight": 1
+        },
+        {
+          "quantity": 112,
+          "weight": 1
+        },
+        {
+          "quantity": 113,
+          "weight": 6
+        },
+        {
+          "quantity": 115,
+          "weight": 6
+        },
+        {
+          "quantity": 116,
+          "weight": 6
+        },
+        {
+          "quantity": 117,
+          "weight": 5
+        },
+        {
+          "quantity": 118,
+          "weight": 3
+        },
+        {
+          "quantity": 119,
+          "weight": 10
+        },
+        {
+          "quantity": 120,
+          "weight": 4
+        },
+        {
+          "quantity": 121,
+          "weight": 3
+        },
+        {
+          "quantity": 122,
+          "weight": 5
+        },
+        {
+          "quantity": 123,
+          "weight": 5
+        },
+        {
+          "quantity": 124,
+          "weight": 4
+        },
+        {
+          "quantity": 125,
+          "weight": 5
+        },
+        {
+          "quantity": 126,
+          "weight": 3
+        },
+        {
+          "quantity": 127,
+          "weight": 4
+        },
+        {
+          "quantity": 128,
+          "weight": 8
+        },
+        {
+          "quantity": 129,
+          "weight": 8
+        },
+        {
+          "quantity": 130,
+          "weight": 7
+        },
+        {
+          "quantity": 131,
+          "weight": 5
+        },
+        {
+          "quantity": 132,
+          "weight": 4
+        },
+        {
+          "quantity": 133,
+          "weight": 9
+        },
+        {
+          "quantity": 134,
+          "weight": 7
+        },
+        {
+          "quantity": 135,
+          "weight": 10
+        },
+        {
+          "quantity": 136,
+          "weight": 5
+        },
+        {
+          "quantity": 137,
+          "weight": 8
+        },
+        {
+          "quantity": 138,
+          "weight": 8
+        },
+        {
+          "quantity": 139,
+          "weight": 11
+        },
+        {
+          "quantity": 140,
+          "weight": 9
+        },
+        {
+          "quantity": 141,
+          "weight": 8
+        },
+        {
+          "quantity": 142,
+          "weight": 8
+        },
+        {
+          "quantity": 143,
+          "weight": 9
+        },
+        {
+          "quantity": 144,
+          "weight": 5
+        },
+        {
+          "quantity": 145,
+          "weight": 6
+        },
+        {
+          "quantity": 146,
+          "weight": 16
+        },
+        {
+          "quantity": 147,
+          "weight": 7
+        },
+        {
+          "quantity": 148,
+          "weight": 6
+        },
+        {
+          "quantity": 149,
+          "weight": 5
+        },
+        {
+          "quantity": 150,
+          "weight": 6
+        },
+        {
+          "quantity": 151,
+          "weight": 6
+        },
+        {
+          "quantity": 152,
+          "weight": 9
+        },
+        {
+          "quantity": 153,
+          "weight": 6
+        },
+        {
+          "quantity": 154,
+          "weight": 9
+        },
+        {
+          "quantity": 155,
+          "weight": 8
+        },
+        {
+          "quantity": 156,
+          "weight": 7
+        },
+        {
+          "quantity": 157,
+          "weight": 7
+        },
+        {
+          "quantity": 158,
+          "weight": 4
+        },
+        {
+          "quantity": 159,
+          "weight": 8
+        },
+        {
+          "quantity": 160,
+          "weight": 7
+        },
+        {
+          "quantity": 161,
+          "weight": 7
+        },
+        {
+          "quantity": 162,
+          "weight": 8
+        },
+        {
+          "quantity": 163,
+          "weight": 8
+        },
+        {
+          "quantity": 164,
+          "weight": 5
+        },
+        {
+          "quantity": 165,
+          "weight": 8
+        },
+        {
+          "quantity": 166,
+          "weight": 10
+        },
+        {
+          "quantity": 167,
+          "weight": 8
+        },
+        {
+          "quantity": 168,
+          "weight": 3
+        },
+        {
+          "quantity": 169,
+          "weight": 4
+        },
+        {
+          "quantity": 170,
+          "weight": 11
+        },
+        {
+          "quantity": 171,
+          "weight": 7
+        },
+        {
+          "quantity": 172,
+          "weight": 16
+        },
+        {
+          "quantity": 173,
+          "weight": 7
+        },
+        {
+          "quantity": 174,
+          "weight": 7
+        },
+        {
+          "quantity": 175,
+          "weight": 7
+        },
+        {
+          "quantity": 176,
+          "weight": 8
+        },
+        {
+          "quantity": 177,
+          "weight": 12
+        },
+        {
+          "quantity": 178,
+          "weight": 6
+        },
+        {
+          "quantity": 179,
+          "weight": 2
+        },
+        {
+          "quantity": 180,
+          "weight": 9
+        },
+        {
+          "quantity": 181,
+          "weight": 9
+        },
+        {
+          "quantity": 182,
+          "weight": 7
+        },
+        {
+          "quantity": 183,
+          "weight": 7
+        },
+        {
+          "quantity": 184,
+          "weight": 15
+        },
+        {
+          "quantity": 185,
+          "weight": 6
+        },
+        {
+          "quantity": 186,
+          "weight": 15
+        },
+        {
+          "quantity": 187,
+          "weight": 7
+        },
+        {
+          "quantity": 188,
+          "weight": 9
+        },
+        {
+          "quantity": 189,
+          "weight": 6
+        },
+        {
+          "quantity": 190,
+          "weight": 11
+        },
+        {
+          "quantity": 191,
+          "weight": 4
+        },
+        {
+          "quantity": 192,
+          "weight": 8
+        },
+        {
+          "quantity": 193,
+          "weight": 8
+        },
+        {
+          "quantity": 194,
+          "weight": 9
+        },
+        {
+          "quantity": 195,
+          "weight": 9
+        },
+        {
+          "quantity": 196,
+          "weight": 15
+        },
+        {
+          "quantity": 197,
+          "weight": 7
+        },
+        {
+          "quantity": 198,
+          "weight": 10
+        },
+        {
+          "quantity": 199,
+          "weight": 9
+        },
+        {
+          "quantity": 200,
+          "weight": 7
+        },
+        {
+          "quantity": 201,
+          "weight": 10
+        },
+        {
+          "quantity": 202,
+          "weight": 5
+        },
+        {
+          "quantity": 203,
+          "weight": 7
+        },
+        {
+          "quantity": 204,
+          "weight": 6
+        },
+        {
+          "quantity": 205,
+          "weight": 6
+        },
+        {
+          "quantity": 206,
+          "weight": 10
+        },
+        {
+          "quantity": 207,
+          "weight": 6
+        },
+        {
+          "quantity": 208,
+          "weight": 6
+        },
+        {
+          "quantity": 209,
+          "weight": 7
+        },
+        {
+          "quantity": 210,
+          "weight": 3
+        },
+        {
+          "quantity": 211,
+          "weight": 5
+        },
+        {
+          "quantity": 212,
+          "weight": 12
+        },
+        {
+          "quantity": 213,
+          "weight": 11
+        },
+        {
+          "quantity": 214,
+          "weight": 9
+        },
+        {
+          "quantity": 215,
+          "weight": 3
+        },
+        {
+          "quantity": 216,
+          "weight": 9
+        },
+        {
+          "quantity": 217,
+          "weight": 7
+        },
+        {
+          "quantity": 218,
+          "weight": 4
+        },
+        {
+          "quantity": 219,
+          "weight": 14
+        },
+        {
+          "quantity": 220,
+          "weight": 6
+        },
+        {
+          "quantity": 221,
+          "weight": 4
+        },
+        {
+          "quantity": 222,
+          "weight": 10
+        },
+        {
+          "quantity": 223,
+          "weight": 7
+        },
+        {
+          "quantity": 224,
+          "weight": 3
+        },
+        {
+          "quantity": 225,
+          "weight": 8
+        },
+        {
+          "quantity": 226,
+          "weight": 8
+        },
+        {
+          "quantity": 227,
+          "weight": 5
+        },
+        {
+          "quantity": 228,
+          "weight": 5
+        },
+        {
+          "quantity": 229,
+          "weight": 9
+        },
+        {
+          "quantity": 230,
+          "weight": 11
+        },
+        {
+          "quantity": 231,
+          "weight": 7
+        },
+        {
+          "quantity": 232,
+          "weight": 5
+        },
+        {
+          "quantity": 233,
+          "weight": 5
+        },
+        {
+          "quantity": 234,
+          "weight": 4
+        },
+        {
+          "quantity": 235,
+          "weight": 1
+        },
+        {
+          "quantity": 236,
+          "weight": 4
+        },
+        {
+          "quantity": 237,
+          "weight": 7
+        },
+        {
+          "quantity": 238,
+          "weight": 4
+        },
+        {
+          "quantity": 239,
+          "weight": 4
+        },
+        {
+          "quantity": 240,
+          "weight": 8
+        },
+        {
+          "quantity": 241,
+          "weight": 12
+        },
+        {
+          "quantity": 242,
+          "weight": 2
+        },
+        {
+          "quantity": 243,
+          "weight": 1
+        },
+        {
+          "quantity": 244,
+          "weight": 5
+        },
+        {
+          "quantity": 245,
+          "weight": 4
+        },
+        {
+          "quantity": 246,
+          "weight": 2
+        },
+        {
+          "quantity": 247,
+          "weight": 7
+        },
+        {
+          "quantity": 248,
+          "weight": 3
+        },
+        {
+          "quantity": 249,
+          "weight": 8
+        },
+        {
+          "quantity": 250,
+          "weight": 6
+        },
+        {
+          "quantity": 251,
+          "weight": 7
+        },
+        {
+          "quantity": 252,
+          "weight": 1
+        },
+        {
+          "quantity": 253,
+          "weight": 6
+        },
+        {
+          "quantity": 254,
+          "weight": 9
+        },
+        {
+          "quantity": 255,
+          "weight": 7
+        },
+        {
+          "quantity": 256,
+          "weight": 7
+        },
+        {
+          "quantity": 257,
+          "weight": 6
+        },
+        {
+          "quantity": 258,
+          "weight": 9
+        },
+        {
+          "quantity": 259,
+          "weight": 5
+        },
+        {
+          "quantity": 260,
+          "weight": 6
+        },
+        {
+          "quantity": 261,
+          "weight": 9
+        },
+        {
+          "quantity": 263,
+          "weight": 6
+        },
+        {
+          "quantity": 264,
+          "weight": 10
+        },
+        {
+          "quantity": 265,
+          "weight": 7
+        },
+        {
+          "quantity": 266,
+          "weight": 1
+        },
+        {
+          "quantity": 267,
+          "weight": 5
+        },
+        {
+          "quantity": 268,
+          "weight": 4
+        },
+        {
+          "quantity": 269,
+          "weight": 7
+        },
+        {
+          "quantity": 270,
+          "weight": 5
+        },
+        {
+          "quantity": 271,
+          "weight": 5
+        },
+        {
+          "quantity": 272,
+          "weight": 2
+        },
+        {
+          "quantity": 273,
+          "weight": 6
+        },
+        {
+          "quantity": 274,
+          "weight": 3
+        },
+        {
+          "quantity": 275,
+          "weight": 4
+        },
+        {
+          "quantity": 276,
+          "weight": 6
+        },
+        {
+          "quantity": 277,
+          "weight": 5
+        },
+        {
+          "quantity": 278,
+          "weight": 1
+        },
+        {
+          "quantity": 279,
+          "weight": 7
+        },
+        {
+          "quantity": 280,
+          "weight": 5
+        },
+        {
+          "quantity": 281,
+          "weight": 4
+        },
+        {
+          "quantity": 282,
+          "weight": 5
+        },
+        {
+          "quantity": 283,
+          "weight": 6
+        },
+        {
+          "quantity": 284,
+          "weight": 8
+        },
+        {
+          "quantity": 285,
+          "weight": 3
+        },
+        {
+          "quantity": 286,
+          "weight": 3
+        },
+        {
+          "quantity": 287,
+          "weight": 3
+        },
+        {
+          "quantity": 288,
+          "weight": 4
+        },
+        {
+          "quantity": 289,
+          "weight": 1
+        },
+        {
+          "quantity": 290,
+          "weight": 5
+        },
+        {
+          "quantity": 291,
+          "weight": 6
+        },
+        {
+          "quantity": 292,
+          "weight": 4
+        },
+        {
+          "quantity": 293,
+          "weight": 5
+        },
+        {
+          "quantity": 294,
+          "weight": 5
+        },
+        {
+          "quantity": 295,
+          "weight": 2
+        },
+        {
+          "quantity": 296,
+          "weight": 4
+        },
+        {
+          "quantity": 297,
+          "weight": 2
+        },
+        {
+          "quantity": 298,
+          "weight": 4
+        },
+        {
+          "quantity": 299,
+          "weight": 1
+        },
+        {
+          "quantity": 300,
+          "weight": 2
+        },
+        {
+          "quantity": 301,
+          "weight": 3
+        },
+        {
+          "quantity": 302,
+          "weight": 7
+        },
+        {
+          "quantity": 303,
+          "weight": 1
+        },
+        {
+          "quantity": 304,
+          "weight": 4
+        },
+        {
+          "quantity": 305,
+          "weight": 5
+        },
+        {
+          "quantity": 306,
+          "weight": 2
+        },
+        {
+          "quantity": 307,
+          "weight": 3
+        },
+        {
+          "quantity": 308,
+          "weight": 1
+        },
+        {
+          "quantity": 309,
+          "weight": 1
+        },
+        {
+          "quantity": 310,
+          "weight": 2
+        },
+        {
+          "quantity": 311,
+          "weight": 2
+        },
+        {
+          "quantity": 312,
+          "weight": 2
+        },
+        {
+          "quantity": 313,
+          "weight": 4
+        },
+        {
+          "quantity": 314,
+          "weight": 4
+        },
+        {
+          "quantity": 315,
+          "weight": 2
+        },
+        {
+          "quantity": 316,
+          "weight": 2
+        },
+        {
+          "quantity": 317,
+          "weight": 4
+        },
+        {
+          "quantity": 318,
+          "weight": 5
+        },
+        {
+          "quantity": 319,
+          "weight": 4
+        },
+        {
+          "quantity": 320,
+          "weight": 2
+        },
+        {
+          "quantity": 321,
+          "weight": 2
+        },
+        {
+          "quantity": 322,
+          "weight": 2
+        },
+        {
+          "quantity": 323,
+          "weight": 3
+        },
+        {
+          "quantity": 325,
+          "weight": 4
+        },
+        {
+          "quantity": 326,
+          "weight": 1
+        },
+        {
+          "quantity": 327,
+          "weight": 3
+        },
+        {
+          "quantity": 328,
+          "weight": 3
+        },
+        {
+          "quantity": 329,
+          "weight": 2
+        },
+        {
+          "quantity": 330,
+          "weight": 3
+        },
+        {
+          "quantity": 331,
+          "weight": 2
+        },
+        {
+          "quantity": 332,
+          "weight": 2
+        },
+        {
+          "quantity": 333,
+          "weight": 2
+        },
+        {
+          "quantity": 334,
+          "weight": 2
+        },
+        {
+          "quantity": 335,
+          "weight": 3
+        },
+        {
+          "quantity": 336,
+          "weight": 2
+        },
+        {
+          "quantity": 337,
+          "weight": 3
+        },
+        {
+          "quantity": 338,
+          "weight": 1
+        },
+        {
+          "quantity": 339,
+          "weight": 1
+        },
+        {
+          "quantity": 342,
+          "weight": 1
+        },
+        {
+          "quantity": 343,
+          "weight": 1
+        },
+        {
+          "quantity": 344,
+          "weight": 2
+        },
+        {
+          "quantity": 347,
+          "weight": 2
+        },
+        {
+          "quantity": 349,
+          "weight": 1
+        },
+        {
+          "quantity": 351,
+          "weight": 3
+        },
+        {
+          "quantity": 352,
+          "weight": 1
+        },
+        {
+          "quantity": 355,
+          "weight": 1
+        },
+        {
+          "quantity": 356,
+          "weight": 1
+        },
+        {
+          "quantity": 357,
+          "weight": 1
+        },
+        {
+          "quantity": 359,
+          "weight": 1
+        },
+        {
+          "quantity": 360,
+          "weight": 1
+        },
+        {
+          "quantity": 363,
+          "weight": 1
+        },
+        {
+          "quantity": 364,
+          "weight": 1
+        },
+        {
+          "quantity": 367,
+          "weight": 1
+        },
+        {
+          "quantity": 368,
+          "weight": 1
+        },
+        {
+          "quantity": 371,
+          "weight": 1
+        },
+        {
+          "quantity": 373,
+          "weight": 2
+        },
+        {
+          "quantity": 374,
+          "weight": 1
+        },
+        {
+          "quantity": 375,
+          "weight": 1
+        },
+        {
+          "quantity": 377,
+          "weight": 1
+        },
+        {
+          "quantity": 378,
+          "weight": 1
+        },
+        {
+          "quantity": 379,
+          "weight": 1
+        },
+        {
+          "quantity": 386,
+          "weight": 2
+        },
+        {
+          "quantity": 387,
+          "weight": 2
+        },
+        {
+          "quantity": 388,
+          "weight": 1
+        },
+        {
+          "quantity": 396,
+          "weight": 1
+        },
+        {
+          "quantity": 403,
+          "weight": 1
+        },
+        {
+          "quantity": 406,
+          "weight": 1
+        },
+        {
+          "quantity": 407,
+          "weight": 1
+        },
+        {
+          "quantity": 409,
+          "weight": 1
+        },
+        {
+          "quantity": 410,
+          "weight": 1
+        },
+        {
+          "quantity": 413,
+          "weight": 3
+        },
+        {
+          "quantity": 414,
+          "weight": 1
+        },
+        {
+          "quantity": 417,
+          "weight": 1
+        },
+        {
+          "quantity": 418,
+          "weight": 3
+        },
+        {
+          "quantity": 419,
+          "weight": 2
+        },
+        {
+          "quantity": 421,
+          "weight": 1
+        },
+        {
+          "quantity": 424,
+          "weight": 1
+        },
+        {
+          "quantity": 429,
+          "weight": 1
+        },
+        {
+          "quantity": 430,
+          "weight": 2
+        },
+        {
+          "quantity": 435,
+          "weight": 2
+        },
+        {
+          "quantity": 436,
+          "weight": 1
+        },
+        {
+          "quantity": 439,
+          "weight": 2
+        },
+        {
+          "quantity": 440,
+          "weight": 2
+        },
+        {
+          "quantity": 442,
+          "weight": 2
+        },
+        {
+          "quantity": 444,
+          "weight": 1
+        },
+        {
+          "quantity": 453,
+          "weight": 1
+        },
+        {
+          "quantity": 455,
+          "weight": 1
+        },
+        {
+          "quantity": 462,
+          "weight": 1
+        },
+        {
+          "quantity": 464,
+          "weight": 1
+        },
+        {
+          "quantity": 474,
+          "weight": 1
+        },
+        {
+          "quantity": 482,
+          "weight": 1
+        },
+        {
+          "quantity": 484,
+          "weight": 1
+        },
+        {
+          "quantity": 492,
+          "weight": 1
+        },
+        {
+          "quantity": 494,
+          "weight": 2
+        },
+        {
+          "quantity": 496,
+          "weight": 1
+        },
+        {
+          "quantity": 500,
+          "weight": 1
+        },
+        {
+          "quantity": 503,
+          "weight": 1
+        },
+        {
+          "quantity": 515,
+          "weight": 1
+        },
+        {
+          "quantity": 519,
+          "weight": 1
+        },
+        {
+          "quantity": 1032,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable 100MN Afterburner Mutaplasmid",
+      "itemTypeID": 47755,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable 10MN Afterburner Mutaplasmid",
+      "itemTypeID": 47751,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable 1MN Afterburner Mutaplasmid",
+      "itemTypeID": 47747,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable 500MN Microwarpdrive Mutaplasmid",
+      "itemTypeID": 47743,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable 50MN Microwarpdrive Mutaplasmid",
+      "itemTypeID": 47297,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Ballistic Control System Mutaplasmid",
+      "itemTypeID": 49741,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 75,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 11
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Entropic Radiation Sink Mutaplasmid",
+      "itemTypeID": 49737,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 34,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 5
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Gyrostabilizer Mutaplasmid",
+      "itemTypeID": 49733,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 55,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 8
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Heat Sink Mutaplasmid",
+      "itemTypeID": 49729,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 68,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 10
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Heavy Energy Neutralizer Mutaplasmid",
+      "itemTypeID": 47830,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 34,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 5
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Heavy Energy Nosferatu Mutaplasmid",
+      "itemTypeID": 48426,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Large Armor Plate Mutaplasmid",
+      "itemTypeID": 47818,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Large Armor Repairer Mutaplasmid",
+      "itemTypeID": 47775,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Large Cap Battery Mutaplasmid",
+      "itemTypeID": 48438,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Large EMP Smartbomb Mutaplasmid",
+      "itemTypeID": 84422,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Large Proton Smartbomb Mutaplasmid",
+      "itemTypeID": 84433,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Large Shield Booster Mutaplasmid",
+      "itemTypeID": 47787,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Magnetic Field Stabilizer Mutaplasmid",
+      "itemTypeID": 49725,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 96,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 14
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Medium Cap Battery Mutaplasmid",
+      "itemTypeID": 48434,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Medium Energy Neutralizer Mutaplasmid",
+      "itemTypeID": 47826,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Medium Energy Nosferatu Mutaplasmid",
+      "itemTypeID": 48422,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Medium Shield Booster Mutaplasmid",
+      "itemTypeID": 47783,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 34,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 5
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Medium Shield Extender Mutaplasmid",
+      "itemTypeID": 47802,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 41,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 6
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Small Armor Plate Mutaplasmid",
+      "itemTypeID": 47810,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 7,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Small Armor Repairer Mutaplasmid",
+      "itemTypeID": 47767,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Small Cap Battery Mutaplasmid",
+      "itemTypeID": 48430,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Small Energy Neutralizer Mutaplasmid",
+      "itemTypeID": 47822,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Small Energy Nosferatu Mutaplasmid",
+      "itemTypeID": 48418,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Small Shield Booster Mutaplasmid",
+      "itemTypeID": 47779,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Stasis Webifier Mutaplasmid",
+      "itemTypeID": 47700,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 21,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Warp Disruptor Mutaplasmid",
+      "itemTypeID": 47734,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 14,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable Warp Scrambler Mutaplasmid",
+      "itemTypeID": 47730,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 62,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 9
+        }
+      ]
+    },
+    {
+      "itemName": "Unstable X-Large Shield Booster Mutaplasmid",
+      "itemTypeID": 47791,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 55,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 8
+        }
+      ]
+    },
+    {
+      "itemName": "Vedmak Blueprint",
+      "itemTypeID": 47967,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 287,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 42
+        }
+      ]
+    },
+    {
+      "itemName": "Veles Heavy Entropic Disintegrator Blueprint",
+      "itemTypeID": 52349,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 68,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 10
+        }
+      ]
+    },
+    {
+      "itemName": "Veles Light Entropic Disintegrator Blueprint",
+      "itemTypeID": 52348,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 55,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 8
+        }
+      ]
+    },
+    {
+      "itemName": "Veles Supratidal Entropic Disintegrator Blueprint",
+      "itemTypeID": 52350,
+      "classification": "blueprint_module_mutaplasmid_material",
+      "dropChanceBps": 109,
+      "quantityBuckets": [
+        {
+          "quantity": 1,
+          "weight": 16
+        }
+      ]
+    },
+    {
+      "itemName": "Zero-Point Condensate",
+      "itemTypeID": 48112,
+      "classification": "permanent_core",
+      "dropChanceBps": 7676,
+      "quantityBuckets": [
+        {
+          "quantity": 2,
+          "weight": 5
+        },
+        {
+          "quantity": 3,
+          "weight": 3
+        },
+        {
+          "quantity": 4,
+          "weight": 1
+        },
+        {
+          "quantity": 5,
+          "weight": 5
+        },
+        {
+          "quantity": 6,
+          "weight": 2
+        },
+        {
+          "quantity": 7,
+          "weight": 4
+        },
+        {
+          "quantity": 8,
+          "weight": 3
+        },
+        {
+          "quantity": 9,
+          "weight": 4
+        },
+        {
+          "quantity": 10,
+          "weight": 2
+        },
+        {
+          "quantity": 11,
+          "weight": 4
+        },
+        {
+          "quantity": 12,
+          "weight": 8
+        },
+        {
+          "quantity": 13,
+          "weight": 5
+        },
+        {
+          "quantity": 14,
+          "weight": 2
+        },
+        {
+          "quantity": 15,
+          "weight": 7
+        },
+        {
+          "quantity": 16,
+          "weight": 1
+        },
+        {
+          "quantity": 17,
+          "weight": 4
+        },
+        {
+          "quantity": 18,
+          "weight": 8
+        },
+        {
+          "quantity": 19,
+          "weight": 5
+        },
+        {
+          "quantity": 20,
+          "weight": 11
+        },
+        {
+          "quantity": 21,
+          "weight": 7
+        },
+        {
+          "quantity": 22,
+          "weight": 7
+        },
+        {
+          "quantity": 23,
+          "weight": 8
+        },
+        {
+          "quantity": 24,
+          "weight": 11
+        },
+        {
+          "quantity": 25,
+          "weight": 15
+        },
+        {
+          "quantity": 26,
+          "weight": 5
+        },
+        {
+          "quantity": 27,
+          "weight": 9
+        },
+        {
+          "quantity": 28,
+          "weight": 15
+        },
+        {
+          "quantity": 29,
+          "weight": 10
+        },
+        {
+          "quantity": 30,
+          "weight": 8
+        },
+        {
+          "quantity": 31,
+          "weight": 6
+        },
+        {
+          "quantity": 32,
+          "weight": 6
+        },
+        {
+          "quantity": 33,
+          "weight": 3
+        },
+        {
+          "quantity": 34,
+          "weight": 4
+        },
+        {
+          "quantity": 35,
+          "weight": 6
+        },
+        {
+          "quantity": 36,
+          "weight": 11
+        },
+        {
+          "quantity": 37,
+          "weight": 9
+        },
+        {
+          "quantity": 38,
+          "weight": 7
+        },
+        {
+          "quantity": 39,
+          "weight": 9
+        },
+        {
+          "quantity": 40,
+          "weight": 13
+        },
+        {
+          "quantity": 41,
+          "weight": 7
+        },
+        {
+          "quantity": 42,
+          "weight": 9
+        },
+        {
+          "quantity": 43,
+          "weight": 4
+        },
+        {
+          "quantity": 44,
+          "weight": 4
+        },
+        {
+          "quantity": 45,
+          "weight": 6
+        },
+        {
+          "quantity": 46,
+          "weight": 8
+        },
+        {
+          "quantity": 47,
+          "weight": 7
+        },
+        {
+          "quantity": 48,
+          "weight": 13
+        },
+        {
+          "quantity": 49,
+          "weight": 8
+        },
+        {
+          "quantity": 50,
+          "weight": 5
+        },
+        {
+          "quantity": 51,
+          "weight": 4
+        },
+        {
+          "quantity": 52,
+          "weight": 7
+        },
+        {
+          "quantity": 53,
+          "weight": 4
+        },
+        {
+          "quantity": 54,
+          "weight": 12
+        },
+        {
+          "quantity": 55,
+          "weight": 8
+        },
+        {
+          "quantity": 56,
+          "weight": 6
+        },
+        {
+          "quantity": 57,
+          "weight": 5
+        },
+        {
+          "quantity": 58,
+          "weight": 7
+        },
+        {
+          "quantity": 59,
+          "weight": 6
+        },
+        {
+          "quantity": 60,
+          "weight": 10
+        },
+        {
+          "quantity": 61,
+          "weight": 6
+        },
+        {
+          "quantity": 62,
+          "weight": 12
+        },
+        {
+          "quantity": 63,
+          "weight": 13
+        },
+        {
+          "quantity": 64,
+          "weight": 4
+        },
+        {
+          "quantity": 65,
+          "weight": 10
+        },
+        {
+          "quantity": 66,
+          "weight": 5
+        },
+        {
+          "quantity": 67,
+          "weight": 4
+        },
+        {
+          "quantity": 68,
+          "weight": 8
+        },
+        {
+          "quantity": 69,
+          "weight": 7
+        },
+        {
+          "quantity": 70,
+          "weight": 11
+        },
+        {
+          "quantity": 71,
+          "weight": 9
+        },
+        {
+          "quantity": 72,
+          "weight": 5
+        },
+        {
+          "quantity": 73,
+          "weight": 8
+        },
+        {
+          "quantity": 74,
+          "weight": 4
+        },
+        {
+          "quantity": 75,
+          "weight": 6
+        },
+        {
+          "quantity": 76,
+          "weight": 7
+        },
+        {
+          "quantity": 77,
+          "weight": 9
+        },
+        {
+          "quantity": 78,
+          "weight": 5
+        },
+        {
+          "quantity": 79,
+          "weight": 9
+        },
+        {
+          "quantity": 80,
+          "weight": 6
+        },
+        {
+          "quantity": 81,
+          "weight": 5
+        },
+        {
+          "quantity": 82,
+          "weight": 5
+        },
+        {
+          "quantity": 83,
+          "weight": 5
+        },
+        {
+          "quantity": 84,
+          "weight": 7
+        },
+        {
+          "quantity": 85,
+          "weight": 8
+        },
+        {
+          "quantity": 86,
+          "weight": 4
+        },
+        {
+          "quantity": 87,
+          "weight": 6
+        },
+        {
+          "quantity": 88,
+          "weight": 1
+        },
+        {
+          "quantity": 89,
+          "weight": 6
+        },
+        {
+          "quantity": 90,
+          "weight": 10
+        },
+        {
+          "quantity": 91,
+          "weight": 5
+        },
+        {
+          "quantity": 92,
+          "weight": 11
+        },
+        {
+          "quantity": 93,
+          "weight": 5
+        },
+        {
+          "quantity": 94,
+          "weight": 4
+        },
+        {
+          "quantity": 95,
+          "weight": 6
+        },
+        {
+          "quantity": 96,
+          "weight": 7
+        },
+        {
+          "quantity": 97,
+          "weight": 2
+        },
+        {
+          "quantity": 98,
+          "weight": 4
+        },
+        {
+          "quantity": 99,
+          "weight": 9
+        },
+        {
+          "quantity": 100,
+          "weight": 6
+        },
+        {
+          "quantity": 101,
+          "weight": 4
+        },
+        {
+          "quantity": 102,
+          "weight": 4
+        },
+        {
+          "quantity": 103,
+          "weight": 7
+        },
+        {
+          "quantity": 104,
+          "weight": 4
+        },
+        {
+          "quantity": 105,
+          "weight": 4
+        },
+        {
+          "quantity": 106,
+          "weight": 8
+        },
+        {
+          "quantity": 107,
+          "weight": 7
+        },
+        {
+          "quantity": 108,
+          "weight": 4
+        },
+        {
+          "quantity": 109,
+          "weight": 3
+        },
+        {
+          "quantity": 110,
+          "weight": 4
+        },
+        {
+          "quantity": 111,
+          "weight": 3
+        },
+        {
+          "quantity": 112,
+          "weight": 5
+        },
+        {
+          "quantity": 113,
+          "weight": 4
+        },
+        {
+          "quantity": 114,
+          "weight": 11
+        },
+        {
+          "quantity": 115,
+          "weight": 8
+        },
+        {
+          "quantity": 116,
+          "weight": 9
+        },
+        {
+          "quantity": 117,
+          "weight": 7
+        },
+        {
+          "quantity": 118,
+          "weight": 8
+        },
+        {
+          "quantity": 119,
+          "weight": 3
+        },
+        {
+          "quantity": 121,
+          "weight": 5
+        },
+        {
+          "quantity": 122,
+          "weight": 5
+        },
+        {
+          "quantity": 123,
+          "weight": 5
+        },
+        {
+          "quantity": 124,
+          "weight": 3
+        },
+        {
+          "quantity": 125,
+          "weight": 4
+        },
+        {
+          "quantity": 126,
+          "weight": 6
+        },
+        {
+          "quantity": 127,
+          "weight": 1
+        },
+        {
+          "quantity": 128,
+          "weight": 3
+        },
+        {
+          "quantity": 129,
+          "weight": 4
+        },
+        {
+          "quantity": 130,
+          "weight": 6
+        },
+        {
+          "quantity": 131,
+          "weight": 4
+        },
+        {
+          "quantity": 132,
+          "weight": 2
+        },
+        {
+          "quantity": 133,
+          "weight": 2
+        },
+        {
+          "quantity": 134,
+          "weight": 5
+        },
+        {
+          "quantity": 135,
+          "weight": 2
+        },
+        {
+          "quantity": 136,
+          "weight": 9
+        },
+        {
+          "quantity": 137,
+          "weight": 6
+        },
+        {
+          "quantity": 138,
+          "weight": 1
+        },
+        {
+          "quantity": 139,
+          "weight": 5
+        },
+        {
+          "quantity": 140,
+          "weight": 3
+        },
+        {
+          "quantity": 141,
+          "weight": 4
+        },
+        {
+          "quantity": 142,
+          "weight": 4
+        },
+        {
+          "quantity": 143,
+          "weight": 3
+        },
+        {
+          "quantity": 144,
+          "weight": 3
+        },
+        {
+          "quantity": 145,
+          "weight": 1
+        },
+        {
+          "quantity": 146,
+          "weight": 1
+        },
+        {
+          "quantity": 148,
+          "weight": 3
+        },
+        {
+          "quantity": 149,
+          "weight": 2
+        },
+        {
+          "quantity": 150,
+          "weight": 3
+        },
+        {
+          "quantity": 152,
+          "weight": 7
+        },
+        {
+          "quantity": 153,
+          "weight": 2
+        },
+        {
+          "quantity": 154,
+          "weight": 3
+        },
+        {
+          "quantity": 155,
+          "weight": 1
+        },
+        {
+          "quantity": 156,
+          "weight": 1
+        },
+        {
+          "quantity": 157,
+          "weight": 6
+        },
+        {
+          "quantity": 158,
+          "weight": 2
+        },
+        {
+          "quantity": 159,
+          "weight": 1
+        },
+        {
+          "quantity": 160,
+          "weight": 3
+        },
+        {
+          "quantity": 161,
+          "weight": 3
+        },
+        {
+          "quantity": 162,
+          "weight": 2
+        },
+        {
+          "quantity": 163,
+          "weight": 5
+        },
+        {
+          "quantity": 164,
+          "weight": 1
+        },
+        {
+          "quantity": 167,
+          "weight": 4
+        },
+        {
+          "quantity": 168,
+          "weight": 3
+        },
+        {
+          "quantity": 169,
+          "weight": 6
+        },
+        {
+          "quantity": 170,
+          "weight": 1
+        },
+        {
+          "quantity": 171,
+          "weight": 6
+        },
+        {
+          "quantity": 172,
+          "weight": 2
+        },
+        {
+          "quantity": 173,
+          "weight": 4
+        },
+        {
+          "quantity": 174,
+          "weight": 4
+        },
+        {
+          "quantity": 176,
+          "weight": 1
+        },
+        {
+          "quantity": 177,
+          "weight": 4
+        },
+        {
+          "quantity": 178,
+          "weight": 2
+        },
+        {
+          "quantity": 179,
+          "weight": 2
+        },
+        {
+          "quantity": 181,
+          "weight": 4
+        },
+        {
+          "quantity": 182,
+          "weight": 4
+        },
+        {
+          "quantity": 183,
+          "weight": 2
+        },
+        {
+          "quantity": 184,
+          "weight": 1
+        },
+        {
+          "quantity": 185,
+          "weight": 1
+        },
+        {
+          "quantity": 186,
+          "weight": 2
+        },
+        {
+          "quantity": 188,
+          "weight": 3
+        },
+        {
+          "quantity": 189,
+          "weight": 2
+        },
+        {
+          "quantity": 190,
+          "weight": 2
+        },
+        {
+          "quantity": 191,
+          "weight": 2
+        },
+        {
+          "quantity": 192,
+          "weight": 1
+        },
+        {
+          "quantity": 193,
+          "weight": 2
+        },
+        {
+          "quantity": 194,
+          "weight": 3
+        },
+        {
+          "quantity": 195,
+          "weight": 3
+        },
+        {
+          "quantity": 196,
+          "weight": 3
+        },
+        {
+          "quantity": 198,
+          "weight": 4
+        },
+        {
+          "quantity": 199,
+          "weight": 1
+        },
+        {
+          "quantity": 200,
+          "weight": 1
+        },
+        {
+          "quantity": 201,
+          "weight": 4
+        },
+        {
+          "quantity": 202,
+          "weight": 1
+        },
+        {
+          "quantity": 203,
+          "weight": 2
+        },
+        {
+          "quantity": 204,
+          "weight": 1
+        },
+        {
+          "quantity": 205,
+          "weight": 6
+        },
+        {
+          "quantity": 206,
+          "weight": 2
+        },
+        {
+          "quantity": 207,
+          "weight": 3
+        },
+        {
+          "quantity": 210,
+          "weight": 2
+        },
+        {
+          "quantity": 211,
+          "weight": 2
+        },
+        {
+          "quantity": 212,
+          "weight": 4
+        },
+        {
+          "quantity": 213,
+          "weight": 6
+        },
+        {
+          "quantity": 214,
+          "weight": 1
+        },
+        {
+          "quantity": 216,
+          "weight": 2
+        },
+        {
+          "quantity": 217,
+          "weight": 1
+        },
+        {
+          "quantity": 218,
+          "weight": 1
+        },
+        {
+          "quantity": 219,
+          "weight": 1
+        },
+        {
+          "quantity": 220,
+          "weight": 1
+        },
+        {
+          "quantity": 221,
+          "weight": 1
+        },
+        {
+          "quantity": 222,
+          "weight": 1
+        },
+        {
+          "quantity": 223,
+          "weight": 2
+        },
+        {
+          "quantity": 224,
+          "weight": 2
+        },
+        {
+          "quantity": 225,
+          "weight": 3
+        },
+        {
+          "quantity": 227,
+          "weight": 3
+        },
+        {
+          "quantity": 228,
+          "weight": 4
+        },
+        {
+          "quantity": 230,
+          "weight": 1
+        },
+        {
+          "quantity": 231,
+          "weight": 3
+        },
+        {
+          "quantity": 232,
+          "weight": 3
+        },
+        {
+          "quantity": 233,
+          "weight": 1
+        },
+        {
+          "quantity": 234,
+          "weight": 1
+        },
+        {
+          "quantity": 236,
+          "weight": 1
+        },
+        {
+          "quantity": 238,
+          "weight": 1
+        },
+        {
+          "quantity": 239,
+          "weight": 1
+        },
+        {
+          "quantity": 240,
+          "weight": 3
+        },
+        {
+          "quantity": 242,
+          "weight": 1
+        },
+        {
+          "quantity": 243,
+          "weight": 1
+        },
+        {
+          "quantity": 244,
+          "weight": 3
+        },
+        {
+          "quantity": 246,
+          "weight": 2
+        },
+        {
+          "quantity": 247,
+          "weight": 2
+        },
+        {
+          "quantity": 248,
+          "weight": 2
+        },
+        {
+          "quantity": 250,
+          "weight": 3
+        },
+        {
+          "quantity": 252,
+          "weight": 1
+        },
+        {
+          "quantity": 253,
+          "weight": 1
+        },
+        {
+          "quantity": 254,
+          "weight": 3
+        },
+        {
+          "quantity": 256,
+          "weight": 1
+        },
+        {
+          "quantity": 257,
+          "weight": 1
+        },
+        {
+          "quantity": 259,
+          "weight": 2
+        },
+        {
+          "quantity": 260,
+          "weight": 2
+        },
+        {
+          "quantity": 261,
+          "weight": 4
+        },
+        {
+          "quantity": 263,
+          "weight": 1
+        },
+        {
+          "quantity": 269,
+          "weight": 1
+        },
+        {
+          "quantity": 271,
+          "weight": 1
+        },
+        {
+          "quantity": 274,
+          "weight": 1
+        },
+        {
+          "quantity": 276,
+          "weight": 2
+        },
+        {
+          "quantity": 278,
+          "weight": 1
+        },
+        {
+          "quantity": 281,
+          "weight": 1
+        },
+        {
+          "quantity": 286,
+          "weight": 1
+        },
+        {
+          "quantity": 296,
+          "weight": 1
+        },
+        {
+          "quantity": 298,
+          "weight": 1
+        },
+        {
+          "quantity": 299,
+          "weight": 1
+        },
+        {
+          "quantity": 300,
+          "weight": 1
+        },
+        {
+          "quantity": 305,
+          "weight": 1
+        },
+        {
+          "quantity": 306,
+          "weight": 1
+        },
+        {
+          "quantity": 312,
+          "weight": 1
+        },
+        {
+          "quantity": 315,
+          "weight": 1
+        },
+        {
+          "quantity": 316,
+          "weight": 1
+        },
+        {
+          "quantity": 322,
+          "weight": 1
+        },
+        {
+          "quantity": 324,
+          "weight": 1
+        },
+        {
+          "quantity": 325,
+          "weight": 1
+        },
+        {
+          "quantity": 326,
+          "weight": 1
+        },
+        {
+          "quantity": 327,
+          "weight": 1
+        },
+        {
+          "quantity": 339,
+          "weight": 1
+        },
+        {
+          "quantity": 340,
+          "weight": 1
+        },
+        {
+          "quantity": 341,
+          "weight": 1
+        },
+        {
+          "quantity": 343,
+          "weight": 1
+        },
+        {
+          "quantity": 344,
+          "weight": 1
+        },
+        {
+          "quantity": 355,
+          "weight": 1
+        },
+        {
+          "quantity": 365,
+          "weight": 1
+        },
+        {
+          "quantity": 382,
+          "weight": 1
+        },
+        {
+          "quantity": 401,
+          "weight": 1
+        },
+        {
+          "quantity": 404,
+          "weight": 1
+        },
+        {
+          "quantity": 411,
+          "weight": 1
+        },
+        {
+          "quantity": 465,
+          "weight": 1
+        },
+        {
+          "quantity": 532,
+          "weight": 1
+        },
+        {
+          "quantity": 538,
+          "weight": 1
+        }
+      ]
+    }
+  ]
+}

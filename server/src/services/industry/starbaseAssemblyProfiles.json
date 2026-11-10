@@ -1,0 +1,30 @@
+{
+  "source": {
+    "clientBuild": 3492266,
+    "installationResource": "res:/staticdata/industry_installation_types.static",
+    "installationMD5": "466f33ca55c102102dcb8dd6fca8391b",
+    "assemblyResource": "res:/staticdata/industry_assembly_lines.static",
+    "assemblyMD5": "31d62c598aa30696bb4e2aefe44c094b",
+    "normalization": "Selected POS installation profiles. Base/detail multipliers default missing cost to 1. Laboratory empty product filters are unrestricted, as industry/job.py:529 requires. Historical bonuses and unsupported activities are not invented."
+  },
+  "profiles": {
+    "13780": {"assemblyLineID":24,"time":1,"material":1,"cost":1,"categories":[7,20,22,23,65,66],"groups":[12,340,448,649]},
+    "16220": {"assemblyLineID":23,"time":1,"material":1,"cost":1,"categories":[7,20,22,23,65,66],"groups":[12,340,448,649]},
+    "24574": {"assemblyLineID":17,"time":1,"material":1,"cost":1,"categories":[87],"groups":[25,31,420,549,1023]},
+    "24653": {"assemblyLineID":18,"time":1,"material":1,"cost":1,"categories":[87],"groups":[324,541,830,831,834,893,1283,1305,1527,1534]},
+    "24654": {"assemblyLineID":19,"time":1,"material":1,"cost":1,"categories":[],"groups":[26,28,419,463,1201,941]},
+    "24655": {"assemblyLineID":20,"time":1,"material":1,"cost":1,"categories":[],"groups":[358,380,540,543,832,833,894,906,963,1202,1972]},
+    "24657": {"assemblyLineID":22,"time":1,"material":1,"cost":1,"categories":[],"groups":[898,900,902]},
+    "24658": {"assemblyLineID":25,"time":1,"material":1,"cost":1,"categories":[8],"groups":[1136]},
+    "24659": {"assemblyLineID":26,"time":1,"material":1,"cost":1,"categories":[87],"groups":[97,100,101,299,470,544,545,639,640,641,1159]},
+    "24660": {"assemblyLineID":27,"time":1,"material":1,"cost":1,"categories":[],"groups":[332,334,536,716,873,913,964,1136]},
+    "29613": {"assemblyLineID":155,"time":1,"material":1,"cost":1,"categories":[],"groups":[27,513,941]},
+    "30389": {"assemblyLineID":159,"time":1,"material":1,"cost":1,"categories":[32],"groups":[963]},
+    "33867": {"assemblyLineID":171,"time":1,"material":1,"cost":1,"categories":[],"groups":[873,913]},
+    "16216": {"activities":{"3":{"assemblyLineID":29,"time":1,"material":1,"cost":1,"categories":[],"groups":[]},"4":{"assemblyLineID":28,"time":1,"material":1,"cost":1,"categories":[],"groups":[]}}},
+    "32245": {"activities":{"3":{"assemblyLineID":169,"time":1,"material":1,"cost":1,"categories":[],"groups":[]},"4":{"assemblyLineID":168,"time":1,"material":1,"cost":1,"categories":[],"groups":[]}}},
+    "28351": {"activities":{"5":{"assemblyLineID":146,"time":1,"material":1,"cost":1,"categories":[],"groups":[]},"8":{"assemblyLineID":149,"time":1,"material":1,"cost":1,"categories":[6,7,8,18,22,66,87],"groups":[]}}},
+    "24656": {"capital":true,"assemblyLineID":21,"time":1,"material":1,"cost":1,"categories":[],"groups":[27,485,513,547,883,941,1538,4594,5120]},
+    "24575": {"capital":true,"assemblyLineID":10,"time":1,"material":1,"cost":1,"categories":[],"groups":[30,485,513,547,659,883,1538,4594,5120],"groupModifiers":{"485":{"time":0.75},"513":{"time":0.75},"547":{"time":0.75},"883":{"time":0.75},"1538":{"time":0.75},"4594":{"time":0.75}}}
+  }
+}

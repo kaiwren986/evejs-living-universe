@@ -1,0 +1,112 @@
+{
+  "schema": "evejs.updater-policy.v1",
+  "comment": [
+    "What an in-place update keeps and what it replaces. Update-EvEJS.ps1 reads",
+    "this file; server/tests/updaterPolicy.test.js keeps it in step with",
+    ".gitignore, compose.yaml and the release builder.",
+    "",
+    "Paths are relative to the installation root and always use forward slashes.",
+    "Matching is case-insensitive, because Windows is.",
+    "",
+    "keepTrees are also pruned from the file walk, so the update never",
+    "enumerates the game database, node_modules or a Rust target directory."
+  ],
+
+  "installMarkers": ["server/index.js", "StartServer.bat"],
+  "releaseMarkers": ["server/index.js", "config/version.json", "package.json", "StartServer.bat"],
+  "refuseWhenPresent": [".git"],
+
+  "keepTrees": [
+    "_local",
+    "_backup",
+    "logs",
+    "node_modules",
+    "server/node_modules",
+    "server/logs",
+    "server/src/logs",
+    "server/src/_secondary/data/chat",
+    "server/src/_secondary/image/generated/Alliance",
+    "server/src/_secondary/image/generated/Character",
+    "server/src/gameStore/images",
+    "externalservices/market-server/data",
+    "externalservices/market-server/target",
+    "tools/market-seed/target",
+    "tools/market-seederv2/cache",
+    "tools/market-seederv2/target",
+    "tools/market-seederv3/cache",
+    "tools/market-seederv3/target",
+    "tools/ConfigEditor/assets"
+  ],
+
+  "keepFiles": [
+    ".env",
+    ".env.local",
+    "evejs.config.json",
+    "evejs.config.local.json",
+    "tools/ClientSETUP/scripts/EvEJSConfig.bat",
+    ".evejs-installed-files.json"
+  ],
+
+  "keepGlobs": [
+    "server/certs/*.pem",
+    "server/certs/*.pfx",
+    "server/certs/*passphrase*.txt",
+    "server/src/_secondary/express/certs/*.pem",
+    "server/src/_secondary/express/certs/*.pfx",
+    "server/src/_secondary/express/certs/*.key",
+    "server/src/_secondary/express/certs/*passphrase*.txt",
+    "server/src/gameStore/data/*/data.json",
+    "**/*.sqlite",
+    "**/*.sqlite-wal",
+    "**/*.sqlite-shm"
+  ],
+
+  "keepMine": [
+    "config/server.json",
+    "config/gameplay.json",
+    "config/world.json",
+    "config/mining.json",
+    "config/npc.json",
+    "config/economy.json"
+  ],
+
+  "takeTheirs": ["config/version.json"],
+
+  "comment_sourceTreeStore": [
+    "A game store in the source tree instead of _local. Only the SQLite file is",
+    "refused: that is a world, StartServer.bat points at _local and would ignore",
+    "it, so updating around it would silently strand it.",
+    "",
+    "Generated data.json tables are NOT a refusal. An installation with no _local",
+    "writes tables like newEdenStore there simply by running an editor, and they",
+    "are kept in place by keepGlobs. Refusing on those blocked real updates."
+  ],
+  "sourceTreeStoreGuards": [
+    "server/src/gameStore/gamestore.sqlite"
+  ],
+  "installedFilesManifest": ".evejs-installed-files.json",
+
+  "dependencyTriggers": [
+    "server/package.json",
+    "server/package-lock.json",
+    "package.json",
+    "package-lock.json"
+  ],
+
+  "dockerHostMounts": [
+    "config",
+    "server/certs",
+    "server/src/_secondary/express/certs",
+    "server/src/_secondary/image/generated/Alliance",
+    "_local/certs"
+  ],
+
+  "backupRoot": "_backup",
+  "contentPackRegistry": "_local/gameStore/content-packs/installed.json",
+
+  "comment_sovereigntyResetTool": [
+    "Run once after every update: it resets sovereignty data to retail parity",
+    "the first time and does nothing afterwards, because it records a marker."
+  ],
+  "sovereigntyResetTool": "tools/Maintenance/reset-sovereignty.js"
+}

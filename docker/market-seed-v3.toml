@@ -1,0 +1,78 @@
+# Docker configuration for the Jita index seeder (market-seederv3).
+#
+# This is tools/market-seederv3/config/market-seederv3.local.toml with the paths moved
+# into the container and the build tuning lowered, and NOTHING ELSE. Every pricing knob
+# below is byte-identical to the local config on purpose: a deployment that quietly seeds
+# different economics from a developer machine is a bug, not a deployment setting. The
+# rationale for each value lives in tools/market-seederv3/config/market-seederv3.example.toml
+# and doc/JITA_INDEX_SEED_PLAN.md; it is not repeated here, so the two files stay diffable.
+#
+# Never point [output] database_path at the live market.sqlite. The entrypoint builds a
+# candidate, validates it, audits it, backs the live database up and only then installs it.
+
+[input]
+# Built by the init service into the evejs-data volume (docker/entrypoint.sh ensure_gamestore).
+static_data_dir = "/var/lib/evejs/gameStore/data"
+
+[output]
+# MARKET_CANDIDATE in docker/entrypoint.sh. The live database is never opened by the seeder.
+database_path = "/var/lib/evejs/market/market.sqlite.candidate"
+
+[source]
+index_url = "https://data.everef.net/market-orders/index.json"
+# Beside the v1 SDE and v2 snapshot caches in the volume, so the download survives
+# container replacement and an image rebuild. Created by `snapshot-info --download`.
+download_dir = "/var/lib/evejs/downloads/market-v3"
+user_agent = "PublicEveJS market-seederv3/0.1"
+
+[import]
+order_filter = "npc_only"
+npc_order_duration_threshold_days = 90
+gate_on_npc_arbitrage = false
+
+[price_manifest]
+# Committed to the repo and baked into the image, which is what makes a container rebuild
+# seed exactly what a developer machine seeds. Captures are permanent and `build` only ever
+# reads this file, so nothing here is written at deployment time.
+path = "/app/tools/market-seederv3/data/price-manifest.json"
+capture_missing_from_snapshot = true
+capture_missing_from_esi = true
+esi_prices_url = "https://esi.evetech.net/latest/markets/prices/"
+
+[index_seed]
+station_id = 60003760
+sell_multiplier = 3.0
+buy_multiplier = 1.0
+quantity = 2147483647
+pricing = "recursive"
+price_floor = 100.0
+max_unpriced_drops = 25
+leaf_price_source = "capture-first"
+defer_to_npc_catalog = "conflicting-prices"
+reject_adjusted_price_captures = true
+derive_compressed_from_source = true
+floor_cost_at_reprocessing_value = true
+reprocessing_floor_margin = 0.001
+
+[junk_seed]
+enabled = true
+# Category 35's eight published, marketable Generic Decryptors (34201-34208) are
+# required for the emulator's invention flow.  The remaining category-35 records are
+# unmarketable legacy types, so the v3 classifier excludes them.
+categories = ["modules", "commodities", "charges", "drones", "decryptors"]
+sell_multiplier = 3.0
+buy_multiplier = 1.0
+quantity = 2147483647
+
+[history]
+enabled = true
+days = 30
+
+[build]
+# Matches docker/market-seed-v2.toml: a container gets a share of the host, not a
+# workstation's whole CPU, so the local 24 worker threads come down to 8. Tuning only —
+# no seeded row and no price changes with these.
+sqlite_cache_size_kib = 262144
+sqlite_page_size_bytes = 32768
+sqlite_worker_threads = 8
+insert_batch_rows = 100000

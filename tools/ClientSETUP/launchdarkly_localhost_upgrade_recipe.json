@@ -1,0 +1,67 @@
+{
+  "name": "launchdarkly_stackless_client_sdk.pyd",
+  "description": "Upgrade the exact earlier EveJS numeric-loopback endpoint patch to localhost DNS endpoints. No original outside hostname is restored.",
+  "supportedBuild": 3396210,
+  "requireExactHash": true,
+  "source": {
+    "filename": "launchdarkly_stackless_client_sdk.pyd",
+    "size": 11079680,
+    "sha256": "37a64406ed2cf015f886ebef1a481202e6d50b7f753b8750d48394f0ba6002b0"
+  },
+  "patches": [
+    {
+      "offset": 8300064,
+      "offsetHex": "0x007ea620",
+      "description": "Upgrade the exact numeric-loopback endpoint to localhost for native TLS DNS-SAN verification, preserving its original string length.",
+      "beforeHex": "68747470733a2f2f3132372e302e302e312f2f2f2f2f2f2f2f2f2f2f2f2f2f",
+      "afterHex": "68747470733a2f2f6c6f63616c686f73742f2f2f2f2f2f2f2f2f2f2f2f2f2f"
+    },
+    {
+      "offset": 8300096,
+      "offsetHex": "0x007ea640",
+      "description": "Upgrade the exact numeric-loopback endpoint to localhost for native TLS DNS-SAN verification, preserving its original string length.",
+      "beforeHex": "68747470733a2f2f3132372e302e302e312f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f",
+      "afterHex": "68747470733a2f2f6c6f63616c686f73742f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f"
+    },
+    {
+      "offset": 8300136,
+      "offsetHex": "0x007ea668",
+      "description": "Upgrade the exact numeric-loopback endpoint to localhost for native TLS DNS-SAN verification, preserving its original string length.",
+      "beforeHex": "68747470733a2f2f3132372e302e302e312f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f",
+      "afterHex": "68747470733a2f2f6c6f63616c686f73742f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f"
+    },
+    {
+      "offset": 8300176,
+      "offsetHex": "0x007ea690",
+      "description": "Upgrade the exact numeric-loopback endpoint to localhost for native TLS DNS-SAN verification, preserving its original string length.",
+      "beforeHex": "68747470733a2f2f3132372e302e302e312f2f2f2f2f2f2f2f2f2f2f2f2f2f",
+      "afterHex": "68747470733a2f2f6c6f63616c686f73742f2f2f2f2f2f2f2f2f2f2f2f2f2f"
+    },
+    {
+      "offset": 8300208,
+      "offsetHex": "0x007ea6b0",
+      "description": "Upgrade the exact numeric-loopback endpoint to localhost for native TLS DNS-SAN verification, preserving its original string length.",
+      "beforeHex": "68747470733a2f2f3132372e302e302e312f2f2f2f2f2f2f2f2f2f2f2f2f2f",
+      "afterHex": "68747470733a2f2f6c6f63616c686f73742f2f2f2f2f2f2f2f2f2f2f2f2f2f"
+    },
+    {
+      "offset": 8300240,
+      "offsetHex": "0x007ea6d0",
+      "description": "Upgrade the exact numeric-loopback endpoint to localhost for native TLS DNS-SAN verification, preserving its original string length.",
+      "beforeHex": "68747470733a2f2f3132372e302e302e312f2f2f2f2f2f2f2f2f2f2f",
+      "afterHex": "68747470733a2f2f6c6f63616c686f73742f2f2f2f2f2f2f2f2f2f2f"
+    }
+  ],
+  "peRules": {
+    "requirePE32OrPE32Plus": true,
+    "stripAuthenticodeSecurityDirectory": true,
+    "recalculateChecksum": true
+  },
+  "knownPatchedVariants": [
+    {
+      "name": "EveJS localhost TLS endpoints, signature removed, checksum updated",
+      "size": 11079680,
+      "sha256": "6dd06556e3a5e5776f3f37dafefea421e21cc81ca9c831353b104a13ad02e9ff"
+    }
+  ]
+}

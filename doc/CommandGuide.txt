@@ -1,0 +1,1836 @@
+COMMAND GUIDE
+=============
+
+Live command sources
+- server/src/services/chat/chatCommands.js
+- server/src/services/chat/commands/
+- server/src/services/chat/capitalNpc/index.js
+- server/src/services/chat/wormhole/index.js
+- server/src/services/chat/trigDrifter/index.js
+- server/src/space/gateSkinCommand.js
+- server/src/space/lcoTransforms.js
+- server/src/RemoteRepShow/remoteRepairFleetCommands.js
+- server/src/services/starbase/posChatCommands.js
+- server/src/services/industry/industryChatCommands.js
+- server/src/services/reprocessing/reprocessingChatCommands.js
+- server/src/services/bookmark/bookmarkChatCommands.js
+- server/src/services/calendar/calendarChatCommands.js
+- server/src/services/mining/miningCommandService.js
+- server/src/services/mining/miningNpcOperations.js
+- server/src/services/structure/structureChatCommands.js
+- server/src/services/structure/structureAutoCommands.js
+- server/src/services/sovereignty/sovChatCommands.js
+- server/src/services/sovereignty/sovAutoCommands.js
+- server/src/services/superweapons/superweaponCommands.js
+
+How to read this guide
+- All commands are slash commands typed in chat.
+- Command names are case-insensitive.
+- Use <required> for required parameters and [optional] for optional ones.
+- If a command takes several positional arguments, quote names with spaces when needed.
+- Common target shortcuts:
+  me = your active character
+  here = your current structure or solar system, depending on the command
+
+
+HELP, CHAT, AND BROADCAST
+-------------------------
+
+/help, /commands, /commandlist
+What it does: Shows the built-in command list.
+Parameters: none.
+Example: /help
+
+/motd
+What it does: Shows the current MOTD block.
+Parameters: none.
+Example: /motd
+
+/deer_hunter
+What it does: Shows the Deer_Hunter thank-you message and tries to play a brief microjump-style effect.
+Parameters: none.
+Example: /deer_hunter
+
+/blue
+/red
+/teal
+/yellow
+What they do: Change and persist your chat color/presence role.
+Parameters: none.
+Examples:
+- /blue
+- /yellow
+
+/announce <message>
+What it does: Sends a system message to every connected session.
+Parameters:
+- <message> = the text to broadcast
+Example: /announce Server restart in 5 minutes.
+
+
+STATUS, INSPECTION, AND SESSION INFO
+------------------------------------
+
+/where
+What it does: Shows whether you are docked or in space, plus the current system/location ID.
+Parameters: none.
+Example: /where
+
+/who
+What it does: Lists all connected characters.
+Parameters: none.
+Example: /who
+
+/session
+What it does: Dumps a compact session summary: character, ship, corp, docked location, system, wallet.
+Parameters: none.
+Example: /session
+
+/hangar
+What it does: Shows your active ship and the ships in your current ship hangar.
+Parameters: none.
+Notes: Most useful while docked.
+Example: /hangar
+
+/wallet, /isk
+What they do: Show ISK balance, PLEX balance, EverMarks, and last ISK delta.
+Parameters: none.
+Examples:
+- /wallet
+- /isk
+
+/evermarks
+What it does: Shows your character EverMarks balance.
+Parameters: none.
+Example: /evermarks
+
+/corpevermarks
+What it does: Shows your corporation EverMarks balance.
+Parameters: none.
+Example: /corpevermarks
+
+/iteminfo <itemID>
+What it does: Shows the raw item row for a specific itemID.
+Parameters:
+- <itemID> = exact item ID
+Example: /iteminfo 1029384756
+Note: This is the real inspection command. The internal handler still prints a legacy usage string that says /item <itemID>, but /item is actually an alias of /giveitem.
+
+/typeinfo <ship name|typeID>
+What it does: Shows ship type metadata: typeID, groupID, categoryID, and published flag.
+Parameters:
+- <ship name|typeID> = exact ship name or ship typeID
+Example: /typeinfo Raven
+
+
+TRAVEL, MOVEMENT, FX, AND SYSTEM LOADING
+----------------------------------------
+
+/dock
+What it does: Jumps you to your home/clone station.
+Parameters: none.
+Example: /dock
+
+/solar <system name>
+What it does: Teleports your session to another solar system and updates session identity/local membership.
+Parameters:
+- <system name> = solar system name
+Example: /solar Jita
+
+/tr <me|characterID|entityID> <destination|bookmark=bookmarkID|pos=x,y,z|offset=x,y,z>
+What it does: Transports a character session or runtime entity.
+Parameters:
+- <me|characterID|entityID> = who or what to move
+- <destination> = a solar system, station, static/live space entity, NPC agent, or accessible bookmark ID
+- bookmark=bookmarkID = explicitly select an accessible personal or shared bookmark
+- pos=x,y,z = absolute coordinates
+- offset=x,y,z = offset from the current/target context
+Examples:
+- /tr me Jita
+- /tr me 3010959
+- /tr me bookmark=900001708
+- /tr me pos=0,0,0
+- /tr me offset=0,0,5000
+- /tr 90000001 offset=0,0,10000
+Notes:
+- Session targets can cross stations/systems.
+- Station-backed NPC agents resolve to their station; in-space agents require a materialized spatial target.
+- A bare bookmark ID is also accepted after existing destination ID types have been checked.
+- Runtime entities are point-move only and must stay in their current solar system.
+
+/effect <name>
+/effect stop
+/effect stop <name>
+What it does: Plays or stops self FX on your ship.
+Parameters:
+- <name> = effect key from the playable effect registry
+Examples:
+- /effect microjump
+- /effect stop
+- /effect stop microjump
+Notes:
+- /effect with no argument, /effect list, /effect help, and /effect ? show the available effect list.
+- You must be in space.
+
+/loadsys
+What it does: Preloads the destination systems for all stargates in your current system.
+Parameters: none.
+Example: /loadsys
+
+/loadallsys
+What it does: Preloads every solar system scene.
+Parameters: none.
+Example: /loadallsys
+
+/tidi [0.1-1.0|auto]
+What it does: Shows current TiDi when no argument is given, sets a manual TiDi override with a factor, or returns the system to autoscaling.
+Parameters:
+- [0.1-1.0] = manual TiDi factor
+- [auto] = clear manual override and return to autoscaling
+Examples:
+- /tidi
+- /tidi 0.5
+- /tidi auto
+
+
+CHARACTER, SKILLS, CURRENCY, CORP, ALLIANCE, AND LOGOS
+------------------------------------------------------
+
+/heal
+What it does: Fully restores shields, armor, hull, and capacitor on your active ship.
+Parameters: none.
+Example: /heal
+
+/allskills
+What it does: Ensures all published skills are trained to level V for the current character.
+Parameters: none.
+Example: /allskills
+
+/gmskills
+What it does: Ensures all unpublished/GM skills are trained to level V for the current character.
+Parameters: none.
+Example: /gmskills
+
+/giveskill <target> <skill name|typeID|all|super> [level]
+/giveskills <target> <skill name|typeID|all|super> [level]
+What they do: Grant one skill, all published skills, or all published+unpublished skills to a target.
+Parameters:
+- <target> = me, characterID, or exact character name
+- <skill name|typeID> = exact skill name or typeID
+- all = all published skills
+- super = all published and unpublished skills
+- [level] = optional level, default 5
+Examples:
+- /giveskill me "Gallente Cruiser" 5
+- /giveskill me all
+- /giveskills 90000001 super 4
+
+/removeskill <target> <skill name|typeID|all>
+/removeskills <target> <skill name|typeID|all>
+What they do: Remove one skill or remove all published skills from a target.
+Parameters:
+- <target> = me, characterID, or exact character name
+- <skill name|typeID|all> = exact skill or all published skills
+Examples:
+- /removeskill me "Gallente Cruiser"
+- /removeskills 90000001 all
+
+/addisk <amount>
+/setisk <amount>
+What they do: Add to or hard-set your ISK balance.
+Parameters:
+- <amount> = number, supports k/m/b/t suffixes and signed values
+Examples:
+- /addisk 250m
+- /setisk 5b
+
+/addevermarks <amount>
+/setevermarks <amount>
+What they do: Add to or hard-set your character EverMarks balance.
+Parameters:
+- <amount> = number, supports k/m/b/t suffixes and signed values
+Examples:
+- /addevermarks 5000
+- /setevermarks 250000
+
+/addcorpevermarks <amount>
+/setcorpevermarks <amount>
+What they do: Add to or hard-set your corporation EverMarks balance.
+Parameters:
+- <amount> = number, supports k/m/b/t suffixes and signed values
+Examples:
+- /addcorpevermarks 50000
+- /setcorpevermarks 1000000
+
+/addplex <amount>
+/setplex <amount>
+What they do: Add to or hard-set your PLEX balance.
+Parameters:
+- <amount> = number, supports k/m/b/t suffixes and signed values
+Examples:
+- /addplex 500
+- /setplex 10000
+
+/corpcreate <corporation name>
+What it does: Creates a custom corporation and moves your character into it.
+Parameters:
+- <corporation name> = full corp name
+Example: /corpcreate "Elysian Mining Works"
+
+/setalliance <alliance name>
+What it does: Creates a custom alliance for your current corporation.
+Parameters:
+- <alliance name> = full alliance name
+Example: /setalliance "Elysian Federation"
+Notes:
+- Your current corporation must be a custom corporation.
+
+/joinalliance <alliance name>
+What it does: Joins your current custom corporation to an existing custom alliance.
+Parameters:
+- <alliance name> = alliance name
+Example: /joinalliance "Elysian Federation"
+
+/grantshipemblem <corp|alliance|both> [current|ship name|typeID]
+What it does: Grants corporation and/or alliance ship emblem licenses for a hull.
+Parameters:
+- <corp|alliance|both> = entitlement type to grant
+- [current|ship name|typeID] = active ship, explicit hull name, or typeID
+Examples:
+- /grantshipemblem corp current
+- /grantshipemblem both Raven
+
+/grantcorplogo [current|ship name|typeID]
+What it does: Grants the corporation logo/emblem license for a hull.
+Parameters:
+- [current|ship name|typeID] = active ship, explicit hull name, or typeID
+Examples:
+- /grantcorplogo current
+- /grantcorplogo Raven
+
+/grantalliancelogo [current|ship name|typeID]
+What it does: Grants the alliance logo/emblem license for a hull.
+Parameters:
+- [current|ship name|typeID] = active ship, explicit hull name, or typeID
+Examples:
+- /grantalliancelogo current
+- /grantalliancelogo Raven
+Notes:
+- These commands only work if a cached emblem license exists for the target hull.
+
+
+ITEM, SHIP, AND FIT SEEDING
+---------------------------
+
+/giveitem <item name|typeID> [amount]
+/item <item name|typeID> [amount]
+What they do: Add an item stack or singleton item to your station hangar when docked, or your active ship's cargo hold in space.
+Parameters:
+- <item name|typeID> = exact item name or typeID
+- [amount] = stack quantity, default 1
+Examples:
+- /giveitem Tritanium 10000
+- /item "Dual Heavy Beam Laser II" 8
+Notes:
+- In space, the items must fit in your cargo hold. Capsules have no cargo hold.
+- /item is an alias of /giveitem, not an item inspector.
+
+/fit me <module name|typeID>
+What it does: Fits one matching module from your active ship's cargo into the first free compatible slot. Creates a new module only when none is available in cargo.
+Parameters:
+- <module name|typeID> = module name or typeID; names may be quoted
+- me = your currently boarded ship; the client may send this as "me"
+Examples:
+- /fit me 3636
+- /fit me "Damage Control I"
+- /fit me Rocket Launcher I
+Notes:
+- Works docked or in space. Existing fitted modules are preserved.
+- Searches your active ship's cargo first, not your station hangar or other containers.
+- Takes one module from a packaged stack. Reusing an assembled module preserves its identity, metadata, and reactivation cooldown.
+- Repeat the command to fit multiple copies; each uses the next free compatible slot.
+- Feedback states whether a module was fitted from cargo or newly created.
+- Checks skills, hull restrictions, hardpoints, rig limits, and available slots.
+- Brings the module online if fitting resources allow; otherwise fits it offline and reports why.
+- Rejected fits do not create an item. Charges and hulls cannot be fitted with this command.
+
+/unfit me <module name|typeID|itemID|all>
+What it does: Offlines and removes one matching module, or strips every fitted item with "all".
+Parameters:
+- me = your currently boarded ship; quoted "me" is also accepted
+- <module name|typeID> = remove one matching fitted module; names may be quoted
+- <itemID> = remove a specific fitted module by its inventory item ID, not its typeID
+- all = remove every fitted item, including rigs, subsystems, and loaded charges
+Examples:
+- /unfit me Rocket Launcher I
+- /unfit me 10629
+- /unfit me "Damage Control I"
+- /unfit me all
+Notes:
+- Moves the module and loaded charges to your hangar when docked, or cargo in space.
+- Stops active module effects and offlines modules before moving them. Items are preserved, not deleted.
+- Removes the first matching slot; use the module itemID to choose a specific copy.
+- Checks cargo capacity before offlining, including capacity lost when cargo-expanding modules are removed. Insufficient space leaves the fit unchanged; free space or dock and retry.
+- Individual rigs and subsystems require their normal fitting controls.
+- "all" strips every fitting slot, including rigs, subsystems, and loaded charges, preserving the items. This testing override leaves existing cargo and drones untouched.
+- After unfitting in space, /fit me can reuse the removed modules from cargo.
+
+/ship <ship name|typeID>
+/giveme <ship name|typeID>
+What they do: Add a hull to your ship hangar.
+Parameters:
+- <ship name|typeID> = exact hull name or typeID
+Examples:
+- /ship Raven
+- /giveme 638
+Notes:
+- Hull only. Board it manually from the hangar.
+
+/gmships
+What it does: Adds all unpublished ship hulls to your ship hangar.
+Parameters: none.
+Example: /gmships
+Notes: You must be docked.
+
+/prop
+What it does: Adds propulsion modules to your station hangar.
+Parameters: none.
+Example: /prop
+Notes: Includes T2, faction, and officer afterburners/microwarpdrives. You must be docked.
+
+/gmweapons
+What it does: Starts a background job that seeds non-T1 weapons and ammo into your station hangar.
+Parameters: none.
+Example: /gmweapons
+Notes:
+- You must be docked.
+- This runs in batches in the background rather than in one giant grant.
+
+/laser, /lasers
+What they do: Spawn a prefit Apocalypse Navy Issue rack test hull.
+Fit seeded:
+- 1x 500MN Microwarpdrive II
+- 8x Dual Heavy Beam Laser II
+- compatible L crystals in cargo
+Example: /laser
+Notes: You must be docked.
+
+/hybrids, /railgun
+What they do: Spawn a prefit Rokh rack test hull.
+Fit seeded:
+- 1x 500MN Microwarpdrive II
+- 8x 425mm Railgun II
+- compatible L hybrid charges in cargo
+Example: /hybrids
+Notes: You must be docked.
+
+/projectiles
+What it does: Spawn a prefit Maelstrom rack test hull.
+Fit seeded:
+- 1x 500MN Microwarpdrive II
+- 6x 1400mm Howitzer Artillery II
+- compatible L projectile charges in cargo
+Example: /projectiles
+Notes: You must be docked.
+
+/autocannon
+What it does: Spawn a prefit Tempest Fleet Issue rack test hull.
+Fit seeded:
+- 1x 500MN Microwarpdrive II
+- 6x 800mm Repeating Cannon II
+- compatible L projectile charges in cargo
+Example: /autocannon
+Notes: You must be docked.
+
+/rocket
+What it does: Spawn a prefit Kestrel rack test hull.
+Fit seeded:
+- 1x 5MN Microwarpdrive II
+- 4x Rocket Launcher II
+- compatible rockets in cargo
+Example: /rocket
+Notes: You must be docked.
+
+/light
+What it does: Spawn a prefit Corax rack test hull.
+Fit seeded:
+- 1x 5MN Microwarpdrive II
+- 7x Light Missile Launcher II
+- compatible light missiles in cargo
+Example: /light
+Notes: You must be docked.
+
+/heavy
+What it does: Spawn a prefit Drake rack test hull.
+Fit seeded:
+- 1x 50MN Microwarpdrive II
+- 6x Heavy Missile Launcher II
+- compatible heavy missiles in cargo
+Example: /heavy
+Notes: You must be docked.
+
+/torp
+What it does: Spawn a prefit Raven Navy Issue rack test hull.
+Fit seeded:
+- 1x 500MN Microwarpdrive II
+- 7x Torpedo Launcher II
+- compatible torpedoes in cargo
+Example: /torp
+Notes: You must be docked.
+
+/lesmis
+What it does: Spawns a mixed-fit Typhoon Fleet Issue test hull.
+Fit seeded:
+- 1x 500MN Microwarpdrive II
+- 4x Heavy Missile Launcher II
+- 4x Mega Pulse Laser II
+- compatible heavy missiles and L crystals in cargo
+Example: /lesmis
+Notes: You must be docked.
+
+/miner
+What it does: Spawns a default mining fit based on config values.
+Default fit seeded:
+- Hulk
+- 2x Modulated Strip Miner II
+- 3x Expanded Cargohold II
+- 2x Medium Cargohold Optimization I
+- compatible crystals in cargo
+Example: /miner
+Notes: You must be docked.
+
+
+SPACE OBJECTS, DEBRIS, DUMMIES, AND DEATH TESTS
+-----------------------------------------------
+
+/celestial <typeID>
+What it does: Spawns any published or unpublished type in the Celestial category (category 2), including all of its groups, in front of your ship.
+Parameters:
+- <typeID> = exact type ID whose categoryID is 2
+Examples:
+- /celestial 2016
+- /celestial 30642
+Notes:
+- You must be in space.
+- The object is rigid but not massive, so ships do not bump into it.
+- Its edge is placed 1 km beyond your ship's edge.
+- The object is a visual, runtime-only spawn; category-specific services such as gate travel or wormhole transit are not created.
+- The object is not persisted and clears on server restart.
+
+/lco <typeID>
+What it does: Spawns a runtime-only Large Collidable Object (group 226) in front of your ship.
+Parameters:
+- <typeID> = exact Large Collidable Object type ID
+Example: /lco 72270
+Notes:
+- You must be in space.
+- The object is rigid but not massive, so ships do not bump into it.
+- Its edge is placed 1 km beyond your ship's edge.
+- The object is not persisted and clears on server restart.
+
+/jetcan <item name|typeID> [amount]
+What it does: Creates a jetcan in space and moves the chosen item stack into it.
+Parameters:
+- <item name|typeID> = item to jettison
+- [amount] = quantity, default 1
+Example: /jetcan Tritanium 5000
+Notes:
+- You must be in space.
+- The jetcan expires in 2 hours.
+
+/container <name|typeID> [count]
+/spawncontainer <name|typeID> [count]
+What they do: Spawn space containers within about 20 km.
+Parameters:
+- <name|typeID> = debris/container type
+- [count] = number to spawn
+Examples:
+- /container list
+- /container "Cargo Container" 5
+- /spawncontainer 23 10
+Notes:
+- /container list shows all valid types.
+- You must be in space.
+
+/wreck <name|typeID> [count]
+/spawnwreck <name|typeID> [count]
+What they do: Spawn wrecks within about 20 km.
+Parameters:
+- <name|typeID> = wreck type
+- [count] = number to spawn
+Examples:
+- /wreck list
+- /wreck "Wreck" 10
+- /spawnwreck 186 3
+Notes:
+- /wreck list shows all valid wreck types.
+- You must be in space.
+
+/testclear
+What it does: Clears nearby wrecks/containers within about 20 km.
+Parameters: none.
+Example: /testclear
+Notes: You must be in space.
+
+/sysjunkclear
+What it does: Clears wrecks/containers across the entire current solar system.
+Parameters: none.
+Example: /sysjunkclear
+Notes: You must be in space.
+
+/keepstar
+What it does: Spawns a runtime-only Palatine Keepstar visual roughly 400 km away.
+Parameters: none.
+Example: /keepstar
+Notes:
+- Visual only.
+- Not persisted.
+- Clears on restart.
+
+/fire [ship name|typeID]
+What it does: Spawns one combat dummy hull roughly 20 km away.
+Parameters:
+- [ship name|typeID] = optional hull to spawn, defaults to Drake
+Examples:
+- /fire
+- /fire Raven
+
+/fire2 [count]
+What it does: Spawns a staggered arrowhead fleet of combat dummy ships ahead of you.
+Parameters:
+- [count] = optional fleet size
+Examples:
+- /fire2
+- /fire2 25
+
+/deathtest [ship name|typeID] [count]
+What it does: Spawns a temporary field of hulls across about 20 km, then detonates them into wrecks after a short delay.
+Parameters:
+- [ship name|typeID] = optional hull to use; defaults to your current ship type if available
+- [count] = optional amount
+Examples:
+- /deathtest
+- /deathtest Raven 12
+Notes: You must be in space.
+
+/suicide
+What it does: Self-destructs your active ship, creates a wreck, and places you in a capsule.
+Parameters: none.
+Example: /suicide
+Notes: You must be in space.
+
+/deadwarp
+What it does: Forces an immediate warp start to a safe point several AU away.
+Parameters: none.
+Example: /deadwarp
+Notes: You must be in space.
+
+
+NPCS, MINING FLEETS, CRIMEWATCH, AND SECURITY
+---------------------------------------------
+
+/npc [amount] [faction|profile|pool]
+What it does: Spawns transient NPCs near you, preferring authored pools.
+Parameters:
+- [amount] = number to spawn, default 5
+- [faction|profile|pool] = optional authored selection query
+Examples:
+- /npc
+- /npc 10 guristas
+- /npc 6 generic_hostile
+
+/mnpc [amount] [faction|profile|pool]
+What it does: Spawns missile-capable transient NPCs near you.
+Parameters:
+- [amount] = number to spawn, default 5
+- [faction|profile|pool] = optional authored selection query
+Examples:
+- /mnpc
+- /mnpc 8 npc_missile_hostiles
+
+/npctest [amount]
+What it does: Spawns stationary authored combat NPCs in a sphere about 20 km ahead of your ship.
+Parameters:
+- [amount] = number to spawn
+Examples:
+- /npctest
+- /npctest 12
+Notes: Short-range hulls are range-clamped inward so they can still shoot while stationary.
+
+/npctest2 [amount]
+What it does: Spawns stationary NPCs that fight each other until one side wins or they mutually destroy each other.
+Parameters:
+- [amount] = number to spawn, minimum 2
+Examples:
+- /npctest2 10
+- /npctest2 20
+
+/npcw [amount] [profile|pool]
+What it does: Spawns transient NPCs that warp in to you.
+Parameters:
+- [amount] = number to spawn
+- [profile|pool] = optional authored selection query
+Examples:
+- /npcw
+- /npcw 6 guristas
+
+/wnpc [amount] [profile|pool]
+What it does: Same as /npcw, but also applies a chase propulsion override to the warped NPCs when possible.
+Parameters:
+- [amount] = number to spawn
+- [profile|pool] = optional authored selection query
+Examples:
+- /wnpc
+- /wnpc 6 guristas
+
+/concord [amount] [profile|pool]
+What it does: Spawns transient CONCORD near you.
+Parameters:
+- [amount] = number to spawn
+- [profile|pool] = optional authored selection query
+Examples:
+- /concord
+- /concord 5
+
+/npcclear <system [npc|concord|all]|radius <meters> [npc|concord|all]>
+What it does: Clears command-spawned NPCs by whole-system scope or radius scope.
+Parameters:
+- system [npc|concord|all] = clear the current system
+- radius <meters> [npc|concord|all] = clear only around you
+Examples:
+- /npcclear system all
+- /npcclear radius 50000 npc
+
+/npcminer [amount] [profile|pool|group]
+What it does: Spawns a mining fleet that warps in using mining NPC profiles.
+Parameters:
+- [amount] = fleet size
+- [profile|pool|group] = authored mining fleet query
+Examples:
+- /npcminer
+- /npcminer 5 npc_mining_ops
+
+/npcmineraggro [amount] [profile|pool|group]
+What it does: Forces active mining fleets into the aggressed state and spawns a response wave.
+Parameters:
+- [amount] = response wave size
+- [profile|pool|group] = authored hostile query
+Examples:
+- /npcmineraggro
+- /npcmineraggro 4 npc_laser_hostiles
+
+/npcminerpanic [amount] [profile|pool|group]
+What it does: Alias of /npcmineraggro in the current implementation.
+Parameters:
+- [amount] = response wave size
+- [profile|pool|group] = authored hostile query
+Example: /npcminerpanic 4 npc_laser_hostiles
+
+/npcminerretreat
+What it does: Orders tracked mining fleets to retreat.
+Parameters: none.
+Example: /npcminerretreat
+
+/npcminerresume
+What it does: Resumes tracked mining fleets after retreat/panic.
+Parameters: none.
+Example: /npcminerresume
+
+/npcminerhaul
+What it does: Forces tracked mining fleets into hauling behavior.
+Parameters: none.
+Example: /npcminerhaul
+
+/npcminerclear
+What it does: Clears tracked mining fleets and destroys their associated NPC hulls.
+Parameters: none.
+Example: /npcminerclear
+
+/npcminerstatus
+What it does: Shows tracked mining fleet counts and states in the current system.
+Parameters: none.
+Example: /npcminerstatus
+
+/miningreset
+What it does: Resets mining runtime state for the current scene and rebuilds generated asteroid entities.
+Parameters: none.
+Example: /miningreset
+
+/miningstatus
+What it does: Shows mining runtime totals for the current scene.
+Parameters: none.
+Example: /miningstatus
+
+/gateconcord [on|off]
+What it does: Shows or toggles gate CONCORD behavior for the current system.
+Parameters:
+- [on|off] = enable or disable; no argument shows status
+Examples:
+- /gateconcord
+- /gateconcord off
+
+/gaterats [on|off]
+What it does: Shows or toggles gate rat behavior for the current system.
+Parameters:
+- [on|off] = enable or disable; no argument shows status
+Examples:
+- /gaterats
+- /gaterats on
+
+/invu [on|off]
+What it does: Toggles or explicitly sets NPC/CONCORD invulnerability for your character.
+Parameters:
+- [on|off] = explicit state; no argument toggles or reports current state depending on code path
+Examples:
+- /invu
+- /invu on
+
+/cwatch [status|clear|safety <full|partial|none>|weapon <off|seconds>|pvp <off|seconds>|npc <off|seconds>|criminal <off|seconds>|suspect <off|seconds>|disapproval <off|seconds>]
+What it does: Inspects or edits your crimewatch debug state.
+Parameters:
+- status = show current state
+- clear = clear all timers/state
+- safety = set safety level
+- weapon/pvp/npc/criminal/suspect/disapproval = set timer values or turn them off
+Examples:
+- /cwatch
+- /cwatch safety partial
+- /cwatch weapon 60
+- /cwatch criminal 900
+- /cwatch clear
+
+/naughty
+What it does: Simulates a high-sec criminal offense and schedules/refreshes CONCORD response where applicable.
+Parameters: none.
+Example: /naughty
+Notes: You must be in space.
+
+/secstatus [status]
+What it does: Shows your current security status, or sets it if a value is supplied.
+Parameters:
+- [status] = new security status value
+Examples:
+- /secstatus
+- /secstatus -10
+
+
+UPWELL COMMAND FAMILY
+---------------------
+
+/upwell help
+What it does: Shows the Upwell subcommand list.
+Example: /upwell help
+
+/upwell list [all]
+What it does: Lists known structures.
+Parameters:
+- [all] = include all systems; without it, the list is scoped to the current system
+Examples:
+- /upwell list
+- /upwell list all
+
+/upwell info <structureID|name|here>
+What it does: Shows a formatted summary for one structure.
+Examples:
+- /upwell info here
+- /upwell info 1030000000001
+
+/upwell seed <astrahus|fortizar|keepstar|raitaru|azbel|sotiyo|athanor|tatara|palatine> [name]
+What it does: Seeds a structure in the current system near your ship.
+Examples:
+- /upwell seed astrahus
+- /upwell seed fortizar "Fort Elysian"
+
+/upwell anchor <structureID|name|here>
+What it does: Forces a structure into its anchored/runtime-synced state.
+Examples:
+- /upwell anchor here
+- /upwell anchor 1030000000001
+
+/upwell core <structureID|name|here> <on|off>
+What it does: Installs or removes the quantum core state.
+Examples:
+- /upwell core here on
+- /upwell core 1030000000001 off
+
+/upwell ff <structureID|name|here> <seconds>
+What it does: Fast-forwards structure timers by a number of seconds.
+Examples:
+- /upwell ff here 3600
+- /upwell ff 1030000000001 86400
+
+/upwell repair <structureID|name|here>
+What it does: Fully repairs the structure.
+Examples:
+- /upwell repair here
+- /upwell repair 1030000000001
+
+/upwell state <structureID|name|here> <state>
+What it does: Sets the raw structure state.
+Parameters:
+- <state> = the state token accepted by the structure state handler
+Examples:
+- /upwell state here online
+- /upwell state 1030000000001 unanchored
+
+/upwell upkeep <structureID|name|here> <full_power|low_power|abandoned>
+What it does: Sets the upkeep state.
+Examples:
+- /upwell upkeep here low_power
+- /upwell upkeep 1030000000001 abandoned
+
+/upwell service <structureID|name|here> <serviceID|serviceName> <online|offline>
+What it does: Toggles an individual structure service.
+Examples:
+- /upwell service here clone online
+- /upwell service 1030000000001 5 offline
+
+/upwell damage <structureID|name|here> <shield|armor|hull|kill> [amount]
+What it does: Applies GM damage to a structure.
+Parameters:
+- <shield|armor|hull|kill> = layer or kill shortcut
+- [amount] = optional numeric damage amount
+Examples:
+- /upwell damage here shield 500000
+- /upwell damage 1030000000001 kill
+
+/upwell kill <structureID|name|here>
+What it does: Immediately destroys the structure.
+Examples:
+- /upwell kill here
+- /upwell kill 1030000000001
+
+/upwell timer <structureID|name|here> <scale>
+What it does: Sets structure timer scale.
+Examples:
+- /upwell timer here 0.1
+- /upwell timer 1030000000001 10
+
+/upwell tether <status|clear|scram|cyno|fighters|fw|delay> [value]
+What it does: Inspects or edits tether restriction debug state for the current character.
+Parameters:
+- status = show current restriction state
+- clear = clear all restrictions
+- scram|cyno|fighters|fw <on|off> = toggle that restriction
+- delay <seconds> = apply tether delay
+Examples:
+- /upwell tether status
+- /upwell tether scram on
+- /upwell tether fighters off
+- /upwell tether delay 30
+
+/upwell remove <structureID|name|here>
+What it does: Removes the structure from persisted state.
+Examples:
+- /upwell remove here
+- /upwell remove 1030000000001
+
+/upwell purge [all]
+What it does: Bulk-removes persisted structures.
+Parameters:
+- [all] = purge every system; without it, purge only the current system
+Examples:
+- /upwell purge
+- /upwell purge all
+
+/upwell safety <structureID|name|here> [char|corp]
+What it does: Moves personal or corporation assets from the structure into an asset safety wrap.
+Parameters:
+- [char|corp] = owner kind, default char
+Examples:
+- /upwell safety here
+- /upwell safety 1030000000001 corp
+
+/upwell wraps [char|corp]
+What it does: Lists asset safety wraps for the current character or corporation.
+Parameters:
+- [char|corp] = owner kind, default char
+Examples:
+- /upwell wraps
+- /upwell wraps corp
+
+/upwell deliver <wrapID> [destinationID]
+What it does: Delivers an asset safety wrap to a destination.
+Parameters:
+- <wrapID> = asset wrap ID
+- [destinationID] = optional explicit destination
+Examples:
+- /upwell deliver 1040000000001
+- /upwell deliver 1040000000001 60003760
+
+
+UPWELL AUTOMATION COMMAND FAMILY
+--------------------------------
+
+/upwellauto help
+What it does: Shows Upwell automation help.
+Example: /upwellauto help
+
+/upwellauto status
+What it does: Lists active Upwell automation jobs.
+Example: /upwellauto status
+
+/upwellauto stop <jobID|structureID|all>
+What it does: Stops one Upwell automation job, all jobs for a structure, or all jobs.
+Examples:
+- /upwellauto stop 12
+- /upwellauto stop 1030000000001
+- /upwellauto stop all
+
+/upwellauto undock <structureID> [count=100] [all|unpublished|published]
+What it does: Starts a staggered dummy undock wave from a dockable structure.
+Parameters:
+- <structureID> = structure to undock from
+- [count] = ships to launch, default 100
+- [all|unpublished|published] = hull pool
+Examples:
+- /upwellauto undock 1030000000001
+- /upwellauto undock 1030000000001 250 published
+
+/upwellauto <astrahus|fortizar|keepstar|raitaru|azbel|sotiyo|athanor|tatara|palatine> [name]
+What it does: Seeds the named structure type and runs its online lifecycle automatically.
+Examples:
+- /upwellauto astrahus
+- /upwellauto keepstar "Keepstar Alpha"
+
+/upwellauto <structureID>
+What it does: Starts automated destruction for an existing structure.
+Examples:
+- /upwellauto 1030000000001
+
+
+SOVEREIGNTY COMMAND FAMILY
+--------------------------
+
+The server follows today's retail sovereignty: the Sovereignty Hub is the only sovereignty structure, and a claimed Hub is the claim. There are no Territorial Claim Units. Every command below works on conquerable nullsec systems with no faction owner; empire systems such as Jita are refused.
+
+/sov help
+What it does: Shows sovereignty help.
+Example: /sov help
+
+/sov status [here|systemID]
+What it does: Shows sovereignty state for a system: owner, claim, indices, the Hub's engine state (window, score, reinforcement exit) and the command nodes of a running event.
+Examples:
+- /sov status
+- /sov status 30004759
+
+/sov anchor [here|systemID] [allianceID] [corporationID]
+What it does: Places a claimed Sovereignty Hub 100 km above the sun's warp-in point and makes it the system's claim. Without IDs the caller's alliance and corporation own it. A Hub already in the system is reused and keeps its position.
+Examples:
+- /sov anchor
+- /sov anchor 30004759 99012345 98012345
+
+/sov anchor neutral [here|systemID]
+What it does: Places an SCC-owned Sovereignty Hub at the sun with no claim, the state a player launch produces. An alliance claims it with an Entosis Link.
+Examples:
+- /sov anchor neutral
+- /sov anchor neutral 30004759
+
+/sov deploy <tenebrex|pharolux|ansiblex|all> [here|systemID] [allianceID] [corporationID]
+What it does: Deploys sovereignty flex structures.
+Examples:
+- /sov deploy all
+- /sov deploy ansiblex 30004759 99012345 98012345
+
+/sov prime <hour> [allianceID]
+What it does: Sets alliance prime time hour.
+Examples:
+- /sov prime 20
+- /sov prime 18 99012345
+
+/sov capital <here|systemID|clear> [allianceID]
+What it does: Sets or clears alliance capital system state.
+Examples:
+- /sov capital here
+- /sov capital 30004759 99012345
+- /sov capital clear 99012345
+
+/sov index <strategic|claimed|military|industrial> <value> [here|systemID]
+What it does: Sets a development index level, or the claim age in days.
+Parameters:
+- strategic = a whole level from 0 to 5 (0, 7, 21, 35, 65, or 100 claimed days)
+- military or industrial = a whole level from 0 to 5; values above 5 remain raw points for existing scripts (9,600,000 points per level)
+- claimed = whole claimed days, as with /sov age
+Examples (set all three indices to level 5):
+- /sov index military 5
+- /sov index industrial 5
+- /sov index strategic 5
+Other examples:
+- /sov index strategic 3 30004759
+- /sov index claimed 21
+- /sov index military 9600000
+Note: strategic and claimed require an existing alliance claim and update both its timestamp and strategic index. Wait 15 seconds, then close and reopen the Sov Hub window to refresh its cached claim age.
+
+/sov age <days> [here|systemID]
+What it does: Sets how long an alliance claim has been held, and the strategic index days that go with it.
+Parameters:
+- <days> = whole days counted back from now; 0 resets the claim to now
+Examples:
+- /sov age 21
+- /sov age 35 30000798
+- /sov age 0 here
+Note: The system must already have an alliance claim. Repeating the command sets the age again rather than adding days. Cynosural Navigation needs 21 days and Cynosural Suppression needs 35. Wait 15 seconds, then close and reopen the Sov Hub window to see the new claim date.
+
+/sov vuln <seconds|clear> [here|systemID]
+What it does: Opens the claimed Hub's vulnerability window for the given seconds, starting now, in the capture engine that the Entosis tick reads. clear forgets the GM window so the daily window applies again. clear is refused while the Hub is reinforced or in a command node event.
+Examples:
+- /sov vuln 3600
+- /sov vuln clear 30004759
+
+/sov reinforce [exitSeconds|now] [here|systemID]
+What it does: Reinforces the claimed Hub as if attackers had run its score down. Without an exit the engine picks its own time, about 48 hours out. exitSeconds sets the exit that many seconds from now, and now starts the command node event at once with 4 nodes in the constellation.
+Examples:
+- /sov reinforce
+- /sov reinforce now
+- /sov reinforce 600 30004759
+
+/sov node <nodeID|next> <defender|attacker|allianceID> [here|systemID]
+What it does: Captures one command node of the running event for a side. next takes the first live node. defender is the owning alliance; attacker is the caller's alliance when it is not the defender; an alliance ID names the attacker directly. The score starts at 60% for the defender and moves 7% per node, so 6 defender captures secure the Hub and 9 attacker captures destroy it.
+Examples:
+- /sov node next defender
+- /sov node 1140000000123 99012346
+- /sov node next attacker 30004759
+
+/sov ff <seconds> [here|systemID]
+What it does: Fast-forwards sovereignty timers: the Hub's engine window and reinforcement exit, the displayed timestamps, and the alliance prime hour and capital timers.
+Examples:
+- /sov ff 3600
+- /sov ff 86400 30004759
+
+/sov capture <allianceID> <corporationID> [here|systemID]
+What it does: Claims the system for the given alliance/corporation with an owned Sovereignty Hub at the sun. Only conquerable nullsec systems with no faction owner are accepted; empire systems such as Jita are refused.
+Examples:
+- /sov capture 99012345 98012345
+- /sov capture 99012345 98012345 30004759
+
+/sov lose [allianceID|0] [corporationID|0] [here|systemID]
+What it does: Forces sovereignty loss. With an alliance and corporation the system is transferred to them; otherwise the claim, the Hub and its command nodes are removed.
+Examples:
+- /sov lose
+- /sov lose 0 0 30004759
+- /sov lose 99012345 98012345 30004759
+
+/sov clear [here|systemID]
+What it does: Clears sovereignty state for a system.
+Examples:
+- /sov clear
+- /sov clear 30004759
+
+
+SOVEREIGNTY AUTOMATION COMMAND FAMILY
+-------------------------------------
+
+/sovauto help
+/autosov help
+What they do: Show sovereignty automation help.
+Example: /sovauto help
+
+/sovauto status
+/autosov status
+What they do: List active sovereignty automation jobs.
+Example: /sovauto status
+
+/sovauto stop <jobID|systemID|all>
+/autosov stop <jobID|systemID|all>
+What they do: Stop one sovereignty automation job, a system's jobs, or all jobs.
+Examples:
+- /sovauto stop 12
+- /sovauto stop 30004759
+- /autosov stop all
+
+/sovauto reset
+/sovauto wipe
+/autosov reset
+/autosov wipe
+What they do: Reset sovereignty automation state: every claim, Hub, skyhook, mercenary den and sovereignty structure goes, and every job stops. Static resource definitions stay.
+Example: /sovauto reset
+
+/sovauto claim [here|systemID|unclaimed] [allianceID] [corporationID]
+/autosov claim [here|systemID|unclaimed] [allianceID] [corporationID]
+What they do: Start the automated claim flow for an unclaimed system: jump there, anchor a claimed Hub at the sun, max the indices, deploy the flex showcase and online a Tenebrex jammer.
+Parameters:
+- [here|systemID|unclaimed] = target system; unclaimed/random/next auto-picks a valid nullsec target
+- [allianceID] [corporationID] = optional explicit ownership
+Examples:
+- /sovauto claim here
+- /sovauto claim unclaimed 99012345 98012345
+Note: The takeover, gain and loss flows were removed. Use /sov capture, /sov reinforce and /sov node instead.
+
+
+SUPERWEAPON COMMANDS
+--------------------
+
+/supertitan
+What it does: Seeds a titan with a real superweapon loadout, ejects you if needed, launches the titan into space, and boards it.
+Parameters: none.
+Example: /supertitan
+
+/supertitanshow [count]
+/titansupershow [count]
+What they do: Spawn two staged transient titan battle groups with real racial superweapons for a showcase battle.
+Parameters:
+- [count] = ships per fleet
+Examples:
+- /supertitanshow
+- /titansupershow 20
+
+
+ACCEPTED BUT NOT ADVERTISED ALIASES
+-----------------------------------
+
+These currently resolve in code even though they are not part of the main advertised list:
+- /hybrid -> same preset family as /hybrids
+- /hyrbids -> same preset family as /hybrids
+- /projectile -> same preset family as /projectiles
+- /projectule -> same preset family as /projectiles
+
+
+QUICK REMINDERS
+---------------
+
+- Docked-only commands usually involve hangars, fitting, or inventory grants.
+- In-space-only commands usually involve NPCs, FX, transport, debris, combat dummies, or runtime visuals.
+- /item is a grant command, not an inspection command.
+- The structure, sovereignty, and automation families are large enough that it is worth using their help forms first:
+  /upwell help
+  /upwellauto help
+  /sov help
+  /sovauto help
+
+ADDITIONAL COMMAND REFERENCE
+============================
+
+These entries extend the command families above. Examples containing <IDs> are
+templates: substitute IDs from your server.
+The server also accepts a dot prefix, such as .container1.
+
+LCO editing notes
+- /lco <typeID> above spawns a runtime-only object. The editing subcommands below
+  operate on eligible authored props, not on those newly spawned objects.
+- Use /lco list to obtain the runtime item ID. Editing requires staff/admin access
+  and a public solar-system scene.
+- move and offset use metres; rotate takes degrees about X, Y, Z. inspect reports
+  the stored rotation tuple as yaw/pitch/roll.
+- Changes are live previews until /lco save. Saves use the authored source identity.
+
+POS notes
+- POS targets accept an item ID, exact name, or here; use IDs to avoid ambiguity.
+- Force-state commands require staff/GM access. operate, bridge, compress, and
+  production use their normal access checks; forcing production cycle also
+  requires GM authority and supported production data.
+- These diagnostics expose server operations even where legacy client menus are
+  unavailable. Unsupported historical production configurations can be refused.
+
+Abyssal diagnostics below require staff/admin access. Normal entry uses filaments.
+Single-rack fitted-ship commands, /lesmis, and /miner require docking.
+
+CELESTIALS, SCENERY, AND AUTHORED SITES
+---------------------------------------
+
+/lco list
+What it does: Lists editable authored scenery in the current public solar system. Staff/admin only.
+Example: /lco list
+
+/lco inspect <itemID>
+What it does: Shows an authored object's position and rotation. Staff/admin only.
+Example: /lco inspect <itemID>
+
+/lco move <itemID> <x> <y> <z>
+What it does: Sets absolute coordinates in metres. Staff/admin only.
+Example: /lco move <itemID> 100000 200000 300000
+
+/lco offset <itemID> <dx> <dy> <dz>
+What it does: Moves relative to the object's present position, in metres. Staff/admin only.
+Example: /lco offset <itemID> 1000 0 0
+
+/lco rotate <itemID> <x> <y> <z>
+What it does: Sets rotation in degrees about X, Y, and Z. Staff/admin only.
+Example: /lco rotate <itemID> 0 90 0
+
+/lco save <itemID>
+What it does: Persists an authored object's edited placement. Staff/admin only.
+Example: /lco save <itemID>
+
+/spawnsite <templateID> [offsetMeters]
+What it does: Spawns an authored dungeon template. Exact client content/mining sites materialize their supported contents; other templates can spawn their NPCs. An explicit non-negative offset requests a named scannable site at that offset. Numeric template IDs expand to client-dungeon:<ID>.
+Example: /spawnsite eve-survival:Score1gu 1000000
+
+/gateskin [start|stop|list]
+What it does: Controls the stargate skin showcase and lists its available entries.
+Examples:
+- /gateskin list
+- /gateskin start
+- /gateskin stop
+
+
+POS / STARBASES
+---------------
+
+/pos anchor <target>
+What it does: Forces an existing POS structure into its anchored state.
+Example: /pos anchor here
+
+/pos unanchor <target>
+What it does: Forces it into an unanchored state.
+Example: /pos unanchor <structureID>
+
+/pos online <target>
+What it does: Forces it online.
+Example: /pos online here
+
+/pos offline <target>
+What it does: Forces it offline.
+Example: /pos offline here
+
+/pos ff <target> <seconds>
+What it does: Fast-forwards POS timers.
+Example: /pos ff here 3600
+
+/pos repair <target>
+What it does: Repairs the structure.
+Example: /pos repair here
+
+/pos damage <target> <shield|armor|armour|hull|kill> [amount]
+What it does: Applies damage to the selected layer; kill destroys it.
+Example: /pos damage here shield 1000
+
+/pos timer <target> <scale>
+What it does: Changes the POS timer scale.
+Example: /pos timer here 0.1
+
+/pos fuelcycle <tower>
+What it does: Forces a tower fuel cycle. If fuel cannot pay for the cycle, the tower goes offline.
+Example: /pos fuelcycle here
+
+/pos operate <anchor|unanchor|online|offline> <moduleID|name>
+What it does: Requests a validated module lifecycle operation with normal timers.
+Example: /pos operate online <moduleID>
+
+/pos bridge link <sourceID> <destinationID>
+What it does: Links POS jump bridges.
+Example: /pos bridge link <sourceID> <destinationID>
+
+/pos bridge unlink <sourceID>
+What it does: Removes the jump bridge link.
+Example: /pos bridge unlink <sourceID>
+
+/pos compress <arrayID> <itemID> [itemID ...]
+What it does: Compresses eligible inventory stacks through the POS compression array.
+Example: /pos compress <arrayID> <oreStackID>
+
+/pos production status <towerID>
+What it does: Shows production configuration and associated modules.
+Example: /pos production status <towerID>
+
+/pos production cycle <towerID>
+What it does: Forces a supported production cycle. It can refuse when historical production authority is unavailable.
+Example: /pos production cycle <towerID>
+
+/pos production provision <towerID> <moduleID> <typeID|none>
+What it does: Configures a production module's material type.
+Example: /pos production provision <towerID> <moduleID> none
+
+/pos production link <towerID> <fromID> <toID> <typeID>
+What it does: Routes a material from one production module to another.
+Example: /pos production link <towerID> <fromID> <toID> <materialTypeID>
+
+/pos production unlink <towerID> <fromID> <typeID>
+What it does: Removes that source/material route.
+Example: /pos production unlink <towerID> <fromID> <materialTypeID>
+
+/pos production clear <towerID>
+What it does: Clears the tower's production links.
+Example: /pos production clear <towerID>
+
+
+INDUSTRY, BOOKMARKS, AND CALENDAR DIAGNOSTICS
+---------------------------------------------
+
+/bp list
+What it does: Lists blueprints.
+Example: /bp list
+
+/bp jobs
+What it does: Lists industry jobs.
+Example: /bp jobs
+
+/bp lookup <preset|product|blueprint>
+What it does: Resolves a blueprint/product.
+Example: /bp lookup frigate
+
+/bpauto status
+What it does: Shows industry automation settings/state.
+Example: /bpauto status
+
+/bpauto reset
+What it does: Resets automation settings/state.
+Example: /bpauto reset
+
+/bpauto owner <me|corp>
+What it does: Selects personal or corporation ownership.
+Example: /bpauto owner me
+
+/bpauto facility <here|best|npc|structure>
+What it does: Selects facility mode.
+Example: /bpauto facility here
+
+/bpauto list [me|corp]
+What it does: Lists blueprints for the chosen owner.
+Example: /bpauto list me
+
+/bpauto seed <preset|product|blueprint> [runs] [copy|original]
+What it does: Seeds industry test inputs.
+Example: /bpauto seed frigate 1 copy
+
+/bpauto quote <preset|product|blueprint> [runs]
+What it does: Quotes a manufacturing job.
+Example: /bpauto quote frigate 1
+
+/bpauto build <preset|product|blueprint> [runs] [ready]
+What it does: Installs a manufacturing job; ready prepares it for immediate delivery testing.
+Example: /bpauto build frigate 1 ready
+
+/bpauto deliver <last|ready|all|jobID>
+What it does: Delivers selected jobs.
+Example: /bpauto deliver last
+
+/bpauto cancel <last|ready|all|jobID>
+What it does: Cancels selected jobs.
+Example: /bpauto cancel last
+
+/bpauto demo <frigate|ammo|module|ship|components>
+What it does: Runs a preset industry demonstration.
+Example: /bpauto demo frigate
+
+/bpauto smoke <basic|corp|facility|delivery>
+What it does: Runs a named industry smoke workflow.
+Example: /bpauto smoke basic
+
+/reprocesssmoke seed
+What it does: Seeds the reprocessing test setup.
+Example: /reprocesssmoke seed
+
+/reprocesssmoke status
+What it does: Shows the setup.
+Example: /reprocesssmoke status
+
+/reprocesssmoke rig <none|ore1|ore2|moon1|moon2|ice1|ice2|monitor1|monitor2>
+What it does: Selects the test rig configuration.
+Example: /reprocesssmoke rig ore1
+
+/reprocesssmoke quote <item name>
+What it does: Quotes reprocessing for an item.
+Example: /reprocesssmoke quote Veldspar
+
+/reprocesssmoke run <item name> [corp]
+What it does: Executes reprocessing, optionally for corporation inventory.
+Example: /reprocesssmoke run Veldspar
+
+/bookmarkauto status
+What it does: Shows bookmark test state.
+Example: /bookmarkauto status
+
+/bookmarkauto here
+What it does: Creates a bookmark at the current location.
+Example: /bookmarkauto here
+
+/bookmarkauto personal demo
+What it does: Creates the personal bookmark demo.
+Example: /bookmarkauto personal demo
+
+/bookmarkauto shared demo
+What it does: Creates the shared bookmark demo.
+Example: /bookmarkauto shared demo
+
+/bookmarkauto subfolder demo
+What it does: Exercises bookmark subfolders.
+Example: /bookmarkauto subfolder demo
+
+/bookmarkauto move all demo
+What it does: Exercises moving the demo bookmarks.
+Example: /bookmarkauto move all demo
+
+/bookmarkauto copy all demo
+What it does: Exercises copying the demo bookmarks.
+Example: /bookmarkauto copy all demo
+
+/bookmarkauto expire demo
+What it does: Exercises bookmark expiry.
+Example: /bookmarkauto expire demo
+
+/bookmarkauto warp last
+What it does: Warps to the last test bookmark.
+Example: /bookmarkauto warp last
+
+/bookmarkauto smoke
+What it does: Runs the bookmark smoke workflow.
+Example: /bookmarkauto smoke
+
+/calauto status
+What it does: Shows calendar test state.
+Example: /calauto status
+
+/calauto personal [daysAhead]
+What it does: Creates a personal test event.
+Example: /calauto personal 1
+
+/calauto corp [daysAhead]
+What it does: Creates a corporation test event.
+Example: /calauto corp 1
+
+/calauto alliance [daysAhead]
+What it does: Creates an alliance test event.
+Example: /calauto alliance 1
+
+/calauto global [daysAhead]
+What it does: Creates a global test event.
+Example: /calauto global 1
+
+/calauto future [daysAhead]
+What it does: Creates a future-dated test event.
+Example: /calauto future 30
+
+/calauto smoke
+What it does: Runs the calendar smoke workflow.
+Example: /calauto smoke
+
+
+NPCS AND COMBAT SHOWCASES
+-------------------------
+
+/trigspawn [count] [status|clear|hull|role hull]
+What it does: Spawns or inspects/clears Triglavian NPCs.
+Example: /trigspawn 3; /trigspawn status
+
+/drifter [count] [status|clear|variant|random|family random]
+What it does: Spawns or inspects/clears Drifter NPCs.
+Example: /drifter 1; /drifter status
+
+/rr [count|cover|fighter]
+What it does: Spawns the remote-repair support fleet. cover and fighter add showcase elements to an active fleet.
+Example: /rr 5; /rr cover
+
+/deathstructure <type> [count] [delaySeconds]
+What it does: Runs structure destruction visuals/testing.
+Example: /deathstructure astrahus 1 5
+
+
+CAPITAL NPC CONTROLS
+--------------------
+
+/capnpc [amount] [query]
+What it does: Spawns capital NPCs.
+Example: /capnpc 1
+
+/capnpcinfo [query]
+What it does: Shows capital NPC definitions.
+Example: /capnpcinfo
+
+/capnpcstatus [query]
+What it does: Shows live capital NPC status.
+Example: /capnpcstatus
+
+/capnpcclear [query]
+What it does: Removes matching capital NPCs.
+Example: /capnpcclear
+
+/capnpctarget [query] <me|entityID>
+What it does: Assigns their target.
+Example: /capnpctarget me
+
+/capnpchome [query]
+What it does: Sends matching capitals home.
+Example: /capnpchome
+
+/capnpcfighters [status|launch|reset] [query]
+What it does: Inspects or controls fighter squadrons.
+Example: /capnpcfighters status
+
+/capnpcsuper [status|fire] [query] [me|entityID]
+What it does: Inspects or activates capital superweapons.
+Example: /capnpcsuper status
+
+/capnpcsignoff <capital hull name> [me|entityID]
+What it does: Runs the selected capital hull's signoff test.
+Example: /capnpcsignoff <capitalHullName> me
+
+/capnpcperf
+What it does: Reports capital NPC performance diagnostics.
+Example: /capnpcperf
+
+
+SHIPS, FITTINGS, INVENTORY, AND DEBRIS
+--------------------------------------
+
+/create <name|typeID> [amount], /createitem
+What it does: Creates items at the supported current inventory location, with stack/singleton limits.
+Example: /create Tritanium 100000
+
+/minerals
+What it does: Bulk-grants the mineral test package.
+Example: /minerals
+
+/orca
+What it does: Fitted Orca testing preset.
+Example: /orca
+
+/probe
+What it does: Nestor scanning preset.
+Example: /probe
+
+/probe2
+What it does: Stratios scanning preset.
+Example: /probe2
+
+/trig [hull|family]
+What it does: Fitted Triglavian hull preset, including disintegrator/remote-repair variants.
+Example: /trig leshak
+
+/cburst
+What it does: Claymore command-burst preset.
+Example: /cburst
+
+/guardian
+What it does: Guardian logistics preset.
+Example: /guardian
+
+/basilisk
+What it does: Basilisk logistics preset.
+Example: /basilisk
+
+/ewar
+What it does: Gnosis electronic-warfare preset.
+Example: /ewar
+
+/container1
+What it does: Grants the container test package.
+Example: .container1
+
+/dirt <0.0-1.0> [shipID]
+What it does: Sets ship dirt appearance.
+Example: /dirt 0.8
+
+/killmarks <count> [shipID], /killmark
+What it does: Sets displayed ship killmarks.
+Example: /killmarks 25
+
+/dmg [light|medium|heavy]
+What it does: Applies a ship damage test preset.
+Example: /dmg light
+
+
+SKILLS, STANDINGS, AND COSMETICS
+--------------------------------
+
+/backintime [target]
+What it does: Restores the character's starter skill profile.
+Example: /backintime me
+
+/allskins [target]
+What it does: Grants the supported SKIN licenses.
+Example: /allskins me
+
+/allskinr [target]
+What it does: Unlocks every supported unlimited SKINR component and adds 1,000 uses of each supported limited component directly to the character's component library.
+Parameters: [target] defaults to me; accepts a character ID or exact character name.
+Example: /allskinr me
+Notes: Repeating the command adds another 1,000 uses of each limited component. Already owned unlimited components are retained. The grant is saved together, and the online character receives component-grant notices.
+
+/skinr
+/skinr list [target]
+What it does: Lists saved SKINR designs, their UUIDs, and design-slot usage.
+Parameters: [target] defaults to me; accepts a character ID or exact character name. /skinr with no arguments is shorthand for /skinr list me.
+Example: /skinr list me
+Notes: UUIDs identify saved drafts. The delete and export commands accept the compact 32-character UUID or the hyphenated form printed by this command. See SKINR saved-design capacity below for skill and server-setting limits.
+
+/skinr delete <draft UUID|all> [target]
+What it does: Deletes one saved SKINR design, or all saved designs for the target, to free design slots.
+Parameters: Use a UUID from /skinr list. [target] defaults to me; accepts a character ID or exact character name.
+Examples:
+- /skinr delete <draft UUID> me
+- /skinr delete all me
+Notes: This removes saved drafts only. Sequenced SKIN licenses and designs retained for sequencing jobs are preserved. Relog if the saved-design list is still cached.
+
+/skinr export <draft UUID> [target]
+What it does: Writes a portable .skinr.json file containing a saved design's hull, components, colors, pattern layout and editor settings.
+Parameters: Use a UUID from /skinr list. [target] defaults to me; accepts a character ID or exact character name.
+Example: /skinr export <draft UUID> me
+Notes: The reply gives the full file path under _local/skinr/designs (or skinr/designs under EVEJS_DATA_ROOT). Each export creates a new file. Send the file through Discord or another file-sharing method.
+
+/skinr import <filename.skinr.json> [target]
+What it does: Reads a portable design file and creates a new saved draft for the target character.
+Parameters: Place the file in the server's skinr/designs folder and pass only its filename. Quote filenames containing spaces. [target] defaults to me; accepts a character ID or exact character name.
+Example: /skinr import "My Design.skinr.json" me
+Notes: Import validates the file format/version, hull, component catalog, layout and editor settings, and requires a free saved-design slot. The maximum file size is 64 KiB. It preserves the source file and creates a new draft UUID. Component rights, SKIN licenses, wallets and sequencing jobs are not imported; the recipient supplies their own component licenses when sequencing. Relog if the saved-design list is still cached.
+
+Sharing a SKINR design through Discord or another file-sharing service:
+1. Save the design in the in-game SKINR editor, then run /skinr list to obtain its UUID.
+2. Run /skinr export <draft UUID>. The reply gives the full path of the exported .skinr.json file.
+3. Send that file to the recipient. The recipient copies it into their server's _local/skinr/designs folder (or skinr/designs under their EVEJS_DATA_ROOT), creating the folder if needed.
+4. The recipient runs /skinr import "received filename.skinr.json". This creates their own saved draft, using one of their available design slots.
+5. Relog if needed, then load the imported draft in SKINR. To produce a finished SKIN, sequence it using the recipient's own component licenses and normal sequencing resources.
+Notes: Both installations must support the exported hull and components. Repeating an import creates another saved draft. Exporting does not remove the sender's saved draft.
+
+SKINR saved-design capacity:
+- The standard limit is five base slots, plus Design Concepting and Design Iteration bonuses: 125 slots with both skills at V.
+- To grant both skills at V for the current character, use /giveskill me "Design Concepting" 5 and /giveskill me "Design Iteration" 5, then relog.
+- Server setting: skinr.skinrDesignIterationMultiplier in config/gameplay.json.
+- Environment override: EVEJS_SKINR_DESIGN_ITERATION_MULTIPLIER.
+- The default multiplier is 1. Values from 0 through 100, including decimals, are accepted. Only Design Iteration's earned bonus is multiplied; base slots and Design Concepting are unchanged. Fractional totals round down.
+- With both skills at V: 1 gives 125 slots, 2 gives 220, 5 gives 505, and 0 leaves the 30 slots from base capacity and Design Concepting.
+Example section in config/gameplay.json:
+  "skinr": {
+    "skinrDesignIterationMultiplier": 5
+  }
+Restart the server and relog after editing the setting. /skinr list reports the resulting capacity. Lowering the limit retains existing drafts and permits editing/deletion; new saves and imports require space below the new limit. The client's capacity counter uses the configured limit; built-in skill descriptions retain their standard bonus text.
+
+/setstanding <value> <owner name|id> [target]
+What it does: Sets a standing to the specified owner.
+Example: /setstanding 10 <ownerID> me
+
+/maxagentstandings [target], /fullstandings
+What it does: Maximizes the supported agent-related standings.
+Example: /maxagentstandings me
+
+
+EXPERT SYSTEMS
+--------------
+
+/expertsystems is an alias for /expertsystem. Use /expertsystem list to obtain
+valid names/type IDs. Targets accept me, a character ID, or a supported name.
+
+/expertsystem list
+What it does: Lists Expert Systems.
+Example: /expertsystem list
+
+/expertsystem inspect <type|name>
+What it does: Shows a system's definition. info is an alias.
+Example: /expertsystem inspect <typeID>
+
+/expertsystem status [target]
+What it does: Shows installed systems.
+Example: /expertsystem status me
+
+/expertsystem add <type|name> [target] [days=N]
+What it does: Installs a system, optionally setting duration. install is an alias.
+Example: /expertsystem add <typeID> me days=7
+
+/expertsystem remove <type|name|all> [target]
+What it does: Removes installed systems. uninstall is an alias.
+Example: /expertsystem remove all me
+
+/expertsystem clear [target]
+What it does: Clears the target's installed systems.
+Example: /expertsystem clear me
+
+/expertsystem giveitem <type|name> [qty]
+What it does: Grants consumable Expert System items.
+Example: /expertsystem giveitem <typeID> 1
+
+/expertsystem consume <itemID>
+What it does: Consumes an Expert System item.
+Example: /expertsystem consume <itemID>
+
+
+WALLETS, CORPORATIONS, AND ALLIANCES
+------------------------------------
+
+/lp [npc corp name|corpID]
+What it does: Shows loyalty-point balances.
+Example: /lp
+
+/addlp <amount> <npc corp name|corpID>
+What it does: Adds corporation-specific LP.
+Example: /addlp 10000 <npcCorpID>
+
+/setlp <amount> <npc corp name|corpID>
+What it does: Sets corporation-specific LP.
+Example: /setlp 10000 <npcCorpID>
+
+
+TRAVEL, EXPLORATION, AND SYSTEM CONTROLS
+----------------------------------------
+
+/tele <character name|characterID>
+What it does: Moves you to a connected character's live location.
+Example: /tele <characterID>
+
+/sigs
+What it does: Lists current-system signatures.
+Example: /sigs
+
+/sigscan
+What it does: Resolves current-system signatures to 100%.
+Example: /sigscan
+
+/missioncomplete [agentID|all]
+What it does: Marks mission objectives complete through the mission helper.
+Example: /missioncomplete all
+
+/overlayrefresh
+What it does: Refreshes exploration/sensor-overlay state.
+Example: /overlayrefresh
+
+/wormholes [here|all|system]
+What it does: Lists wormhole connections.
+Example: /wormholes here
+
+/wormholes systems [all|here|system]
+What it does: Lists wormhole system information.
+Example: /wormholes systems all
+
+/wormhole status [here|all|system]
+What it does: Reports wormhole runtime status.
+Example: /wormhole status here
+
+/wormhole ensure [here|system|all]
+What it does: Ensures the requested wormhole setup exists.
+Example: /wormhole ensure here
+
+/wormhole random [count] [here|system]
+What it does: Creates random wormhole connections.
+Example: /wormhole random 1 here
+
+/wormhole clear [here|all|system]
+What it does: Clears wormholes in the chosen scope.
+Example: /wormhole clear here
+
+
+ABYSSAL STAFF DIAGNOSTICS
+-------------------------
+
+/abyssalstatus [status|weather|help]
+What it does: Reports run, room, weather, timer, layout, and scene diagnostics. weather aliases the status snapshot.
+Example: /abyssalstatus
+
+/abyssalstatus fx <effectKey>
+What it does: Plays an allowlisted effect probe. Use /abyssalstatus help to find the keys.
+Example: /abyssalstatus fx <effectKey>
+
+/abyssalstatus scenery <candidateKey|list [category]|next|prev> [near|mid|far]
+What it does: Lists or probes supported Calm Dark room-1 scenery.
+Example: /abyssalstatus scenery list
+
+/abyssaldebug suppressor <on|off|status>
+What it does: Controls suppressor diagnostic logging for the current run.
+Example: /abyssaldebug suppressor on
+
+/abyssallayout <list|status|next <layoutID>|clear>
+What it does: Inspects or selects the next debug layout.
+Example: /abyssallayout list
+
+/abyssalrescue
+What it does: Returns a stuck Abyssal ship to its recorded source system and cleans the run.
+Example: /abyssalrescue
+
+
+CHAT AND GENERAL DIAGNOSTICS
+----------------------------
+
+/mailme
+What it does: Sends the built-in test/welcome mail to your character.
+Example: /mailme
+
+/npcminer ice [amount]
+What it does: Spawns an ice-mining fleet.
+Example: /npcminer ice 3
