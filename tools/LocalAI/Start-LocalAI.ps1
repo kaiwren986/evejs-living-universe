@@ -9,7 +9,9 @@
 #   powershell -File tools\LocalAI\Start-LocalAI.ps1 [-Wait]
 param([switch]$Wait)
 
-$ErrorActionPreference = 'Stop'
+# Continue, not Stop: Windows PowerShell 5.1 turns lms.exe's ordinary stderr
+# status lines into terminating errors. Results are checked explicitly below.
+$ErrorActionPreference = 'Continue'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $configPath = Join-Path $root 'config\llm.json'
 
@@ -45,7 +47,8 @@ if ($loaded -match [regex]::Escape($config.identifier)) {
 Say "loading $($config.model) as '$($config.identifier)' (this can take a minute)..."
 $loadArgs = @('load', $config.model, '--identifier', $config.identifier, '--gpu', "$($config.gpu)", '-y')
 if ($config.contextLength) { $loadArgs += @('--context-length', "$($config.contextLength)") }
-& $lms @loadArgs 2>&1 | ForEach-Object { Write-Host "    $_" }
+& $lms @loadArgs 2>&1 | ForEach-Object { "$_" -replace '\x1b\[[0-9;?]*[A-Za-z]', '' } |
+  Where-Object { $_.Trim() -and $_ -notmatch '^\s*Loading .* \d+%' } | ForEach-Object { Write-Host "    $_" }
 if ($LASTEXITCODE -ne 0) {
   Say "could not load the model (exit $LASTEXITCODE). Is it downloaded? Run tools\LocalAI\GetModel.bat."
   if ($Wait) { Read-Host '  Press Enter to close' | Out-Null }

@@ -19,6 +19,7 @@ const DEFAULTS = Object.freeze({
   baseUrl: "http://127.0.0.1:1234/v1",
   identifier: "evejs-npc",
   requestTimeoutMs: 20000,
+  reasoningEffort: "none",
 });
 
 let queue = Promise.resolve();
@@ -86,6 +87,9 @@ function chat(messages, { maxTokens = 220, temperature = 0.8 } = {}) {
         messages,
         max_tokens: maxTokens,
         temperature,
+        // Spoken lines need no hidden reasoning; models like Gemma 4 otherwise
+        // spend the whole token budget thinking and return no text.
+        reasoning_effort: config.reasoningEffort,
         stream: false,
       });
       log.info(`[LLM] reply in ${Date.now() - started} ms (${text ? text.length : 0} chars)`);

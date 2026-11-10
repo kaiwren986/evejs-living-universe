@@ -3,10 +3,11 @@
   "provider": "lmstudio",
   "baseUrl": "http://127.0.0.1:1234/v1",
   "port": 1234,
-  "model": "",
+  "model": "gemma-4-26b-a4b-it-qat",
   "identifier": "evejs-npc",
   "contextLength": 8192,
   "gpu": "max",
   "autoStart": true,
-  "requestTimeoutMs": 20000
+  "requestTimeoutMs": 20000,
+  "reasoningEffort": "none"
 }
