@@ -25,6 +25,9 @@ ROOT = None
 LOG_PATH = None
 HOOK_VERSION = None
 LOADED = {}  # mod name -> {'module', 'mtime', 'path'}
+# Unloaded modules are kept referenced: Python 2 sets a collected module's globals
+# to None, which would crash any tasklet of the old copy before it sees its stop flag.
+RETIRED = []
 
 
 def log(message):
@@ -178,3 +181,5 @@ def _unload(name):
     except Exception:
         log_exception('mod failed to unload: %s' % name)
     sys.modules.pop(module.__name__, None)
+    RETIRED.append(module)
+    del RETIRED[:-20]

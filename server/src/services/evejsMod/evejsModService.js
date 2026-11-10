@@ -16,7 +16,26 @@ const worldData = require(path.join(__dirname, "../../space/worldData"));
 const { resolveItemByTypeID } = require(path.join(__dirname, "../inventory/itemTypeRegistry"));
 const { EVEJS_VERSION } = require(path.join(__dirname, "../../config/manager"));
 
-const BRIDGE_VERSION = 1;
+const llm = require(path.join(__dirname, "../../rpg/llm/llmClient"));
+
+const BRIDGE_VERSION = 2;
+
+// Questions the Crew Link window can ask with one click. The model only phrases
+// the answer; every fact it may use comes from the server.
+const CREW_TOPICS = Object.freeze({
+  report: {
+    ask: "Give me a quick status report.",
+    fallback: "All hands accounted for, Captain. Nothing to report beyond what's on the board.",
+  },
+  mood: {
+    ask: "How is the crew holding up?",
+    fallback: "Steady enough, Captain. They'd take a quiet run if you can find one.",
+  },
+  next: {
+    ask: "What should we do next?",
+    fallback: "Your call, Captain. Give us a job and we'll see it done.",
+  },
+});
 
 function text(value, fallback = "") {
   if (value === null || value === undefined) return fallback;
@@ -46,6 +65,28 @@ function courierCrewLines(ownerID) {
   }
 }
 
+function crewChief(ownerID) {
+  try {
+    const crew = require(path.join(__dirname, "../crew/crewRuntime")).getDefaultCrewService();
+    const person = crew?.snapshot?.(ownerID)?.crew?.roster?.[0];
+    if (person?.name) return { name: person.name, role: person.role || "crew chief" };
+  } catch { /* the crew chief is optional */ }
+  return { name: "Your first officer", role: "first officer" };
+}
+
+function shipFacts(session) {
+  const shipType = resolveItemByTypeID(Number(session?.shipTypeID));
+  const systemID = Number(session?.solarsystemid2 || session?.solarsystemid) || 0;
+  const system = systemID ? worldData.getSolarSystemByID(systemID) : null;
+  return {
+    pilot: text(session?.characterName, "the captain"),
+    ship: [text(session?.shipName), shipType?.name ? `(${shipType.name})` : ""].join(" ").trim() || "an unknown ship",
+    system: text(system?.solarSystemName, "an unknown system"),
+    security: Number.isFinite(system?.security) ? system.security.toFixed(1) : "unknown",
+    docked: Boolean(session?.stationid || session?.structureid),
+  };
+}
+
 class EvejsModService extends BaseService {
   constructor() {
     super("evejsMod");
@@ -56,6 +97,36 @@ class EvejsModService extends BaseService {
     const message = text(args?.[0], "ping").slice(0, 200);
     log.info(`[evejsMod] ping from character ${characterID(session)}: ${message}`);
     return `EveJS ${EVEJS_VERSION} heard you: "${message}"`;
+  }
+
+  // One-click question to the crew chief, answered in character by the local AI.
+  // Returns {speaker, role, text, source}; source is "ai" or "written".
+  async Handle_AskCrew(args, session) {
+    const ownerID = characterID(session);
+    const topic = CREW_TOPICS[text(args?.[0], "report")] || CREW_TOPICS.report;
+    const chief = crewChief(ownerID);
+    const facts = shipFacts(session);
+    const factLines = [
+      `Captain: ${facts.pilot}`,
+      `Ship: ${facts.ship}`,
+      `Location: ${facts.docked ? "docked at a station in" : "in space in"} ${facts.system} (security ${facts.security})`,
+      ...courierCrewLines(ownerID).map((line) => `Crew record: ${line.trim()}`),
+    ];
+    const reply = await llm.chat([
+      { role: "system", content:
+        `You are ${chief.name}, ${chief.role} aboard the captain's ship in EVE Online's New Eden. ` +
+        "Speak in character: a practical, loyal spacer, a little dry. Address the captain as Captain. " +
+        "Answer in two to four short sentences. Use only the facts below; never invent numbers, names, " +
+        "cargo or events that are not listed. No stage directions, no lists, no markdown.\n\n" +
+        `Facts:\n${factLines.join("\n")}` },
+      { role: "user", content: topic.ask },
+    ], { maxTokens: 160, temperature: 0.8 });
+    return buildDict([
+      ["speaker", chief.name],
+      ["role", chief.role],
+      ["text", reply || topic.fallback],
+      ["source", reply ? "ai" : "written"],
+    ]);
   }
 
   Handle_GetStatus(args, session) {
