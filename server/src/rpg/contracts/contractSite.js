@@ -75,7 +75,7 @@ function siteKey(characterID, contract) {
 /**
  * Create the site and its bookmark. Safe to call again for the same contract:
  * an existing active site is reused.
- * @returns {{instanceID: number, siteID: number, bookmarkID: number|null, bookmarkFolderID: number|null}}
+ * @returns {{instanceID: number, siteID: number, bookmarkID: number|null, bookmarkFolderID: number|null, bookmarkInstanceID: number|null}}
  */
 function createSite(characterID, contract) {
   const key = siteKey(characterID, contract);
@@ -114,6 +114,11 @@ function createSite(characterID, contract) {
 
   let bookmarkID = contract.bookmarkID || null;
   let bookmarkFolderID = contract.bookmarkFolderID || null;
+  // A bookmark made before the site link existed (or for an older instance) is replaced.
+  if (bookmarkID && Number(contract.bookmarkInstanceID) !== Number(instance.instanceID)) {
+    removeBookmark(characterID, contract);
+    bookmarkID = null;
+  }
   if (!bookmarkID) {
     try {
       // The pilot's own default folder: the client already shows it, so the
@@ -129,7 +134,10 @@ function createSite(characterID, contract) {
         x: contract.facts.position.x,
         y: contract.facts.position.y,
         z: contract.facts.position.z,
-        metadata: { role: "rpgContract", rpgContractID: contract.id },
+        // missionInstanceID is what the warp handler (beyonceService CmdWarpToStuff)
+        // reads to spawn the site's contents and put the pilot inside its private
+        // pocket. Without it the pilot arrives at an empty point in space.
+        metadata: { role: "rpgContract", rpgContractID: contract.id, missionInstanceID: instance.instanceID },
       });
       bookmarkID = Number(created?.bookmark?.bookmarkID) || null;
       bookmarkFolderID = Number(created?.bookmark?.folderID || folder.folderID) || null;
@@ -138,7 +146,13 @@ function createSite(characterID, contract) {
       log.warn(`[Contracts] bookmark for ${contract.id} failed: ${error.message}`);
     }
   }
-  return { instanceID: instance.instanceID, siteID: Number(instance.metadata?.siteID) || 0, bookmarkID, bookmarkFolderID };
+  return {
+    instanceID: instance.instanceID,
+    siteID: Number(instance.metadata?.siteID) || 0,
+    bookmarkID,
+    bookmarkFolderID,
+    bookmarkInstanceID: bookmarkID ? instance.instanceID : null,
+  };
 }
 
 function removeBookmark(characterID, contract) {

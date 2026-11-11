@@ -130,7 +130,7 @@ function requestContract({ characterID, pilotName, shipName, shipTypeID, solarSy
     fresh.sequence = sequence;
     fresh.contracts.push({
       id: `c${sequence}`, sequence, state: "offered", createdAtMs: Date.now(), facts, story,
-      instanceID: null, siteID: null, bookmarkID: null, bookmarkFolderID: null,
+      instanceID: null, siteID: null, bookmarkID: null, bookmarkFolderID: null, bookmarkInstanceID: null,
     });
     save(fresh);
     log.info(`[Contracts] offered ${characterID}/c${sequence}: "${story.title}" in ${facts.systemName} (${story.source})`);
@@ -240,7 +240,8 @@ function recover() {
       } else if (contract.state === "accepted") {
         const instance = contract.instanceID ? dungeonRuntime.getInstance(contract.instanceID) : null;
         if (instance && site.objectiveMet(instance)) void settle(characterID, contract.id);
-        else if (!instance || instance.lifecycleState !== "active") void acceptContract(characterID, contract.id).catch(() => {});
+        // Re-running accept is safe: it rebuilds a missing site and repairs its saved location.
+        else void acceptContract(characterID, contract.id).catch((error) => log.warn(`[Contracts] could not restore ${characterID}/${contract.id}: ${error.message}`));
       }
     }
   }

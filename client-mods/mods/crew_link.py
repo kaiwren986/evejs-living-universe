@@ -95,6 +95,9 @@ class CrewLinkWindow(Window):
     default_height = 620
     default_minSize = (380, 480)
     default_isStackable = False
+    # No close button: minimizing keeps the icon in the Neocom, so the window can
+    # always be brought back. (A closed window would have no way to reopen.)
+    default_isKillable = False
 
     def ApplyAttributes(self, attributes):
         Window.ApplyAttributes(self, attributes)
