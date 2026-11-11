@@ -163,6 +163,21 @@ function getContentTypeForFilePath(filePath, fallbackExtension = "") {
 }
 
 function resolveCharacterImagePath(characterID, size, extension) {
+  // Living Universe: a pilot wears the portrait of its source agent, so no
+  // file per pilot is needed.
+  const portraitSourceCharacterID = require(
+    "../../space/npc/ambientTraffic/livingUniversePilotDirectory",
+  ).getPortraitSourceCharacterID(characterID);
+  if (portraitSourceCharacterID > 0) {
+    const syntheticPortraitPath = findCharacterPortraitPath(
+      portraitSourceCharacterID,
+      size,
+    );
+    if (syntheticPortraitPath) {
+      return syntheticPortraitPath;
+    }
+  }
+
   const localPath = findCharacterPortraitPath(characterID, size);
   if (localPath) {
     return localPath;

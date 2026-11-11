@@ -1549,6 +1549,39 @@ function isIgnoredInvulnerablePlayer(target) {
   return isCharacterInvulnerable(getEntityCharacterID(target));
 }
 
+// Living Universe: per-player hostility gate for the mod's flights (from the mod).
+const factionHostilityRuntime = require(path.join(
+  __dirname,
+  "../../services/character/factionHostilityRuntime",
+));
+// Resident track R1: living-universe NPCs only admit a player as a combat target when the player
+// is actively hostile to the NPC's faction (recent aggression timer or standing below the floor).
+// Mirrors the isIgnoredInvulnerablePlayer exemption shape: returns true when the player target
+// must be EXCLUDED. Keyed on livingUniverseFlightID — exclusive to living flights (industrial and
+// mining crew hulls reuse livingUniverseActorID and must stay on legacy targeting). Non-living
+// NPCs and non-player targets are unaffected, and disabling livingHostilityEnabled restores the
+// legacy posture entirely.
+function isLivingPlayerTargetWithoutHostility(entity, target) {
+  if (!entity || !entity.livingUniverseFlightID) {
+    return false;
+  }
+  if (!factionHostilityRuntime.isEnabled()) {
+    return false;
+  }
+  if (resolveCombatActorClass(target) !== ENTITY_TYPE.PLAYER) {
+    return false;
+  }
+  const characterID = getEntityCharacterID(target);
+  if (!characterID) {
+    return false;
+  }
+  const factionID = toPositiveInt(entity.warFactionID, 0);
+  if (!factionID) {
+    return true;
+  }
+  return !factionHostilityRuntime.isHostile(characterID, factionID);
+}
+
 function isFriendlyCombatTarget(entity, target) {
   if (entity?.fwOpenFaction || String(entity?.dungeonEncounterKey||"").startsWith("fw-open:")) {
     const runtime=require("../../services/seasons/eventHooks").fw;
@@ -1868,6 +1901,7 @@ function isValidCombatTarget(entity, target, options = {}) {
     !isEntityCloakedForCombatTargeting(target) &&
     !isFriendlyCombatTarget(entity, target) &&
     !isIgnoredInvulnerablePlayer(target) &&
+    !isLivingPlayerTargetWithoutHostility(entity, target) && // Living Universe
     (
       !isCapsuleTarget ||
       (
@@ -6039,6 +6073,7 @@ module.exports = {
   resolveNpcAssistanceNeedRatio,
   syncNpcAlign,
   __testing: {
+    isLivingPlayerTargetWithoutHostility, // Living Universe
     beginNpcWarpToPoint,
     isEntityInActiveWarp,
     buildNpcPseudoSession,

@@ -453,6 +453,7 @@ const AVAILABLE_SLASH_COMMANDS = [
   "motd",
   "mailme",
   "spawnsite",
+  "population", // Living Universe
   "npc",
   "mnpc",
   "npctest",
@@ -1519,6 +1520,12 @@ function executeChatCommand(session, rawMessage, chatHub, options = {}) {
       }
     }
     return handleLargeCollidableObjectCommand(session, argumentText, chatHub, options);
+  }
+
+  // Living Universe: /population status|depart|reset|load <n>
+  if (command === "population") {
+    const result = require("./commands/livingUniverse").executeLivingUniverseCommand(argumentText);
+    return handledResult(chatHub, session, options, result.message);
   }
 
   if (command === "npc") {

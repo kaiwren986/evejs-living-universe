@@ -543,7 +543,8 @@ function buildSlimItemDict(entity) {
       entries.push(["corpID", entity.corporationID || 0]);
       entries.push(["allianceID", entity.allianceID || null]);
       entries.push(["warFactionID", entity.warFactionID || null]);
-      entries.push(["charID", entity.characterID || null]);
+      // Living Universe: an NPC pilot's hull names its pilot.
+      entries.push(["charID", entity.npcPilotCharacterID || entity.characterID || null]);
     }
     const dirtState = resolveShipSlimDirtTime(entity);
     if (dirtState.explicit || dirtState.dirtTime > 0n) {

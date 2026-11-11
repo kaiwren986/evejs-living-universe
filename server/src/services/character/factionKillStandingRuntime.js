@@ -140,6 +140,115 @@ function recordNpcFactionStandingLoss(victimEntity = {}, killerCharacterID, opti
   };
 }
 
+// Living Universe: standing gain with the victim faction's enemies (from the
+// mod, on the stock debounce map: "gain:" keys hold the last-applied ms).
+const npcStandingsAuthority = require(path.join(__dirname, "./npcStandingsAuthority"));
+const factionState = require(path.join(__dirname, "../faction/factionState"));
+const ENEMY_RELATION_MAX_STANDING = -1;
+const ENEMY_FACTION_GAIN_LIMIT = 2;
+
+function enemySourceRank(relation) {
+  return String(relation && relation.source || "") === "executiveEnemyFaction" ? 0 : 1;
+}
+// Resident track R1 (config-gated, NOT TQ parity): the same kill grants a small standing gain
+// with the victim faction's designated enemies, giving residents a combat path to repair or build
+// empire standing by hunting pirates. Applied per enemy faction with the same 10-minute
+// (character, faction, system) debounce idiom as the loss path, using a "gain:"-prefixed key so
+// gain and loss windows never suppress each other. Returns applied results, or null.
+function recordNpcFactionStandingGains(victimEntity = {}, killerCharacterID, options = {}) {
+  if (config.factionStandingGainOnKillEnabled !== true) {
+    return null;
+  }
+  const characterID = toPositiveInt(killerCharacterID, 0);
+  if (!characterID) {
+    return null;
+  }
+  const victimFactionID = resolveVictimFactionID(victimEntity);
+  if (!victimFactionID) {
+    return null;
+  }
+  const rawChange = Number(config.factionStandingGainPerKillRaw);
+  if (!Number.isFinite(rawChange) || rawChange <= 0) {
+    return null;
+  }
+  const systemID = toPositiveInt(
+    options.systemID,
+    toPositiveInt(victimEntity && victimEntity.systemID, 0),
+  );
+  const nowMs = Number.isFinite(Number(options.nowMs)) ? Math.trunc(Number(options.nowMs)) : Date.now();
+
+  let enemyFactionIDs;
+  try {
+    enemyFactionIDs = npcStandingsAuthority.getRelationsForOwner(victimFactionID)
+      .filter((relation) => (
+        Number.isFinite(relation && relation.standing) &&
+        relation.standing <= ENEMY_RELATION_MAX_STANDING &&
+        factionState.isFactionID(toPositiveInt(relation && relation.toID, 0))
+      ))
+      .sort((left, right) => (
+        (left.standing - right.standing) ||
+        (enemySourceRank(left) - enemySourceRank(right)) ||
+        (toPositiveInt(left.toID, 0) - toPositiveInt(right.toID, 0))
+      ))
+      .slice(0, ENEMY_FACTION_GAIN_LIMIT)
+      .map((relation) => toPositiveInt(relation.toID, 0))
+      .filter(Boolean);
+  } catch (error) {
+    return null;
+  }
+  if (!enemyFactionIDs.length) {
+    return null;
+  }
+
+  const applied = [];
+  for (const enemyFactionID of enemyFactionIDs) {
+    const key = `gain:${characterID}:${enemyFactionID}:${systemID}`;
+    const lastMs = lastAppliedByKey.get(key);
+    if (Number.isFinite(lastMs) && nowMs - lastMs < DEBOUNCE_WINDOW_MS) {
+      continue;
+    }
+    let result;
+    try {
+      result = standingRuntime.applyStandingChanges(
+        characterID,
+        [
+          {
+            ownerID: enemyFactionID,
+            rawChange,
+            eventTypeID: EVENT_STANDING_COMBAT_AGGRESSION,
+            applySocial: false,
+            msg: "Combat assistance",
+            int_1: toPositiveInt(victimEntity && victimEntity.typeID, null),
+          },
+        ],
+        { disableDerived: true },
+      );
+    } catch (error) {
+      // Best-effort: a standing-apply failure must never break the kill pipeline.
+      continue;
+    }
+    if (!result || result.success !== true) {
+      continue;
+    }
+    lastAppliedByKey.set(key, nowMs);
+    applied.push({
+      factionID: enemyFactionID,
+      rawChange,
+      changes: result.appliedChanges || result.data || null,
+    });
+  }
+  if (!applied.length) {
+    return null;
+  }
+  return {
+    applied: true,
+    characterID,
+    victimFactionID,
+    systemID,
+    gains: applied,
+  };
+}
+
 // Test/maintenance hook.
 function _resetDebounce() {
   lastAppliedByKey.clear();
@@ -147,6 +256,7 @@ function _resetDebounce() {
 
 module.exports = {
   recordNpcFactionStandingLoss,
+  recordNpcFactionStandingGains, // Living Universe
   resolveVictimFactionID,
   DEBOUNCE_WINDOW_MS,
   _resetDebounce,

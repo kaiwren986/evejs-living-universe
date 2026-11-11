@@ -120,9 +120,11 @@ function main() {
   const bountyResult = new BountyProxyService().Handle_GetBounties([
     { type: "list", items: [sample.characterID] },
   ]);
-  assert.strictEqual(bountyResult.type, "dict");
+  // Living Universe port: GetBounties answers a list of [targetID, KeyVal]
+  // pairs on 261108.1 (0.12.6 answered a dict).
+  assert.strictEqual(bountyResult.type, "list");
   assert(
-    bountyResult.entries.some((entry) => entry[0] === sample.characterID),
+    bountyResult.items.some((entry) => entry[0] === sample.characterID),
     "character bounty lookup must return a zero-valued owner entry",
   );
 

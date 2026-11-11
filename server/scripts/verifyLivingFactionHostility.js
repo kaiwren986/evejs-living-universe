@@ -467,6 +467,14 @@ summary.standingGains = "pass";
 // faction with living flights, the real relations must yield at least one designated enemy, and
 // running the gain path over the real Guristas rows must credit Caldari.
 const authorityPayloadPath = [
+  // Living Universe port: static tables live in the game store on 261108.1;
+  // when the run points at a store copy, read the payload from that copy.
+  ...(process.env.EVEJS_LOCAL_DATABASE_ROOT
+    ? [path.join(
+        process.env.EVEJS_LOCAL_DATABASE_ROOT,
+        "data/npcStandingsAuthority/data.json",
+      )]
+    : []),
   path.join(__dirname, "../../_local/gameStore/data/npcStandingsAuthority/data.json"),
   path.join(__dirname, "../../tools/DatabaseCreator/staticTables/npcStandingsAuthority/data.json"),
   path.join(__dirname, "../tools/DatabaseCreator/staticTables/npcStandingsAuthority/data.json"),

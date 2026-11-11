@@ -974,14 +974,58 @@ function recordKillmailFromDestruction(targetEntity, destroyResult, options = {}
   // the golden mission logs). Best-effort; never blocks the kill.
   if (isNpcVictimEntity(targetEntity)) {
     try {
-      const factionKillStanding = require(path.join(__dirname, "../../services/character/factionKillStandingRuntime"));
-      factionKillStanding.recordNpcFactionStandingLoss(
-        targetEntity,
-        toPositiveInt(finalAttacker && finalAttacker.characterID, 0),
-        { nowMs: whenMs, systemID: toPositiveInt(targetEntity && targetEntity.systemID, 0) },
+      // Living Universe: standing changes go to the session-resolved acting
+      // player only. finalAttacker.characterID also carries simulated pilots
+      // (the mod's NPCs and their drones), who must get no standing rows.
+      const factionHostility = require(path.join(__dirname, "../../services/character/factionHostilityRuntime"));
+      const actingPlayerCharacterID = factionHostility.resolveAttackerPlayerCharacterID(
+        options.attackerEntity || null,
       );
+      if (actingPlayerCharacterID > 0) {
+        const factionKillStanding = require(path.join(__dirname, "../../services/character/factionKillStandingRuntime"));
+        factionKillStanding.recordNpcFactionStandingLoss(
+          targetEntity,
+          actingPlayerCharacterID,
+          { nowMs: whenMs, systemID: toPositiveInt(targetEntity && targetEntity.systemID, 0) },
+        );
+        // The same kill grants a small gain with the victim faction's enemies
+        // (config-gated, off unless factionStandingGainOnKillEnabled).
+        factionKillStanding.recordNpcFactionStandingGains(
+          targetEntity,
+          actingPlayerCharacterID,
+          { nowMs: whenMs, systemID: toPositiveInt(targetEntity && targetEntity.systemID, 0) },
+        );
+      }
     } catch (error) {
       /* ignored: faction-standing loss is best-effort (it logs its own failures); the kill must still record */
+    }
+  }
+  // Living Universe: kill credit for a pilot of the mod (from the mod).
+  // Resident track R1: when a living-universe pilot dies to a player's final blow, stage the
+  // actorID -> killer credit for the living runtime's absence-based loss accounting. Gated on
+  // livingUniverseFlightID (exclusive to living flights — industrial/mining crew hulls reuse
+  // livingUniverseActorID and their losses are never booked by the living runtime), and the
+  // killer must resolve through the session-backed player test — flag sniffing misses NPC wing
+  // drones, which carry bare simulated-pilot characterIDs. Best-effort; never blocks the kill.
+  if (targetEntity.livingUniverseActorID && targetEntity.livingUniverseFlightID) {
+    try {
+      const factionHostility = require(path.join(__dirname, "../../services/character/factionHostilityRuntime"));
+      const killerCharacterID = factionHostility.resolveAttackerPlayerCharacterID(
+        options.attackerEntity || null,
+      );
+      if (killerCharacterID > 0) {
+        const livingKillCreditLedger = require(path.join(
+          __dirname,
+          "../npc/ambientTraffic/livingKillCreditLedger",
+        ));
+        livingKillCreditLedger.recordPlayerKillCredit(
+          String(targetEntity.livingUniverseActorID),
+          killerCharacterID,
+          whenMs,
+        );
+      }
+    } catch (error) {
+      /* kill credit is best-effort; the kill must still record */
     }
   }
   const killRightActivation = selectKillRightActivationForKill(

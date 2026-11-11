@@ -50,28 +50,61 @@ function main() {
 
   const status = livingUniverseRuntime.getStatus(endAtMs);
   const jitaLocal = chatRuntime.getSyntheticLocalMembers(JITA_SYSTEM_ID);
+
+  // Second phase: someone is watching Jita. Flights that pass through must now
+  // spawn as real hulls through the ordinary tick path. The scene itself is
+  // not ticked here, so this proves spawning, not flying.
+  const observedMinutes = 3;
+  const observerKey = "living-universe-headless-observer";
+  const jitaScene = spaceRuntime.ensureScene(JITA_SYSTEM_ID);
+  jitaScene.sessions.set(observerKey, {
+    characterID: 0,
+    _space: { systemID: JITA_SYSTEM_ID, shipID: 0 },
+  });
+  let peakMaterializedShips = 0;
+  const observedEndAtMs = endAtMs + (observedMinutes * 60_000);
+  for (let now = endAtMs + stepMs; now <= observedEndAtMs; now += stepMs) {
+    livingUniverseRuntime.tick(spaceRuntime, now);
+    peakMaterializedShips = Math.max(
+      peakMaterializedShips,
+      Number(livingUniverseRuntime.getStatus(now).materializedShips) || 0,
+    );
+  }
+  const observedStatus = livingUniverseRuntime.getStatus(observedEndAtMs);
+  jitaScene.sessions.delete(observerKey);
+  // With nobody watching, the next ticks fold the hulls back into the simulation.
+  for (let now = observedEndAtMs + stepMs; now <= observedEndAtMs + 30_000; now += stepMs) {
+    livingUniverseRuntime.tick(spaceRuntime, now);
+  }
+  const afterStatus = livingUniverseRuntime.getStatus(observedEndAtMs + 30_000);
   const report = {
     success: true,
     simulatedMinutes,
     ticks,
     wallMs: Math.round(wallMs),
     slowestTickMs: Math.round(slowestTickMs),
-    actors: status.actors ?? status.actorCount ?? status.population,
+    actors: status.actorCount,
     roles: status.roles,
-    flights: status.flights ?? status.flightCount,
+    flights: status.flightCount,
     phases: status.phases,
-    materialized: status.materialized ?? status.physical,
-    lastError: status.lastError ?? null,
+    observedJita: {
+      simulatedMinutes: observedMinutes,
+      peakMaterializedShips,
+      materializations: observedStatus.metrics && observedStatus.metrics.materializations,
+      shipsLeftAfterObserverGone: afterStatus.materializedShips,
+    },
     jitaLocalPilots: Array.isArray(jitaLocal) ? jitaLocal.length : jitaLocal,
     jitaLocalSample: Array.isArray(jitaLocal)
       ? jitaLocal.slice(0, 5).map((member) => (
           member && (member.characterName || member.name || member.characterID)
         ))
       : [],
-    statusKeys: Object.keys(status),
   };
   console.log(JSON.stringify(report, null, 2));
+  assert.equal(report.actors, Number(process.env.EVEJS_LIVING_UNIVERSE_POPULATION_SIZE));
+  assert.ok(Object.keys(report.roles || {}).length > 0, "actors have no roles");
   assert.ok(report.jitaLocalPilots > 0, "no Living Universe pilots in Jita Local");
+  assert.ok(peakMaterializedShips > 0, "no ships spawned while Jita was observed");
 }
 
 try {

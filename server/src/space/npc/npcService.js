@@ -2266,6 +2266,96 @@ function propagateDrifterAggressionToPack(targetEntity, attackerEntity, now) {
   return propagatedEntityIDs;
 }
 
+// Living Universe: hostility and retaliation of the mod's flights (from the mod).
+const factionHostilityRuntime = require(path.join(
+  __dirname,
+  "../../services/character/factionHostilityRuntime",
+));
+// Resident track R1: wake the whole living flight when one of its ships is aggressed by a
+// player. Mirrors propagateDrifterAggressionToPack's shape: promote dormant nativeAmbient
+// controllers to nativeCombat (the behavior tick skips nativeAmbient unconditionally), aim the
+// unengaged ones at the aggressor, and force an immediate think. Controllers already fighting
+// keep their current target; the admission check remains the per-player gate on who may
+// actually be engaged.
+const LIVING_ARMED_RESPONDER_ROLES = new Set(["escort", "police"]);
+
+// Mirrors livingUniverseRuntime's LIVING_ARMED_RESPONDER_OVERRIDES: escort/police hulls of
+// non-pirate living flights spawn with weapons disabled, and promotion alone only makes them
+// think — these overrides make the flight's stated defense actually shoot back.
+const LIVING_ARMED_RESPONDER_OVERRIDES = Object.freeze({
+  autoAggro: true,
+  autoActivateWeapons: true,
+  autoAggroTargetClasses: ["player"],
+  targetPreference: "nearestPlayer",
+  movementMode: "orbit",
+  orbitDistanceMeters: 9_000,
+  followRangeMeters: 6_000,
+  aggressionRangeMeters: 150_000,
+  returnToHomeWhenIdle: false,
+});
+
+function promoteLivingFlightRetaliation(targetEntity, attackerEntityID, now) {
+  const flightID = targetEntity && targetEntity.livingUniverseFlightID;
+  const targetEntityID = toPositiveInt(targetEntity && targetEntity.itemID, 0);
+  if (!flightID || !targetEntityID) {
+    return [];
+  }
+  const sourceController = getControllerByEntityID(targetEntityID);
+  if (!sourceController) {
+    return [];
+  }
+  const normalizedNow = Math.max(0, toFiniteNumber(now, Date.now()));
+  // Sustained-fire early-out: aggression notes arrive per damage application AND per offensive
+  // module activation, so a fight would otherwise re-walk every controller in the system many
+  // times a second. Once the flight is promoted, a sliding 2s grace window keeps this O(1).
+  if (
+    sourceController.livingHostilityPromoted === true &&
+    String(sourceController.runtimeKind || "").trim() === "nativeCombat" &&
+    normalizedNow - toFiniteNumber(sourceController.lastAggressedAtMs, 0) < 2_000
+  ) {
+    sourceController.lastAggressedAtMs = normalizedNow;
+    return [];
+  }
+  const systemID = toPositiveInt(
+    sourceController.systemID,
+    toPositiveInt(targetEntity.systemID, 0),
+  );
+  if (!systemID) {
+    return [];
+  }
+  const scene = spaceRuntime.ensureScene(systemID);
+  const promotedEntityIDs = [];
+  for (const controller of listControllersBySystem(systemID)) {
+    const entity = scene.getEntityByID(toPositiveInt(controller && controller.entityID, 0));
+    if (!entity || entity.livingUniverseFlightID !== flightID) {
+      continue;
+    }
+    if (String(controller.runtimeKind || "").trim() === "nativeAmbient") {
+      // Non-pirate armed responders need their weapons enabled before the promotion means
+      // anything (their spawn posture is fully passive). Pirate flights are already armed by
+      // their adoption overrides.
+      if (LIVING_ARMED_RESPONDER_ROLES.has(String(entity.npcRole || ""))) {
+        setBehaviorOverrides(
+          toPositiveInt(controller.entityID, 0),
+          { ...LIVING_ARMED_RESPONDER_OVERRIDES },
+        );
+      }
+      controller.runtimeKind = "nativeCombat";
+      // Same flag the living runtime's posture sync uses: only promotions made by the
+      // hostility machinery are ever demoted back to the dormant posture.
+      controller.livingHostilityPromoted = true;
+    }
+    if (!toPositiveInt(controller.preferredTargetID, 0)) {
+      controller.preferredTargetID = attackerEntityID;
+    }
+    controller.lastAggressorID = attackerEntityID;
+    controller.lastAggressedAtMs = normalizedNow;
+    controller.nextThinkAtMs = 0;
+    promotedEntityIDs.push(controller.entityID);
+  }
+  return promotedEntityIDs;
+}
+
 function noteNpcIncomingAggression(targetEntity, attackerEntity, now) {
   const targetEntityID = toPositiveInt(targetEntity && targetEntity.itemID, 0);
   const attackerEntityID = toPositiveInt(attackerEntity && attackerEntity.itemID, 0);
@@ -2295,6 +2385,37 @@ function noteNpcIncomingAggression(targetEntity, attackerEntity, now) {
     return noteResult;
   }
 
+  // Resident track R1: a player attacking a living-universe NPC declares hostility with that
+  // NPC's faction for the configured window (refreshed on repeat aggression). Gated on
+  // livingUniverseFlightID — the one marker exclusive to living flights (industrial/mining crew
+  // hulls reuse livingUniverseActorID, and shooting a crew must never flip living factions).
+  // The timer is stamped with WALL clock, never the caller's scene sim time: sim time falls
+  // behind wall clock under dilation and the config promises wall-clock minutes; isHostile
+  // reads Date.now() on the admission side. Declared before the pack propagation below so the
+  // aggressor already passes the per-player admission check when the flight wakes.
+  let livingHostility = null;
+  if (
+    factionHostilityRuntime.isEnabled() &&
+    targetEntity &&
+    targetEntity.livingUniverseFlightID
+  ) {
+    const hostileFactionID = toPositiveInt(targetEntity.warFactionID, 0);
+    const playerCharacterID = factionHostilityRuntime.resolveAttackerPlayerCharacterID(
+      attackerEntity,
+    );
+    if (hostileFactionID && playerCharacterID) {
+      livingHostility = factionHostilityRuntime.markHostile(
+        playerCharacterID,
+        hostileFactionID,
+      );
+      // Living-flight controllers spawn dormant (nativeAmbient — every behavior tick path
+      // skips them before nextThinkAtMs is even consulted), so retaliation requires an
+      // explicit promotion of the attacked flight to nativeCombat. The living runtime's
+      // posture sync demotes them back once no hostile player remains in the scene.
+      promoteLivingFlightRetaliation(targetEntity, attackerEntityID, now);
+    }
+  }
+
   const propagatedEntityIDs = propagateDrifterAggressionToPack(
     targetEntity,
     attackerEntity,
@@ -2307,6 +2428,7 @@ function noteNpcIncomingAggression(targetEntity, attackerEntity, now) {
         ? noteResult.data
         : {}),
       propagatedEntityIDs,
+      livingHostility, // Living Universe
     },
   };
 }
@@ -2379,6 +2501,7 @@ module.exports = {
   toggleCharacterNpcInvulnerability,
   isCharacterInvulnerable,
   noteNpcIncomingAggression,
+  promoteLivingFlightRetaliation, // Living Universe
   getControllerByEntityID,
   destroyNpcControllerByEntityID,
   parseNpcCustomInfo,
