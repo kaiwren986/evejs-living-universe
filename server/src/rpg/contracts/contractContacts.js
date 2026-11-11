@@ -115,12 +115,46 @@ function recordOutcome(record, contract, outcome, nowMs = Date.now()) {
 // now. contract.outcomeRecorded marks a contract as credited, so this never counts twice.
 function ensure(record) {
   record.contacts = Array.isArray(record.contacts) ? record.contacts : [];
+  // Contacts from before pacing existed get their first call a few minutes after the record loads.
+  for (const contact of record.contacts) {
+    if (!contact.callAtMs) contact.callAtMs = (contact.lastAtMs || 0) + FIRST_CALL_MS;
+  }
   for (const contract of record.contracts || []) {
     if (["completed", "paid"].includes(contract.state) && !contract.outcomeRecorded) {
       recordOutcome(record, contract, "completed", contract.paidAtMs || contract.completedAtMs || Date.now());
     }
   }
   return record;
+}
+
+// ---- Pacing (real time). A contact goes quiet after each job, then calls the
+// pilot when something comes up. Asking sooner gets a "nothing yet".
+const COOLDOWN_MS = 30 * 60 * 1000;       // base quiet time after a job
+const COOLDOWN_MIN_MS = 12 * 60 * 1000;   // a partner still needs this long
+const CALL_JITTER_MS = 10 * 60 * 1000;    // they call some time after they are free
+const FIRST_CALL_MS = 5 * 60 * 1000;      // contacts from before pacing existed
+
+// How long this contact stays quiet; more trust, shorter wait.
+function cooldownMs(contact, factor = 1) {
+  const scaled = COOLDOWN_MS * (1 - Math.max(0, contact.trust) / 160) * factor;
+  return Math.max(COOLDOWN_MIN_MS * factor, Math.round(scaled));
+}
+
+/** Start a contact's quiet period (after a job, a declined or an expired offer). */
+function rest(contact, nowMs, factor = 1) {
+  contact.availableAtMs = nowMs + cooldownMs(contact, factor);
+  contact.callAtMs = contact.availableAtMs + (hashText(`${contact.id}:${nowMs}`) % CALL_JITTER_MS);
+}
+
+function availableInMs(contact, nowMs) {
+  return Math.max(0, (contact.availableAtMs || 0) - nowMs);
+}
+
+/** The contact whose call is due, if any (earliest first). */
+function dueCaller(record, nowMs) {
+  return (record.contacts || [])
+    .filter((contact) => willOffer(contact) && contact.callAtMs && contact.callAtMs <= nowMs)
+    .sort((a, b) => a.callAtMs - b.callAtMs)[0] || null;
 }
 
 function willOffer(contact) {
@@ -172,6 +206,7 @@ function view(contact) {
     jobsAbandoned: contact.jobsAbandoned,
     lastLine: contact.lastSummary || "",
     willOffer: willOffer(contact),
+    availableInSec: Math.ceil(availableInMs(contact, Date.now()) / 1000),
   };
 }
 
@@ -183,4 +218,4 @@ function findByName(record, name) {
   return (record.contacts || []).find((entry) => sameName(entry.name, name)) || null;
 }
 
-module.exports = { ensure, find, findByName, recordOutcome, pickForOffer, willOffer, persona, view, list, tierFor };
+module.exports = { rest, availableInMs, dueCaller, ensure, find, findByName, recordOutcome, pickForOffer, willOffer, persona, view, list, tierFor };

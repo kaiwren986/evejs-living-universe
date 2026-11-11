@@ -22,7 +22,7 @@ const requisition = require(path.join(__dirname, "../../rpg/dev/requisition"));
 const chatHub = require(path.join(__dirname, "../chat/chatHub"));
 const { executeChatCommand } = require(path.join(__dirname, "../chat/chatCommands"));
 
-const BRIDGE_VERSION = 6;
+const BRIDGE_VERSION = 7;
 
 // Questions the Crew Link window can ask with one click. The model only phrases
 // the answer; every fact it may use comes from the server.
@@ -130,6 +130,7 @@ async function contractReply(action) {
       ["contract", contractDict(state.contract)],
       ["lastPaid", contractDict(state.lastPaid)],
       ["completedCount", state.completedCount],
+      ["boardInSec", state.boardInSec || 0],
       ["error", ""],
     ]);
   } catch (error) {
@@ -150,7 +151,15 @@ class EvejsModService extends BaseService {
   // ---- Generated contracts (server/src/rpg/contracts). Each call answers with
   // the pilot's current contract state: {contract, lastPaid, completedCount, error}.
   Handle_GetContracts(args, session) {
-    return contractReply(() => contracts.getContracts(characterID(session)));
+    // The pilot's details let a contact whose quiet period is over call with work.
+    const shipType = resolveItemByTypeID(Number(session?.shipTypeID));
+    const systemID = Number(session?.solarsystemid2 || session?.solarsystemid) || 0;
+    return contractReply(() => contracts.getContracts(characterID(session), systemID ? {
+      pilotName: text(session?.characterName, "the captain"),
+      shipName: text(session?.shipName) || text(shipType?.name, "their ship"),
+      shipTypeID: Number(session?.shipTypeID) || 0,
+      solarSystemID: systemID,
+    } : null));
   }
 
   Handle_RequestContract(args, session) {

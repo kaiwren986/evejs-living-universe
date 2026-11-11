@@ -75,6 +75,11 @@ def _isk(amount):
     return '{:,} ISK'.format(int(amount or 0))
 
 
+def _wait(seconds):
+    minutes = max(1, int((seconds + 59) // 60))
+    return '%d min' % minutes
+
+
 def _section(parent, title, padTop=14):
     """Uppercase accent header with a hairline; returns the right-hand meta label."""
     row = Container(parent=parent, align=uiconst.TOTOP, height=20, padTop=padTop)
@@ -107,6 +112,8 @@ class CrewLinkWindow(Window):
         Window.ApplyAttributes(self, attributes)
         self._clContract = None
         self._clContractKey = NOT_DRAWN
+        self._clContractSeen = False
+        self._clBoardInSec = 0
         self._clTaunted = set()
         self._clStatus = TextDetail(parent=self.content, align=uiconst.TOBOTTOM, padTop=6,
                                     color=TextColor.DISABLED, text='')
@@ -275,6 +282,11 @@ class CrewLinkWindow(Window):
         previous = self._clContractKey if isinstance(self._clContractKey, tuple) else None
         justPaid = bool(previous and previous[1] in ('accepted', 'completed') and shown and shown.get('paid'))
         self._clContractKey = key
+        self._clBoardInSec = reply.get('boardInSec') or 0
+        # A contact's call that arrives while the window is already up (not one found on opening it).
+        if contract and contract.get('state') == 'offered' and contract.get('incoming') and self._clContractSeen:
+            API.notify('<b>Incoming transmission:</b> %s has work for you. See Crew Link, Contracts.' % contract.get('clientName'))
+        self._clContractSeen = True
         self._RenderContract(shown, reply.get('completedCount') or 0, justPaid)
         # A contract changing state is what changes contacts (a new one, more or less trust).
         self._LoadContacts()
@@ -290,8 +302,10 @@ class CrewLinkWindow(Window):
         if contract is None:
             meta = _section(body, 'CONTRACTS', padTop=0)
             meta.text = '%d completed' % completedCount if completedCount else ''
+            quiet = self._clBoardInSec
             TextBody(parent=body, align=uiconst.TOTOP, color=TextColor.SECONDARY,
-                     text='Nothing on the books. Put the word out and see who needs a capsuleer.')
+                     text='Nothing on the books. The local channels are quiet for about %s; your contacts will call when they have work.' % _wait(quiet)
+                     if quiet else 'Nothing on the books. Put the word out and see who needs a capsuleer.')
             self._SetContractButtons([('Find work', self.OnFindWork, ButtonVariant.PRIMARY, eveicon.start_conversation)])
             return
 
@@ -339,6 +353,10 @@ class CrewLinkWindow(Window):
             if justPaid:
                 API.notify('Contract complete: %s. %s paid.' % (contract.get('title'), _isk(contract.get('rewardIsk'))))
         elif state == 'offered':
+            if contract.get('expiresInSec'):
+                TextDetail(parent=body, align=uiconst.TOTOP, padTop=10, color=TextColor.SECONDARY,
+                           text='%sThis offer goes to someone else in about %s.' % (
+                               'They called you. ' if contract.get('incoming') else '', _wait(contract.get('expiresInSec'))))
             self._SetContractButtons([
                 ('Accept', self.OnAccept, ButtonVariant.PRIMARY, eveicon.checkmark),
                 ('Decline', self.OnAbandon, ButtonVariant.GHOST, eveicon.close),
@@ -437,10 +455,12 @@ class CrewLinkWindow(Window):
                 TextBody(parent=card, align=uiconst.TOTOP, padding=(12, 4, 12, 0), color=TextColor.SECONDARY,
                          text=contact.get('lastLine'))
             row = Container(parent=card, align=uiconst.TOTOP, height=32, padding=(12, 6, 12, 8))
-            Button(parent=row, align=uiconst.CENTERLEFT, label='Ask for work', enabled=not soured,
+            resting = contact.get('availableInSec') or 0
+            Button(parent=row, align=uiconst.CENTERLEFT, enabled=not soured and not resting,
+                   label='Will call in ~%s' % _wait(resting) if resting and not soured else 'Ask for work',
                    variant=ButtonVariant.PRIMARY, texturePath=eveicon.start_conversation,
                    func=self.OnAskContact, args=(contact.get('id'),))
-            Button(parent=row, align=uiconst.CENTERLEFT, left=150, label='Hail', texturePath=eveicon.chat_bubble,
+            Button(parent=row, align=uiconst.CENTERLEFT, left=200, label='Hail', texturePath=eveicon.chat_bubble,
                    func=self.OnHailContact, args=(contact.get('id'),))
 
     def OnHailContact(self, contactID, *args):

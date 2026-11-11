@@ -28,6 +28,23 @@ const PAYER_ID = 1000125; // CONCORD: the name shown against the payment in the 
 const KEPT_CONTRACTS = 12;
 const KEPT_MEMORIES = 6;
 const OPEN_STATES = Object.freeze(["offered", "accepted", "completed"]);
+// Pacing (real time).
+const OFFER_TTL_MS = 20 * 60 * 1000;            // an unanswered offer goes to someone else
+const BOARD_AFTER_JOB_MS = 10 * 60 * 1000;      // the open board has nothing new for a while after a job
+const BOARD_AFTER_DECLINE_MS = 3 * 60 * 1000;
+const calling = new Set();                      // pilots for whom a contact's call is being written
+
+function minutes(ms) {
+  const value = Math.max(1, Math.ceil(ms / 60000));
+  return `${value} minute${value === 1 ? "" : "s"}`;
+}
+
+// A contract has closed: its client goes quiet, or the open board does.
+function startQuietPeriod(record, contract, outcome, nowMs = Date.now()) {
+  const contact = contacts.find(record, contract.contactID);
+  if (contact) contacts.rest(contact, nowMs, outcome === "declined" || outcome === "expired" ? 0.5 : 1);
+  else record.boardAvailableAtMs = nowMs + (outcome === "declined" || outcome === "expired" ? BOARD_AFTER_DECLINE_MS : BOARD_AFTER_JOB_MS);
+}
 
 let started = false;
 const lanes = new Map(); // characterID -> promise; one contract operation per pilot at a time
@@ -95,6 +112,10 @@ function view(contract) {
     hostileCount: facts.hostileCount,
     bossHull: facts.bossHull,
     rewardIsk: facts.rewardIsk,
+    // A contact called the pilot with this (rather than the pilot asking).
+    incoming: Boolean(contract.incoming),
+    expiresInSec: contract.state === "offered" && contract.expiresAtMs
+      ? Math.max(0, Math.ceil((contract.expiresAtMs - Date.now()) / 1000)) : 0,
     // Who is hiring: a contact the pilot already knows, or a first-time client.
     contactID: contract.contactID || "",
     returningClient: Boolean(facts.clientTierLabel),
@@ -117,11 +138,48 @@ function summary(record) {
     // The most recent paid contract, so the window can show its debrief once.
     lastPaid: current ? null : view(last),
     completedCount: record.contracts.filter((contract) => contract.state === "paid").length,
+    boardInSec: Math.max(0, Math.ceil(((record.boardAvailableAtMs || 0) - Date.now()) / 1000)),
   };
 }
 
-function getContracts(characterID) {
+// An offer nobody answered goes to someone else; its client (or the board) goes quiet for a while.
+function expireOffer(characterID, contractID) {
+  return serialize(characterID, async () => {
+    const record = load(characterID);
+    const contract = record.contracts.find((entry) => entry.id === contractID);
+    if (!contract || contract.state !== "offered" || !(contract.expiresAtMs <= Date.now())) return;
+    contract.state = "expired";
+    contract.closedAtMs = Date.now();
+    startQuietPeriod(record, contract, "expired");
+    save(record);
+    log.info(`[Contracts] expired ${characterID}/${contract.id}: "${contract.story.title}"`);
+  }).catch((error) => log.warn(`[Contracts] expiring ${characterID}/${contractID} failed: ${error.message}`));
+}
+
+// A contact whose quiet period is over calls the pilot with work. Written in the
+// background; the pilot's window finds the offer on a later poll.
+function maybeIncomingCall(record, pilot) {
+  const characterID = record.ownerID;
+  if (!pilot || calling.has(characterID) || openContract(record)) return;
+  const caller = contacts.dueCaller(record, Date.now());
+  if (!caller) return;
+  calling.add(characterID);
+  requestContract({ ...pilot, characterID, contactID: caller.id, incoming: true })
+    .catch((error) => log.info(`[Contracts] ${caller.name}'s call to ${characterID} did not go through: ${error.message}`))
+    .finally(() => calling.delete(characterID));
+}
+
+/**
+ * The pilot's current contract state. Called every few seconds by the open
+ * window, so it is also where time-based things happen: retrying a payment,
+ * expiring a stale offer, a contact calling.
+ * @param {object} [pilot] {pilotName, shipName, shipTypeID, solarSystemID}; without it nobody calls
+ */
+function getContracts(characterID, pilot = null) {
   const record = load(characterID);
+  const stale = record.contracts.find((contract) => contract.state === "offered" && contract.expiresAtMs <= Date.now());
+  if (stale) void expireOffer(characterID, stale.id);
+  maybeIncomingCall(record, pilot);
   // A payment that failed is retried whenever the pilot's window asks, not only at server start.
   const pending = record.contracts.find((contract) => contract.state === "completed");
   if (pending) void settle(characterID, pending.id);
@@ -133,10 +191,11 @@ function getContracts(characterID) {
  * With contactID the offer comes from that contact; otherwise it may come from
  * a contact or from someone new.
  */
-function requestContract({ characterID, pilotName, shipName, shipTypeID, solarSystemID, contactID }) {
+function requestContract({ characterID, pilotName, shipName, shipTypeID, solarSystemID, contactID, incoming = false }) {
   return serialize(characterID, async () => {
     const record = load(characterID);
     if (openContract(record)) return summary(record);
+    const nowMs = Date.now();
     const sequence = record.sequence + 1;
     const facts = director.planBounty({ characterID, shipTypeID, solarSystemID, sequence });
     if (!facts) throw fail("CONTRACT_UNAVAILABLE", "No work is on offer out here.");
@@ -146,8 +205,15 @@ function requestContract({ characterID, pilotName, shipName, shipTypeID, solarSy
       contact = contacts.find(record, contactID);
       if (!contact) throw fail("CONTRACT_UNAVAILABLE", "That contact is no longer in your records.");
       if (!contacts.willOffer(contact)) throw fail("CONTRACT_UNAVAILABLE", `${contact.name} is not taking your calls.`);
+      // The pilot asking too soon gets a "nothing yet"; the contact's own call is always on time.
+      const wait = contacts.availableInMs(contact, nowMs);
+      if (!incoming && wait > 0) {
+        throw fail("CONTRACT_UNAVAILABLE", `${contact.name} has nothing for you yet. Try again in ${minutes(wait)}, or wait for the call.`);
+      }
     } else {
-      contact = contacts.pickForOffer(record, `${characterID}:${sequence}`);
+      // The open board is strangers; people who know the pilot call them instead.
+      const wait = (record.boardAvailableAtMs || 0) - nowMs;
+      if (wait > 0) throw fail("CONTRACT_UNAVAILABLE", `Nothing new on the local channels. Try again in ${minutes(wait)}.`);
     }
     // Trust pays: the bonus is fixed into the offer, so it cannot change after acceptance.
     const applyTier = (known) => {
@@ -179,6 +245,8 @@ function requestContract({ characterID, pilotName, shipName, shipTypeID, solarSy
     fresh.contracts.push({
       id: `c${sequence}`, sequence, state: "offered", createdAtMs: Date.now(), facts, story,
       contactID: contact ? contact.id : null,
+      incoming: Boolean(incoming),
+      expiresAtMs: Date.now() + OFFER_TTL_MS,
       instanceID: null, siteID: null, bookmarkID: null, bookmarkFolderID: null, bookmarkInstanceID: null,
     });
     save(fresh);
@@ -220,6 +288,7 @@ function abandonContract(characterID, contractID) {
       record.memories.push(writer.memoryLine(contract.facts, contract.story, "abandoned"));
       contacts.recordOutcome(record, contract, "abandoned");
     }
+    startQuietPeriod(record, contract, wasAccepted ? "abandoned" : "declined");
     save(record);
     if (wasAccepted) site.removeSite(characterID, contract);
     return summary(record);
@@ -259,6 +328,7 @@ function settle(characterID, contractID) {
       record.memories.push(writer.memoryLine(contract.facts, contract.story, "completed"));
       // Saved together with the state change, so a contact gains trust exactly once per job.
       contacts.recordOutcome(record, contract, "completed");
+      startQuietPeriod(record, contract, "completed");
       save(record);
       log.info(`[Contracts] completed ${characterID}/${contract.id}: ${contract.story.bossName} is dead`);
     }
