@@ -6614,6 +6614,42 @@ function getReplacementCoverageStatus(nowMs = Date.now()) {
   };
 }
 
+// Living Universe port (RPG pilot voices): what one pilot is doing right now,
+// read-only. Null for an unknown actor or before the runtime has started.
+function getPilotActivity(actorID) {
+  const actor = runtimeState && runtimeState.actors
+    ? runtimeState.actors[String(actorID || "")] || null
+    : null;
+  if (!actor) {
+    return null;
+  }
+  const flight = runtimeState.flights
+    ? runtimeState.flights[String(actor.flightID || "")] || null
+    : null;
+  const route = flight ? routeDefinitionsByID.get(String(flight.routeID || "")) || null : null;
+  return {
+    actorID: actor.actorID,
+    role: actor.role || null,
+    assignment: actor.currentAssignment || null,
+    shipTypeID: getActorShipTypeID(actor),
+    tripsCompleted: toPositiveInt(actor.tripsCompleted, 0),
+    losses: toPositiveInt(actor.losses, 0),
+    family: flight ? flight.family || null : null,
+    phase: flight ? flight.phase || null : null,
+    materialized: Boolean(flight && flight.materialized === true),
+    wingSize: flight && Array.isArray(flight.actorIDs) ? flight.actorIDs.length : 1,
+    currentSystemID: toPositiveInt(flight && flight.currentSystemID, toPositiveInt(actor.currentSystemID, 0)),
+    resourceFamily: flight ? flight.resourceFamily || null : null,
+    riskBand: flight ? flight.riskBand || null : null,
+    routeKind: route ? route.kind || null : null,
+    routeSystemIDs: route && Array.isArray(route.systemIDs)
+      ? [...route.systemIDs]
+      : route && route.systemID ? [route.systemID] : [],
+    direction: flight ? Number(flight.direction) || 1 : 1,
+    currentNodeIndex: flight ? toPositiveInt(flight.currentNodeIndex, 0) : 0,
+  };
+}
+
 function getStatus(nowMs = Date.now()) {
   if (!runtimeState) {
     const persisted = livingStateStore.readState();
@@ -7162,6 +7198,7 @@ module.exports = {
   PHASE,
   tick,
   getStatus,
+  getPilotActivity, // Living Universe port: RPG pilot voices
   getSchedulerStatus,
   formatStatus,
   formatConflicts,

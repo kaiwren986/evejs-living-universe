@@ -114,6 +114,12 @@ tick(wallclockNowMs) {
     } catch (error) {
       log.warn(`[SpaceRuntime] Living-universe tick failed: ${error.message}`);
     }
+    // EveJS RPG fork: pilots talk in Local through the local model (never blocks).
+    try {
+      lazyRequire("../rpg/pilots/pilotVoices").tick(this, now);
+    } catch (error) {
+      log.warn(`[SpaceRuntime] Pilot voices tick failed: ${error.message}`);
+    }
 
     let collectionSummary = { collectedSystemIDs: [] };
     if (!hazardRecoveryBlocked && now >= this._emptySolarSystemCollectionSchedule.nextSweepAtMs) {

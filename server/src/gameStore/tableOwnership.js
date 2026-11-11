@@ -51,6 +51,11 @@ TABLE_OWNERSHIP.rpgContracts = {
   table: "rpgContracts", tier: TIERS.RUNTIME, domain: "service:rpg-contracts",
   confidence: CONFIDENCE.INFERRED, note: "Generated story contracts per pilot: offers, site links, payout state and memories.",
 };
+// EveJS RPG fork: what Living Universe pilots remember of talking with a player (server/src/rpg/pilots).
+TABLE_OWNERSHIP.rpgPilotMemory = {
+  table: "rpgPilotMemory", tier: TIERS.RUNTIME, domain: "service:rpg-pilot-voices",
+  confidence: CONFIDENCE.INFERRED, note: "Per pilot and player: the last few lines they said to each other in Local.",
+};
 TABLE_OWNERSHIP.crewEquipmentRuntime = {
   table: "crewEquipmentRuntime", tier: TIERS.RUNTIME, domain: "service:crew-equipment",
   confidence: CONFIDENCE.INFERRED, note: "Crew equipment tiers, profit reinvestment policy and recoverable supplier payments.",

@@ -139,6 +139,32 @@ Script expectations changed for the new engine, each marked in the script:
 - **First tick.** Building the population and seeding mining baselines takes
   about two seconds the first time the runtime ticks.
 
+## Pilot voices (RPG layer, not part of the mod)
+
+`server/src/rpg/pilots/pilotVoices.js` lets pilots talk in Local through the
+local model (`rpg/llm/llmClient.js`, LM Studio per `config/llm.json`).
+
+- A player speaks in Local: one pilot there answers, sometimes a second. A
+  pilot the player names (full name, or a first or last name of four letters or
+  more) is the one who answers.
+- Unprompted: in a system with a player in it, a pilot says something every
+  90 to 300 seconds.
+- What a pilot knows: its record (name, corporation, faction, home station), its
+  ship and what its flight is doing (`livingUniverseRuntime.getPilotActivity`,
+  the one addition to the mod's runtime), a temperament and a quirk fixed by its
+  character ID, the last ten lines of Local, and the last six exchanges it had
+  with that player (table `rpgPilotMemory`, one row per pilot).
+- Limits: six pilot lines a minute per system, three model calls waiting at
+  once, a typing delay before each line. Only systems with a player ever call
+  the model. Model off, slow or out of character: the pilot says nothing.
+- Hooked from `space/runtime/spaceRuntime/tick.js`, right after the Living
+  Universe tick. Settings: `pilotVoices` in `config/llm.json`.
+- `node scripts/verifyPilotVoices.js` checks it with a stand-in model;
+  `--live` runs a few lines through the real one and prints them.
+
+Not done: pilots deciding what to do (routes, camps, grudges) from the model,
+private conversations, pilots reacting to events (being shot at, a gate camp).
+
 ## Not ported
 
 - On-grid mining support (jetcans, tractor, command-ship hauling,

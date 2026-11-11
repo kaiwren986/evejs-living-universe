@@ -9,5 +9,14 @@
   "gpu": "max",
   "autoStart": true,
   "requestTimeoutMs": 20000,
-  "reasoningEffort": "none"
+  "reasoningEffort": "none",
+  "pilotVoices": {
+    "enabled": true,
+    "replyChance": 0.85,
+    "secondReplyChance": 0.25,
+    "ambientEnabled": true,
+    "ambientMinMs": 90000,
+    "ambientMaxMs": 300000,
+    "maxLinesPerMinute": 6
+  }
 }
