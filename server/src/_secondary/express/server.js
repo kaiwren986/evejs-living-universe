@@ -238,6 +238,9 @@ const CLIENT_FEATURE_VALUES = Object.freeze({
   achievements_feature_enabled: true,
   character_titles_feature_enabled: true,
   eve_ag_guidance_enabled: true,
+  // Living Universe: Local runs on the chat gateway (the pushed member list),
+  // the only path that can show pilots who have no chat connection.
+  "eve-local-chat-authority": true,
 });
 const clientFeatureStreams = new Set();
 
