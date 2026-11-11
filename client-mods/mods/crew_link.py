@@ -116,6 +116,9 @@ class CrewLinkWindow(Window):
         self._BuildContractPanel(self._clContractPanel)
         tabs.AddTab('Crew', self._clCrewPanel, tabID='crew')
         tabs.AddTab('Contracts', self._clContractPanel, tabID='contracts')
+        self._clSupplyPanel = Container(name='supplyPanel', parent=self.content, align=uiconst.TOALL)
+        self._BuildSupplyPanel(self._clSupplyPanel)
+        tabs.AddTab('Requisition', self._clSupplyPanel, tabID='supply')
         tabs.AutoSelect()
         API.spawn(self.Refresh)
         API.spawn(self._ContractLoop)
@@ -370,6 +373,53 @@ class CrewLinkWindow(Window):
     def OnSetDestination(self, *args):
         if self._clContract:
             sm.StartService('starmap').SetWaypoint(self._clContract.get('systemID'), clearOtherWaypoints=True)
+
+    # -------------------------------------------------------- requisition tab
+    def _BuildSupplyPanel(self, panel):
+        self._clSupplyBody = ScrollContainer(parent=panel, align=uiconst.TOALL, padTop=8)
+        API.spawn(self._LoadSupply)
+
+    def _LoadSupply(self, notes=None, ok=True):
+        loadouts = API.call('GetLoadouts')
+        body = self._clSupplyBody
+        body.Flush()
+        meta = _section(body, 'TEST SHIPS', padTop=0)
+        meta.text = 'Development aid'
+        TextBody(parent=body, align=uiconst.TOTOP, color=TextColor.SECONDARY, padBottom=8,
+                 text='A fully fitted hull and all skills at V, delivered to your hangar. Dock at a station first.')
+        for loadout in loadouts:
+            card = ContainerAutoSize(parent=body, align=uiconst.TOTOP, alignMode=uiconst.TOTOP, padBottom=6)
+            PanelUnderlay(bgParent=card)
+            Fill(parent=card, align=uiconst.TOLEFT, width=2, color=_accent(0.9))
+            TextHeader(parent=card, align=uiconst.TOTOP, padding=(12, 8, 12, 0), text=loadout.get('label'), bold=True)
+            TextBody(parent=card, align=uiconst.TOTOP, padding=(12, 2, 12, 8), color=TextColor.SECONDARY,
+                     text=loadout.get('summary'))
+            row = Container(parent=card, align=uiconst.TOTOP, height=32, padding=(12, 0, 12, 10))
+            Button(parent=row, align=uiconst.CENTERLEFT, label='Requisition %s' % loadout.get('label'),
+                   variant=ButtonVariant.PRIMARY, texturePath=eveicon.spaceship_command,
+                   func=self.OnRequisition, args=(loadout.get('key'),))
+        if notes:
+            _section(body, 'DELIVERY' if ok else 'NOT DELIVERED')
+            for note in notes:
+                TextBody(parent=body, align=uiconst.TOTOP, padBottom=4, text=note,
+                         color=TextColor.NORMAL if ok else eveColor.WARNING_ORANGE)
+
+    def OnRequisition(self, key, *args):
+        API.spawn(self._Requisition, key)
+
+    def _Requisition(self, key):
+        self._clSupplyBody.Flush()
+        _section(self._clSupplyBody, 'TEST SHIPS', padTop=0)
+        TextBody(parent=self._clSupplyBody, align=uiconst.TOTOP, color=TextColor.SECONDARY,
+                 text='The quartermaster is fitting out your ship...')
+        notes, ok = ['The requisition did not go through. Try again.'], False
+        try:
+            reply = API.call('Requisition', key)
+            notes, ok = reply.get('notes') or [], bool(reply.get('ok'))
+        finally:
+            self._LoadSupply(notes, ok)
+        API.log('requisition %s ok=%s' % (key, ok))
+        API.spawn(self.Refresh)
 
     def _CheckArrival(self):
         # The leader hails you once, when you land on grid at the hideout.

@@ -18,8 +18,11 @@ const { EVEJS_VERSION } = require(path.join(__dirname, "../../config/manager"));
 
 const llm = require(path.join(__dirname, "../../rpg/llm/llmClient"));
 const contracts = require(path.join(__dirname, "../../rpg/contracts/contracts"));
+const requisition = require(path.join(__dirname, "../../rpg/dev/requisition"));
+const chatHub = require(path.join(__dirname, "../chat/chatHub"));
+const { executeChatCommand } = require(path.join(__dirname, "../chat/chatCommands"));
 
-const BRIDGE_VERSION = 4;
+const BRIDGE_VERSION = 5;
 
 // Questions the Crew Link window can ask with one click. The model only phrases
 // the answer; every fact it may use comes from the server.
@@ -163,6 +166,29 @@ class EvejsModService extends BaseService {
 
   Handle_AcceptContract(args, session) {
     return contractReply(() => contracts.acceptContract(characterID(session), text(args?.[0])));
+  }
+
+  // ---- Test ships (server/src/rpg/dev/requisition.js).
+  Handle_GetLoadouts() {
+    return buildList(requisition.listLoadouts().map((loadout) => buildDict(Object.entries(loadout))));
+  }
+
+  // Returns {ok, label, notes[]}; a refusal comes back as ok=false with one note saying why.
+  Handle_Requisition(args, session) {
+    try {
+      const result = requisition.requisition(session, text(args?.[0]), {
+        serviceManager: this.serviceManager,
+        // The same path the /allskills command takes, so the client's skill sheet updates live.
+        grantSkills: () => executeChatCommand(session, "/allskills", chatHub, {
+          emitChatFeedback: false, serviceManager: this.serviceManager,
+        }),
+      });
+      return buildDict([["ok", true], ["label", result.label], ["notes", buildList(result.notes)]]);
+    } catch (error) {
+      if (error.code !== "REQUISITION") log.warn(`[evejsMod] requisition failed: ${error.stack || error.message}`);
+      return buildDict([["ok", false], ["label", ""],
+        ["notes", buildList([error.code === "REQUISITION" ? error.message : "The requisition failed. Nothing more was delivered."])]]);
+    }
   }
 
   Handle_AbandonContract(args, session) {
