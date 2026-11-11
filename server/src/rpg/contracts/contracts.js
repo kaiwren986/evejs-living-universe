@@ -20,6 +20,8 @@ const log = require(path.join(__dirname, "../../utils/logger"));
 const director = require("./contractDirector");
 const writer = require("./contractWriter");
 const site = require("./contractSite");
+const contacts = require("./contractContacts");
+const llm = require(path.join(__dirname, "../llm/llmClient"));
 
 const TABLE = "rpgContracts";
 const PAYER_ID = 1000125; // CONCORD: the name shown against the payment in the wallet journal
@@ -39,8 +41,8 @@ function fail(code, message) {
 function load(characterID) {
   database.ensureTable(TABLE);
   const row = database.read(TABLE, `/${characterID}`);
-  if (row.success && row.data) return JSON.parse(JSON.stringify(row.data));
-  return { version: 1, ownerID: characterID, sequence: 0, contracts: [], memories: [] };
+  if (row.success && row.data) return contacts.ensure(JSON.parse(JSON.stringify(row.data)));
+  return { version: 1, ownerID: characterID, sequence: 0, contracts: [], memories: [], contacts: [] };
 }
 
 function save(record) {
@@ -48,7 +50,9 @@ function save(record) {
   const open = record.contracts.filter((contract) => OPEN_STATES.includes(contract.state));
   record.contracts = [...closed.slice(-(KEPT_CONTRACTS - open.length)), ...open];
   record.memories = record.memories.slice(-KEPT_MEMORIES);
-  const written = database.write(TABLE, `/${record.ownerID}`, record);
+  // A copy, never the live object: the store keeps what it is given, and a later
+  // save of the same mutated object would compare equal to itself and not be written.
+  const written = database.write(TABLE, `/${record.ownerID}`, JSON.parse(JSON.stringify(record)));
   if (written?.success !== true || database.flushTableSync(TABLE)?.success !== true) {
     throw fail("CONTRACT_STORE_UNAVAILABLE", "Contract records could not be saved. Nothing was changed.");
   }
@@ -91,6 +95,11 @@ function view(contract) {
     hostileCount: facts.hostileCount,
     bossHull: facts.bossHull,
     rewardIsk: facts.rewardIsk,
+    // Who is hiring: a contact the pilot already knows, or a first-time client.
+    contactID: contract.contactID || "",
+    returningClient: Boolean(facts.clientTierLabel),
+    clientTierLabel: facts.clientTierLabel || "",
+    payBonusPercent: facts.payBonusPercent || 0,
     cache: facts.cache.map((item) => `${item.quantity} x ${item.name}`),
     // Where the hideout is, so the client can tell when the pilot has arrived.
     x: facts.position.x,
@@ -119,21 +128,44 @@ function getContracts(characterID) {
   return summary(record);
 }
 
-/** Offer a new contract, or return the one already open. */
-function requestContract({ characterID, pilotName, shipName, shipTypeID, solarSystemID }) {
+/**
+ * Offer a new contract, or return the one already open.
+ * With contactID the offer comes from that contact; otherwise it may come from
+ * a contact or from someone new.
+ */
+function requestContract({ characterID, pilotName, shipName, shipTypeID, solarSystemID, contactID }) {
   return serialize(characterID, async () => {
     const record = load(characterID);
     if (openContract(record)) return summary(record);
     const sequence = record.sequence + 1;
     const facts = director.planBounty({ characterID, shipTypeID, solarSystemID, sequence });
     if (!facts) throw fail("CONTRACT_UNAVAILABLE", "No work is on offer out here.");
-    const story = await writer.writeStory({ ...facts, pilotName, shipName }, record.memories);
+
+    let contact = null;
+    if (contactID) {
+      contact = contacts.find(record, contactID);
+      if (!contact) throw fail("CONTRACT_UNAVAILABLE", "That contact is no longer in your records.");
+      if (!contacts.willOffer(contact)) throw fail("CONTRACT_UNAVAILABLE", `${contact.name} is not taking your calls.`);
+    } else {
+      contact = contacts.pickForOffer(record, `${characterID}:${sequence}`);
+    }
+    if (contact) {
+      // Trust pays: the bonus is fixed into the offer, so it cannot change after acceptance.
+      const tier = contacts.tierFor(contact.trust);
+      facts.clientTierLabel = tier.label;
+      facts.payBonusPercent = Math.round(tier.payBonus * 100);
+      facts.rewardIsk = Math.round((facts.rewardIsk * (1 + tier.payBonus)) / 10000) * 10000;
+    }
+
+    const story = await writer.writeStory({ ...facts, pilotName, shipName }, record.memories,
+      contact ? contacts.persona(contact) : null);
     // Re-read: the story took seconds to write and the record may have moved on.
     const fresh = load(characterID);
     if (openContract(fresh)) return summary(fresh);
     fresh.sequence = sequence;
     fresh.contracts.push({
       id: `c${sequence}`, sequence, state: "offered", createdAtMs: Date.now(), facts, story,
+      contactID: contact ? contact.id : null,
       instanceID: null, siteID: null, bookmarkID: null, bookmarkFolderID: null, bookmarkInstanceID: null,
     });
     save(fresh);
@@ -171,7 +203,10 @@ function abandonContract(characterID, contractID) {
     const wasAccepted = contract.state === "accepted";
     contract.state = wasAccepted ? "abandoned" : "declined";
     contract.closedAtMs = Date.now();
-    if (wasAccepted) record.memories.push(writer.memoryLine(contract.facts, contract.story, "abandoned"));
+    if (wasAccepted) {
+      record.memories.push(writer.memoryLine(contract.facts, contract.story, "abandoned"));
+      contacts.recordOutcome(record, contract, "abandoned");
+    }
     save(record);
     if (wasAccepted) site.removeSite(characterID, contract);
     return summary(record);
@@ -209,6 +244,8 @@ function settle(characterID, contractID) {
       contract.state = "completed";
       contract.completedAtMs = Date.now();
       record.memories.push(writer.memoryLine(contract.facts, contract.story, "completed"));
+      // Saved together with the state change, so a contact gains trust exactly once per job.
+      contacts.recordOutcome(record, contract, "completed");
       save(record);
       log.info(`[Contracts] completed ${characterID}/${contract.id}: ${contract.story.bossName} is dead`);
     }
@@ -223,6 +260,37 @@ function settle(characterID, contractID) {
   }).catch((error) => {
     log.warn(`[Contracts] settling ${characterID}/${contractID} is pending: ${error.message}`);
   });
+}
+
+function getContacts(characterID) {
+  return contacts.list(load(characterID));
+}
+
+const HAIL_FALLBACK = Object.freeze({
+  partner: "Captain. Good to hear your voice. Say the word when you want work.",
+  trusted: "Captain. You are one of the few I pick up for. What do you need?",
+  acquaintance: "Captain. I remember the last job. Call me when you are looking for another.",
+  new: "Captain. We have done business once. I will keep you in mind.",
+  soured: "You have some nerve calling this channel.",
+});
+
+/** The contact answers a hail in character. Read-only: nothing about the contact changes. */
+async function hailContact(characterID, contactID, pilotName) {
+  const contact = contacts.find(load(characterID), contactID);
+  if (!contact) throw fail("CONTACT_NOT_FOUND", "That contact is no longer in your records.");
+  const tier = contacts.tierFor(contact.trust);
+  const reply = await llm.chat([
+    { role: "system", content: writer.personaPrompt(contacts.persona(contact), pilotName) },
+    { role: "user", content:
+      `Captain ${pilotName} has opened a comms channel to you, not about a specific job. ` +
+      "Answer the hail in one or two sentences, true to your history with them and how far you trust them." },
+  ], { maxTokens: 110, temperature: 0.9 });
+  return {
+    speaker: contact.name,
+    role: contact.role,
+    text: (reply && writer.sentences(reply, 2, 260)) || HAIL_FALLBACK[tier.key],
+    source: reply ? "ai" : "written",
+  };
 }
 
 function onInstanceChange(change) {
@@ -262,4 +330,7 @@ function start() {
   }, 15000).unref?.();
 }
 
-module.exports = { start, getContracts, requestContract, acceptContract, abandonContract, _testing: { settle, view } };
+module.exports = {
+  start, getContracts, requestContract, acceptContract, abandonContract, getContacts, hailContact,
+  _testing: { settle, view },
+};

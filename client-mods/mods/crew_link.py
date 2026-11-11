@@ -6,6 +6,8 @@ Two tabs under a pilot card:
   Contracts  generated story contracts: request one, read the briefing, accept
              it (a real combat site and a saved location are created), kill the
              leader, get paid and debriefed.
+  Contacts   clients you have completed work for: their trust in you, what it
+             pays, and buttons to hail them or ask them for work.
 
 Everything comes from the server's evejsMod service; the local AI writes the
 words, the server decides the facts. Saving this file reloads it in game.
@@ -31,6 +33,7 @@ from carbonui.primitives.sprite import Sprite
 from carbonui.text.styles import TextHeader, TextBody, TextDetail
 from carbonui.uianimations import animations
 from eve.client.script.ui import eveColor, eveThemeColor
+from eve.client.script.ui.control.gauge import Gauge
 
 API = None
 STATE = {'alive': False, 'opened_for': set()}
@@ -108,14 +111,17 @@ class CrewLinkWindow(Window):
         self._clStatus = TextDetail(parent=self.content, align=uiconst.TOBOTTOM, padTop=6,
                                     color=TextColor.DISABLED, text='')
         self._BuildPilotCard()
-        tabs = TabGroup(name='evejsCrewLinkTabs', parent=self.content, groupID='evejsCrewLinkTabs',
-                        align=uiconst.TOTOP, padTop=8)
+        tabs = self._clTabs = TabGroup(name='evejsCrewLinkTabs', parent=self.content, groupID='evejsCrewLinkTabs',
+                                       align=uiconst.TOTOP, padTop=8)
         self._clCrewPanel = Container(name='crewPanel', parent=self.content, align=uiconst.TOALL)
         self._clContractPanel = Container(name='contractPanel', parent=self.content, align=uiconst.TOALL)
         self._BuildCrewPanel(self._clCrewPanel)
         self._BuildContractPanel(self._clContractPanel)
         tabs.AddTab('Crew', self._clCrewPanel, tabID='crew')
         tabs.AddTab('Contracts', self._clContractPanel, tabID='contracts')
+        self._clContactPanel = Container(name='contactPanel', parent=self.content, align=uiconst.TOALL)
+        self._BuildContactPanel(self._clContactPanel)
+        tabs.AddTab('Contacts', self._clContactPanel, tabID='contacts')
         self._clSupplyPanel = Container(name='supplyPanel', parent=self.content, align=uiconst.TOALL)
         self._BuildSupplyPanel(self._clSupplyPanel)
         tabs.AddTab('Requisition', self._clSupplyPanel, tabID='supply')
@@ -237,6 +243,7 @@ class CrewLinkWindow(Window):
     def OnRefresh(self, *args):
         API.spawn(self.Refresh)
         API.spawn(self._LoadContracts)
+        API.spawn(self._LoadContacts)
 
     # --------------------------------------------------------- contracts tab
     def _BuildContractPanel(self, panel):
@@ -269,6 +276,8 @@ class CrewLinkWindow(Window):
         justPaid = bool(previous and previous[1] in ('accepted', 'completed') and shown and shown.get('paid'))
         self._clContractKey = key
         self._RenderContract(shown, reply.get('completedCount') or 0, justPaid)
+        # A contract changing state is what changes contacts (a new one, more or less trust).
+        self._LoadContacts()
 
     def _SetContractButtons(self, buttons):
         self._clContractButtons.Flush()
@@ -291,8 +300,12 @@ class CrewLinkWindow(Window):
                         padTop=0)
         meta.text = contract.get('factionName') or ''
         TextHeader(parent=body, align=uiconst.TOTOP, text=contract.get('title') or 'Contract', bold=True)
-        TextDetail(parent=body, align=uiconst.TOTOP, color=TextColor.SECONDARY, padBottom=8,
-                   text='%s  -  %s' % (contract.get('clientName'), contract.get('clientRole')))
+        client = '%s  -  %s' % (contract.get('clientName'), contract.get('clientRole'))
+        if contract.get('returningClient'):
+            client += '<br><color=%s>%s contact</color>' % (_hex(_accent()), contract.get('clientTierLabel'))
+            if contract.get('payBonusPercent'):
+                client += '  -  pays %d%% over the going rate' % contract.get('payBonusPercent')
+        TextDetail(parent=body, align=uiconst.TOTOP, color=TextColor.SECONDARY, padBottom=8, text=client)
 
         panel = ContainerAutoSize(parent=body, align=uiconst.TOTOP, alignMode=uiconst.TOTOP)
         Frame(bgParent=panel, texturePath=CUT_FRAME, cornerSize=9, color=_accent(0.35))
@@ -373,6 +386,87 @@ class CrewLinkWindow(Window):
     def OnSetDestination(self, *args):
         if self._clContract:
             sm.StartService('starmap').SetWaypoint(self._clContract.get('systemID'), clearOtherWaypoints=True)
+
+    # ----------------------------------------------------------- contacts tab
+    def _BuildContactPanel(self, panel):
+        comms = ContainerAutoSize(parent=panel, align=uiconst.TOBOTTOM, alignMode=uiconst.TOTOP, padTop=8, minHeight=64)
+        Frame(bgParent=comms, texturePath=CUT_FRAME, cornerSize=9, color=_accent(0.35))
+        Fill(bgParent=comms, color=(0.0, 0.0, 0.0, 0.25))
+        self._clHailSpeaker = TextDetail(parent=comms, align=uiconst.TOTOP, padding=(12, 10, 12, 0), uppercase=True,
+                                         bold=True, color=TextColor.HIGHLIGHT, text='Comms idle')
+        self._clHailSpeech = TextBody(parent=comms, align=uiconst.TOTOP, padding=(12, 4, 12, 12),
+                                      text='Hail a contact to open a channel.')
+        self._clContactBody = ScrollContainer(parent=panel, align=uiconst.TOALL, padTop=8)
+
+    def _LoadContacts(self):
+        try:
+            contacts = API.call('GetContacts') or []
+        except Exception:
+            API.log_exception('contacts are unavailable')
+            return
+        if self.destroyed:
+            return
+        body = self._clContactBody
+        body.Flush()
+        meta = _section(body, 'CONTACTS', padTop=0)
+        meta.text = '%d known' % len(contacts) if contacts else ''
+        if not contacts:
+            TextBody(parent=body, align=uiconst.TOTOP, color=TextColor.SECONDARY,
+                     text='No one out here knows your name yet. Finish a contract and the client will remember you.')
+            return
+        for contact in contacts:
+            card = ContainerAutoSize(parent=body, align=uiconst.TOTOP, alignMode=uiconst.TOTOP, padBottom=6)
+            PanelUnderlay(bgParent=card)
+            soured = not contact.get('willOffer')
+            Fill(parent=card, align=uiconst.TOLEFT, width=2, color=eveColor.DANGER_RED if soured else _accent(0.9))
+            TextHeader(parent=card, align=uiconst.TOTOP, padding=(12, 8, 12, 0), text=contact.get('name'), bold=True)
+            where = contact.get('homeSystemName')
+            TextDetail(parent=card, align=uiconst.TOTOP, padding=(12, 0, 12, 6), color=TextColor.SECONDARY,
+                       text=contact.get('role') + ('  -  %s' % where if where else ''))
+            Gauge(parent=card, align=uiconst.TOTOP, padding=(12, 0, 12, 0), gaugeHeight=4,
+                  color=eveColor.DANGER_RED if soured else _accent(1.0),
+                  value=max(0.02, min(1.0, abs(contact.get('trust') or 0) / 100.0)))
+            standing = contact.get('tierLabel') or ''
+            if contact.get('payBonusPercent'):
+                standing += '  -  pays %d%% extra' % contact.get('payBonusPercent')
+            jobs = contact.get('jobsCompleted') or 0
+            standing += '  -  %d job%s done' % (jobs, '' if jobs == 1 else 's')
+            TextDetail(parent=card, align=uiconst.TOTOP, padding=(12, 4, 12, 0), text=standing,
+                       color=eveColor.DANGER_RED if soured else TextColor.NORMAL)
+            if contact.get('lastLine'):
+                TextBody(parent=card, align=uiconst.TOTOP, padding=(12, 4, 12, 0), color=TextColor.SECONDARY,
+                         text=contact.get('lastLine'))
+            row = Container(parent=card, align=uiconst.TOTOP, height=32, padding=(12, 6, 12, 8))
+            Button(parent=row, align=uiconst.CENTERLEFT, label='Ask for work', enabled=not soured,
+                   variant=ButtonVariant.PRIMARY, texturePath=eveicon.start_conversation,
+                   func=self.OnAskContact, args=(contact.get('id'),))
+            Button(parent=row, align=uiconst.CENTERLEFT, left=150, label='Hail', texturePath=eveicon.chat_bubble,
+                   func=self.OnHailContact, args=(contact.get('id'),))
+
+    def OnHailContact(self, contactID, *args):
+        API.spawn(self._HailContact, contactID)
+
+    def _HailContact(self, contactID):
+        self._clHailSpeaker.text = 'Opening channel...'
+        self._clHailSpeech._clTicket = getattr(self._clHailSpeech, '_clTicket', 0) + 1
+        self._clHailSpeech.text = ''
+        reply = API.call('HailContact', contactID)
+        speaker = reply.get('speaker')
+        self._clHailSpeaker.text = '%s  -  %s' % (speaker, reply.get('role')) if speaker else 'No answer'
+        self._Typewrite(self._clHailSpeech, reply.get('text') or '')
+        API.log('hailed %s via %s' % (contactID, reply.get('source')))
+
+    def OnAskContact(self, contactID, *args):
+        # The offer is shown on the Contracts tab, like any other.
+        try:
+            self._clTabs.SelectByID('contracts')
+        except Exception:
+            API.log_exception('switching to the Contracts tab')
+        self._clContractBody.Flush()
+        _section(self._clContractBody, 'CONTRACTS', padTop=0)
+        TextBody(parent=self._clContractBody, align=uiconst.TOTOP, color=TextColor.SECONDARY,
+                 text='Calling your contact...')
+        API.spawn(self._ContractAction, 'RequestContract', contactID)
 
     # -------------------------------------------------------- requisition tab
     def _BuildSupplyPanel(self, panel):

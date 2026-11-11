@@ -22,7 +22,7 @@ const requisition = require(path.join(__dirname, "../../rpg/dev/requisition"));
 const chatHub = require(path.join(__dirname, "../chat/chatHub"));
 const { executeChatCommand } = require(path.join(__dirname, "../chat/chatCommands"));
 
-const BRIDGE_VERSION = 5;
+const BRIDGE_VERSION = 6;
 
 // Questions the Crew Link window can ask with one click. The model only phrases
 // the answer; every fact it may use comes from the server.
@@ -161,7 +161,31 @@ class EvejsModService extends BaseService {
       shipName: text(session?.shipName) || text(shipType?.name, "their ship"),
       shipTypeID: Number(session?.shipTypeID) || 0,
       solarSystemID: Number(session?.solarsystemid2 || session?.solarsystemid) || 0,
+      // Optional: ask one particular contact for work.
+      contactID: text(args?.[0]) || null,
     }));
+  }
+
+  // ---- Contacts: clients the pilot has completed work for (contractContacts.js).
+  Handle_GetContacts(args, session) {
+    try {
+      return buildList(contracts.getContacts(characterID(session)).map((contact) => buildDict(Object.entries(contact))));
+    } catch (error) {
+      log.warn(`[evejsMod] contacts unavailable: ${error.message}`);
+      return buildList([]);
+    }
+  }
+
+  // Returns {speaker, role, text, source}; source is "ai", "written" or "error".
+  async Handle_HailContact(args, session) {
+    try {
+      const reply = await contracts.hailContact(characterID(session), text(args?.[0]), text(session?.characterName, "the captain"));
+      return buildDict(Object.entries(reply));
+    } catch (error) {
+      if (!error.code) log.warn(`[evejsMod] hail failed: ${error.stack || error.message}`);
+      return buildDict([["speaker", ""], ["role", ""], ["source", "error"],
+        ["text", error.code ? error.message : "The channel would not open."]]);
+    }
   }
 
   Handle_AcceptContract(args, session) {
