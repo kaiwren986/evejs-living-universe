@@ -44,6 +44,8 @@ CUT_FRAME = 'res:/UI/Texture/classes/Button/frame_cut_bottom_right.png'
 TYPE_STEP_MS = 18
 CONTRACT_POLL_MS = 5000
 ARRIVAL_RANGE_M = 250000.0
+# Marks the Contracts tab as not drawn yet. Distinct from None, which is the real "no contract" state.
+NOT_DRAWN = object()
 
 
 def _accent(alpha=1.0):
@@ -98,7 +100,7 @@ class CrewLinkWindow(Window):
         Window.ApplyAttributes(self, attributes)
         self._clTyping = 0
         self._clContract = None
-        self._clContractKey = None
+        self._clContractKey = NOT_DRAWN
         self._clTaunted = set()
         self._clStatus = TextDetail(parent=self.content, align=uiconst.TOBOTTOM, padTop=6,
                                     color=TextColor.DISABLED, text='')
@@ -255,7 +257,8 @@ class CrewLinkWindow(Window):
             API.notify(reply.get('error'))
         if key == self._clContractKey and not reply.get('error'):
             return
-        justPaid = bool(self._clContractKey and self._clContractKey[1] == 'accepted' and shown and shown.get('paid'))
+        previous = self._clContractKey if isinstance(self._clContractKey, tuple) else None
+        justPaid = bool(previous and previous[1] == 'accepted' and shown and shown.get('paid'))
         self._clContractKey = key
         self._RenderContract(shown, reply.get('completedCount') or 0, justPaid)
 
@@ -334,9 +337,10 @@ class CrewLinkWindow(Window):
         try:
             reply = API.call(method, *args)
         except Exception:
-            self._clContractKey = None  # force a redraw so the buttons come back
+            self._clContractKey = NOT_DRAWN  # force a redraw so the buttons come back
             raise
-        self._clContractKey = None if reply.get('error') else self._clContractKey
+        # The "putting the word out" placeholder is on screen, so always redraw from the reply.
+        self._clContractKey = NOT_DRAWN
         self._LoadContracts(reply)
 
     def OnFindWork(self, *args):
