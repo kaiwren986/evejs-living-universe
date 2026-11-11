@@ -46,6 +46,11 @@ const CONFIDENCE = Object.freeze({
 });
 
 const TABLE_OWNERSHIP = {};
+// EveJS RPG fork: generated contracts (server/src/rpg/contracts).
+TABLE_OWNERSHIP.rpgContracts = {
+  table: "rpgContracts", tier: TIERS.RUNTIME, domain: "service:rpg-contracts",
+  confidence: CONFIDENCE.INFERRED, note: "Generated story contracts per pilot: offers, site links, payout state and memories.",
+};
 TABLE_OWNERSHIP.crewEquipmentRuntime = {
   table: "crewEquipmentRuntime", tier: TIERS.RUNTIME, domain: "service:crew-equipment",
   confidence: CONFIDENCE.INFERRED, note: "Crew equipment tiers, profit reinvestment policy and recoverable supplier payments.",

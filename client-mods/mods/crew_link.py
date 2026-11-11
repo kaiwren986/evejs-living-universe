@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
-"""Crew Link: your ship's crew in a native EVE (Photon UI) window.
+"""Crew Link: your ship's crew and contracts in a native EVE (Photon UI) window.
 
-Pilot card, crew roster and a comms panel where the crew chief answers in
-character (local AI when it is running, written lines when not). Everything
-comes from the server's evejsMod service. Saving this file reloads it in game.
+Two tabs under a pilot card:
+  Crew       roster and a comms panel where the crew chief (or Aura) answers.
+  Contracts  generated story contracts: request one, read the briefing, accept
+             it (a real combat site and a saved location are created), kill the
+             leader, get paid and debriefed.
+
+Everything comes from the server's evejsMod service; the local AI writes the
+words, the server decides the facts. Saving this file reloads it in game.
 
 Note: names on the window object are prefixed with _cl so they never collide
 with carbonui.Window's own attributes (it has header, content, sr, ...).
@@ -13,6 +18,8 @@ from carbonui import uiconst, TextColor, ButtonVariant, Density
 from carbonui.button.group import ButtonGroup, ButtonSizeMode
 from carbonui.control.button import Button
 from carbonui.control.buttonIcon import ButtonIcon
+from carbonui.control.scrollContainer import ScrollContainer
+from carbonui.control.tabGroup import TabGroup
 from carbonui.control.window import Window
 from carbonui.decorative.panelUnderlay import PanelUnderlay
 from carbonui.primitives.container import Container
@@ -35,6 +42,8 @@ QUESTIONS = (
 )
 CUT_FRAME = 'res:/UI/Texture/classes/Button/frame_cut_bottom_right.png'
 TYPE_STEP_MS = 18
+CONTRACT_POLL_MS = 5000
+ARRIVAL_RANGE_M = 250000.0
 
 
 def _accent(alpha=1.0):
@@ -57,28 +66,56 @@ def _hex(color):
     return '0xff%02x%02x%02x' % (int(r * 255), int(g * 255), int(b * 255))
 
 
+def _isk(amount):
+    return '{:,} ISK'.format(int(amount or 0))
+
+
+def _section(parent, title, padTop=14):
+    """Uppercase accent header with a hairline; returns the right-hand meta label."""
+    row = Container(parent=parent, align=uiconst.TOTOP, height=20, padTop=padTop)
+    TextDetail(parent=row, align=uiconst.CENTERLEFT, text=title, uppercase=True, bold=True, color=_accent(1.0))
+    meta = TextDetail(parent=row, align=uiconst.CENTERRIGHT, text='', color=TextColor.SECONDARY)
+    Line(parent=parent, align=uiconst.TOTOP, weight=1, color=_accent(0.35), padTop=3, padBottom=6)
+    return meta
+
+
+def _fact(parent, label, value):
+    row = Container(parent=parent, align=uiconst.TOTOP, height=20)
+    TextDetail(parent=row, align=uiconst.CENTERLEFT, text=label, uppercase=True, color=TextColor.SECONDARY)
+    TextBody(parent=row, align=uiconst.CENTERLEFT, left=96, text=value)
+
+
 class CrewLinkWindow(Window):
     default_windowID = 'evejsCrewLink'
     default_caption = 'Crew Link'
     default_iconNum = eveicon.people
-    default_width = 420
-    default_height = 520
-    default_minSize = (360, 440)
+    default_width = 440
+    default_height = 620
+    default_minSize = (380, 480)
     default_isStackable = False
 
     def ApplyAttributes(self, attributes):
         Window.ApplyAttributes(self, attributes)
         self._clTyping = 0
-        self._BuildFooter()
-        self._BuildActions()
+        self._clContract = None
+        self._clContractKey = None
+        self._clTaunted = set()
+        self._clStatus = TextDetail(parent=self.content, align=uiconst.TOBOTTOM, padTop=6,
+                                    color=TextColor.DISABLED, text='')
         self._BuildPilotCard()
-        self._BuildSection('CREW', '_clCrewMeta')
-        self._clRoster = ContainerAutoSize(parent=self.content, align=uiconst.TOTOP, alignMode=uiconst.TOTOP)
-        self._BuildSection('COMMS', '_clCommsMeta')
-        self._BuildComms()
+        tabs = TabGroup(name='evejsCrewLinkTabs', parent=self.content, groupID='evejsCrewLinkTabs',
+                        align=uiconst.TOTOP, padTop=8)
+        self._clCrewPanel = Container(name='crewPanel', parent=self.content, align=uiconst.TOALL)
+        self._clContractPanel = Container(name='contractPanel', parent=self.content, align=uiconst.TOALL)
+        self._BuildCrewPanel(self._clCrewPanel)
+        self._BuildContractPanel(self._clContractPanel)
+        tabs.AddTab('Crew', self._clCrewPanel, tabID='crew')
+        tabs.AddTab('Contracts', self._clContractPanel, tabID='contracts')
+        tabs.AutoSelect()
         API.spawn(self.Refresh)
+        API.spawn(self._ContractLoop)
 
-    # ----------------------------------------------------------------- layout
+    # ------------------------------------------------------------- pilot card
     def _BuildPilotCard(self):
         card = Container(parent=self.content, align=uiconst.TOTOP, height=76)
         PanelUnderlay(bgParent=card)
@@ -89,44 +126,34 @@ class CrewLinkWindow(Window):
         ButtonIcon(parent=card, align=uiconst.TOPRIGHT, width=24, height=24, top=4, left=4, iconSize=16,
                    texturePath=eveicon.refresh, func=self.OnRefresh, hint='Refresh')
         text = ContainerAutoSize(parent=card, align=uiconst.CENTERLEFT, alignMode=uiconst.TOTOP,
-                                 left=84, width=280)
+                                 left=84, width=300)
         self._clPilot = TextHeader(parent=text, align=uiconst.TOTOP, text='Establishing link...', bold=True)
         self._clShip = TextBody(parent=text, align=uiconst.TOTOP, color=TextColor.SECONDARY, text='')
         self._clPlace = TextDetail(parent=text, align=uiconst.TOTOP, color=TextColor.SECONDARY, text='')
 
-    def _BuildSection(self, title, metaAttr):
-        row = Container(parent=self.content, align=uiconst.TOTOP, height=20, padTop=14)
-        TextDetail(parent=row, align=uiconst.CENTERLEFT, text=title, uppercase=True, bold=True, color=_accent(1.0))
-        setattr(self, metaAttr, TextDetail(parent=row, align=uiconst.CENTERRIGHT, text='', color=TextColor.SECONDARY))
-        Line(parent=self.content, align=uiconst.TOTOP, weight=1, color=_accent(0.35), padTop=3, padBottom=6)
-
-    def _BuildComms(self):
-        # Fills the space above the action bar, so the window reads as one transmission screen.
-        panel = Container(parent=self.content, align=uiconst.TOALL)
-        Frame(bgParent=panel, texturePath=CUT_FRAME, cornerSize=9, color=_accent(0.35))
-        Fill(bgParent=panel, color=(0.0, 0.0, 0.0, 0.25))
-        top = Container(parent=panel, align=uiconst.TOTOP, height=20, padding=(12, 10, 12, 0))
-        self._clSignal = Sprite(parent=top, align=uiconst.CENTERLEFT, width=16, height=16,
-                                texturePath=eveicon.signal_strength, color=_accent(1.0),
-                                outputMode=uiconst.OUTPUT_COLOR_AND_GLOW, glowBrightness=0.4)
-        self._clSpeaker = TextDetail(parent=top, align=uiconst.CENTERLEFT, left=24, uppercase=True, bold=True,
-                                     color=TextColor.HIGHLIGHT, text='Channel open')
-        self._clSpeech = TextBody(parent=panel, align=uiconst.TOTOP, padding=(12, 6, 12, 14),
-                                  color=TextColor.NORMAL, text='Choose a question below to hail your crew.')
-
-    def _BuildActions(self):
-        group = ButtonGroup(parent=self.content, align=uiconst.TOBOTTOM, density=Density.COMPACT,
+    # -------------------------------------------------------------- crew tab
+    def _BuildCrewPanel(self, panel):
+        group = ButtonGroup(parent=panel, align=uiconst.TOBOTTOM, density=Density.COMPACT,
                             button_size_mode=ButtonSizeMode.STRETCH, padTop=10)
         self._clButtons = []
         for index, (topic, label, icon) in enumerate(QUESTIONS):
             self._clButtons.append(Button(parent=group, label=label, texturePath=icon, func=self.OnAsk, args=(topic,),
                                           variant=ButtonVariant.PRIMARY if index == 0 else ButtonVariant.NORMAL))
+        self._clCrewMeta = _section(panel, 'CREW', padTop=8)
+        self._clRoster = ContainerAutoSize(parent=panel, align=uiconst.TOTOP, alignMode=uiconst.TOTOP)
+        self._clCommsMeta = _section(panel, 'COMMS')
+        comms = Container(parent=panel, align=uiconst.TOALL)
+        Frame(bgParent=comms, texturePath=CUT_FRAME, cornerSize=9, color=_accent(0.35))
+        Fill(bgParent=comms, color=(0.0, 0.0, 0.0, 0.25))
+        top = Container(parent=comms, align=uiconst.TOTOP, height=20, padding=(12, 10, 12, 0))
+        self._clSignal = Sprite(parent=top, align=uiconst.CENTERLEFT, width=16, height=16,
+                                texturePath=eveicon.signal_strength, color=_accent(1.0),
+                                outputMode=uiconst.OUTPUT_COLOR_AND_GLOW, glowBrightness=0.4)
+        self._clSpeaker = TextDetail(parent=top, align=uiconst.CENTERLEFT, left=24, uppercase=True, bold=True,
+                                     color=TextColor.HIGHLIGHT, text='Channel open')
+        self._clSpeech = TextBody(parent=comms, align=uiconst.TOTOP, padding=(12, 6, 12, 14),
+                                  color=TextColor.NORMAL, text='Choose a question below to hail your crew.')
 
-    def _BuildFooter(self):
-        self._clStatus = TextDetail(parent=self.content, align=uiconst.TOBOTTOM, padTop=6,
-                                    color=TextColor.DISABLED, text='')
-
-    # ------------------------------------------------------------------- data
     def Refresh(self):
         status = API.call('GetStatus')
         try:
@@ -166,14 +193,12 @@ class CrewLinkWindow(Window):
             animations.FadeTo(row, 0.0, 1.0, duration=0.35, timeOffset=index * 0.08)
             animations.MoveInFromLeft(row, amount=12, duration=0.35, timeOffset=index * 0.08)
 
-    # ---------------------------------------------------------------- actions
     def OnAsk(self, topic, *args):
         API.spawn(self._Ask, topic)
 
     def _Ask(self, topic):
         for button in self._clButtons:
             button.busy = True
-        self._clTyping += 1
         self._clSpeaker.text = 'Hailing crew...'
         self._clSpeech.text = ''
         animations.MorphScalar(self._clSignal, 'glowBrightness', 0.2, 1.2, duration=0.6,
@@ -186,21 +211,170 @@ class CrewLinkWindow(Window):
             for button in self._clButtons:
                 button.busy = False
         self._clSpeaker.text = '%s  -  %s' % (answer.get('speaker'), answer.get('role'))
-        voiced = answer.get('source') == 'ai'
-        self._clCommsMeta.text = 'AI voice' if voiced else 'Written line'
-        self._Typewrite(answer.get('text') or '')
+        self._clCommsMeta.text = 'AI voice' if answer.get('source') == 'ai' else 'Written line'
+        self._Typewrite(self._clSpeech, answer.get('text') or '')
         API.log('crew answered %s via %s' % (topic, answer.get('source')))
 
-    def _Typewrite(self, text):
+    def _Typewrite(self, label, text):
+        self._clTyping += 1
         ticket = self._clTyping
         for end in range(2, len(text) + 2, 2):
-            if ticket != self._clTyping or self.destroyed:
+            if ticket != self._clTyping or self.destroyed or label.destroyed:
                 return
-            self._clSpeech.text = text[:end] + ('' if end >= len(text) else '<color=0x88ffffff>_</color>')
+            label.text = text[:end] + ('' if end >= len(text) else '<color=0x88ffffff>_</color>')
             API.sleep(TYPE_STEP_MS)
 
     def OnRefresh(self, *args):
         API.spawn(self.Refresh)
+        API.spawn(self._LoadContracts)
+
+    # --------------------------------------------------------- contracts tab
+    def _BuildContractPanel(self, panel):
+        self._clContractButtons = ButtonGroup(parent=panel, align=uiconst.TOBOTTOM, density=Density.COMPACT,
+                                              button_size_mode=ButtonSizeMode.STRETCH, padTop=10)
+        self._clContractBody = ScrollContainer(parent=panel, align=uiconst.TOALL, padTop=8)
+
+    def _ContractLoop(self):
+        # Keeps the tab current: an accepted contract is paid by the server the
+        # moment its leader dies, wherever this window happens to be.
+        while not self.destroyed:
+            try:
+                self._LoadContracts()
+                self._CheckArrival()
+            except Exception:
+                API.log_exception('contract refresh')
+            API.sleep(CONTRACT_POLL_MS)
+
+    def _LoadContracts(self, reply=None):
+        reply = reply or API.call('GetContracts')
+        contract = reply.get('contract')
+        shown = contract or reply.get('lastPaid')
+        key = (shown.get('id'), shown.get('state')) if shown else None
+        self._clContract = contract
+        if reply.get('error'):
+            API.notify(reply.get('error'))
+        if key == self._clContractKey and not reply.get('error'):
+            return
+        justPaid = bool(self._clContractKey and self._clContractKey[1] == 'accepted' and shown and shown.get('paid'))
+        self._clContractKey = key
+        self._RenderContract(shown, reply.get('completedCount') or 0, justPaid)
+
+    def _SetContractButtons(self, buttons):
+        self._clContractButtons.Flush()
+        for label, func, variant, icon in buttons:
+            Button(parent=self._clContractButtons, label=label, func=func, variant=variant, texturePath=icon)
+
+    def _RenderContract(self, contract, completedCount, justPaid):
+        body = self._clContractBody
+        body.Flush()
+        if contract is None:
+            meta = _section(body, 'CONTRACTS', padTop=0)
+            meta.text = '%d completed' % completedCount if completedCount else ''
+            TextBody(parent=body, align=uiconst.TOTOP, color=TextColor.SECONDARY,
+                     text='Nothing on the books. Put the word out and see who needs a capsuleer.')
+            self._SetContractButtons([('Find work', self.OnFindWork, ButtonVariant.PRIMARY, eveicon.start_conversation)])
+            return
+
+        state = contract.get('state')
+        meta = _section(body, {'offered': 'CONTRACT OFFER', 'accepted': 'CONTRACT IN PROGRESS'}.get(state, 'CONTRACT COMPLETE'),
+                        padTop=0)
+        meta.text = contract.get('factionName') or ''
+        TextHeader(parent=body, align=uiconst.TOTOP, text=contract.get('title') or 'Contract', bold=True)
+        TextDetail(parent=body, align=uiconst.TOTOP, color=TextColor.SECONDARY, padBottom=8,
+                   text='%s  -  %s' % (contract.get('clientName'), contract.get('clientRole')))
+
+        panel = ContainerAutoSize(parent=body, align=uiconst.TOTOP, alignMode=uiconst.TOTOP)
+        Frame(bgParent=panel, texturePath=CUT_FRAME, cornerSize=9, color=_accent(0.35))
+        Fill(bgParent=panel, color=(0.0, 0.0, 0.0, 0.25))
+        paid = bool(contract.get('paid'))
+        spoken = contract.get('debrief') if paid else contract.get('briefing')
+        words = TextBody(parent=panel, align=uiconst.TOTOP, padding=(12, 10, 12, 12), text='')
+        if justPaid or state == 'offered':
+            API.spawn(self._Typewrite, words, spoken or '')
+        else:
+            words.text = spoken or ''
+
+        security = contract.get('security')
+        where = '<color=%s>%.1f</color>  %s' % (_hex(_security_color(security)), security or 0.0, contract.get('systemName'))
+        jumps = contract.get('jumps') or 0
+        where += '  -  %s' % ('this system' if jumps == 0 else '%d jump%s' % (jumps, '' if jumps == 1 else 's'))
+        facts = ContainerAutoSize(parent=body, align=uiconst.TOTOP, alignMode=uiconst.TOTOP, padTop=10)
+        _fact(facts, 'Target', '%s  <color=0x88ffffff>"%s"</color>' % (contract.get('bossName'), contract.get('bossEpithet')))
+        _fact(facts, 'Hideout', '%s, near %s' % (contract.get('siteName'), contract.get('anchorName') or 'deep space'))
+        _fact(facts, 'System', where)
+        _fact(facts, 'Opposition', 'about %d ships, leader in a %s' % (contract.get('hostileCount') or 0, contract.get('bossHull')))
+        _fact(facts, 'Payment', '<color=%s>%s</color>' % (_hex(eveColor.LEAFY_GREEN), _isk(contract.get('rewardIsk'))))
+        cache = contract.get('cache') or []
+        if cache:
+            _fact(facts, 'Strongbox', ', '.join(cache))
+
+        if paid:
+            TextDetail(parent=body, align=uiconst.TOTOP, padTop=10, color=eveColor.LEAFY_GREEN,
+                       text='PAID  -  %s transferred to your wallet' % _isk(contract.get('rewardIsk')))
+            self._SetContractButtons([('Find more work', self.OnFindWork, ButtonVariant.PRIMARY, eveicon.start_conversation)])
+            if justPaid:
+                API.notify('Contract complete: %s. %s paid.' % (contract.get('title'), _isk(contract.get('rewardIsk'))))
+        elif state == 'offered':
+            self._SetContractButtons([
+                ('Accept', self.OnAccept, ButtonVariant.PRIMARY, eveicon.checkmark),
+                ('Decline', self.OnAbandon, ButtonVariant.GHOST, eveicon.close),
+            ])
+        else:
+            TextDetail(parent=body, align=uiconst.TOTOP, padTop=10, color=TextColor.SECONDARY,
+                       text='The hideout is saved in your locations (People & Places) and shows on the scanner in %s. '
+                            'Kill %s to complete the contract.' % (contract.get('systemName'), contract.get('bossName')))
+            self._SetContractButtons([
+                ('Set destination', self.OnSetDestination, ButtonVariant.PRIMARY, eveicon.location),
+                ('Abandon', self.OnAbandon, ButtonVariant.GHOST, eveicon.close),
+            ])
+
+    def _ContractAction(self, method, *args):
+        for button in list(self._clContractButtons.buttons):
+            button.busy = True
+        try:
+            reply = API.call(method, *args)
+        except Exception:
+            self._clContractKey = None  # force a redraw so the buttons come back
+            raise
+        self._clContractKey = None if reply.get('error') else self._clContractKey
+        self._LoadContracts(reply)
+
+    def OnFindWork(self, *args):
+        self._clContractBody.Flush()
+        _section(self._clContractBody, 'CONTRACTS', padTop=0)
+        TextBody(parent=self._clContractBody, align=uiconst.TOTOP, color=TextColor.SECONDARY,
+                 text='Putting the word out on the local channels...')
+        API.spawn(self._ContractAction, 'RequestContract')
+
+    def OnAccept(self, *args):
+        if self._clContract:
+            API.spawn(self._ContractAction, 'AcceptContract', self._clContract.get('id'))
+
+    def OnAbandon(self, *args):
+        if self._clContract:
+            API.spawn(self._ContractAction, 'AbandonContract', self._clContract.get('id'))
+
+    def OnSetDestination(self, *args):
+        if self._clContract:
+            sm.StartService('starmap').SetWaypoint(self._clContract.get('systemID'), clearOtherWaypoints=True)
+
+    def _CheckArrival(self):
+        # The leader hails you once, when you land on grid at the hideout.
+        contract = self._clContract
+        if not contract or contract.get('state') != 'accepted' or contract.get('id') in self._clTaunted:
+            return
+        if session.solarsystemid != contract.get('systemID') or not session.shipid:
+            return
+        ballpark = sm.GetService('michelle').GetBallpark()
+        ball = ballpark.GetBall(session.shipid) if ballpark else None
+        if ball is None:
+            return
+        dx, dy, dz = ball.x - contract.get('x'), ball.y - contract.get('y'), ball.z - contract.get('z')
+        if (dx * dx + dy * dy + dz * dz) ** 0.5 > ARRIVAL_RANGE_M:
+            return
+        self._clTaunted.add(contract.get('id'))
+        API.notify('<b>%s:</b> %s' % (contract.get('bossName'), contract.get('taunt')))
+        API.log('arrived at %s; taunt shown' % contract.get('siteName'))
 
 
 def _in_game():

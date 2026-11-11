@@ -17,8 +17,9 @@ const { resolveItemByTypeID } = require(path.join(__dirname, "../inventory/itemT
 const { EVEJS_VERSION } = require(path.join(__dirname, "../../config/manager"));
 
 const llm = require(path.join(__dirname, "../../rpg/llm/llmClient"));
+const contracts = require(path.join(__dirname, "../../rpg/contracts/contracts"));
 
-const BRIDGE_VERSION = 3;
+const BRIDGE_VERSION = 4;
 
 // Questions the Crew Link window can ask with one click. The model only phrases
 // the answer; every fact it may use comes from the server.
@@ -113,9 +114,59 @@ function shipFacts(session) {
   };
 }
 
+function contractDict(contract) {
+  if (!contract) return null;
+  return buildDict(Object.entries(contract).map(([key, value]) => [key, Array.isArray(value) ? buildList(value) : value]));
+}
+
+// Contract calls never throw at the client: a failure comes back as {error: "..."}.
+async function contractReply(action) {
+  try {
+    const state = await action();
+    return buildDict([
+      ["contract", contractDict(state.contract)],
+      ["lastPaid", contractDict(state.lastPaid)],
+      ["completedCount", state.completedCount],
+      ["error", ""],
+    ]);
+  } catch (error) {
+    if (!error.code) log.warn(`[evejsMod] contract call failed: ${error.stack || error.message}`);
+    return buildDict([
+      ["contract", null], ["lastPaid", null], ["completedCount", 0],
+      ["error", error.code ? error.message : "Contracts are unavailable right now."],
+    ]);
+  }
+}
+
 class EvejsModService extends BaseService {
   constructor() {
     super("evejsMod");
+    contracts.start();
+  }
+
+  // ---- Generated contracts (server/src/rpg/contracts). Each call answers with
+  // the pilot's current contract state: {contract, lastPaid, completedCount, error}.
+  Handle_GetContracts(args, session) {
+    return contractReply(() => contracts.getContracts(characterID(session)));
+  }
+
+  Handle_RequestContract(args, session) {
+    const shipType = resolveItemByTypeID(Number(session?.shipTypeID));
+    return contractReply(() => contracts.requestContract({
+      characterID: characterID(session),
+      pilotName: text(session?.characterName, "the captain"),
+      shipName: text(session?.shipName) || text(shipType?.name, "their ship"),
+      shipTypeID: Number(session?.shipTypeID) || 0,
+      solarSystemID: Number(session?.solarsystemid2 || session?.solarsystemid) || 0,
+    }));
+  }
+
+  Handle_AcceptContract(args, session) {
+    return contractReply(() => contracts.acceptContract(characterID(session), text(args?.[0])));
+  }
+
+  Handle_AbandonContract(args, session) {
+    return contractReply(() => contracts.abandonContract(characterID(session), text(args?.[0])));
   }
 
   // Round trip check used by the client loader and the first mod window.

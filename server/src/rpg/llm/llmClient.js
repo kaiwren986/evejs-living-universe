@@ -76,7 +76,7 @@ async function request(config, body) {
  * @param {{maxTokens?: number, temperature?: number}} options
  * @returns {Promise<string|null>} the reply, or null when the AI is unavailable
  */
-function chat(messages, { maxTokens = 220, temperature = 0.8 } = {}) {
+function chat(messages, { maxTokens = 220, temperature = 0.8, responseFormat = undefined } = {}) {
   const config = loadConfig();
   if (!config.enabled) return Promise.resolve(null);
   const run = async () => {
@@ -90,6 +90,7 @@ function chat(messages, { maxTokens = 220, temperature = 0.8 } = {}) {
         // Spoken lines need no hidden reasoning; models like Gemma 4 otherwise
         // spend the whole token budget thinking and return no text.
         reasoning_effort: config.reasoningEffort,
+        response_format: responseFormat,
         stream: false,
       });
       log.info(`[LLM] reply in ${Date.now() - started} ms (${text ? text.length : 0} chars)`);
@@ -104,4 +105,27 @@ function chat(messages, { maxTokens = 220, temperature = 0.8 } = {}) {
   return result;
 }
 
-module.exports = { chat, loadConfig };
+/**
+ * Ask the model for an object matching a JSON schema (story fields, not prose).
+ * @returns {Promise<object|null>} the parsed object, or null when the AI is
+ *   unavailable or answered with something that is not valid JSON
+ */
+async function chatJson(messages, name, schema, { maxTokens = 700, temperature = 0.9 } = {}) {
+  const text = await chat(messages, {
+    maxTokens,
+    temperature,
+    responseFormat: { type: "json_schema", json_schema: { name, strict: true, schema } },
+  });
+  if (!text) return null;
+  try {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    const value = JSON.parse(start >= 0 && end > start ? text.slice(start, end + 1) : text);
+    return value && typeof value === "object" && !Array.isArray(value) ? value : null;
+  } catch {
+    log.info("[LLM] reply was not valid JSON; using written lines");
+    return null;
+  }
+}
+
+module.exports = { chat, chatJson, loadConfig };

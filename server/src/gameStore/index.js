@@ -210,6 +210,7 @@ const RECOVERABLE_EMPTY_TABLES = new Set([
 // only the durable backend differs. To migrate a table: add its name here
 // and run migrateJsonToSqlite.js to seed its existing rows.
 const SQLITE_TABLES = new Set([
+  "rpgContracts",
   "crewEquipmentRuntime",
   "manufacturingCrewRuntime",
   "sellingCrewRuntime",
