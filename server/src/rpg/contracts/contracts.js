@@ -112,7 +112,11 @@ function summary(record) {
 }
 
 function getContracts(characterID) {
-  return summary(load(characterID));
+  const record = load(characterID);
+  // A payment that failed is retried whenever the pilot's window asks, not only at server start.
+  const pending = record.contracts.find((contract) => contract.state === "completed");
+  if (pending) void settle(characterID, pending.id);
+  return summary(record);
 }
 
 /** Offer a new contract, or return the one already open. */

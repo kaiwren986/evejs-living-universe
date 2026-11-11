@@ -82,9 +82,10 @@ def _section(parent, title, padTop=14):
 
 
 def _fact(parent, label, value):
-    row = Container(parent=parent, align=uiconst.TOTOP, height=20)
-    TextDetail(parent=row, align=uiconst.CENTERLEFT, text=label, uppercase=True, color=TextColor.SECONDARY)
-    TextBody(parent=row, align=uiconst.CENTERLEFT, left=96, text=value)
+    # The value is TOTOP so long names wrap inside the window instead of being clipped.
+    row = ContainerAutoSize(parent=parent, align=uiconst.TOTOP, alignMode=uiconst.TOTOP, minHeight=20)
+    TextDetail(parent=row, align=uiconst.TOPLEFT, top=2, text=label, uppercase=True, color=TextColor.SECONDARY)
+    TextBody(parent=row, align=uiconst.TOTOP, padLeft=96, padBottom=2, text=value)
 
 
 class CrewLinkWindow(Window):
@@ -101,7 +102,6 @@ class CrewLinkWindow(Window):
 
     def ApplyAttributes(self, attributes):
         Window.ApplyAttributes(self, attributes)
-        self._clTyping = 0
         self._clContract = None
         self._clContractKey = NOT_DRAWN
         self._clTaunted = set()
@@ -205,6 +205,7 @@ class CrewLinkWindow(Window):
         for button in self._clButtons:
             button.busy = True
         self._clSpeaker.text = 'Hailing crew...'
+        self._clSpeech._clTicket = getattr(self._clSpeech, '_clTicket', 0) + 1  # stop an answer still typing
         self._clSpeech.text = ''
         animations.MorphScalar(self._clSignal, 'glowBrightness', 0.2, 1.2, duration=0.6,
                                loops=uiconst.ANIM_REPEAT, curveType=uiconst.ANIM_WAVE)
@@ -221,10 +222,11 @@ class CrewLinkWindow(Window):
         API.log('crew answered %s via %s' % (topic, answer.get('source')))
 
     def _Typewrite(self, label, text):
-        self._clTyping += 1
-        ticket = self._clTyping
+        # One ticket per label: a newer text for the same label cancels the older
+        # one, and the crew comms and the contract briefing never cut each other off.
+        ticket = label._clTicket = getattr(label, '_clTicket', 0) + 1
         for end in range(2, len(text) + 2, 2):
-            if ticket != self._clTyping or self.destroyed or label.destroyed:
+            if self.destroyed or label.destroyed or label._clTicket != ticket:
                 return
             label.text = text[:end] + ('' if end >= len(text) else '<color=0x88ffffff>_</color>')
             API.sleep(TYPE_STEP_MS)
@@ -261,7 +263,7 @@ class CrewLinkWindow(Window):
         if key == self._clContractKey and not reply.get('error'):
             return
         previous = self._clContractKey if isinstance(self._clContractKey, tuple) else None
-        justPaid = bool(previous and previous[1] == 'accepted' and shown and shown.get('paid'))
+        justPaid = bool(previous and previous[1] in ('accepted', 'completed') and shown and shown.get('paid'))
         self._clContractKey = key
         self._RenderContract(shown, reply.get('completedCount') or 0, justPaid)
 
@@ -325,6 +327,10 @@ class CrewLinkWindow(Window):
                 ('Accept', self.OnAccept, ButtonVariant.PRIMARY, eveicon.checkmark),
                 ('Decline', self.OnAbandon, ButtonVariant.GHOST, eveicon.close),
             ])
+        elif state == 'completed':
+            TextDetail(parent=body, align=uiconst.TOTOP, padTop=10, color=TextColor.SECONDARY,
+                       text='Kill confirmed. Payment is being processed.')
+            self._SetContractButtons([])
         else:
             TextDetail(parent=body, align=uiconst.TOTOP, padTop=10, color=TextColor.SECONDARY,
                        text='The hideout is saved in your locations (People & Places) and shows on the scanner in %s. '

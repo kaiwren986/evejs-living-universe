@@ -20,6 +20,10 @@ const SITE_ID_BASE = 6800000000000; // dungeonUniverseSiteService MANUAL_DUNGEON
 const ROOM = "room:entry_pocket";
 const SITE_LIFETIME_MS = 3 * 24 * 60 * 60 * 1000;
 const BOSS_KEY = "boss";
+// Our own spawn family. Without it the instance looks like a stray universe
+// "combat" site and EveJS's background reconcile (dungeonRuntime family
+// filter) deletes it; no reconcile job is ever named this, so it is left alone.
+const SPAWN_FAMILY = "rpg_contract";
 
 function populationHints(contract) {
   const { forces, cache } = contract.facts;
@@ -80,6 +84,11 @@ function siteKey(characterID, contract) {
 function createSite(characterID, contract) {
   const key = siteKey(characterID, contract);
   let instance = dungeonRuntime.findInstanceBySiteKey(key, { full: true });
+  // A site built before the family tag existed is exposed to the reconcile: rebuild it.
+  if (instance && instance.lifecycleState === "active" && instance.metadata?.spawnFamilyKey !== SPAWN_FAMILY) {
+    dungeonRuntime.purgeInstance(instance.instanceID);
+    instance = null;
+  }
   if (!instance || instance.lifecycleState !== "active") {
     const siteID = SITE_ID_BASE + dungeonRuntime.peekNextInstanceID();
     const nowMs = Date.now();
@@ -107,6 +116,7 @@ function createSite(characterID, contract) {
         requestedByCharacterID: characterID,
         rpgContractID: contract.id,
         rpgContractCharacterID: characterID,
+        spawnFamilyKey: SPAWN_FAMILY,
       },
       durable: true,
     });
