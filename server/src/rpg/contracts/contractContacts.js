@@ -64,8 +64,12 @@ function historyLine(contract, outcome) {
 function recordOutcome(record, contract, outcome, nowMs = Date.now()) {
   record.contacts = record.contacts || [];
   if (contract.outcomeRecorded) return find(record, contract.contactID);
+  // The name match is only for a finished job from someone not yet linked. An
+  // abandoned stranger's job must never count against a contact who shares a name.
   let contact = find(record, contract.contactID) ||
-    record.contacts.find((entry) => sameName(entry.name, contract.story.clientName)) || null;
+    (outcome === "completed"
+      ? record.contacts.find((entry) => sameName(entry.name, contract.story.clientName))
+      : null) || null;
   if (!contact) {
     if (outcome !== "completed") return null;
     record.contactSequence = (record.contactSequence || 0) + 1;
@@ -175,4 +179,8 @@ function list(record) {
   return [...(record.contacts || [])].sort((a, b) => b.lastAtMs - a.lastAtMs).map(view);
 }
 
-module.exports = { ensure, find, recordOutcome, pickForOffer, willOffer, persona, view, list, tierFor };
+function findByName(record, name) {
+  return (record.contacts || []).find((entry) => sameName(entry.name, name)) || null;
+}
+
+module.exports = { ensure, find, findByName, recordOutcome, pickForOffer, willOffer, persona, view, list, tierFor };

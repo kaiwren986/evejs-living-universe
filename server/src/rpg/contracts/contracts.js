@@ -149,19 +149,32 @@ function requestContract({ characterID, pilotName, shipName, shipTypeID, solarSy
     } else {
       contact = contacts.pickForOffer(record, `${characterID}:${sequence}`);
     }
-    if (contact) {
-      // Trust pays: the bonus is fixed into the offer, so it cannot change after acceptance.
-      const tier = contacts.tierFor(contact.trust);
+    // Trust pays: the bonus is fixed into the offer, so it cannot change after acceptance.
+    const applyTier = (known) => {
+      const tier = contacts.tierFor(known.trust);
       facts.clientTierLabel = tier.label;
       facts.payBonusPercent = Math.round(tier.payBonus * 100);
       facts.rewardIsk = Math.round((facts.rewardIsk * (1 + tier.payBonus)) / 10000) * 10000;
-    }
+    };
+    if (contact) applyTier(contact);
 
     const story = await writer.writeStory({ ...facts, pilotName, shipName }, record.memories,
       contact ? contacts.persona(contact) : null);
     // Re-read: the story took seconds to write and the record may have moved on.
     const fresh = load(characterID);
     if (openContract(fresh)) return summary(fresh);
+    if (!contact) {
+      // A "new" client the pilot already knows (the written fallback client, or a
+      // reused name) is that contact: same identity, same standing, same pay.
+      const known = contacts.findByName(fresh, story.clientName);
+      if (known && contacts.willOffer(known)) {
+        contact = known;
+        applyTier(known);
+        story.clientName = known.name;
+        story.clientRole = known.role;
+        story.clientVoice = known.voice || "";
+      }
+    }
     fresh.sequence = sequence;
     fresh.contracts.push({
       id: `c${sequence}`, sequence, state: "offered", createdAtMs: Date.now(), facts, story,

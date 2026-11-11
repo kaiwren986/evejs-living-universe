@@ -302,7 +302,7 @@ class CrewLinkWindow(Window):
         TextHeader(parent=body, align=uiconst.TOTOP, text=contract.get('title') or 'Contract', bold=True)
         client = '%s  -  %s' % (contract.get('clientName'), contract.get('clientRole'))
         if contract.get('returningClient'):
-            client += '<br><color=%s>%s contact</color>' % (_hex(_accent()), contract.get('clientTierLabel'))
+            client += '<br><color=%s>Returning client: %s</color>' % (_hex(_accent()), contract.get('clientTierLabel'))
             if contract.get('payBonusPercent'):
                 client += '  -  pays %d%% over the going rate' % contract.get('payBonusPercent')
         TextDetail(parent=body, align=uiconst.TOTOP, color=TextColor.SECONDARY, padBottom=8, text=client)
@@ -457,6 +457,9 @@ class CrewLinkWindow(Window):
         API.log('hailed %s via %s' % (contactID, reply.get('source')))
 
     def OnAskContact(self, contactID, *args):
+        if self._clContract:
+            API.notify('You already have a contract open. Finish or abandon it before asking for more work.')
+            return
         # The offer is shown on the Contracts tab, like any other.
         try:
             self._clTabs.SelectByID('contracts')
