@@ -448,6 +448,10 @@ function implantAndBoosterSignature(record) {
 }
 
 function writeCharacterRecord(charId, record, options) {
+  // Living Universe pilots are read-only here: never let one be saved as a player character.
+  if (require("../../livingUniverse/hooks").isPilotID(charId)) {
+    return { success: false, errorMsg: "SYNTHETIC_PILOT_READ_ONLY" };
+  }
   const previousSignature = implantAndBoosterSignature(
     readCharacters()[String(charId)],
   );
@@ -1165,7 +1169,8 @@ function normalizeCharacterRecord(charId, record, options = {}) {
 
 function getCharacterRecord(charId, options = {}) {
   const record = readSharedCharacterRecord(charId, options);
-  return record ? cloneValue(record) : null;
+  // Living Universe: a pilot has no row in the characters table; its record comes from the mod.
+  return record ? cloneValue(record) : require("../../livingUniverse/hooks").pilotRecord(charId);
 }
 
 // The shared normalized record is deeply frozen. Use only for read-only

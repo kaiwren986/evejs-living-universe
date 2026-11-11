@@ -46,6 +46,11 @@ const CONFIDENCE = Object.freeze({
 });
 
 const TABLE_OWNERSHIP = {};
+// Living Universe: the persistent pilot population (server/src/livingUniverse).
+TABLE_OWNERSHIP.livingUniversePilots = {
+  table: "livingUniversePilots", tier: TIERS.RUNTIME, domain: "service:living-universe",
+  confidence: CONFIDENCE.INFERRED, note: "One row per Living Universe pilot: identity, home, employer and current presence.",
+};
 // EveJS RPG fork: generated contracts (server/src/rpg/contracts).
 TABLE_OWNERSHIP.rpgContracts = {
   table: "rpgContracts", tier: TIERS.RUNTIME, domain: "service:rpg-contracts",

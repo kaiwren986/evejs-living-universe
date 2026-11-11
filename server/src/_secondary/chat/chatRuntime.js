@@ -1441,11 +1441,22 @@ function getEstimatedMemberCount(roomName) {
 
 function getLocalGatewayMembershipPayload(session, options = {}) {
   const roomName = getLocalChatRoomNameForSession(session);
+  const solarSystemID = getCurrentSolarSystemID(session);
   return {
     roomName,
-    solarSystemID: getCurrentSolarSystemID(session),
-    members: getVisibleLocalSessions(roomName, options).map(buildLocalGatewayMember),
+    solarSystemID,
+    members: [
+      ...getVisibleLocalSessions(roomName, options).map(buildLocalGatewayMember),
+      // Living Universe: pilots in space in this system (never in delayed-Local space).
+      ...(isDelayedLocalChatRoomName(roomName) ? []
+        : require("../../livingUniverse/hooks").localMembers(solarSystemID, classifyRole(0))),
+    ],
   };
+}
+
+// Living Universe: its pilots came or went; refresh Local for anyone watching that system.
+function repushLocalMembershipForSolarSystem(solarSystemID) {
+  repushLocalMembershipForRoom(getLocalChatRoomNameForSolarSystemID(solarSystemID));
 }
 
 function trackLocalSpeaker(session) {
@@ -2025,6 +2036,7 @@ module.exports = {
   findDiscoverablePlayerChannelsByDisplayName,
   getEstimatedMemberCount,
   getLocalGatewayMembershipPayload,
+  repushLocalMembershipForSolarSystem,
   getLocalLscSessions,
   getLocalSessionsForRoom,
   getVisibleLocalSessions,

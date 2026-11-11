@@ -461,6 +461,13 @@ class ConfigService extends BaseService {
         continue;
       }
 
+      // Living Universe: pilots are owners the client must be able to name.
+      const pilotOwnerRow = require("../../livingUniverse/hooks").ownerRow(normalizedId);
+      if (pilotOwnerRow) {
+        rows.push(pilotOwnerRow);
+        continue;
+      }
+
       const agentOwnerRow = normalizedId > 0
         ? buildAgentOwnerRow(normalizedId)
         : null;

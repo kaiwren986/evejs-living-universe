@@ -146,6 +146,12 @@ class EvejsModService extends BaseService {
   constructor() {
     super("evejsMod");
     contracts.start();
+    // The Living Universe population. Started a little after the services so
+    // world data and the store are fully up; it is the cast everything else uses.
+    setTimeout(() => {
+      try { require(path.join(__dirname, "../../livingUniverse")).start(); }
+      catch (error) { log.warn(`[LivingUniverse] did not start: ${error.stack || error.message}`); }
+    }, 8000).unref?.();
   }
 
   // ---- Generated contracts (server/src/rpg/contracts). Each call answers with

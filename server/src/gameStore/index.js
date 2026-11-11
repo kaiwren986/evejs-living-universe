@@ -211,6 +211,7 @@ const RECOVERABLE_EMPTY_TABLES = new Set([
 // and run migrateJsonToSqlite.js to seed its existing rows.
 const SQLITE_TABLES = new Set([
   "rpgContracts",
+  "livingUniversePilots",
   "crewEquipmentRuntime",
   "manufacturingCrewRuntime",
   "sellingCrewRuntime",
