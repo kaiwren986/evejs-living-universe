@@ -175,6 +175,11 @@ function getSolarSystems() {
   return [...ensureLoaded().solarSystems];
 }
 
+// Living Universe: every station (the mod plans homes, routes and markets over the full list).
+function getStations() {
+  return [...ensureLoaded().stations];
+}
+
 function getStationByID(stationID) {
   return ensureLoaded().stationsById.get(Number(stationID)) || null;
 }
@@ -276,6 +281,7 @@ module.exports = {
   ensureLoaded,
   getSolarSystems,
   getSolarSystemByID,
+  getStations,
   getStationByID,
   getStationsForOwner,
   getStationTypeByID,

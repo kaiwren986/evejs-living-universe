@@ -104,6 +104,17 @@ tick(wallclockNowMs) {
       tickedSceneCount += 1;
     }
 
+    // Living Universe: one pass over the pilot population per runtime tick,
+    // after every scene has ticked (the mod throttles and budgets itself).
+    try {
+      tickProfiler.section(
+        "livingUniverse",
+        () => lazyRequire("./npc/ambientTraffic/livingUniverseRuntime").tick(this, now),
+      );
+    } catch (error) {
+      log.warn(`[SpaceRuntime] Living-universe tick failed: ${error.message}`);
+    }
+
     let collectionSummary = { collectedSystemIDs: [] };
     if (!hazardRecoveryBlocked && now >= this._emptySolarSystemCollectionSchedule.nextSweepAtMs) {
       this._emptySolarSystemCollectionSchedule.nextSweepAtMs =

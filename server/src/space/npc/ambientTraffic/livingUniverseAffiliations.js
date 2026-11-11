@@ -2,7 +2,7 @@
 
 const path = require("path");
 
-const database = require(path.join(__dirname, "../gameStore"));
+const database = require(path.join(__dirname, "../../../gameStore"));
 
 const FACTIONS = Object.freeze({
   CALDARI_STATE: Object.freeze({ factionID: 500001, factionName: "Caldari State", raceID: 1 }),

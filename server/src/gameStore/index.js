@@ -211,7 +211,6 @@ const RECOVERABLE_EMPTY_TABLES = new Set([
 // and run migrateJsonToSqlite.js to seed its existing rows.
 const SQLITE_TABLES = new Set([
   "rpgContracts",
-  "livingUniversePilots",
   "crewEquipmentRuntime",
   "manufacturingCrewRuntime",
   "sellingCrewRuntime",
@@ -1784,6 +1783,27 @@ function holdTableFlush(table) {
   };
 }
 
+// Living Universe: stop persisting a table whose in-memory state failed its own
+// audit, so the last good durable image survives (also across shutdown). Built on
+// the flush hold above; only resumeTableFlush lifts it.
+const suspendedTableFlushes = new Map(); // table -> { reason, release }
+function suspendTableFlush(table, reason = "PERSISTENCE_SUSPENDED") {
+  const text = String(reason || "PERSISTENCE_SUSPENDED");
+  const current = suspendedTableFlushes.get(table);
+  if (current) current.reason = text;
+  else suspendedTableFlushes.set(table, { reason: text, release: holdTableFlush(table) });
+  return { success: true, suspended: true, reason: text };
+}
+
+function resumeTableFlush(table) {
+  const current = suspendedTableFlushes.get(table);
+  if (current) {
+    suspendedTableFlushes.delete(table);
+    current.release();
+  }
+  return { success: true, suspended: false };
+}
+
 function scheduleFlush(table) {
   dirty.add(table);
 
@@ -2429,6 +2449,8 @@ module.exports = {
   readPersistedIndustryJobsForCharacter: characterID => readPersistedCareerRows("industryJobs", characterID),
   readPersistedPendingCareerCombatOutcomes: characterID => readPersistedCareerRows("items", characterID),
   holdTableFlush,
+  suspendTableFlush,
+  resumeTableFlush,
   write,
   remove,
   tableExists,

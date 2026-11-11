@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const {
   listAgents,
-} = require(path.join(__dirname, "../services/agent/agentAuthority"));
+} = require(path.join(__dirname, "../../../services/agent/agentAuthority"));
 
 // The V24 client recognizes generation-3 player owners only in
 // 2,100,000,000..2,129,999,999. Keep the synthetic population inside that
@@ -20,7 +20,7 @@ const PILOT_PORTRAIT_REVISION = 1;
 const DEFAULT_PILOT_SOURCE_ID = "default";
 const PORTRAIT_MANIFEST_PATH = path.join(
   __dirname,
-  "../_secondary/image/generated/agents/manifest.json",
+  "../../../_secondary/image/generated/agents/manifest.json",
 );
 
 const GIVEN_NAMES = Object.freeze([

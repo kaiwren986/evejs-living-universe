@@ -258,7 +258,69 @@ function isSellOrderInRange(orderRow, buyerStationID, buyerSolarSystemID, buyRan
   return false;
 }
 
+// Living Universe: the system-by-system route between two systems (the mod flies its pilots along it).
+const pathCache = new Map();
+
+function getShortestPath(fromSolarSystemID, toSolarSystemID) {
+  const sourceSystemID = normalizePositiveInteger(fromSolarSystemID, 0);
+  const destinationSystemID = normalizePositiveInteger(toSolarSystemID, 0);
+  if (!sourceSystemID || !destinationSystemID) {
+    return [];
+  }
+  if (sourceSystemID === destinationSystemID) {
+    return [sourceSystemID];
+  }
+
+  const cacheKey = `${sourceSystemID}:${destinationSystemID}`;
+  if (pathCache.has(cacheKey)) {
+    return [...pathCache.get(cacheKey)];
+  }
+
+  const graph = ensureAdjacency();
+  const previous = new Map([[sourceSystemID, 0]]);
+  const queue = [sourceSystemID];
+  let cursor = 0;
+
+  while (cursor < queue.length && !previous.has(destinationSystemID)) {
+    const currentSystemID = queue[cursor++];
+    for (const neighborSystemID of graph.get(currentSystemID) || []) {
+      if (previous.has(neighborSystemID)) {
+        continue;
+      }
+      previous.set(neighborSystemID, currentSystemID);
+      queue.push(neighborSystemID);
+      if (neighborSystemID === destinationSystemID) {
+        break;
+      }
+    }
+  }
+
+  if (!previous.has(destinationSystemID)) {
+    pathCache.set(cacheKey, []);
+    return [];
+  }
+
+  const route = [];
+  let currentSystemID = destinationSystemID;
+  while (currentSystemID) {
+    route.push(currentSystemID);
+    if (currentSystemID === sourceSystemID) {
+      break;
+    }
+    currentSystemID = previous.get(currentSystemID) || 0;
+  }
+  route.reverse();
+
+  pathCache.set(cacheKey, route);
+  pathCache.set(`${destinationSystemID}:${sourceSystemID}`, [...route].reverse());
+  const jumpCount = Math.max(0, route.length - 1);
+  jumpCache.set(cacheKey, jumpCount);
+  jumpCache.set(`${destinationSystemID}:${sourceSystemID}`, jumpCount);
+  return [...route];
+}
+
 module.exports = {
+  getShortestPath,
   RANGE_STATION,
   RANGE_SOLAR_SYSTEM,
   RANGE_CONSTELLATION,

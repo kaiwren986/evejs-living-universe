@@ -1436,7 +1436,28 @@ function getEstimatedMemberCount(roomName) {
   if (isDelayedLocalChatRoomName(roomName)) {
     return 0;
   }
-  return getVisibleLocalSessions(roomName).length;
+  return getVisibleLocalSessions(roomName).length +
+    syntheticChat().getSyntheticLocalMembers(roomName).length; // Living Universe pilots
+}
+
+// Living Universe: the mod's pilots as chat members (livingUniverse/syntheticChat.js).
+let syntheticChatInstance = null;
+function syntheticChat() {
+  if (!syntheticChatInstance) {
+    syntheticChatInstance = require("../../livingUniverse/syntheticChat").create({
+      runtimeEmitter,
+      chatStore,
+      ensureChannel,
+      getLocalChatRoomNameForSolarSystemID,
+      isDelayedLocalChatRoomName,
+      parseLocalChatRoomName,
+      repushLocalMembershipForRoom,
+      normalizePositiveInteger,
+      normalizeString,
+      dedupePositiveIntegers,
+    });
+  }
+  return syntheticChatInstance;
 }
 
 function getLocalGatewayMembershipPayload(session, options = {}) {
@@ -1447,16 +1468,12 @@ function getLocalGatewayMembershipPayload(session, options = {}) {
     solarSystemID,
     members: [
       ...getVisibleLocalSessions(roomName, options).map(buildLocalGatewayMember),
-      // Living Universe: pilots in space in this system (never in delayed-Local space).
+      // Living Universe: pilots visible in this system (never in delayed-Local space).
       ...(isDelayedLocalChatRoomName(roomName) ? []
-        : require("../../livingUniverse/hooks").localMembers(solarSystemID, classifyRole(0))),
+        : syntheticChat().getSyntheticLocalMembers(roomName, options)
+          .map(syntheticChat().buildSyntheticLocalGatewayMember)),
     ],
   };
-}
-
-// Living Universe: its pilots came or went; refresh Local for anyone watching that system.
-function repushLocalMembershipForSolarSystem(solarSystemID) {
-  repushLocalMembershipForRoom(getLocalChatRoomNameForSolarSystemID(solarSystemID));
 }
 
 function trackLocalSpeaker(session) {
@@ -1950,6 +1967,7 @@ function findDiscoverableConferenceChannelsByDisplayName(session, displayName) {
 }
 
 function resetRuntimeState(options = {}) {
+  syntheticChat().reset();
   roomActivity.clear();
   delayedLocalSpeakers.clear();
   localLscMembership.clear();
@@ -2036,7 +2054,16 @@ module.exports = {
   findDiscoverablePlayerChannelsByDisplayName,
   getEstimatedMemberCount,
   getLocalGatewayMembershipPayload,
-  repushLocalMembershipForSolarSystem,
+  // Living Universe pilots as chat members.
+  getSyntheticLocalMembers: (...args) => syntheticChat().getSyntheticLocalMembers(...args),
+  getSyntheticCorporationMembers: (...args) => syntheticChat().getSyntheticCorporationMembers(...args),
+  getSyntheticPresenceMember: (...args) => syntheticChat().getSyntheticPresenceMember(...args),
+  syncSyntheticLocalMembers: (...args) => syntheticChat().syncSyntheticLocalMembers(...args),
+  upsertSyntheticLocalMembers: (...args) => syntheticChat().upsertSyntheticLocalMembers(...args),
+  syncSyntheticCorporationMembers: (...args) => syntheticChat().syncSyntheticCorporationMembers(...args),
+  upsertSyntheticCorporationMembers: (...args) => syntheticChat().upsertSyntheticCorporationMembers(...args),
+  removeSyntheticPilotMembers: (...args) => syntheticChat().removeSyntheticPilotMembers(...args),
+  broadcastSyntheticLocalMessage: (...args) => syntheticChat().broadcastSyntheticLocalMessage(...args),
   getLocalLscSessions,
   getLocalSessionsForRoom,
   getVisibleLocalSessions,

@@ -12,6 +12,7 @@ const DOMAIN_NAMES = Object.freeze([
   "mining",
   "npc",
   "economy",
+  "xeve", // Living Universe
 ]);
 
 const DELETE_KEYS = new Set(`
@@ -540,8 +541,9 @@ function buildDefinitions(schemaDefinitions) {
       };
     });
   return active.map((entry) => {
-    const configFile = configDomainForKey(entry.key);
-    const section = configSectionForKey(configFile, entry.key);
+    // Living Universe: its schema names its own file and section (config/xeve.json).
+    const configFile = entry.domain || configDomainForKey(entry.key);
+    const section = entry.section || configSectionForKey(configFile, entry.key);
     return Object.freeze({
       ...entry,
       configFile,

@@ -254,6 +254,8 @@ function getRawNpcRows(tableName) {
     ...(Array.isArray(abyssalGeneratedRows) ? abyssalGeneratedRows : []),
     ...(Array.isArray(miningGeneratedRows) ? miningGeneratedRows : []),
     ...(getHomefrontNpcGeneratedRows(tableName) || []),
+    // Living Universe: the mod's ship definitions, loadouts and spawn groups.
+    ...(require("./ambientTraffic/ambientTrafficNpcCatalog").getAmbientTrafficGeneratedRows(tableName) || []),
   ];
   RAW_TABLE_ROWS_CACHE[tableName] = {
     authoredRows,

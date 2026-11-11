@@ -73,6 +73,9 @@ const ROW_GROUPS = {
   achievements: ["characters"],
   notifications: ["boxes"],
   miningRuntimeState: ["systems"],
+  // Living Universe: one row per pilot, flight and encounter, so a pilot moving
+  // rewrites one small row and not the whole population.
+  npcRuntimeState: ["livingUniverseActorsV2", "livingUniverseFlightsV2", "livingUniverseEncountersV2"],
   wormholeRuntimeState: ["pairsByID", "staticSlotsByKey", "polarizationByCharacter"],
   alliances: ["records"],
   bookmarkFolders: ["records"],
