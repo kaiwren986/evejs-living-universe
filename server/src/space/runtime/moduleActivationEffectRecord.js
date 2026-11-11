@@ -179,7 +179,39 @@ function resolveChargeDefaultActivationEffectForModule(
   return resolveDefaultActivationEffect(chargeItem.typeID) || effectRecord;
 }
 
+// Living Universe: the mod's one-call form of activation effect resolution,
+// kept for its verify script (runtime._testing). A named effect on the type,
+// then a synthetic NPC hull module's stamped or globally named effect, then
+// the type's default activation.
+function resolveGenericModuleActivationEffect(
+  moduleItem,
+  effectiveModuleItem,
+  effectName,
+) {
+  let effectRecord = effectName
+    ? resolveEffectByName(effectiveModuleItem && effectiveModuleItem.typeID, effectName)
+    : null;
+  if (!effectRecord && effectName) {
+    effectRecord = resolveNpcSyntheticHullEffectRecord(moduleItem, effectName);
+  }
+  if (
+    !effectRecord &&
+    effectName &&
+    moduleItem &&
+    moduleItem.npcSyntheticHullModule === true
+  ) {
+    const syntheticEffectID = toInt(getEffectIDByNames(effectName), 0);
+    effectRecord = syntheticEffectID > 0
+      ? getEffectTypeRecord(syntheticEffectID)
+      : null;
+  }
+  return effectRecord || resolveDefaultActivationEffect(
+    effectiveModuleItem && effectiveModuleItem.typeID,
+  );
+}
+
 Object.assign(module.exports, {
+  resolveGenericModuleActivationEffect, // Living Universe
   ACTIVATABLE_EFFECT_CATEGORIES,
   PASSIVE_SLOT_EFFECTS,
 });

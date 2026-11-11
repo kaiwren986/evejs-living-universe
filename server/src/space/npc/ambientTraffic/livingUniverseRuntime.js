@@ -5074,11 +5074,23 @@ function tickWarpPlan(runtime, flight, nowMs) {
 
 function areEntitiesLanded(runtime, flight) {
   const entities = getLiveEntities(runtime, flight);
+  // Living Universe port: on EveJS 261108.1 a warp order waits in the scene's
+  // movement queue until the next Destiny tick; a hull with one queued has not
+  // landed. (0.12.6 marked that with entity.sessionlessWarpIngress.)
+  const scene = runtime && runtime.scenes instanceof Map
+    ? runtime.scenes.get(toPositiveInt(flight && flight.currentSystemID, 0)) || null
+    : null;
+  const hasQueuedWarp = (entity) => Boolean(
+    scene &&
+    typeof scene.hasQueuedWarpOrder === "function" &&
+    scene.hasQueuedWarpOrder(entity)
+  );
   return entities.length > 0 && entities.every((entity) => (
     String(entity.mode || "").toUpperCase() !== "WARP" &&
     !entity.pendingWarp &&
     !entity.warpState &&
-    !entity.sessionlessWarpIngress
+    !entity.sessionlessWarpIngress &&
+    !hasQueuedWarp(entity)
   ));
 }
 

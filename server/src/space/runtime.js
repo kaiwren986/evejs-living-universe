@@ -1338,6 +1338,9 @@ runtimeExports._testing = {
     buildEnvironmentalDamageMessagePayload,
   resolveEffectiveModuleReloadTimeMsForTesting: resolveEffectiveModuleReloadTimeMs,
   resolveSpecialFxOptionsForEntityForTesting: resolveSpecialFxOptionsForEntity,
+  // Living Universe
+  resolveGenericModuleActivationEffectForTesting:
+    require("./runtime/moduleActivationEffectRecord").resolveGenericModuleActivationEffect,
   resolveSpecialFxRepeatCountForTesting: resolveSpecialFxRepeatCount,
   hasActiveIndustrialCoreEffectForTesting: hasActiveIndustrialCoreEffect,
   resolveCompressionFacilityRangeMetersForTesting: resolveCompressionFacilityRangeMeters,
