@@ -64,6 +64,12 @@ const {
   ENTITY_TYPE,
 } = require(path.join(__dirname, "../entityConstants"));
 
+// Living Universe: identity overrides and doctrine governance at spawn.
+const livingGovernedSpawn = require(path.join(
+  __dirname,
+  "./governance/nativeNpcGovernedSpawn",
+));
+
 // Only materializeEmpireSentry may reuse an existing scenery Ball's identity.
 const EMPIRE_SENTRY_MATERIALIZATION = Symbol("empireSentryMaterialization");
 
@@ -1081,6 +1087,10 @@ function buildNativeCargoRecords(entityRecord, moduleRecords, definition, option
       toPositiveInt(chargeEntry && chargeEntry.quantityPerModule, 1),
     );
     for (const moduleRecord of moduleRecords) {
+      // Living Universe: a charge may name the module slots or types it is for.
+      if (!livingGovernedSpawn.doesAuthoredChargeSelectModule(chargeEntry, moduleRecord)) {
+        continue;
+      }
       if (!isNpcChargeCompatibleWithModule(moduleRecord, chargeType.typeID)) {
         continue;
       }
@@ -1130,11 +1140,14 @@ function buildNativeCargoRecords(entityRecord, moduleRecords, definition, option
     }
   }
 
-  const authoredCargo = Array.isArray(
-    definition && definition.loadout && definition.loadout.cargo,
-  )
-    ? definition.loadout.cargo
-    : [];
+  // Living Universe: cargoOverride replaces the loadout's cargo (freight, ore).
+  const authoredCargo = Array.isArray(options.cargoOverride)
+    ? options.cargoOverride
+    : Array.isArray(
+      definition && definition.loadout && definition.loadout.cargo,
+    )
+      ? definition.loadout.cargo
+      : [];
   for (const cargoEntry of authoredCargo) {
     const cargoType = resolveItemByTypeID(toPositiveInt(cargoEntry && cargoEntry.typeID, 0));
     if (!cargoType) {
@@ -1321,6 +1334,8 @@ function buildNativeRuntimeShipSpec(entityRecord) {
       orbitDistance: Math.max(0, toFiniteNumber(entityRecord.orbitDistance, 0)),
       maxVelocity: Math.max(0, toFiniteNumber(entityRecord.maxVelocity, 0)),
     },
+    // Living Universe: pilot skills, doctrine and drone bay on the live hull.
+    ...livingGovernedSpawn.buildRuntimeEntityFields(entityRecord),
     fittedItems: nativeNpcStore.buildNativeFittedItems(entityRecord.entityID),
     nativeCargoItems: nativeNpcStore.buildNativeCargoItems(entityRecord.entityID),
     slimTypeID: entityRecord.slimTypeID,
@@ -1398,6 +1413,8 @@ function applyNativeRuntimeNpcPresentation(entity, entityRecord, definition = nu
   entity.fittedItems = nativeNpcStore.buildNativeFittedItems(entityRecord.entityID);
   entity.nativeCargoItems = nativeNpcStore.buildNativeCargoItems(entityRecord.entityID);
   entity.modules = nativeNpcStore.buildNativeSlimModuleTuples(entityRecord.entityID);
+  // Living Universe: pilot skills, doctrine and drone bay on the live hull.
+  Object.assign(entity, livingGovernedSpawn.buildRuntimeEntityFields(entityRecord));
   const presentedEntity = applyNativeNpcHullCombatOverrides(
     applyCapitalNpcCombatOverrides(
       applyTransientConcordCombatOverrides(entity, entityRecord),
@@ -2427,6 +2444,19 @@ function spawnNativeNpcEntityInContext(context, definition, options = {}) {
     },
     ...scopeResolution.data.metadata,
   };
+  // Living Universe: corporation, alliance and faction overrides, and the
+  // doctrine governance fields of a governed loadout.
+  const livingSpawnFields = livingGovernedSpawn.buildSpawnEntityFields(
+    definition,
+    scene,
+    options,
+    entityIDResult.data,
+    identity,
+  );
+  if (!livingSpawnFields.success) {
+    return livingSpawnFields;
+  }
+  Object.assign(entityRecord, livingSpawnFields.data);
   Object.assign(entityRecord, require("../../services/incursion/incursionFriendlyActors").npcPresentationOverrides(entityRecord),
     require("../../services/dungeon/careerLessonRuntime").npcPresentationOverrides(entityRecord));
   if (scenery) {
@@ -2633,6 +2663,9 @@ function spawnNativeDefinitionsInContext(context, selectionResult, options = {})
       definitions[index],
       {
         ...options,
+        // Living Universe: per-hull owner, corporation, faction, cargo and
+        // spawn-state options of a batch.
+        ...livingGovernedSpawn.resolveIndexedSpawnOptions(options, index),
         broadcast: false,
         deferInitialBehaviorTick: true,
         batchIndex: index + 1,

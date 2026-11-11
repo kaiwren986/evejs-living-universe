@@ -510,13 +510,34 @@ function getControllerDogmaContext(controllerEntity, options = {}) {
       ),
     0,
   );
-  const shipItem = findShipItemById(controllerShipID) || findItemById(controllerShipID) || null;
+  // Living Universe: a native NPC hull has no inventory row, fitted items or
+  // character skills in the item store; its drones read them from the entity.
+  const nativeNpcController = Boolean(
+    controllerEntity && controllerEntity.nativeNpc === true,
+  );
+  const shipItem =
+    findShipItemById(controllerShipID) ||
+    findItemById(controllerShipID) ||
+    (nativeNpcController
+      ? {
+          itemID: controllerShipID,
+          typeID: toInt(controllerEntity.typeID, 0),
+          groupID: toInt(controllerEntity.groupID, 0),
+          categoryID: toInt(controllerEntity.categoryID, 6),
+          itemName: String(
+            controllerEntity.itemName || "NPC drone controller",
+          ),
+          ownerID: controllerOwnerID,
+        }
+      : null);
   if (!shipItem) {
     return null;
   }
 
   const fittedItems =
-    controllerOwnerID > 0
+    nativeNpcController && Array.isArray(controllerEntity.fittedItems)
+      ? controllerEntity.fittedItems
+      : controllerOwnerID > 0
       ? getFittedModuleItems(controllerOwnerID, controllerShipID)
       : [];
   const abyssalLocationModifierSources =
@@ -538,7 +559,9 @@ function getControllerDogmaContext(controllerEntity, options = {}) {
   }
 
   const skillMap =
-    controllerOwnerID > 0
+    nativeNpcController && controllerEntity.skillMap instanceof Map // Living Universe
+      ? controllerEntity.skillMap
+      : controllerOwnerID > 0
       ? getCachedCharacterSkillMap(controllerOwnerID)
       : new Map();
   const activeModuleContexts = buildActiveModuleContexts(

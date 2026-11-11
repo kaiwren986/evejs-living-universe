@@ -3251,7 +3251,228 @@ function tickScene(scene, now, hooks = {}) {
   }
 }
 
+// Living Universe: the mod's mining pilots. The mod spawns the hulls and owns
+// their lifetime; this registers them as a mining fleet so the fleet tick
+// drives their lasers. The mod's on-grid support (jetcans and a tractoring
+// hauler) lived in the 0.12.6 xEve fleet code and is not ported: support hulls
+// sit passive on grid and the ore stays in the miners' holds, where the mod
+// reads it back with getNpcOreCargoItems.
+const LIVING_MINING_FLEET_NEVER_EXPIRES_MS = 4_102_444_800_000; // year 2100
+
+function registerAmbientMiningFleet(options = {}) {
+  const systemID = normalizePositiveInteger(options.systemID, 0);
+  const liveOnly = (entityIDs) =>
+    (Array.isArray(entityIDs) ? entityIDs : [])
+      .map((value) => normalizePositiveInteger(value, 0))
+      .filter(
+        (entityID) =>
+          entityID > 0 && npcService.getControllerByEntityID(entityID),
+      );
+  const minerEntityIDs = liveOnly(options.minerEntityIDs);
+  const supportEntityIDs = liveOnly(options.haulerEntityIDs);
+  if (!systemID || minerEntityIDs.length <= 0) {
+    return {
+      success: false,
+      errorMsg: "MINING_FLEET_ENTITIES_REQUIRED",
+    };
+  }
+  for (const entityID of minerEntityIDs) {
+    applyPassiveMiningFleetOverrides(entityID, {
+      movementMode: "orbit",
+      orbitDistanceMeters: 1_200,
+      followRangeMeters: 800,
+      idleAnchorOrbit: false,
+      issueStopOrder: false,
+      clearCombatPreference: true,
+    });
+  }
+  for (const entityID of supportEntityIDs) {
+    applyPassiveMiningFleetOverrides(entityID, {
+      movementMode: "orbit",
+      orbitDistanceMeters: 3_500,
+      followRangeMeters: 1_500,
+      idleAnchorOrbit: false,
+      issueStopOrder: false,
+      clearCombatPreference: true,
+    });
+  }
+  const fleetRecord = createMiningFleetRecord({
+    ...options,
+    source: String(options.source || "ambient"),
+    systemID,
+    minerEntityIDs,
+    // Not haulers to the stock fleet tick: its haul cycle would warp them off
+    // and delete the miners' ore.
+    haulerEntityIDs: [],
+    responseEntityIDs: [],
+    state: "mining",
+    expiresAtMs: LIVING_MINING_FLEET_NEVER_EXPIRES_MS,
+  });
+  fleetRecord.onGridSupport = options.onGridSupport === true;
+  fleetRecord.supportEntityIDs = supportEntityIDs;
+  return {
+    success: true,
+    data: fleetRecord,
+  };
+}
+
+function finalizeOnGridMiningSupport(_scene, fleetID, _options = {}) {
+  const fleetRecord = miningFleetStateByID.get(toInt(fleetID, 0)) || null;
+  return {
+    success: true,
+    data: {
+      fleetID: fleetRecord ? fleetRecord.fleetID : toInt(fleetID, 0),
+      collectedCount: 0,
+      remainingCount: 0,
+    },
+  };
+}
+
+function cleanupMiningFleetSupport(_scene, fleetID, options = {}) {
+  const normalizedFleetID = toInt(fleetID, 0);
+  if (
+    options.unregister === true &&
+    miningFleetStateByID.has(normalizedFleetID)
+  ) {
+    miningFleetStateByID.delete(normalizedFleetID);
+  }
+  return {
+    success: true,
+    data: {
+      fleetID: normalizedFleetID,
+      removedCount: 0,
+      preservedCount: 0,
+    },
+  };
+}
+
+function estimateNpcMiningVolume(options = {}) {
+  const shipTypeID = toInt(options.shipTypeID, 0);
+  const durationMs = Math.max(0, toInt(options.durationMs, 0));
+  const resourceFamily =
+    String(options.resourceFamily || "ore").trim().toLowerCase() || "ore";
+  const supportBonus =
+    options.supportBonus && typeof options.supportBonus === "object"
+      ? options.supportBonus
+      : {};
+  const cycleTimeMultiplier = Math.max(
+    0.5,
+    Math.min(1, toFiniteNumber(supportBonus.cycleTimeMultiplier, 1)),
+  );
+  if (shipTypeID <= 0 || durationMs <= 0) {
+    return {
+      shipTypeID,
+      durationMs,
+      capacityM3: 0,
+      estimatedVolumeM3: 0,
+      moduleCycles: [],
+    };
+  }
+
+  const fittedItems = [];
+  const skillMap = options.skillMap instanceof Map ? options.skillMap : new Map();
+  let itemNumber = 2;
+  for (const entry of Array.isArray(options.modules) ? options.modules : []) {
+    const typeID = toInt(entry && entry.typeID, 0);
+    const quantity = Math.max(0, toInt(entry && entry.quantity, 0));
+    const moduleType = resolveItemByTypeID(typeID) || {};
+    for (let index = 0; typeID > 0 && index < quantity; index += 1) {
+      fittedItems.push({
+        itemID: -itemNumber,
+        typeID,
+        itemName: String(moduleType.name || moduleType.typeName || ""),
+        quantity: 1,
+        stacksize: 1,
+        singleton: 1,
+        flagID: 26 + itemNumber,
+        online: true,
+      });
+      itemNumber += 1;
+    }
+  }
+
+  const shipItem = {
+    itemID: -1,
+    typeID: shipTypeID,
+    quantity: 1,
+    stacksize: 1,
+    singleton: 1,
+  };
+  const { buildMiningModuleSnapshot } = require("./miningDogma");
+  const moduleCycles = fittedItems
+    .map((moduleItem) => {
+      const snapshot = buildMiningModuleSnapshot({
+        shipItem,
+        moduleItem,
+        effectRecord: null,
+        fittedItems,
+        skillMap,
+      });
+      if (!snapshot || snapshot.family !== resourceFamily) {
+        return null;
+      }
+      const cycleDurationMs = Math.max(
+        1,
+        snapshot.durationMs * cycleTimeMultiplier,
+      );
+      const cycles = Math.max(0, Math.floor(durationMs / cycleDurationMs));
+      return {
+        moduleTypeID: snapshot.moduleTypeID,
+        resourceFamily,
+        cycleDurationMs,
+        yieldPerCycleM3: snapshot.miningAmountM3,
+        cycles,
+        volumeM3: cycles * snapshot.miningAmountM3,
+      };
+    })
+    .filter(Boolean);
+  const capacityM3 = Math.max(
+    0,
+    toFiniteNumber(
+      options.capacityM3,
+      getNpcCargoCapacityM3(
+        { typeID: shipTypeID },
+        toFiniteNumber(
+          config.miningNpcMinerCargoCapacityM3,
+          DEFAULT_MINING_MINER_CARGO_CAPACITY_M3,
+        ),
+      ),
+    ),
+  );
+  const rawVolumeM3 = moduleCycles.reduce(
+    (sum, entry) => sum + toFiniteNumber(entry.volumeM3, 0),
+    0,
+  );
+  return {
+    shipTypeID,
+    durationMs,
+    resourceFamily,
+    capacityM3,
+    estimatedVolumeM3: Math.min(capacityM3, rawVolumeM3),
+    supportBonus:
+      Object.keys(supportBonus).length > 0
+        ? {
+            supportClass: String(
+              supportBonus.supportClass || "industrial_command",
+            ),
+            cycleTimeMultiplier,
+            rangeMultiplier: Math.max(
+              1,
+              toFiniteNumber(supportBonus.rangeMultiplier, 1),
+            ),
+          }
+        : null,
+    moduleCycles,
+  };
+}
+
 module.exports = {
+  // Living Universe
+  registerAmbientMiningFleet,
+  finalizeOnGridMiningSupport,
+  cleanupMiningFleetSupport,
+  estimateNpcMiningVolume,
+  getNpcOreCargoItems,
   appendNpcMiningCargo,
   clearNpcMiningCargo,
   getNpcOreCargoSummary,

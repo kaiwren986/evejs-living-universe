@@ -51,6 +51,14 @@ followBall(session, targetEntityID, range, options = {}) {
     return scene ? scene.followBall(session, targetEntityID, range, options) : false;
   },
 
+// Living Universe: send a native NPC hull to a point (the powered undock run).
+gotoDynamicEntityPoint(systemID, entityOrID, point, options = {}) {
+    const scene = this.ensureScene(systemID);
+    return scene
+      ? scene.gotoDynamicEntityPoint(entityOrID, point, options)
+      : false;
+  },
+
 followDynamicEntity(systemID, entityOrID, targetEntityID, range, options = {}) {
     const scene = this.ensureScene(systemID);
     return scene ? scene.followShipEntity(entityOrID, targetEntityID, range, options) : false;

@@ -974,6 +974,15 @@ function canPlayerCompanionActOnTarget(
   }
 
   const companionScope = getPlayerCompanionSecurityScope(companionEntity);
+  // Living Universe: an NPC pilot's transient drone fighting another NPC is not
+  // a player companion; the mod exempted it at the two combat call sites.
+  if (
+    companionEntity.transientNpcDrone === true &&
+    controllerEntity.nativeNpc === true &&
+    targetEntity.nativeNpc === true
+  ) {
+    return true;
+  }
   const controllerScope = getPlayerCompanionSecurityScope(controllerEntity, {
     controller: true,
   });
@@ -3759,6 +3768,10 @@ function persistDroneEntityState(entity) {
   if (!isDroneEntity(entity)) {
     return false;
   }
+  // Living Universe: a transient NPC drone has no inventory row to write back to.
+  if (entity.transientNpcDrone === true) {
+    return true;
+  }
   const result = updateInventoryItemSuccessOnly(entity.itemID, (currentItem) => ({
     ...currentItem,
     locationID: toInt(entity.systemID, toInt(currentItem.locationID, 0)),
@@ -4189,6 +4202,9 @@ function assignDroneCombatTask(scene, droneEntity, controllerEntity, targetEntit
   // keeps chasing its target past control range, as on TQ.
   if (
     !usesManualEngagePlan &&
+    // Living Universe: an NPC pilot's wing is tasked by the mod, which has no
+    // drone control range; the gate is for player drones.
+    droneEntity.transientNpcDrone !== true &&
     isTargetBeyondDroneControlRange(scene, controllerEntity, targetEntity, now)
   ) {
     return {
@@ -4460,6 +4476,161 @@ function clearRecalledDroneEntityState(droneEntity) {
   droneEntity.droneStateVisible = false;
   droneEntity.activityID = null;
   droneEntity.activity = null;
+}
+
+// Living Universe: an escort wing for an NPC pilot. The drones are runtime-only
+// (no inventory rows) and are tasked onto the target at once. From the mod.
+function spawnTransientNpcDroneWing(
+  scene,
+  controllerEntity,
+  targetEntity,
+  entries = [],
+  options = {},
+) {
+  if (!scene || !controllerEntity || !targetEntity) {
+    return {
+      success: false,
+      errorMsg: "NPC_DRONE_INVALID_CONTEXT",
+      droneEntityIDs: [],
+    };
+  }
+
+  const authored = (Array.isArray(entries) ? entries : [])
+    .flatMap((entry) =>
+      Array.from(
+        {
+          length: Math.max(
+            0,
+            Math.min(5, toInt(entry && entry.quantity, 0)),
+          ),
+        },
+        () => toInt(entry && entry.typeID, 0),
+      ),
+    )
+    .filter((typeID) => typeID > 0)
+    .slice(0, 5);
+  const spawnedIDs = [];
+  const errors = [];
+
+  for (let index = 0; index < authored.length; index += 1) {
+    const typeID = authored[index];
+    const typeRecord = resolveItemByTypeID(typeID);
+    if (
+      !typeRecord ||
+      toInt(typeRecord.categoryID, 0) !== DRONE_CATEGORY_ID
+    ) {
+      errors.push(`INVALID_DRONE_TYPE:${typeID}`);
+      continue;
+    }
+
+    const spaceState = buildDroneLaunchSpaceState(controllerEntity, index);
+    const spawnResult = getRuntime().spawnDynamicShip(
+      scene.systemID,
+      {
+        itemID: 0,
+        typeID,
+        groupID: toInt(typeRecord.groupID, 0),
+        categoryID: DRONE_CATEGORY_ID,
+        itemName: String(typeRecord.name || "Escort Drone"),
+        ownerID: toInt(controllerEntity.ownerID, 0),
+        characterID: 0,
+        pilotCharacterID: toInt(
+          controllerEntity.npcPilotCharacterID ??
+            controllerEntity.pilotCharacterID,
+          0,
+        ),
+        corporationID: toInt(controllerEntity.corporationID, 0),
+        allianceID: toInt(controllerEntity.allianceID, 0),
+        warFactionID: toInt(controllerEntity.warFactionID, 0),
+        radius: Math.max(1, toNumber(typeRecord.radius, 15)),
+        spaceState,
+        conditionState: {
+          shieldCharge: 1,
+          armorDamage: 0,
+          damage: 0,
+          charge: 1,
+        },
+        skillMap:
+          controllerEntity.skillMap instanceof Map
+            ? controllerEntity.skillMap
+            : undefined,
+      },
+      {
+        broadcast: false,
+        persistSpaceState: false,
+      },
+    );
+    const droneEntity =
+      spawnResult && spawnResult.success && spawnResult.data
+        ? spawnResult.data.entity
+        : null;
+    if (!droneEntity) {
+      errors.push(
+        (spawnResult && spawnResult.errorMsg) ||
+          `DRONE_SPAWN_FAILED:${typeID}`,
+      );
+      continue;
+    }
+
+    droneEntity.kind = "drone";
+    droneEntity.categoryID = DRONE_CATEGORY_ID;
+    hydrateDroneEntityFromItem(droneEntity, {
+      itemID: droneEntity.itemID,
+      typeID,
+      groupID: toInt(typeRecord.groupID, 0),
+      categoryID: DRONE_CATEGORY_ID,
+      itemName: String(typeRecord.name || "Escort Drone"),
+      ownerID: toInt(controllerEntity.ownerID, 0),
+      launcherID: toInt(controllerEntity.itemID, 0),
+      customInfo: "transientNpcEscortDrone",
+    });
+    droneEntity.transientNpcDrone = true;
+    droneEntity.persistSpaceState = false;
+    droneEntity.launcherID = toInt(controllerEntity.itemID, 0);
+    droneEntity.controllerID = toInt(controllerEntity.itemID, 0);
+    copyControllerIdentity(droneEntity, controllerEntity);
+    droneEntity.droneStateVisible = true;
+    if (scene.droneEntityIDs instanceof Set) {
+      scene.droneEntityIDs.add(droneEntity.itemID);
+    }
+    scene.broadcastAddBalls([droneEntity], null, {
+      freshAcquire: true,
+      minimumLeadFromCurrentHistory: 2,
+    });
+
+    const assignment = assignDroneCombatTask(
+      scene,
+      droneEntity,
+      controllerEntity,
+      targetEntity,
+      {
+        nowMs: options.nowMs,
+        autoAssigned: true,
+      },
+    );
+    if (!assignment.success) {
+      errors.push(
+        assignment.errorMsg || `DRONE_ASSIGNMENT_FAILED:${typeID}`,
+      );
+      scene.removeDynamicEntity(droneEntity.itemID, {
+        broadcast: true,
+        persistSpaceState: false,
+      });
+      continue;
+    }
+    spawnedIDs.push(droneEntity.itemID);
+  }
+
+  return {
+    success: spawnedIDs.length > 0 || authored.length === 0,
+    droneEntityIDs: spawnedIDs,
+    ...(errors.length > 0
+      ? {
+          errorMsg: errors.join(","),
+          errors,
+        }
+      : {}),
+  };
 }
 
 function buildDroneRecoveryItemPatch(item, customInfo = item && item.customInfo) {
@@ -8331,6 +8502,7 @@ function tickScene(scene, now) {
 }
 
 module.exports = {
+  spawnTransientNpcDroneWing, // Living Universe
   DRONE_CATEGORY_ID,
   DRONE_COMMAND_RETURN_BAY,
   DRONE_COMMAND_RETURN_HOME,
@@ -8378,6 +8550,7 @@ module.exports = {
   tickScene,
   stopDronesOfDepartedControllers,
   _testing: {
+    persistDroneEntityState, // Living Universe
     buildDroneAbyssalOwnershipCustomInfo,
     canPlayerCompanionActOnTarget,
     getDroneAssistAssignment,

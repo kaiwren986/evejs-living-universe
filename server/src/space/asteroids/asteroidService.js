@@ -1227,6 +1227,63 @@ function populateBeltField(scene, belt) {
   return spawned;
 }
 
+// Living Universe: build the same deterministic asteroid entities a live scene
+// gets, against a lightweight collector, so pilots can mine a belt nobody has
+// loaded. No scene, physics, bubbles or overview entries are created.
+function buildSystemAsteroidEntities(systemID, options = {}) {
+  const normalizedSystemID = toPositiveInt(systemID, 0);
+  if (normalizedSystemID <= 0) {
+    return {
+      success: false,
+      errorMsg: "SOLAR_SYSTEM_NOT_FOUND",
+    };
+  }
+
+  const requestedBeltIDs = new Set(
+    (Array.isArray(options.beltIDs) ? options.beltIDs : [])
+      .map((beltID) => toPositiveInt(beltID, 0))
+      .filter((beltID) => beltID > 0),
+  );
+  const allBelts = asteroidData.getBeltsForSystem(normalizedSystemID);
+  const belts =
+    requestedBeltIDs.size > 0
+      ? allBelts.filter((belt) =>
+          requestedBeltIDs.has(toPositiveInt(belt && belt.itemID, 0)),
+        )
+      : allBelts;
+  const maximumBelts = toPositiveInt(options.maximumBelts, 0);
+  const selectedBelts = maximumBelts > 0 ? belts.slice(0, maximumBelts) : belts;
+  const entityIDs = new Set();
+  const collector = {
+    systemID: normalizedSystemID,
+    staticEntities: [],
+    addStaticEntity(entity) {
+      const entityID = toPositiveInt(entity && entity.itemID, 0);
+      if (entityID <= 0 || entityIDs.has(entityID)) {
+        return false;
+      }
+      entityIDs.add(entityID);
+      this.staticEntities.push(entity);
+      return true;
+    },
+  };
+
+  for (const belt of selectedBelts) {
+    populateBeltField(collector, belt);
+  }
+
+  return {
+    success: true,
+    data: {
+      systemID: normalizedSystemID,
+      beltIDs: selectedBelts.map((belt) =>
+        toPositiveInt(belt && belt.itemID, 0),
+      ),
+      entities: collector.staticEntities,
+    },
+  };
+}
+
 function listGeneratedAsteroidEntities(scene) {
   if (!scene || !Array.isArray(scene.staticEntities)) {
     return [];
@@ -1313,6 +1370,7 @@ function resetSceneAsteroidFields(scene, options = {}) {
 }
 
 module.exports = {
+  buildSystemAsteroidEntities, // Living Universe
   handleSceneCreated,
   resetSceneAsteroidFields,
   _testing: {

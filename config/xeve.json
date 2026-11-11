@@ -1,0 +1,44 @@
+{
+  "familyEstate": {
+    "familyEstateEnabled": false,
+    "familyEstateLogisticsEnabled": false
+  },
+  "livingUniverse": {
+    "livingUniverseEnabled": true,
+    "livingUniversePopulationSize": 5000,
+    "livingUniverseMaxMaterializedPerSystem": 64,
+    "livingUniverseMaxMaterializedGlobal": 180,
+    "livingUniverseMaterializationsPerTick": 1,
+    "livingUniverseSchedulerBudgetMs": 8,
+    "livingUniverseMaxDueFlightsPerTick": 64,
+    "livingUniversePilotSyncBatchSize": 128,
+    "livingUniverseOffGridTravelTimeMultiplier": 1,
+    "livingUniverseOffGridActivityTimeMultiplier": 1
+  },
+  "livingEconomy": {
+    "livingEconomyEnabled": false,
+    "livingEconomyWorkBudgetMs": 4
+  },
+  "livingConflict": {
+    "livingConflictEnabled": false,
+    "livingConflictCampaignsEnabled": false,
+    "livingConflictRoamingEnabled": false
+  },
+  "industrialHirelings": {
+    "industrialHirelingsEnabled": false,
+    "industrialMiningCrewsEnabled": false,
+    "industrialMiningCrewsVirtualProductionEnabled": false
+  },
+  "liveEvents": {
+    "liveEventsEnabled": false
+  },
+  "xEve": {
+    "xEveEnabled": false,
+    "xEveSchedulerBudgetMs": 2,
+    "xEveTickWarningMs": 120,
+    "xEveTickOverloadMs": 130,
+    "xEveEmergencyShedMs": 500,
+    "xEveRecoveryThresholdMs": 119,
+    "xEveRecoverySeconds": 5
+  }
+}

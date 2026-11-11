@@ -1803,6 +1803,317 @@ function applyMiningDelta(scene, entity, minedQuantity, wastedQuantity, options 
   };
 }
 
+// Living Universe: off-grid mining. Baseline rows for belts and generated sites
+// nobody has loaded, and batches mined against those rows while the scene is
+// unloaded. Taken from the mod unchanged.
+const {
+  createVirtualMiningTransactionService,
+} = require("./virtualMiningTransactions");
+function buildPersistedAsteroidBaselines(
+  systemID,
+  entities,
+  existingEntities = {},
+  nowMs = Date.now(),
+) {
+  const normalizedSystemID = toInt(systemID, 0);
+  const normalizedExisting =
+    existingEntities && typeof existingEntities === "object"
+      ? cloneValue(existingEntities)
+      : {};
+  const logicalScene = {
+    systemID: normalizedSystemID,
+  };
+  let generatedCount = 0;
+  let seededCount = 0;
+
+  for (const entity of Array.isArray(entities) ? entities : []) {
+    if (!isMineableStaticEntity(entity) || !shouldPersistMineableState(entity)) {
+      continue;
+    }
+    generatedCount += 1;
+    const entityID = toInt(entity && entity.itemID, 0);
+    if (entityID <= 0 || normalizedExisting[String(entityID)]) {
+      continue;
+    }
+    const baseline = buildMineableState(logicalScene, entity, null);
+    if (!baseline) {
+      continue;
+    }
+    baseline.updatedAtMs = Math.max(0, toInt(nowMs, Date.now()));
+    normalizedExisting[String(entityID)] = baseline;
+    seededCount += 1;
+  }
+
+  return {
+    entities: normalizedExisting,
+    generatedCount,
+    seededCount,
+  };
+}
+
+// Establish deterministic, full-quantity baseline rows for authored asteroid
+// belts. Existing (including partially depleted) rows always win. This gives
+// off-grid miners a real resource ledger while keeping the solar-system scene
+// unloaded and therefore costs no physics or visibility budget.
+function ensurePersistedAsteroidBaselines(systemID, options = {}) {
+  const normalizedSystemID = toInt(systemID, 0);
+  if (normalizedSystemID <= 0) {
+    return {
+      success: false,
+      errorMsg: "SOLAR_SYSTEM_NOT_FOUND",
+    };
+  }
+
+  const asteroidService = require(path.join(__dirname, "../../space/asteroids"));
+  const buildResult = asteroidService.buildSystemAsteroidEntities(
+    normalizedSystemID,
+    {
+      beltIDs: options.beltIDs,
+      maximumBelts: options.maximumBelts,
+    },
+  );
+  if (!buildResult || buildResult.success !== true) {
+    return (
+      buildResult || {
+        success: false,
+        errorMsg: "ASTEROID_BASELINE_BUILD_FAILED",
+      }
+    );
+  }
+
+  const existingEntities = readPersistedSystemEntities(normalizedSystemID);
+  const baseline = buildPersistedAsteroidBaselines(
+    normalizedSystemID,
+    buildResult.data && buildResult.data.entities,
+    existingEntities,
+    options.nowMs,
+  );
+  if (baseline.seededCount > 0) {
+    const writeResult = repo.write(
+      MINING_RUNTIME_TABLE,
+      `/systems/${String(normalizedSystemID)}/entities`,
+      baseline.entities,
+    );
+    if (!writeResult || writeResult.success !== true) {
+      return (
+        writeResult || {
+          success: false,
+          errorMsg: "ASTEROID_BASELINE_WRITE_FAILED",
+        }
+      );
+    }
+    if (options.flush !== false && typeof repo.flushTableSync === "function") {
+      const flushResult = repo.flushTableSync(MINING_RUNTIME_TABLE);
+      if (!flushResult || flushResult.success !== true) {
+        return (
+          flushResult || {
+            success: false,
+            errorMsg: "ASTEROID_BASELINE_FLUSH_FAILED",
+          }
+        );
+      }
+    }
+  }
+
+  return {
+    success: true,
+    data: {
+      systemID: normalizedSystemID,
+      beltIDs: Array.isArray(buildResult.data && buildResult.data.beltIDs)
+        ? [...buildResult.data.beltIDs]
+        : [],
+      generatedCount: baseline.generatedCount,
+      seededCount: baseline.seededCount,
+      persistedCount: Object.keys(baseline.entities).length,
+    },
+  };
+}
+
+// Establish off-grid baseline rows for deterministic generated ice/gas sites.
+// Existing rows always win so a server restart cannot replenish depletion.
+function ensurePersistedGeneratedResourceBaselines(
+  systemID,
+  definitions,
+  options = {},
+) {
+  const normalizedSystemID = toInt(systemID, 0);
+  if (normalizedSystemID <= 0) {
+    return { success: false, errorMsg: "SOLAR_SYSTEM_NOT_FOUND" };
+  }
+  const existingEntities = readPersistedSystemEntities(normalizedSystemID);
+  const nextEntities = cloneValue(existingEntities);
+  let generatedCount = 0;
+  let seededCount = 0;
+  for (const definition of Array.isArray(definitions) ? definitions : []) {
+    if (
+      toInt(definition && definition.solarSystemID, 0) !== normalizedSystemID
+    ) {
+      continue;
+    }
+    const yieldKind = String(definition && definition.family || "")
+      .trim()
+      .toLowerCase();
+    const beltID = toInt(definition && definition.siteID, 0);
+    if (!yieldKind || beltID <= 0) {
+      continue;
+    }
+    for (const member of Array.isArray(definition.members)
+      ? definition.members
+      : []) {
+      const entityID = toInt(member && member.entityID, 0);
+      const originalQuantity = Math.max(
+        1,
+        toInt(member && member.originalQuantity, 1),
+      );
+      if (entityID <= 0) {
+        continue;
+      }
+      generatedCount += 1;
+      if (nextEntities[String(entityID)]) {
+        continue;
+      }
+      nextEntities[String(entityID)] = normalizeStateRecord({
+        entityID,
+        visualTypeID: toInt(member && member.visualTypeID, 0),
+        beltID,
+        fieldStyleID: null,
+        yieldTypeID: toInt(member && member.yieldTypeID, 0),
+        yieldKind,
+        unitVolume: Math.max(
+          0.000001,
+          toFiniteNumber(member && member.unitVolume, 1),
+        ),
+        originalQuantity,
+        remainingQuantity: Math.max(
+          0,
+          Math.min(
+            originalQuantity,
+            toInt(member && member.remainingQuantity, originalQuantity),
+          ),
+        ),
+        originalRadius: Math.max(
+          1,
+          toFiniteNumber(member && member.originalRadius, 1),
+        ),
+        updatedAtMs: Math.max(0, toInt(options.nowMs, Date.now())),
+      });
+      seededCount += 1;
+    }
+  }
+  if (seededCount > 0) {
+    const writeResult = repo.write(
+      MINING_RUNTIME_TABLE,
+      `/systems/${String(normalizedSystemID)}/entities`,
+      nextEntities,
+    );
+    if (!writeResult || writeResult.success !== true) {
+      return (
+        writeResult || {
+          success: false,
+          errorMsg: "RESOURCE_BASELINE_WRITE_FAILED",
+        }
+      );
+    }
+    if (options.flush !== false && typeof repo.flushTableSync === "function") {
+      const flushResult = repo.flushTableSync(MINING_RUNTIME_TABLE);
+      if (!flushResult || flushResult.success !== true) {
+        return (
+          flushResult || {
+            success: false,
+            errorMsg: "RESOURCE_BASELINE_FLUSH_FAILED",
+          }
+        );
+      }
+    }
+  }
+  return {
+    success: true,
+    data: {
+      systemID: normalizedSystemID,
+      generatedCount,
+      seededCount,
+      persistedCount: Object.keys(nextEntities).length,
+    },
+  };
+}
+
+const virtualMiningTransactionService = createVirtualMiningTransactionService({
+  repository: repo,
+  tableName: MINING_RUNTIME_TABLE,
+  normalizeStateRecord,
+});
+
+function applyPersistedMiningBatch(request, options = {}) {
+  return virtualMiningTransactionService.applyPersistedMiningBatch(
+    request,
+    options,
+  );
+}
+
+function syncPersistedMiningBatchToScene(scene, transaction, options = {}) {
+  if (!scene || !transaction || !Array.isArray(transaction.results)) {
+    return {
+      success: false,
+      errorMsg: "MINING_SCENE_SYNC_INPUT_INVALID",
+    };
+  }
+  const cache = ensureSceneMiningState(scene);
+  if (!cache) {
+    return {
+      success: false,
+      errorMsg: "MINING_SCENE_STATE_NOT_FOUND",
+    };
+  }
+  const persisted = readPersistedSystemEntities(scene.systemID);
+  let syncedCount = 0;
+  for (const row of transaction.results) {
+    const entityID = toInt(row && row.entityID, 0);
+    if (entityID <= 0 || toInt(row && row.acceptedQuantity, 0) <= 0) {
+      continue;
+    }
+    const state = persisted[String(entityID)];
+    if (!state) {
+      continue;
+    }
+    const entity =
+      typeof scene.getEntityByID === "function"
+        ? scene.getEntityByID(entityID)
+        : Array.isArray(scene.staticEntities)
+          ? scene.staticEntities.find(
+              (candidate) =>
+                toInt(candidate && candidate.itemID, 0) === entityID,
+            )
+          : null;
+    if (!entity) {
+      cache.byEntityID.set(entityID, normalizeStateRecord(state));
+      cache.persistedByEntityID[String(entityID)] = cloneValue(state);
+      syncedCount += 1;
+      continue;
+    }
+    const updateResult = updateMineableState(scene, entity, state, {
+      broadcast: options.broadcast === true,
+      nowMs: options.nowMs,
+    });
+    if (updateResult && updateResult.success === true) {
+      syncedCount += 1;
+    }
+  }
+  return {
+    success: true,
+    data: {
+      systemID: toInt(scene.systemID, 0),
+      syncedCount,
+    },
+  };
+}
+
+function readPersistedMiningTransaction(systemID, transactionID) {
+  return virtualMiningTransactionService.readTransaction(
+    systemID,
+    transactionID,
+  );
+}
+
 function clearPersistedSystemState(systemID) {
   const normalizedSystemID = toInt(systemID, 0);
   if (normalizedSystemID <= 0) {
@@ -2044,6 +2355,12 @@ module.exports = {
   summarizeSceneMiningState,
   resetSceneMiningState,
   readPersistedSystemEntities,
+  // Living Universe
+  applyPersistedMiningBatch,
+  syncPersistedMiningBatchToScene,
+  ensurePersistedAsteroidBaselines,
+  ensurePersistedGeneratedResourceBaselines,
+  readPersistedMiningTransaction,
   readPersistedBeltGeneration,
   persistBeltGeneration,
   upgradeBeltGenerationGeometry,

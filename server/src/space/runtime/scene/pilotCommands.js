@@ -223,6 +223,31 @@ alignTo(session, targetEntityID) {
     return result;
   },
 
+// Living Universe: send a native NPC hull to a point (the powered undock run).
+gotoDynamicEntityPoint(entityOrID, point, options = {}) {
+    const entity =
+      entityOrID && typeof entityOrID === "object"
+        ? entityOrID
+        : this.getEntityByID(entityOrID);
+    if (
+      !entity ||
+      entity.nativeNpc !== true ||
+      (entity.kind !== "ship" && entity.kind !== "fighter") ||
+      entity.mode === "WARP" ||
+      entity.pendingDock ||
+      !point ||
+      !["x", "y", "z"].every((axis) => Number.isFinite(Number(point[axis])))
+    ) {
+      return false;
+    }
+    return require("../destinyMovementEngine").dispatchGotoPointEntity(
+      this,
+      entity,
+      point,
+      options,
+    );
+  },
+
 followShipEntity(entityOrID, targetEntityID, range = 0, options = {}) {
     return dispatchFollowShipEntity(
       this,
